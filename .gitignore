@@ -8,7 +8,7 @@ dist/
 doc/build
 *.DS_Store
 *.pyc
-neutron.egg-info/
+*.egg-info/
 neutron/vcsversion.py
 neutron/versioninfo
 pbr*.egg/
