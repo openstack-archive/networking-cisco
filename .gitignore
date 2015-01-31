@@ -15,6 +15,7 @@ pbr*.egg/
 quantum.egg-info/
 quantum/vcsversion.py
 quantum/versioninfo
+src/
 setuptools*.egg/
 *.log
 *.mo
