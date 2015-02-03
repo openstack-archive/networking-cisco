@@ -16,8 +16,9 @@
 import collections
 import testtools
 
-from neutron.plugins.ml2.drivers.cisco.nexus import exceptions
-from neutron.plugins.ml2.drivers.cisco.nexus import nexus_db_v2
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import exceptions
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import nexus_db_v2
+
 from neutron.tests.unit import testlib_api
 
 

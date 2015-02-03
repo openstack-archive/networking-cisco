@@ -16,11 +16,14 @@
 
 import sqlalchemy.orm.exc as sa_exc
 
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    exceptions as c_exc)
+from neutron.plugins.ml2.drivers.cisco.nexus import (
+    nexus_models_v2)
+
 import neutron.db.api as db
 from neutron.i18n import _LW
 from neutron.openstack.common import log as logging
-from neutron.plugins.ml2.drivers.cisco.nexus import exceptions as c_exc
-from neutron.plugins.ml2.drivers.cisco.nexus import nexus_models_v2
 
 
 LOG = logging.getLogger(__name__)

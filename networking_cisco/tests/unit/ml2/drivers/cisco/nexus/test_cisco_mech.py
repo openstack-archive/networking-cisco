@@ -18,6 +18,15 @@ import mock
 
 import webob.exc as wexc
 
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    config as cisco_config)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    exceptions as c_exc)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    nexus_db_v2)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    nexus_network_driver)
+
 from neutron.api.v2 import base
 from neutron import context
 from neutron.extensions import portbindings
@@ -26,11 +35,7 @@ from neutron.openstack.common import log as logging
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import driver_api as api
 from neutron.plugins.ml2 import driver_context
-from neutron.plugins.ml2.drivers.cisco.nexus import config as cisco_config
-from neutron.plugins.ml2.drivers.cisco.nexus import exceptions as c_exc
 from neutron.plugins.ml2.drivers.cisco.nexus import mech_cisco_nexus
-from neutron.plugins.ml2.drivers.cisco.nexus import nexus_db_v2
-from neutron.plugins.ml2.drivers.cisco.nexus import nexus_network_driver
 from neutron.tests.unit.ml2 import test_ml2_plugin
 
 

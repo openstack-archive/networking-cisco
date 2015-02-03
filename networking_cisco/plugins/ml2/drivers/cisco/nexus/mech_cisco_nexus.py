@@ -24,10 +24,15 @@ from neutron.extensions import portbindings
 from neutron.openstack.common import log as logging
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import driver_api as api
-from neutron.plugins.ml2.drivers.cisco.nexus import config as conf
-from neutron.plugins.ml2.drivers.cisco.nexus import exceptions as excep
-from neutron.plugins.ml2.drivers.cisco.nexus import nexus_db_v2 as nxos_db
-from neutron.plugins.ml2.drivers.cisco.nexus import nexus_network_driver
+
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    config as conf)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    exceptions as excep)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    nexus_db_v2 as nxos_db)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    nexus_network_driver)
 
 LOG = logging.getLogger(__name__)
 

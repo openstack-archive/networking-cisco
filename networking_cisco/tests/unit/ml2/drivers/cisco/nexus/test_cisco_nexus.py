@@ -18,14 +18,16 @@ import mock
 from oslo_utils import importutils
 import testtools
 
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    nexus_network_driver)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import constants
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import exceptions
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import mech_cisco_nexus
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import nexus_db_v2
+
 from neutron.common import constants as n_const
 from neutron.extensions import portbindings
 from neutron.plugins.ml2 import driver_api as api
-from neutron.plugins.ml2.drivers.cisco.nexus import constants
-from neutron.plugins.ml2.drivers.cisco.nexus import exceptions
-from neutron.plugins.ml2.drivers.cisco.nexus import mech_cisco_nexus
-from neutron.plugins.ml2.drivers.cisco.nexus import nexus_db_v2
-from neutron.plugins.ml2.drivers.cisco.nexus import nexus_network_driver
 from neutron.tests.unit import testlib_api
 
 
@@ -52,7 +54,7 @@ DEVICE_OWNER = 'compute:test'
 NEXUS_SSH_PORT = '22'
 PORT_STATE = n_const.PORT_STATUS_ACTIVE
 NETWORK_TYPE = 'vlan'
-NEXUS_DRIVER = ('neutron.plugins.ml2.drivers.cisco.nexus.'
+NEXUS_DRIVER = ('networking_cisco.plugins.ml2.drivers.cisco.nexus.'
                 'nexus_network_driver.CiscoNexusDriver')
 
 
