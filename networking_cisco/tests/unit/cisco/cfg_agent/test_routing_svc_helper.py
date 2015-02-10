@@ -14,8 +14,8 @@
 
 import copy
 import mock
-from oslo.config import cfg
-from oslo import messaging
+from oslo_config import cfg
+import oslo_messaging
 
 from neutron.common import config as base_config
 from neutron.common import constants as l3_constants
@@ -580,7 +580,8 @@ class TestBasicRoutingOperations(base.BaseTestCase):
     @mock.patch("eventlet.GreenPool.spawn_n")
     def test_process_services_with_rpc_error(self, mock_spawn):
         router, port = prepare_router_data()
-        self.plugin_api.get_routers.side_effect = messaging.MessagingException
+        self.plugin_api.get_routers.side_effect = (
+            oslo_messaging.MessagingException)
         self.routing_helper.fullsync = False
         self.routing_helper.updated_routers.add(router['id'])
         self.routing_helper.process_service()
