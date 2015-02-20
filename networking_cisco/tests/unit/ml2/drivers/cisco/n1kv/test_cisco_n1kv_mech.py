@@ -1,4 +1,4 @@
-# Copyright (c) 2014 OpenStack Foundation
+# Copyright (c) 2015 Cisco Systems, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,6 +28,8 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     n1kv_sync)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     policy_profile_service)
+from networking_cisco.tests.unit.ml2.drivers.cisco.n1kv import (
+    fake_client)
 
 from neutron.extensions import portbindings
 from neutron.plugins.common import constants as p_const
@@ -46,22 +48,8 @@ VLAN_MIN = 100
 VLAN_MAX = 500
 VXLAN_MIN = 5000
 VXLAN_MAX = 6000
-
-
-class FakeResponse(object):
-    """This obj is returned by mocked requests lib instead of normal response.
-
-    Initialize it with the status code, header and buffer contents you wish to
-    return.
-
-    """
-    def __init__(self, status, response_text, headers):
-        self.buffer = response_text
-        self.status_code = status
-        self.headers = headers
-
-    def json(self, *args, **kwargs):
-        return self.buffer
+# Set to this based on fake_client, change there before changing here
+DEFAULT_PP = 'pp-1'
 
 
 # Mock for policy profile polling method- only does single call to populate
@@ -79,6 +67,8 @@ class TestN1KVMechanismDriver(
     DEFAULT_RESP_CODE = 200
     DEFAULT_CONTENT_TYPE = ""
     fmt = "json"
+    shared = False
+    upd_shared = False
 
     def setUp(self):
 
@@ -90,7 +80,8 @@ class TestN1KVMechanismDriver(
         ml2_cisco_opts = {
             'n1kv_vsm_ips': ['127.0.0.1'],
             'username': ['admin'],
-            'password': ['Sfish123']
+            'password': ['Sfish123'],
+            'default_policy_profile': DEFAULT_PP
         }
         for opt, val in ml2_opts.items():
             ml2_config.cfg.CONF.set_override(opt, val, 'ml2')
@@ -109,36 +100,32 @@ class TestN1KVMechanismDriver(
                                            [vxrange],
                                            'ml2_type_vxlan')
 
-        if not self.DEFAULT_RESP_BODY:
-            self.DEFAULT_RESP_BODY = {
-                "icehouse-pp": {
-                    "properties": {
-                        "name": "icehouse-pp",
-                        "id": "00000000-0000-0000-0000-000000000000"}},
-                "default-pp": {
-                    "properties": {
-                        "name": "default-pp",
-                        "id": "00000000-0000-0000-0000-000000000001"}},
-                "dhcp_pp": {
-                    "properties": {
-                        "name": "dhcp_pp",
-                        "id": "00000000-0000-0000-0000-000000000002"}},
-            }
+        # Create a mock for all client operations. The N1KV client interacts
+        # with the VSM via HTTP. Since we don't have a VSM running in the unit
+        # tests, we need to 'fake' it by patching the client library itself.
+        # We install a patch with a class that overrides the _do_request
+        # function with something that verifies the values passed in and
+        # returning the results of that verification. Using __name__ to
+        # avoid having to enter the full module path.
 
-        # Creating a mock HTTP connection object for requests lib. The N1KV
-        # client interacts with the VSM via HTTP. Since we don't have a VSM
-        # running in the unit tests, we need to 'fake' it by patching the HTTP
-        # library itself. We install a patch for a fake HTTP connection class.
-        # Using __name__ to avoid having to enter the full module path.
-        http_patcher = mock.patch(n1kv_client.requests.__name__ + ".request")
-        FakeHttpConnection = http_patcher.start()
-        # Now define the return values for a few functions that may be called
-        # on any instance of the fake HTTP connection class.
-        self.resp_headers = {"content-type": "application/json"}
-        FakeHttpConnection.return_value = (FakeResponse(
-                                           self.DEFAULT_RESP_CODE,
-                                           self.DEFAULT_RESP_BODY,
-                                           self.resp_headers))
+        # For shared networks we need to use a different mock so that we
+        # can check that the tenant_id override works correctly.
+        if self.shared:
+            client_patch = mock.patch(n1kv_client.__name__ + ".Client",
+                                      new=fake_client.TestClientSharedNetwork)
+            client_patch.start()
+        # For tests that update the network to be shared, we need to have a
+        # separate mock that initially checks the network create as normal
+        # then verifies the tenant_id is set to 0 as expected on update.
+        elif self.upd_shared:
+            client_patch = mock.patch(n1kv_client.__name__ + ".Client",
+                new=fake_client.TestClientUpdateSharedNetwork)
+            client_patch.start()
+        # Normal mock for most test cases- verifies request parameters.
+        else:
+            client_patch = mock.patch(n1kv_client.__name__ + ".Client",
+                                      new=fake_client.TestClient)
+            client_patch.start()
         # Create a mock for FullSync since there is no VSM at the time of UT.
         sync_patcher = mock.patch(n1kv_sync.
                                   __name__ + ".N1kvSyncDriver.do_sync")
@@ -189,6 +176,22 @@ class TestN1KVMechDriverHTTPResponse(test_db_base_plugin_v2.TestV2HTTPResponse,
 class TestN1KVMechDriverNetworksV2(test_db_base_plugin_v2.TestNetworksV2,
                                    TestN1KVMechanismDriver):
 
+    _shared_network_test_cases = (
+        'test_create_public_network',
+        'test_create_public_network_no_admin_tenant')
+    _update_shared_network_test_cases = (
+        'test_update_shared_network_noadmin_returns_403',
+        'test_update_network_set_shared',
+        'test_update_network_set_shared_owner_returns_403',
+        'test_update_network_with_subnet_set_shared')
+
+    def setUp(self):
+        if self._testMethodName in self._shared_network_test_cases:
+            self.shared = True
+        elif self._testMethodName in self._update_shared_network_test_cases:
+            self.upd_shared = True
+        super(TestN1KVMechDriverNetworksV2, self).setUp()
+
     def test_create_network_with_default_n1kv_network_profile_id(self):
         """Test network create without passing network profile id."""
         with self.network() as network:
@@ -217,7 +220,7 @@ class TestN1KVMechDriverPortsV2(test_db_base_plugin_v2.TestPortsV2,
     def test_create_port_with_default_n1kv_policy_profile_id(self):
         """Test port create without passing policy profile id."""
         with self.port() as port:
-            pp = n1kv_db.get_policy_profile_by_name('default-pp')
+            pp = n1kv_db.get_policy_profile_by_name(DEFAULT_PP)
             profile_binding = n1kv_db.get_policy_binding(port['port']['id'])
             self.assertEqual(profile_binding.profile_id, pp['id'])
 
