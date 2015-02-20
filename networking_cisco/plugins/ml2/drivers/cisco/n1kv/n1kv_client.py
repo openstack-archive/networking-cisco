@@ -272,6 +272,9 @@ class Client(object):
                 'mode': 'access',
                 'segmentType': network_profile.segment_type,
                 'networkSegmentPool': network_profile.id}
+        # Override tenantId if network is shared
+        if network['shared']:
+            body['tenantId'] = '0'
         if network[providernet.NETWORK_TYPE] == p_const.TYPE_VLAN:
             body['vlan'] = network[providernet.SEGMENTATION_ID]
         elif network[providernet.NETWORK_TYPE] == p_const.TYPE_VXLAN:
@@ -295,7 +298,10 @@ class Client(object):
 
         :param updated_network: updated network dict
         """
-        body = {'description': updated_network['name']}
+        body = {'description': updated_network['name'],
+                'tenantId': updated_network['tenant_id']}
+        if updated_network['shared']:
+            body['tenantId'] = '0'
         return self._post(self.network_segment_path % updated_network['id'],
                           body=body)
 

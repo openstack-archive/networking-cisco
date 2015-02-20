@@ -175,8 +175,10 @@ class N1KVMechanismDriver(api.MechanismDriver):
         if not self._is_segment_valid_for_n1kv(segment['segmentation_id'],
                                                network_type):
             return
-        # Perform network update on VSM in case of network name change only.
-        if updated_network['name'] != old_network['name']:
+        modifiable_vals = ['name', 'shared']
+        # Perform network update on VSM only if a modifiable value changed.
+        if any(updated_network[val] != old_network[val]
+               for val in modifiable_vals):
             try:
                 self.n1kvclient.update_network_segment(updated_network)
             except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed) as e:
