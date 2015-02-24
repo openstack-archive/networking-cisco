@@ -1,0 +1,10 @@
+Neutron ML2 Cisco Nexus1000V Mechanism Driver
+
+
+Notes:
+
+The initial version of this driver supports only a single physical
+network.
+
+For more details on using Cisco Nexus1000V switches under ML2 please refer to:
+http://wiki.openstack.org/wiki/Neutron/ML2/MechCiscoNexus1000V
