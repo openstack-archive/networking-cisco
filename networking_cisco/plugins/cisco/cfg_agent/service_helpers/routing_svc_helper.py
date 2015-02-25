@@ -26,10 +26,12 @@ from neutron.common import utils as common_utils
 from neutron import context as n_context
 from neutron.i18n import _LE, _LI, _LW
 from neutron.openstack.common import log as logging
-from neutron.plugins.cisco.cfg_agent import cfg_exceptions
-from neutron.plugins.cisco.cfg_agent.device_drivers import driver_mgr
-from neutron.plugins.cisco.cfg_agent import device_status
-from neutron.plugins.cisco.common import cisco_constants as c_constants
+
+from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
+from networking_cisco.plugins.cisco.cfg_agent.device_drivers import driver_mgr
+from networking_cisco.plugins.cisco.cfg_agent import device_status
+from networking_cisco.plugins.cisco.common import (
+    cisco_constants as c_constants)
 
 LOG = logging.getLogger(__name__)
 
@@ -410,7 +412,8 @@ class RoutingServiceHelper(object):
 
         :param ri : RouterInfo object of the router being processed.
         :return:None
-        :raises: neutron.plugins.cisco.cfg_agent.cfg_exceptions.DriverException
+        :raises:
+            networking_cisco.plugins.cisco.cfg_agent.cfg_exceptions.DriverException
         if the configuration operation fails.
         """
         try:
@@ -462,7 +465,8 @@ class RoutingServiceHelper(object):
         :param ri:  RouterInfo object of the router being processed.
         :param ex_gw_port: Port dict of the external gateway port.
         :return: None
-        :raises: neutron.plugins.cisco.cfg_agent.cfg_exceptions.DriverException
+        :raises: networking_cisco.plugins.cisco.cfg_agent.cfg_exceptions.
+        DriverException
         if the configuration operation fails.
         """
 
@@ -601,7 +605,8 @@ class RoutingServiceHelper(object):
         logical router in the hosting device accordingly.
         :param ri: RouterInfo corresponding to the router.
         :return: None
-        :raises: neutron.plugins.cisco.cfg_agent.cfg_exceptions.DriverException
+        :raises:
+            networking_cisco.plugins.cisco.cfg_agent.cfg_exceptions.DriverException
         if the configuration operation fails.
         """
         new_routes = ri.router['routes']

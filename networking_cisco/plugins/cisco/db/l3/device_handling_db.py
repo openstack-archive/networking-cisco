@@ -30,10 +30,12 @@ from neutron.i18n import _LE, _LI, _LW
 from neutron import manager
 from neutron.openstack.common import log as logging
 from neutron.openstack.common import uuidutils
-from neutron.plugins.cisco.common import cisco_constants as c_constants
 from neutron.plugins.cisco.db.l3 import l3_models
-from neutron.plugins.cisco.l3 import service_vm_lib
 from neutron.plugins.common import constants as svc_constants
+
+from networking_cisco.plugins.cisco.common import (
+    cisco_constants as c_constants)
+from networking_cisco.plugins.cisco.l3 import service_vm_lib
 
 LOG = logging.getLogger(__name__)
 
@@ -61,23 +63,25 @@ CSR1KV_OPTS = [
     cfg.StrOpt('csr1kv_flavor', default=621,
                help=_('UUID of Nova flavor for CSR1kv.')),
     cfg.StrOpt('csr1kv_plugging_driver',
-               default=('neutron.plugins.cisco.l3.plugging_drivers.'
+               default=('networking_cisco.plugins.cisco.l3.plugging_drivers.'
                         'n1kv_trunking_driver.N1kvTrunkingPlugDriver'),
                help=_('Plugging driver for CSR1kv.')),
     cfg.StrOpt('csr1kv_device_driver',
-               default=('neutron.plugins.cisco.l3.hosting_device_drivers.'
-                        'csr1kv_hd_driver.CSR1kvHostingDeviceDriver'),
+               default=(
+                    'networking_cisco.plugins.cisco.l3.hosting_device_drivers.'
+                    'csr1kv_hd_driver.CSR1kvHostingDeviceDriver'),
                help=_('Hosting device driver for CSR1kv.')),
     cfg.StrOpt('csr1kv_cfgagent_router_driver',
-               default=('neutron.plugins.cisco.cfg_agent.device_drivers.'
-                        'csr1kv.csr1kv_routing_driver.CSR1kvRoutingDriver'),
+               default=(
+                    'networking_cisco.plugins.cisco.cfg_agent.device_drivers.'
+                    'csr1kv.csr1kv_routing_driver.CSR1kvRoutingDriver'),
                help=_('Config agent driver for CSR1kv.')),
     cfg.IntOpt('csr1kv_booting_time', default=420,
                help=_('Booting time in seconds before a CSR1kv '
                       'becomes operational.')),
     cfg.StrOpt('csr1kv_username', default='stack',
                help=_('Username to use for CSR1kv configurations.')),
-    cfg.StrOpt('csr1kv_password', default='cisco',
+    cfg.StrOpt('csr1kv_password', default='cisco', secret=True,
                help=_('Password to use for CSR1kv configurations.'))
 ]
 

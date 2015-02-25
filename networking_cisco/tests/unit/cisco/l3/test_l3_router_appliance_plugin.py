@@ -24,24 +24,26 @@ from neutron.db import agents_db
 from neutron.db import common_db_mixin
 from neutron.extensions import providernet as pnet
 from neutron import manager
-from neutron.plugins.cisco.common import cisco_constants as c_constants
-from neutron.plugins.cisco.db.l3 import device_handling_db
-from neutron.plugins.cisco.db.l3 import l3_router_appliance_db
-from neutron.plugins.cisco.l3.rpc import devices_cfgagent_rpc_cb
-from neutron.plugins.cisco.l3.rpc import l3_router_cfgagent_rpc_cb
-from neutron.plugins.cisco.l3 import service_vm_lib
 from neutron.plugins.common import constants as service_constants
-from neutron.tests.unit.cisco.l3 import device_handling_test_support
 from neutron.tests.unit import test_db_plugin
 from neutron.tests.unit import test_extension_extraroute as test_ext_extraroute
 from neutron.tests.unit import test_l3_plugin
 from neutron.tests.unit import testlib_plugin
 
+from networking_cisco.plugins.cisco.common import (
+    cisco_constants as c_constants)
+from networking_cisco.plugins.cisco.db.l3 import device_handling_db
+from networking_cisco.plugins.cisco.db.l3 import l3_router_appliance_db
+from networking_cisco.plugins.cisco.l3.rpc import devices_cfgagent_rpc_cb
+from networking_cisco.plugins.cisco.l3.rpc import l3_router_cfgagent_rpc_cb
+from networking_cisco.plugins.cisco.l3 import service_vm_lib
+from networking_cisco.tests.unit.cisco import l3
+from networking_cisco.tests.unit.cisco.l3 import device_handling_test_support
 
-CORE_PLUGIN_KLASS = ('neutron.tests.unit.cisco.l3.'
+CORE_PLUGIN_KLASS = ('networking_cisco.tests.unit.cisco.l3.'
                      'test_l3_router_appliance_plugin.TestNoL3NatPlugin')
 L3_PLUGIN_KLASS = (
-    "neutron.tests.unit.cisco.l3.test_l3_router_appliance_plugin."
+    "networking_cisco.tests.unit.cisco.l3.test_l3_router_appliance_plugin."
     "TestApplianceL3RouterServicePlugin")
 extensions_path = neutron.plugins.__path__[0] + '/cisco/extensions'
 
@@ -175,11 +177,11 @@ class L3RouterApplianceTestCaseBase(
 
     def tearDown(self):
         self._remove_mgmt_nw_for_tests()
-        (neutron.tests.unit.cisco.l3.test_l3_router_appliance_plugin.
+        (l3.test_l3_router_appliance_plugin.
             TestApplianceL3RouterServicePlugin._mgmt_nw_uuid) = None
-        (neutron.tests.unit.cisco.l3.test_l3_router_appliance_plugin.
+        (l3.test_l3_router_appliance_plugin.
             TestApplianceL3RouterServicePlugin._refresh_router_backlog) = True
-        (neutron.tests.unit.cisco.l3.test_l3_router_appliance_plugin.
+        (l3.test_l3_router_appliance_plugin.
             TestApplianceL3RouterServicePlugin._nova_running) = False
         plugin = manager.NeutronManager.get_service_plugins()[
             service_constants.L3_ROUTER_NAT]
@@ -214,8 +216,8 @@ class CfgAgentRouterApplianceVMTestCase(L3RouterApplianceTestCaseBase,
 
     def _test_notify_op_agent(self, target_func, *args):
         l3_rpc_agent_api_str = (
-            'neutron.plugins.cisco.l3.rpc.l3_router_rpc_joint_agent_api'
-            '.L3RouterJointAgentNotifyAPI')
+            'networking_cisco.plugins.cisco.l3.rpc'
+            '.l3_router_rpc_joint_agent_api.L3RouterJointAgentNotifyAPI')
         plugin = manager.NeutronManager.get_service_plugins()[
             service_constants.L3_ROUTER_NAT]
         oldNotify = plugin.l3_cfg_rpc_notifier
@@ -309,7 +311,8 @@ class RouterSchedulingTestCase(L3RouterApplianceTestCaseBase,
         cfg_dh_rpc = devices_cfgagent_rpc_cb.DeviceCfgRpcCallbackMixin()
         cfg_dh_rpc._l3plugin = self.plugin
         with mock.patch(
-                'neutron.plugins.cisco.l3.rpc.l3_router_rpc_joint_agent_api.'
+                'networking_cisco.plugins.cisco.l3.rpc.'
+                'l3_router_rpc_joint_agent_api.'
                 'L3RouterJointAgentNotifyAPI.hosting_devices_removed') as (
                 mock_notify):
             with self.router() as router:

@@ -17,7 +17,8 @@ from oslo_utils import importutils
 
 from neutron.i18n import _LE
 from neutron.openstack.common import log as logging
-from neutron.plugins.cisco.cfg_agent import cfg_exceptions
+
+from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
 
 LOG = logging.getLogger(__name__)
 

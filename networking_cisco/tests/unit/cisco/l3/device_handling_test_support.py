@@ -26,6 +26,7 @@ from neutron.plugins.common import constants
 
 LOG = logging.getLogger(__name__)
 
+VM_LIB = 'networking_cisco.plugins.cisco.l3.service_vm_lib'
 
 _uuid = uuidutils.generate_uuid
 
@@ -39,7 +40,7 @@ class DeviceHandlingTestSupportMixin(object):
     def _mock_l3_admin_tenant(self):
         # Mock l3 admin tenant
         self.tenant_id_fcn_p = mock.patch(
-            'neutron.plugins.cisco.db.l3.device_handling_db.'
+            'networking_cisco.plugins.cisco.db.l3.device_handling_db.'
             'DeviceHandlingMixin.l3_tenant_id')
         self.tenant_id_fcn = self.tenant_id_fcn_p.start()
         self.tenant_id_fcn.return_value = "L3AdminTenantId"
@@ -104,7 +105,7 @@ class DeviceHandlingTestSupportMixin(object):
     def _mock_svc_vm_create_delete(self, plugin):
         # Mock novaclient methods for creation/deletion of service VMs
         mock.patch(
-            'neutron.plugins.cisco.l3.service_vm_lib.n_utils.find_resource',
+            VM_LIB + '.n_utils.find_resource',
             lambda *args, **kw: FakeResource()).start()
         self._nclient_services_mock = mock.MagicMock()
         self._nclient_services_mock.list = self._novaclient_services_list()
@@ -123,7 +124,7 @@ class DeviceHandlingTestSupportMixin(object):
                                   'no shutdown'])
         m = mock.mock_open(read_data=cfg_template)
         m.return_value.__iter__.return_value = cfg_template.splitlines()
-        mock.patch('neutron.plugins.cisco.l3.hosting_device_drivers.'
+        mock.patch('networking_cisco.plugins.cisco.l3.hosting_device_drivers.'
                    'csr1kv_hd_driver.open', m, create=True).start()
 
     def _test_remove_all_hosting_devices(self):

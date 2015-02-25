@@ -16,7 +16,8 @@ import logging
 
 from oslo_serialization import jsonutils
 
-from neutron.plugins.cisco.cfg_agent.device_drivers import devicedriver_api
+from networking_cisco.plugins.cisco.cfg_agent.device_drivers import (
+    devicedriver_api)
 
 LOG = logging.getLogger(__name__)
 

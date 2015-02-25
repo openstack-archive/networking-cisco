@@ -20,15 +20,12 @@ import oslo_messaging
 from neutron.common import config as base_config
 from neutron.common import constants as l3_constants
 from neutron.openstack.common import uuidutils
-from neutron.plugins.cisco.cfg_agent import cfg_agent
-from neutron.plugins.cisco.cfg_agent import cfg_exceptions
-from neutron.plugins.cisco.cfg_agent.service_helpers.routing_svc_helper import(
-    RouterInfo)
-from neutron.plugins.cisco.cfg_agent.service_helpers.routing_svc_helper import(
-    RoutingServiceHelper)
-
-
 from neutron.tests import base
+
+from networking_cisco.plugins.cisco.cfg_agent import cfg_agent
+from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
+from networking_cisco.plugins.cisco.cfg_agent.service_helpers import (
+    routing_svc_helper)
 
 
 _uuid = uuidutils.generate_uuid
@@ -94,13 +91,13 @@ class TestRouterInfo(base.BaseTestCase):
     def test_router_info_create(self):
         router_id = _uuid()
         fake_router = {}
-        ri = RouterInfo(router_id, fake_router)
+        ri = routing_svc_helper.RouterInfo(router_id, fake_router)
 
         self.assertTrue(ri.router_name().endswith(router_id))
 
     def test_router_info_create_with_router(self):
         router_id = _uuid()
-        ri = RouterInfo(router_id, self.router)
+        ri = routing_svc_helper.RouterInfo(router_id, self.router)
         self.assertTrue(ri.router_name().endswith(router_id))
         self.assertEqual(ri.router, self.router)
         self.assertEqual(ri._router, self.router)
@@ -110,7 +107,7 @@ class TestRouterInfo(base.BaseTestCase):
     def test_router_info_create_snat_disabled(self):
         router_id = _uuid()
         self.router['enable_snat'] = False
-        ri = RouterInfo(router_id, self.router)
+        ri = routing_svc_helper.RouterInfo(router_id, self.router)
         self.assertFalse(ri.snat_enabled)
 
 
@@ -148,7 +145,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         #Patches & Mocks
 
         self.l3pluginApi_cls_p = mock.patch(
-            'neutron.plugins.cisco.cfg_agent.service_helpers.'
+            'networking_cisco.plugins.cisco.cfg_agent.service_helpers.'
             'routing_svc_helper.CiscoRoutingPluginApi')
         l3plugin_api_cls = self.l3pluginApi_cls_p.start()
         self.plugin_api = mock.Mock()
@@ -159,7 +156,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.looping_call_p.start()
         mock.patch('neutron.common.rpc.create_connection').start()
 
-        self.routing_helper = RoutingServiceHelper(
+        self.routing_helper = routing_svc_helper.RoutingServiceHelper(
             HOST, self.conf, self.agent)
         self.routing_helper._internal_network_added = mock.Mock()
         self.routing_helper._external_gateway_added = mock.Mock()
@@ -191,7 +188,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.routing_helper._internal_network_added.side_effect = (
             cfg_exceptions.CSR1kvConfigException(**params))
         router, ports = prepare_router_data()
-        ri = RouterInfo(router['id'], router)
+        ri = routing_svc_helper.RouterInfo(router['id'], router)
         self.assertRaises(cfg_exceptions.CSR1kvConfigException,
                           self.routing_helper._process_router, ri)
 
@@ -204,7 +201,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
              'floating_ip_address': '8.8.8.8',
              'fixed_ip_address': '7.7.7.7',
              'port_id': _uuid()}]}
-        ri = RouterInfo(router['id'], router=router)
+        ri = routing_svc_helper.RouterInfo(router['id'], router=router)
         # Process with initial values
         self.routing_helper._process_router(ri)
         ex_gw_port = ri.router.get('gw_port')
@@ -273,7 +270,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         # driver.routes_updated was called with 'replace'(==add or replace)
         # and fake_route1
         router['routes'] = [fake_route1]
-        ri = RouterInfo(router['id'], router)
+        ri = routing_svc_helper.RouterInfo(router['id'], router)
         self.routing_helper._process_router(ri)
 
         self.driver.routes_updated.assert_called_with(ri, 'replace',
@@ -311,7 +308,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
 
     def test_process_router_internal_network_added_unexpected_error(self):
         router, ports = prepare_router_data()
-        ri = RouterInfo(router['id'], router=router)
+        ri = routing_svc_helper.RouterInfo(router['id'], router=router)
         # raise RuntimeError to simulate that an unexpected exception occurrs
         self.routing_helper._internal_network_added.side_effect = RuntimeError
         self.assertRaises(RuntimeError,
@@ -331,7 +328,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
 
     def test_process_router_internal_network_removed_unexpected_error(self):
         router, ports = prepare_router_data()
-        ri = RouterInfo(router['id'], router=router)
+        ri = routing_svc_helper.RouterInfo(router['id'], router=router)
         # add an internal port
         self.routing_helper._process_router(ri)
 
@@ -615,7 +612,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
                        'port_id': port_id,
                        'status': 'ACTIVE', }
         router[l3_constants.FLOATINGIP_KEY] = [floating_ip]
-        ri = RouterInfo(router['id'], router=router)
+        ri = routing_svc_helper.RouterInfo(router['id'], router=router)
 
         # Default add action
         self.routing_helper._process_router_floating_ips(ri, ex_gw_port)

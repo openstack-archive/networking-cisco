@@ -20,8 +20,9 @@ from neutron.openstack.common import uuidutils
 
 sys.modules['ncclient'] = mock.MagicMock()
 sys.modules['ciscoconfparse'] = mock.MagicMock()
-from neutron.plugins.cisco.cfg_agent import device_status
 from neutron.tests import base
+
+from networking_cisco.plugins.cisco.cfg_agent import device_status
 
 _uuid = uuidutils.generate_uuid
 

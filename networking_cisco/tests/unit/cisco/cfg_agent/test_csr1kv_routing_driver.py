@@ -21,13 +21,14 @@ from neutron.common import constants as l3_constants
 from neutron.openstack.common import uuidutils
 from neutron.tests import base
 
-from neutron.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
+from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
     cisco_csr1kv_snippets as snippets)
 sys.modules['ncclient'] = mock.MagicMock()
 sys.modules['ciscoconfparse'] = mock.MagicMock()
-from neutron.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
+from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
     csr1kv_routing_driver as csr_driver)
-from neutron.plugins.cisco.cfg_agent.service_helpers import routing_svc_helper
+from networking_cisco.plugins.cisco.cfg_agent.service_helpers import (
+    routing_svc_helper)
 
 _uuid = uuidutils.generate_uuid
 FAKE_ID = _uuid()

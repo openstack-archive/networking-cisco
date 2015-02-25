@@ -24,10 +24,12 @@ from ncclient import manager
 from oslo_config import cfg
 
 from neutron.i18n import _LE, _LI, _LW
-from neutron.plugins.cisco.cfg_agent import cfg_exceptions as cfg_exc
-from neutron.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
+
+from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions as cfg_exc
+from networking_cisco.plugins.cisco.cfg_agent.device_drivers import (
+    devicedriver_api)
+from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
     cisco_csr1kv_snippets as snippets)
-from neutron.plugins.cisco.cfg_agent.device_drivers import devicedriver_api
 
 LOG = logging.getLogger(__name__)
 
@@ -532,7 +534,7 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
         network
         :param vrf_name: VRF corresponding to this virtual router
         :return: True if configuration succeeded
-        :raises: neutron.plugins.cisco.cfg_agent.cfg_exceptions.
+        :raises: networking_cisco.plugins.cisco.cfg_agent.cfg_exceptions.
         CSR1kvConfigException
         """
         conn = self._get_connection()
@@ -669,7 +671,7 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
                 </rpc-error>
             </rpc-reply>
         :return: True if the config operation completed successfully
-        :raises: neutron.plugins.cisco.cfg_agent.cfg_exceptions.
+        :raises: networking_cisco.plugins.cisco.cfg_agent.cfg_exceptions.
         CSR1kvConfigException
         """
         LOG.debug("RPCReply for %(snippet_name)s is %(rpc_obj)s",

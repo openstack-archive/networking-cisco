@@ -19,12 +19,14 @@ from neutron.common import topics
 from neutron.db import agents_db
 from neutron.db import common_db_mixin
 from neutron import manager
-from neutron.plugins.cisco.db.l3 import device_handling_db
-from neutron.plugins.cisco.db.l3 import l3_router_appliance_db
-from neutron.plugins.cisco.l3.rpc import (l3_router_cfgagent_rpc_cb as
-                                          l3_router_rpc)
-from neutron.plugins.cisco.l3.rpc import devices_cfgagent_rpc_cb as devices_rpc
 from neutron.plugins.common import constants
+
+from networking_cisco.plugins.cisco.db.l3 import device_handling_db
+from networking_cisco.plugins.cisco.db.l3 import l3_router_appliance_db
+from networking_cisco.plugins.cisco.l3.rpc import (
+    devices_cfgagent_rpc_cb as devices_rpc)
+from networking_cisco.plugins.cisco.l3.rpc import (
+    l3_router_cfgagent_rpc_cb as l3_router_rpc)
 
 
 class CiscoRouterPluginRpcCallbacks(l3_router_rpc.L3RouterCfgRpcCallbackMixin,

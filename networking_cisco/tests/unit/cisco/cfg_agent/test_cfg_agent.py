@@ -20,8 +20,9 @@ from neutron.agent.common import config
 from neutron.common import config as base_config
 from neutron.common import constants as l3_constants
 from neutron.openstack.common import uuidutils
-from neutron.plugins.cisco.cfg_agent import cfg_agent
 from neutron.tests import base
+
+from networking_cisco.plugins.cisco.cfg_agent import cfg_agent
 
 _uuid = uuidutils.generate_uuid
 HOSTNAME = 'myhost'
@@ -72,7 +73,7 @@ class TestCiscoCfgAgentWIthStateReporting(base.BaseTestCase):
         cfg.CONF.set_override('report_interval', 0, 'AGENT')
         super(TestCiscoCfgAgentWIthStateReporting, self).setUp()
         self.devmgr_plugin_api_cls_p = mock.patch(
-            'neutron.plugins.cisco.cfg_agent.cfg_agent.'
+            'networking_cisco.plugins.cisco.cfg_agent.cfg_agent.'
             'CiscoDeviceManagementApi')
         devmgr_plugin_api_cls = self.devmgr_plugin_api_cls_p.start()
         self.devmgr_plugin_api = mock.Mock()
@@ -125,7 +126,7 @@ class TestCiscoCfgAgentWIthStateReporting(base.BaseTestCase):
         self.assertEqual(0, agent.agent_state[
             'configurations']['total routers'])
 
-    @mock.patch('neutron.plugins.cisco.cfg_agent.'
+    @mock.patch('networking_cisco.plugins.cisco.cfg_agent.'
                 'cfg_agent.CiscoCfgAgentWithStateReport._agent_registration')
     def test_report_state_attribute_error(self, agent_registration):
         cfg.CONF.set_override('report_interval', 1, 'AGENT')

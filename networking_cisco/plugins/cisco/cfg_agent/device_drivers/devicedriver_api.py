@@ -23,7 +23,8 @@ class RoutingDriverBase(object):
     This class defines the abstract interface/API for the Routing and
     NAT related operations. Driver class corresponding to a hosting device
     should inherit this base driver and implement its methods.
-    RouterInfo object (neutron.plugins.cisco.cfg_agent.router_info.RouterInfo)
+    RouterInfo object
+    (networking_cisco.plugins.cisco.cfg_agent.router_info.RouterInfo)
     is a wrapper around the router dictionary, with attributes for easy access
     to parameters.
     """
