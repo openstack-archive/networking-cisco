@@ -154,12 +154,6 @@ class PolicyProfileTests(testlib_api.SqlTestCase):
         self.assertEqual(profile.id, got_profile.id)
         self.assertEqual(profile.name, got_profile.name)
 
-    def test_get_policy_profiles(self):
-        profile = _create_test_policy_profile_if_not_there(self.session)
-        got_profile = pprofile_mixin._get_policy_profiles().one()
-        self.assertEqual(profile.id, got_profile.id)
-        self.assertEqual(profile.name, got_profile.name)
-
 
 class NetworkBindingsTest(test_plugin.NeutronDbPluginV2TestCase):
 
