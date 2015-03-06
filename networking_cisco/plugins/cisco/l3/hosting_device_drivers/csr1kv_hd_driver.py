@@ -69,7 +69,6 @@ class CSR1kvHostingDeviceDriver(hosting_device_drivers.HostingDeviceDriver):
             with excutils.save_and_reraise_exception():
                 LOG.exception(_LE('Failed to create config file. Trying to '
                                   'clean up.'))
-                self.delete_configdrive_files(context, mgmtport)
 
     @property
     def _core_plugin(self):
