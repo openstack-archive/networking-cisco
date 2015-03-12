@@ -51,6 +51,14 @@ ROUTER_APPLIANCE_OPTS = [
 
 cfg.CONF.register_opts(ROUTER_APPLIANCE_OPTS, "general")
 
+ROUTER_DISTRIBUTED_OPTS = [
+    cfg.BoolOpt('router_distributed',
+                default=False,
+                help=_("System-wide flag to determine the type of router "
+                       "that tenants can create. Only admin can override.")),
+]
+cfg.CONF.register_opts(ROUTER_DISTRIBUTED_OPTS)
+
 
 class RouterCreateInternalError(n_exc.NeutronException):
     message = _("Router could not be created due to internal error.")
