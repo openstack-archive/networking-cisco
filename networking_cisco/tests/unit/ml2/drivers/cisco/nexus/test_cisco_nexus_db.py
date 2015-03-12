@@ -26,9 +26,11 @@ class CiscoNexusDbTest(testlib_api.SqlTestCase):
 
     """Unit tests for Cisco mechanism driver's Nexus port binding database."""
 
-    NpbObj = collections.namedtuple('NpbObj', 'port vlan switch instance')
+    NpbObj = collections.namedtuple('NpbObj', 'port vlan vni switch instance '
+                 'is_provider_vlan')
 
-    def _npb_test_obj(self, pnum, vnum, switch='10.9.8.7', instance=None):
+    def _npb_test_obj(self, pnum, vnum, vni=0, switch='10.9.8.7',
+                      instance=None, is_provider_vlan=False):
         """Creates a Nexus port binding test object from a pair of numbers."""
         if pnum is 'router':
             port = pnum
@@ -36,7 +38,8 @@ class CiscoNexusDbTest(testlib_api.SqlTestCase):
             port = '1/%s' % pnum
         if instance is None:
             instance = 'instance_%s_%s' % (pnum, vnum)
-        return self.NpbObj(port, vnum, switch, instance)
+        return self.NpbObj(port, vnum, vni, switch, instance,
+                           is_provider_vlan)
 
     def _assert_bindings_match(self, npb, npb_obj):
         """Asserts that a port binding matches a port binding test obj."""
@@ -48,18 +51,21 @@ class CiscoNexusDbTest(testlib_api.SqlTestCase):
     def _add_binding_to_db(self, npb):
         """Adds a port binding to the Nexus database."""
         return nexus_db_v2.add_nexusport_binding(
-            npb.port, npb.vlan, npb.switch, npb.instance)
+            npb.port, npb.vlan, npb.vni, npb.switch, npb.instance,
+            npb.is_provider_vlan)
 
     def _add_bindings_to_db(self, npbs):
         """Adds a list of port bindings to the Nexus database."""
         for npb in npbs:
             nexus_db_v2.add_nexusport_binding(
-                npb.port, npb.vlan, npb.switch, npb.instance)
+                npb.port, npb.vlan, npb.vni, npb.switch, npb.instance,
+                npb.is_provider_vlan)
 
     def _remove_binding_from_db(self, npb):
         """Removes a port binding from the Nexus database."""
         return nexus_db_v2.remove_nexusport_binding(
-            npb.port, npb.vlan, npb.switch, npb.instance)
+            npb.port, npb.vlan, npb.vni, npb.switch, npb.instance,
+            npb.is_provider_vlan)
 
     def _get_nexusport_binding(self, npb):
         """Gets a port binding based on port, vlan, switch, and instance."""

@@ -22,3 +22,21 @@ USERNAME = 'username'
 PASSWORD = 'password'
 
 NETWORK_ADMIN = 'network_admin'
+
+TYPE_NEXUS_VXLAN = 'nexus_vxlan'
+
+# TODO(rpothier) Add back in provider segment support.
+PROVIDER_SEGMENT = 'provider_segment'
+
+NVE_INT_NUM = '1'
+NEXUS_MAX_VLAN_NAME_LEN = 32
+
+NO_DUPLICATE = 0
+DUPLICATE_VLAN = 1
+DUPLICATE_PORT = 2
+
+NEXUS_TYPE_INVALID = -1
+NEXUS_3K = 3
+NEXUS_5K = 5
+NEXUS_7K = 7
+NEXUS_9K = 9

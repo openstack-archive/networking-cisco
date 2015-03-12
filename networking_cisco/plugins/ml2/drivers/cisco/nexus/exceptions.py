@@ -34,11 +34,6 @@ class CredentialAlreadyExists(exceptions.NeutronException):
                 "for tenant %(tenant_id)s.")
 
 
-class NexusComputeHostNotConfigured(exceptions.NeutronException):
-    """Connection to compute host is not configured."""
-    message = _("Connection to %(host)s is not configured.")
-
-
 class NexusConnectFailed(exceptions.NeutronException):
     """Failed to connect to Nexus switch."""
     message = _("Unable to connect to Nexus %(nexus_host)s. Reason: %(exc)s.")
@@ -46,7 +41,8 @@ class NexusConnectFailed(exceptions.NeutronException):
 
 class NexusConfigFailed(exceptions.NeutronException):
     """Failed to configure Nexus switch."""
-    message = _("Failed to configure Nexus: %(config)s. Reason: %(exc)s.")
+    message = _("Failed to configure Nexus switch: %(nexus_host)s "
+                "XML: %(config)s. Reason: %(exc)s.")
 
 
 class NexusPortBindingNotFound(exceptions.NeutronException):
@@ -82,3 +78,17 @@ class SubnetInterfacePresent(exceptions.NeutronException):
 class PortIdForNexusSvi(exceptions.NeutronException):
         """Port Id specified for Nexus SVI."""
         message = _('Nexus hardware router gateway only uses Subnet Ids.')
+
+
+class PhysnetNotConfigured(exceptions.NeutronException):
+    """Variable 'physnet' is not configured."""
+    message = _("Configuration variable 'physnet' is not configured "
+                "for host_id %(host_id)s. Switch information found = "
+                "%(host_connections)s")
+
+
+class NoDynamicSegmentAllocated(exceptions.NeutronException):
+    """VLAN dynamic segment not allocated."""
+    message = _("VLAN dynamic segment not created for Nexus VXLAN overlay "
+                "static segment. Network segment = %(network_segment)s "
+                "physnet = %(physnet)s")

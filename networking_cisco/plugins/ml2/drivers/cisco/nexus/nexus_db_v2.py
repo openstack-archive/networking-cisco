@@ -17,14 +17,13 @@
 from oslo_log import log as logging
 import sqlalchemy.orm.exc as sa_exc
 
+import neutron.db.api as db
+from neutron.i18n import _LW
+
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     exceptions as c_exc)
 from neutron.plugins.ml2.drivers.cisco.nexus import (
     nexus_models_v2)
-
-import neutron.db.api as db
-from neutron.i18n import _LW
-
 
 LOG = logging.getLogger(__name__)
 
@@ -44,28 +43,40 @@ def get_nexusvlan_binding(vlan_id, switch_ip):
     return _lookup_all_nexus_bindings(vlan_id=vlan_id, switch_ip=switch_ip)
 
 
-def add_nexusport_binding(port_id, vlan_id, switch_ip, instance_id):
+def get_nexusport_switch_bindings(switch_ip):
+    """Lists all Nexus port switch bindings."""
+    LOG.debug("get_nexusport_switch_bindings() called")
+    return _lookup_all_nexus_bindings(switch_ip=switch_ip)
+
+
+def add_nexusport_binding(port_id, vlan_id, vni, switch_ip, instance_id,
+                          is_provider_vlan):
     """Adds a nexusport binding."""
     LOG.debug("add_nexusport_binding() called")
     session = db.get_session()
     binding = nexus_models_v2.NexusPortBinding(port_id=port_id,
-                                               vlan_id=vlan_id,
-                                               switch_ip=switch_ip,
-                                               instance_id=instance_id)
+                  vlan_id=vlan_id,
+                  vni=vni,
+                  switch_ip=switch_ip,
+                  instance_id=instance_id,
+                  is_provider_vlan=is_provider_vlan)
     session.add(binding)
     session.flush()
     return binding
 
 
-def remove_nexusport_binding(port_id, vlan_id, switch_ip, instance_id):
+def remove_nexusport_binding(port_id, vlan_id, vni, switch_ip, instance_id,
+                             is_provider_vlan):
     """Removes a nexusport binding."""
     LOG.debug("remove_nexusport_binding() called")
     session = db.get_session()
     binding = _lookup_all_nexus_bindings(session=session,
                                          vlan_id=vlan_id,
+                                         vni=vni,
                                          switch_ip=switch_ip,
                                          port_id=port_id,
-                                         instance_id=instance_id)
+                                         instance_id=instance_id,
+                                         is_provider_vlan=is_provider_vlan)
     for bind in binding:
         session.delete(bind)
     session.flush()
@@ -113,6 +124,12 @@ def get_port_switch_bindings(port_id, switch_ip):
         pass
 
 
+def get_nexussvi_bindings():
+    """Lists nexus svi bindings."""
+    LOG.debug("get_nexussvi_bindings() called")
+    return _lookup_all_nexus_bindings(port_id='router')
+
+
 def _lookup_nexus_bindings(query_type, session=None, **bfilter):
     """Look up 'query_type' Nexus bindings matching the filter.
 
@@ -145,3 +162,74 @@ def _lookup_one_nexus_binding(session=None, **bfilter):
 
 def _lookup_first_nexus_binding(session=None, **bfilter):
     return _lookup_nexus_bindings('first', session, **bfilter)
+
+
+def add_nexusnve_binding(vni, switch_ip, device_id, mcast_group):
+    """Adds a nexus nve binding."""
+    LOG.debug("add_nexusnve_binding() called")
+    session = db.get_session()
+    binding = nexus_models_v2.NexusNVEBinding(vni=vni,
+                                              switch_ip=switch_ip,
+                                              device_id=device_id,
+                                              mcast_group=mcast_group)
+    session.add(binding)
+    session.flush()
+    return binding
+
+
+def remove_nexusnve_binding(vni, switch_ip, device_id):
+    """Remove the nexus nve binding."""
+    LOG.debug("remove_nexusnve_binding() called")
+    session = db.get_session()
+    binding = (session.query(nexus_models_v2.NexusNVEBinding).
+               filter_by(vni=vni, switch_ip=switch_ip,
+                         device_id=device_id).one())
+    if binding:
+        session.delete(binding)
+        session.flush()
+        return binding
+
+
+def get_nve_vni_switch_bindings(vni, switch_ip):
+    """Return the nexus nve binding(s) per switch."""
+    LOG.debug("get_nve_vni_switch_bindings() called")
+    session = db.get_session()
+    try:
+        return (session.query(nexus_models_v2.NexusNVEBinding).
+                filter_by(vni=vni, switch_ip=switch_ip).all())
+    except sa_exc.NoResultFound:
+        return None
+
+
+def get_nve_vni_member_bindings(vni, switch_ip, device_id):
+    """Return the nexus nve binding per switch and device_id."""
+    LOG.debug("get_nve_vni_member_bindings() called")
+    session = db.get_session()
+    try:
+        return (session.query(nexus_models_v2.NexusNVEBinding).
+                filter_by(vni=vni, switch_ip=switch_ip,
+                          device_id=device_id).all())
+    except sa_exc.NoResultFound:
+        return None
+
+
+def get_nve_switch_bindings(switch_ip):
+    """Return all the nexus nve bindings for one switch."""
+    LOG.debug("get_nve_switch_bindings() called")
+    session = db.get_session()
+    try:
+        return (session.query(nexus_models_v2.NexusNVEBinding).
+                filter_by(switch_ip=switch_ip).all())
+    except sa_exc.NoResultFound:
+        return None
+
+
+def get_nve_vni_deviceid_bindings(vni, device_id):
+    """Return all the nexus nve bindings for one vni/one device_id."""
+    LOG.debug("get_nve_vni_deviceid_bindings() called")
+    session = db.get_session()
+    try:
+        return (session.query(nexus_models_v2.NexusNVEBinding).
+                filter_by(vni=vni, device_id=device_id).all())
+    except sa_exc.NoResultFound:
+        return None

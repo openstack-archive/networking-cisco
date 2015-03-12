@@ -1,4 +1,4 @@
-# Copyright 2013 OpenStack Foundation.
+# Copyright 2013-2014 OpenStack Foundation.
 # All rights reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -29,6 +29,22 @@ EXEC_CONF_SNIPPET = """
       </config>
 """
 
+EXEC_GET_INTF_SNIPPET = """
+    <cmd>show running-config interface %s %s</cmd>
+"""
+
+EXEC_GET_VERSION_SNIPPET = """
+    <cmd>show version</cmd>
+"""
+
+EXEC_GET_INVENTORY_SNIPPET = """
+    <cmd>show inventory</cmd>
+"""
+
+EXEC_SAVE_CONF_SNIPPET = """
+            <cmd>copy running-config startup-config</cmd>
+"""
+
 CMD_VLAN_CONF_SNIPPET = """
             <vlan>
               <vlan-id-create-delete>
@@ -37,6 +53,22 @@ CMD_VLAN_CONF_SNIPPET = """
                   <name>
                     <vlan-name>%s</vlan-name>
                   </name>
+                </__XML__MODE_vlan>
+              </vlan-id-create-delete>
+            </vlan>
+"""
+
+CMD_VLAN_CONF_VNSEGMENT_SNIPPET = """
+            <vlan>
+              <vlan-id-create-delete>
+                <__XML__PARAM_value>%s</__XML__PARAM_value>
+                <__XML__MODE_vlan>
+                  <name>
+                    <vlan-name>%s</vlan-name>
+                  </name>
+                  <vn-segment>
+                    <vlan-vnsegment>%s</vlan-vnsegment>
+                  </vn-segment>
                 </__XML__MODE_vlan>
               </vlan-id-create-delete>
             </vlan>
@@ -192,4 +224,48 @@ CMD_NO_VLAN_SVI_SNIPPET = """
         </vlan>
     </interface>
 </no>
+"""
+
+CMD_INT_NVE_SNIPPET = """
+<interface>
+    <nve>nve%s</nve>
+    <__XML__MODE_if-nve>
+        <noshut>no shutdown</noshut>
+        <srcint>source-interface loopback %s</srcint>
+    </__XML__MODE_if-nve>
+</interface>
+"""
+
+CMD_NO_INT_NVE_SNIPPET = """
+<nonve>no interface nve %s</nonve>
+"""
+
+CMD_INT_NVE_MEMBER_SNIPPET = """
+<interface>
+    <nve>nve%s</nve>
+    <__XML__MODE_if-nve>
+        <member>member vni %s mcast-group %s</member>
+    </__XML__MODE_if-nve>
+</interface>
+"""
+
+CMD_INT_NVE_NO_MEMBER_SNIPPET = """
+<interface>
+    <nve>nve%s</nve>
+    <__XML__MODE_if-nve>
+        <member>no member vni %s</member>
+    </__XML__MODE_if-nve>
+</interface>
+"""
+
+CMD_FEATURE_VXLAN_SNIPPET = """
+<feature>feature nv overlay</feature>
+<feature>feature vn-segment-vlan-based</feature>
+"""
+
+# Removing the "feature nv overlay" configuration also removes the
+# "interface nve" configuration.
+CMD_NO_FEATURE_VXLAN_SNIPPET = """
+<feature>no feature nv overlay</feature>
+<feature>no feature vn-segment-vlan-based</feature>
 """
