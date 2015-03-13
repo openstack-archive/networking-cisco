@@ -12,11 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
 
 from neutron.i18n import _LE
-from neutron.openstack.common import log as logging
 
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
 

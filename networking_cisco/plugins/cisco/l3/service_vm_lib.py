@@ -16,10 +16,10 @@ from novaclient import exceptions as nova_exc
 from novaclient import utils as n_utils
 from novaclient.v1_1 import client
 from oslo_config import cfg
+from oslo_log import log as logging
 
 from neutron.i18n import _LE
 from neutron import manager
-from neutron.openstack.common import log as logging
 
 from networking_cisco.plugins.cisco.common import (
     cisco_constants as c_constants)

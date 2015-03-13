@@ -15,11 +15,11 @@
 import datetime
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import timeutils
 
 from neutron.agent.linux import utils as linux_utils
 from neutron.i18n import _LI, _LW
-from neutron.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)

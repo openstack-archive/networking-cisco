@@ -15,6 +15,7 @@
 import eventlet
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from sqlalchemy.orm import exc
 from sqlalchemy.sql import expression as expr
 
@@ -25,7 +26,6 @@ from neutron.db import models_v2
 from neutron.extensions import providernet as pr_net
 from neutron.i18n import _LE, _LI, _LW
 from neutron import manager
-from neutron.openstack.common import log as logging
 from neutron.plugins.cisco.db.l3 import l3_models
 from neutron.plugins.common import constants
 

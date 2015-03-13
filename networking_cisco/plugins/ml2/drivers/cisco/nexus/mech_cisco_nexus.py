@@ -18,10 +18,10 @@ ML2 Mechanism Driver for Cisco Nexus platforms.
 """
 
 from oslo_config import cfg
+from oslo_log import log as logging
 
 from neutron.common import constants as n_const
 from neutron.extensions import portbindings
-from neutron.openstack.common import log as logging
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import driver_api as api
 

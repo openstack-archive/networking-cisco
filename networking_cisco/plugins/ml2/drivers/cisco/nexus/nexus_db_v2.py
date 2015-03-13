@@ -14,6 +14,7 @@
 #    under the License.
 #
 
+from oslo_log import log as logging
 import sqlalchemy.orm.exc as sa_exc
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -23,7 +24,6 @@ from neutron.plugins.ml2.drivers.cisco.nexus import (
 
 import neutron.db.api as db
 from neutron.i18n import _LW
-from neutron.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)

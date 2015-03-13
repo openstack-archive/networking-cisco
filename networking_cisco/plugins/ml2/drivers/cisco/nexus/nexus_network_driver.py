@@ -17,6 +17,7 @@
 Implements a Nexus-OS NETCONF over SSHv2 API Client
 """
 
+from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
 
@@ -29,7 +30,6 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_snippets as snipp)
 
-from neutron.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 

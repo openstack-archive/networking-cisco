@@ -16,6 +16,7 @@ import collections
 
 import eventlet
 import netaddr
+from oslo_log import log as logging
 import oslo_messaging
 from oslo_utils import excutils
 
@@ -25,7 +26,6 @@ from neutron.common import topics
 from neutron.common import utils as common_utils
 from neutron import context as n_context
 from neutron.i18n import _LE, _LI, _LW
-from neutron.openstack.common import log as logging
 
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers import driver_mgr

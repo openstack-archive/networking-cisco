@@ -16,6 +16,7 @@
 import contextlib
 import mock
 
+from oslo_log import log as logging
 import webob.exc as wexc
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -31,7 +32,6 @@ from neutron.api.v2 import base
 from neutron import context
 from neutron.extensions import portbindings
 from neutron import manager
-from neutron.openstack.common import log as logging
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import driver_api as api
 from neutron.plugins.ml2 import driver_context

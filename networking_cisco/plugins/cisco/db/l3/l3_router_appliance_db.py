@@ -16,6 +16,7 @@ import copy
 
 from oslo_concurrency import lockutils
 from oslo_config import cfg
+from oslo_log import log as logging
 from sqlalchemy.orm import exc
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import expression as expr
@@ -32,7 +33,6 @@ from neutron.db import models_v2
 from neutron.db import portbindings_db as p_binding
 from neutron.extensions import providernet as pr_net
 from neutron.i18n import _LE, _LI
-from neutron.openstack.common import log as logging
 from neutron.openstack.common import loopingcall
 from neutron.plugins.cisco.db.l3 import l3_models
 

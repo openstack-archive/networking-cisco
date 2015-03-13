@@ -15,11 +15,11 @@
 import netaddr
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import excutils
 
 from neutron.i18n import _LE
 from neutron import manager
-from neutron.openstack.common import log as logging
 
 from networking_cisco.plugins.cisco.l3 import hosting_device_drivers
 
