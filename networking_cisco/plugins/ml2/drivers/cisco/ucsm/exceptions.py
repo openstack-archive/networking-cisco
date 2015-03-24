@@ -31,3 +31,8 @@ class UcsmConfigReadFailed(exceptions.NeutronException):
 class UcsmConfigFailed(exceptions.NeutronException):
     message = _("Failed to configure %(config)s on UCS Manager %(ucsm_ip)s. "
                 "Reason: %(exc)s.")
+
+
+class UcsmDisconnectFailed(exceptions.NeutronException):
+    message = _("Disconnect to UCS Manager %(ucsm_ip)s failed. "
+                "Reason: %(exc)s.")

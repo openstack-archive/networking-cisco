@@ -23,6 +23,7 @@ from neutron.plugins.ml2.drivers.cisco.ucsm import mech_cisco_ucsm as md
 from neutron.tests.unit import testlib_api
 
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import constants as const
+from networking_cisco.plugins.ml2.drivers.cisco.ucsm import exceptions
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucsm_db
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucsm_network_driver
 from networking_cisco.tests.unit.ml2.drivers.cisco.ucsm import (
@@ -482,3 +483,11 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
                                        profile, network_context)
         self.mech_driver.bind_port(port_context)
         self.assertEqual(PORT_STATE_ACTIVE, port_context._new_port_status)
+
+    def test_ucs_manager_disconnect_fail(self):
+        """Verifies UCS Manager driver is called with correct parameters."""
+
+        handle = None
+        self.assertRaises(exceptions.UcsmDisconnectFailed,
+                          self.ucsm_driver.ucs_manager_disconnect,
+                          handle)
