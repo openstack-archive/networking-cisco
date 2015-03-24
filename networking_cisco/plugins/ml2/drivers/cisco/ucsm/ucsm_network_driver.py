@@ -39,7 +39,6 @@ class CiscoUcsmDriver(object):
         self.username = cfg.CONF.ml2_cisco_ucsm.ucsm_username
         self.password = cfg.CONF.ml2_cisco_ucsm.ucsm_password
         LOG.debug("UCS Manager Network driver Ip: %s", self.ucsm_ip)
-        self.handles = {}
 
         self.supported_sriov_vnic_types = [portbindings.VNIC_DIRECT,
                                            portbindings.VNIC_MACVTAP]
@@ -126,13 +125,12 @@ class CiscoUcsmDriver(object):
         handle = self.ucsmsdk.UcsHandle()
         try:
             handle.Login(self.ucsm_ip, self.username, self.password)
-            self.handles[self.ucsm_ip] = handle
         except Exception as e:
             # Raise a Neutron exception. Include a description of
             # the original  exception.
             raise cexc.UcsmConnectFailed(ucsm_ip=self.ucsm_ip, exc=e)
 
-        return self.handles[self.ucsm_ip]
+        return handle
 
     def _get_all_portprofiles(self, handle):
         """Gets all port profiles from a specific UCS Manager."""
@@ -337,7 +335,7 @@ class CiscoUcsmDriver(object):
 
         finally:
             # Disconnect from UCS Manager
-            self.ucs_manager_disconnect()
+            self.ucs_manager_disconnect(handle)
             return True
 
     def _update_service_profile(self, handle, service_profile, vlan_id):
@@ -430,7 +428,7 @@ class CiscoUcsmDriver(object):
 
         finally:
             # Disconnect from UCS Manager
-            self.ucs_manager_disconnect()
+            self.ucs_manager_disconnect(handle)
 
     def _delete_vlan_profile(self, handle, vlan_id):
         vlan_name = self.make_vlan_name(vlan_id)
@@ -534,16 +532,20 @@ class CiscoUcsmDriver(object):
 
         finally:
             # Disconnect from UCS Manager
-            self.ucs_manager_disconnect()
+            self.ucs_manager_disconnect(handle)
 
-    def ucs_manager_disconnect(self):
+    def ucs_manager_disconnect(self, handle):
         """Disconnects from the UCS Manager.
 
         After the disconnect, the handle associated with this connection
         is no longer valid.
         """
-        handle = self.handles[self.ucsm_ip]
-        handle.Logout()
+        try:
+            handle.Logout()
+        except Exception as e:
+            # Raise a Neutron exception. Include a description of
+            # the original  exception.
+            raise cexc.UcsmDisconnectFailed(ucsm_ip=self.ucsm_ip, exc=e)
 
     @staticmethod
     def make_vlan_name(vlan_id):
