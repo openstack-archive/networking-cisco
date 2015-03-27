@@ -30,7 +30,6 @@ from neutron.plugins.common import constants as service_constants
 from neutron.tests.unit import test_db_plugin
 from neutron.tests.unit import test_extension_extraroute as test_ext_extraroute
 from neutron.tests.unit import test_l3_plugin
-from neutron.tests.unit import testlib_plugin
 
 from networking_cisco.plugins.cisco.common import (
     cisco_constants as c_constants)
@@ -129,7 +128,6 @@ class TestApplianceL3RouterServicePlugin(
 
 class L3RouterApplianceTestCaseBase(
     test_db_plugin.NeutronDbPluginV2TestCase,
-    testlib_plugin.NotificationSetupHelper,
         device_handling_test_support.DeviceHandlingTestSupportMixin):
 
     def setUp(self, core_plugin=None, l3_plugin=None, ext_mgr=None):
