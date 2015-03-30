@@ -239,16 +239,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 cfg.CONF.ml2_cisco.managed_physical_network ==
                 segment[api.PHYSICAL_NETWORK])
 
-    def _get_vlan_info(self, segment):
-        if (segment and segment[api.NETWORK_TYPE] == p_const.TYPE_VLAN and
-            self._valid_network_segment(segment)):
-            return segment.get(api.SEGMENTATION_ID), False
-# TODO(rpothier) Add back in provider_segment support.
-#            return (segment.get(api.SEGMENTATION_ID),
-#                    segment.get(api.PROVIDER_SEGMENT))
-        else:
-            return None, None
-
     def _is_supported_deviceowner(self, port):
         return (port['device_owner'].startswith('compute') or
                 port['device_owner'] == n_const.DEVICE_OWNER_DHCP)
@@ -635,20 +625,39 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             return (context.current.get(portbindings.HOST_ID) !=
                     context.original.get(portbindings.HOST_ID))
 
-    def _log_missing_fields(self):
+    def _log_missing_segment(self):
         LOG.warn(_LW("Nexus: Segment is None, Event not processed."))
+
+    def _is_valid_segment(self, segment):
+        valid_segment = True
+        if segment:
+            if (segment[api.NETWORK_TYPE] != p_const.TYPE_VLAN or
+                not self._valid_network_segment(segment)):
+                LOG.warn(_LW("Nexus: Segment is an invalid type or not "
+                         "supported by this driver. Network type = "
+                         "%(network_type)s Physical network = "
+                         "%(phy_network)s. Event not processed."),
+                         {'network_type': segment[api.NETWORK_TYPE],
+                          'phy_network': segment[api.PHYSICAL_NETWORK]})
+                valid_segment = False
+        else:
+            self._log_missing_segment()
+            valid_segment = False
+
+        return valid_segment
 
     def _port_action_vlan(self, port, segment, func, vni):
         """Verify configuration and then process event."""
 
-        # If the segment is None, just log a warning message and return.
-        if segment is None:
-            self._log_missing_fields()
+        # Verify segment.
+        if not self._is_valid_segment(segment):
             return
 
         device_id = port.get('device_id')
         host_id = port.get(portbindings.HOST_ID)
-        vlan_id, is_provider = self._get_vlan_info(segment)
+        vlan_id = segment.get(api.SEGMENTATION_ID)
+        # TODO(rpothier) Add back in provider segment support.
+        is_provider = False
         settings = {"vlan_id": vlan_id,
                     "device_id": device_id,
                     "host_id": host_id,
@@ -666,7 +675,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         # If the segment is None, just log a warning message and return.
         if segment is None:
-            self._log_missing_fields()
+            self._log_missing_segment()
             return
 
         device_id = port.get('device_id')
