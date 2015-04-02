@@ -270,6 +270,38 @@ class N1KVMechanismDriver(api.MechanismDriver):
                   "id": port['id'],
                   "profile_id": policy_profile.id})
 
+    def update_port_postcommit(self, context):
+        """Send port parameters to the VSM."""
+        port = context.current
+        old_port = context.original
+        # Perform port update on VSM only if a router or DHCP port is bound.
+        if (not old_port['binding:host_id'] and
+                (port['device_owner'] in [n_const.DEVICE_OWNER_ROUTER_INTF,
+                                          n_const.DEVICE_OWNER_DHCP])):
+            session = context._plugin_context.session
+            binding = n1kv_db.get_policy_binding(port['id'], session)
+            policy_profile = n1kv_db.get_policy_profile_by_uuid(
+                session, binding.profile_id)
+            if policy_profile is None:
+                raise ml2_exc.MechanismDriverError()
+            vmnetwork_name = "%s%s_%s" % (n1kv_const.VM_NETWORK_PREFIX,
+                                          binding.profile_id,
+                                          port['network_id'])
+            try:
+                # Today an update is just a create, so we call create port
+                self.n1kvclient.create_n1kv_port(port,
+                                                 vmnetwork_name,
+                                                 policy_profile)
+            except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed) as e:
+                LOG.info(e.message)
+                raise ml2_exc.MechanismDriverError()
+            LOG.info(_LI("Update port(postcommit) succeeded for port: "
+                         "%(id)s on network: %(network_id)s with policy "
+                         "profile ID: %(profile_id)s"),
+                     {"network_id": port['network_id'],
+                      "id": port['id'],
+                      "profile_id": policy_profile.id})
+
     def delete_port_postcommit(self, context):
         """Send delete port notification to the VSM."""
         port = context.current
