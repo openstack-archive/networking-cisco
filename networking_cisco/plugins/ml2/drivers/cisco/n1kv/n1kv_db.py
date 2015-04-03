@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_log import log
+
 import sqlalchemy.orm.exc as sa_exc
 
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
@@ -20,7 +22,10 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
 
 from neutron import context as ncontext
 import neutron.db.api as db
+from neutron.i18n import _LE
 from neutron.plugins.ml2.drivers.cisco.n1kv import n1kv_models
+
+LOG = log.getLogger(__name__)
 
 
 def add_network_binding(network_id,
@@ -106,11 +111,12 @@ def get_policy_profile_by_name(name, db_session=None):
     """
     db_session = db_session or db.get_session()
     with db_session.begin(subtransactions=True):
-        try:
-            return (db_session.query(n1kv_models.PolicyProfile).
-                    filter_by(name=name).first())
-        except sa_exc.NoResultFound:
-            raise n1kv_exc.PolicyProfileNotFound(profile=name)
+        policy_profile = (db_session.query(n1kv_models.PolicyProfile).
+                      filter_by(name=name).first())
+        if policy_profile is None:
+            LOG.error(_LE("Policy Profile with name %s does "
+                          "not exist.") % name)
+        return policy_profile
 
 
 def get_policy_profile_by_uuid(db_session, profile_id):
@@ -122,11 +128,12 @@ def get_policy_profile_by_uuid(db_session, profile_id):
     :returns: policy profile object
     """
     with db_session.begin(subtransactions=True):
-        try:
-            return (db_session.query(n1kv_models.PolicyProfile).
-                    filter_by(id=profile_id).first())
-        except sa_exc.NoResultFound:
-            raise n1kv_exc.PolicyProfileNotFound(profile=profile_id)
+        policy_profile = (db_session.query(n1kv_models.PolicyProfile).
+                          filter_by(id=profile_id).first())
+        if policy_profile is None:
+            LOG.error(_LE("Policy Profile with id %s does "
+                          "not exist.") % profile_id)
+        return policy_profile
 
 
 def get_policy_profiles_by_host(vsm_ip, db_session=None):

@@ -32,7 +32,7 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import n1kv_db
 
 import neutron.db.api as db
 from neutron.extensions import providernet
-from neutron.i18n import _LW
+from neutron.i18n import _LW, _LE
 from neutron.plugins.common import constants as p_const
 
 LOG = log.getLogger(__name__)
@@ -327,6 +327,13 @@ class N1kvSyncDriver(object):
                 policy_profile_id = binding.profile_id
                 policy_profile = n1kv_db.get_policy_profile_by_uuid(
                     db.get_session(), policy_profile_id)
+                if policy_profile is None:
+                    LOG.error(_LE("Cannot sync port with id %(port_id)s "
+                          "because policy profile with id %(profile_id)s"
+                          "does not exist."),
+                          {"port_id": port['id'],
+                           "profile_name": policy_profile})
+                    continue
                 vmnetwork_name = "%s%s_%s" % (n1kv_const.VM_NETWORK_PREFIX,
                                               policy_profile_id,
                                               network_uuid)

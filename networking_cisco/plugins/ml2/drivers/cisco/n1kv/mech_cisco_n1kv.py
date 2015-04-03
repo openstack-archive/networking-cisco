@@ -250,6 +250,8 @@ class N1KVMechanismDriver(api.MechanismDriver):
         binding = n1kv_db.get_policy_binding(port['id'], session)
         policy_profile = n1kv_db.get_policy_profile_by_uuid(session,
                                                             binding.profile_id)
+        if policy_profile is None:
+            raise ml2_exc.MechanismDriverError()
         vmnetwork_name = "%s%s_%s" % (n1kv_const.VM_NETWORK_PREFIX,
                                       binding.profile_id,
                                       port['network_id'])

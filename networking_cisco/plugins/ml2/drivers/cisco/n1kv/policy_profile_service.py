@@ -91,7 +91,11 @@ class PolicyProfile_db_mixin(policy_profile.PolicyProfilePluginBase,
         return db_session.query(n1kv_models.PolicyProfile)
 
     def _get_policy_profile(self, session, pprofile_id):
-        return n1kv_db.get_policy_profile_by_uuid(session, pprofile_id)
+        profile = n1kv_db.get_policy_profile_by_uuid(session, pprofile_id)
+        if profile is None:
+            raise n1kv_exc.PolicyProfileNotFound(profile=pprofile_id)
+        else:
+            return profile
 
     def _get_policy_collection_for_tenant(self, db_session, model, tenant_id):
         profile_ids = (db_session.query(n1kv_models.
