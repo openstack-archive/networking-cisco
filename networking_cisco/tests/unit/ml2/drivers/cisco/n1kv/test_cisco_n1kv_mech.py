@@ -34,9 +34,9 @@ from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import config as ml2_config
 from neutron.plugins.ml2.drivers import type_vlan as vlan_config
 from neutron.plugins.ml2.drivers import type_vxlan as vxlan_config
-from neutron.tests.unit.ml2 import test_type_vlan
-from neutron.tests.unit.ml2 import test_type_vxlan
-from neutron.tests.unit import test_db_plugin
+from neutron.tests.unit.db import test_db_base_plugin_v2
+from neutron.tests.unit.plugins.ml2.drivers import test_type_vlan
+from neutron.tests.unit.plugins.ml2.drivers import test_type_vxlan
 
 ML2_PLUGIN = 'neutron.plugins.ml2.plugin.Ml2Plugin'
 SERVICE_PLUGIN = ('networking_cisco.plugins.ml2.drivers.cisco.n1kv.'
@@ -69,7 +69,8 @@ def _fake_poll_policy_profiles(self):
     self._populate_policy_profiles()
 
 
-class TestN1KVMechanismDriver(test_db_plugin.NeutronDbPluginV2TestCase):
+class TestN1KVMechanismDriver(
+        test_db_base_plugin_v2.NeutronDbPluginV2TestCase):
     """Test Cisco Nexus1000V mechanism driver."""
 
     tenant_id = "some_tenant"
@@ -173,19 +174,19 @@ class TestN1KVMechDriverNetworkProfiles(TestN1KVMechanismDriver):
         self.assertEqual(p_const.TYPE_VXLAN, profile.segment_type)
 
 
-class TestN1KVMechDriverBasicGet(test_db_plugin.TestBasicGet,
+class TestN1KVMechDriverBasicGet(test_db_base_plugin_v2.TestBasicGet,
                                  TestN1KVMechanismDriver):
 
     pass
 
 
-class TestN1KVMechDriverHTTPResponse(test_db_plugin.TestV2HTTPResponse,
+class TestN1KVMechDriverHTTPResponse(test_db_base_plugin_v2.TestV2HTTPResponse,
                                      TestN1KVMechanismDriver):
 
     pass
 
 
-class TestN1KVMechDriverNetworksV2(test_db_plugin.TestNetworksV2,
+class TestN1KVMechDriverNetworksV2(test_db_base_plugin_v2.TestNetworksV2,
                                    TestN1KVMechanismDriver):
 
     def test_create_network_with_default_n1kv_network_profile_id(self):
@@ -207,7 +208,7 @@ class TestN1KVMechDriverNetworksV2(test_db_plugin.TestNetworksV2,
                           network['network']['id'])
 
 
-class TestN1KVMechDriverPortsV2(test_db_plugin.TestPortsV2,
+class TestN1KVMechDriverPortsV2(test_db_base_plugin_v2.TestPortsV2,
                                 TestN1KVMechanismDriver):
 
     VIF_TYPE = portbindings.VIF_TYPE_OVS
@@ -235,7 +236,7 @@ class TestN1KVMechDriverPortsV2(test_db_plugin.TestPortsV2,
                               port['port']['id'])
 
 
-class TestN1KVMechDriverSubnetsV2(test_db_plugin.TestSubnetsV2,
+class TestN1KVMechDriverSubnetsV2(test_db_base_plugin_v2.TestSubnetsV2,
                                   TestN1KVMechanismDriver):
 
     pass

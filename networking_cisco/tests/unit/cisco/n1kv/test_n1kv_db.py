@@ -24,7 +24,7 @@ from neutron.plugins.cisco.common import cisco_constants as c_const
 from neutron.plugins.cisco.common import cisco_exceptions as c_exc
 from neutron.plugins.cisco.db import n1kv_db_v2
 from neutron.plugins.cisco.db import n1kv_models_v2
-from neutron.tests.unit import test_db_plugin as test_plugin
+from neutron.tests.unit.db import test_db_base_plugin_v2
 from neutron.tests.unit import testlib_api
 
 
@@ -284,7 +284,7 @@ class VxlanAllocationsTest(testlib_api.SqlTestCase,
                           vxlan_id)
 
 
-class NetworkBindingsTest(test_plugin.NeutronDbPluginV2TestCase):
+class NetworkBindingsTest(test_db_base_plugin_v2.NeutronDbPluginV2TestCase):
 
     def setUp(self):
         super(NetworkBindingsTest, self).setUp()

@@ -24,7 +24,7 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
 import neutron.db.api as db
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2.drivers.cisco.n1kv import n1kv_models
-from neutron.tests.unit import test_db_plugin as test_plugin
+from neutron.tests.unit.db import test_db_base_plugin_v2
 from neutron.tests.unit import testlib_api
 
 
@@ -155,7 +155,7 @@ class PolicyProfileTests(testlib_api.SqlTestCase):
         self.assertEqual(profile.name, got_profile.name)
 
 
-class NetworkBindingsTest(test_plugin.NeutronDbPluginV2TestCase):
+class NetworkBindingsTest(test_db_base_plugin_v2.NeutronDbPluginV2TestCase):
 
     def setUp(self):
         super(NetworkBindingsTest, self).setUp()
@@ -289,7 +289,7 @@ class NetworkBindingsTest(test_plugin.NeutronDbPluginV2TestCase):
                 self.assertEqual(1235, binding.segmentation_id)
 
 
-class ProfileBindingsTest(test_plugin.NeutronDbPluginV2TestCase):
+class ProfileBindingsTest(test_db_base_plugin_v2.NeutronDbPluginV2TestCase):
 
     def setUp(self):
         super(ProfileBindingsTest, self).setUp()

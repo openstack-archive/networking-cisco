@@ -40,7 +40,7 @@ from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import db as ml2_db
 from neutron.plugins.ml2 import driver_api as api
 from neutron.plugins.ml2 import driver_context
-from neutron.tests.unit.ml2 import test_ml2_plugin
+from neutron.tests.unit.plugins.ml2 import test_plugin
 
 
 LOG = logging.getLogger(__name__)
@@ -93,7 +93,7 @@ NEXUS_2ND_SWITCH = {(NEXUS_IP_ADDR2, 'username'): 'admin',
                     (NEXUS_IP_ADDR2, COMP_HOST_NAME): NEXUS_TWO_INTERFACES}
 
 
-class CiscoML2MechanismTestCase(test_ml2_plugin.Ml2PluginV2TestCase):
+class CiscoML2MechanismTestCase(test_plugin.Ml2PluginV2TestCase):
     _mechanism_drivers = ['cisco_nexus']
 
     # Don't execute these test_db_plugin UTs.
@@ -293,19 +293,19 @@ class CiscoML2MechanismTestCase(test_ml2_plugin.Ml2PluginV2TestCase):
 
 
 class TestCiscoBasicGet(CiscoML2MechanismTestCase,
-                        test_ml2_plugin.TestMl2BasicGet):
+                        test_plugin.TestMl2BasicGet):
 
     pass
 
 
 class TestCiscoV2HTTPResponse(CiscoML2MechanismTestCase,
-                              test_ml2_plugin.TestMl2V2HTTPResponse):
+                              test_plugin.TestMl2V2HTTPResponse):
 
     pass
 
 
 class TestCiscoPortsV2(CiscoML2MechanismTestCase,
-                       test_ml2_plugin.TestMl2PortsV2):
+                       test_plugin.TestMl2PortsV2):
 
     @contextlib.contextmanager
     def _create_resources(self, name=NETWORK_NAME, cidr=CIDR_1,
@@ -1073,7 +1073,7 @@ class TestCiscoPortsV2(CiscoML2MechanismTestCase,
 
 
 class TestCiscoNetworksV2(CiscoML2MechanismTestCase,
-                          test_ml2_plugin.TestMl2NetworksV2):
+                          test_plugin.TestMl2NetworksV2):
 
     def test_create_networks_bulk_emulated_plugin_failure(self):
         real_has_attr = hasattr
@@ -1124,7 +1124,7 @@ class TestCiscoNetworksV2(CiscoML2MechanismTestCase,
 
 
 class TestCiscoSubnetsV2(CiscoML2MechanismTestCase,
-                         test_ml2_plugin.TestMl2SubnetsV2):
+                         test_plugin.TestMl2SubnetsV2):
 
     def test_create_subnets_bulk_emulated_plugin_failure(self):
         real_has_attr = hasattr

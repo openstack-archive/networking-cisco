@@ -34,11 +34,11 @@ from neutron.plugins.cisco.extensions import policy_profile
 from neutron.plugins.cisco.n1kv import n1kv_client
 from neutron.plugins.cisco.n1kv import n1kv_neutron_plugin
 from neutron.tests.unit import _test_extension_portbindings as test_bindings
-from neutron.tests.unit.cisco.n1kv import fake_client
-from neutron.tests.unit import test_api_v2
-from neutron.tests.unit import test_db_plugin as test_plugin
-from neutron.tests.unit import test_l3_plugin
-from neutron.tests.unit import test_l3_schedulers
+from neutron.tests.unit.api.v2 import test_base
+from neutron.tests.unit.db import test_db_base_plugin_v2 as test_plugin
+from neutron.tests.unit.extensions import test_l3
+from neutron.tests.unit.plugins.cisco.n1kv import fake_client
+from neutron.tests.unit.scheduler import test_l3_agent_scheduler
 
 
 PHYS_NET = 'some-phys-net'
@@ -128,7 +128,7 @@ class N1kvPluginTestCase(test_plugin.NeutronDbPluginV2TestCase):
                      create. Default argument value chosen to correspond to the
                      default name specified in config.py file.
         """
-        uuid = test_api_v2._uuid()
+        uuid = test_base._uuid()
         profile = {'id': uuid,
                    'name': name}
         return n1kv_db_v2.create_policy_profile(profile)
@@ -1281,11 +1281,11 @@ class TestN1kvSubnets(test_plugin.TestSubnetsV2,
         self.assertEqual(1, mock_method.call_count)
 
 
-class TestN1kvL3Test(test_l3_plugin.L3NatExtensionTestCase):
+class TestN1kvL3Test(test_l3.L3NatExtensionTestCase):
 
     pass
 
 
-class TestN1kvL3SchedulersTest(test_l3_schedulers.L3SchedulerTestCase):
+class TestN1kvL3SchedulersTest(test_l3_agent_scheduler.L3SchedulerTestCase):
 
     pass
