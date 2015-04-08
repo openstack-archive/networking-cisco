@@ -221,14 +221,14 @@ class Client(object):
         return self._post(self.logical_network_path % logical_network_name,
                           body=body, vsm_ip=vsm_ip)
 
-    def _delete_logical_network(self, logical_network_name):
+    def delete_logical_network(self, logical_network_name, vsm_ip=None):
         """Delete a logical network on VSM.
 
         :param logical_network_name: string representing name of the logical
                                      network
         """
         return self._delete(
-            self.logical_network_path % logical_network_name)
+            self.logical_network_path % logical_network_name, vsm_ip=vsm_ip)
 
     def create_network_segment_pool(self, network_profile, vsm_ip=None):
         """Create a network segment pool on the VSM.
