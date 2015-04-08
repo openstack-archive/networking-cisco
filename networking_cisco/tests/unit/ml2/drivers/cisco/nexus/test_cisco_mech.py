@@ -853,6 +853,26 @@ class TestCiscoPortsV2(CiscoML2MechanismTestCase,
                               NEXUS_IP_ADDR)
             assert not self.mock_ncclient.connect.called
 
+    def test_nexus_invalid_segment(self):
+        """Test handling of a non VLAN segment.
+
+        Pass a FLAT segment type into the driver. Verify that no
+        exceptions are raised (non-VLAN segments are logged only) and
+        that no database or switch configuration is performed.
+
+        """
+        FLAT_SEGMENT = {api.NETWORK_TYPE: p_const.TYPE_FLAT,
+                        api.PHYSICAL_NETWORK: PHYS_NET,
+                        api.ID: DEVICE_ID_1}
+        self.mock_top_bound_segment.return_value = FLAT_SEGMENT
+
+        with self._create_resources() as result:
+            self.assertEqual(result.status_int, wexc.HTTPOk.code)
+            self.assertRaises(c_exc.NexusPortBindingNotFound,
+                              nexus_db_v2.get_nexusport_switch_bindings,
+                              NEXUS_IP_ADDR)
+            assert not self.mock_ncclient.connect.called
+
     def test_nexus_missing_fields(self):
         """Test handling of a NexusMissingRequiredFields exception.
 
