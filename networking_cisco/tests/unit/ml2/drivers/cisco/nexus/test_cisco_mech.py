@@ -1091,6 +1091,17 @@ class TestCiscoPortsV2(CiscoML2MechanismTestCase,
         arg_list = (portbindings.HOST_ID, 'device_id',)
         self.check_update_port_mac(host_arg=host_arg, arg_list=arg_list)
 
+    def test_nexus_duplicate_db_port_entries(self):
+        """Test handling of adding port database entries.
+
+        Duplicate port requests (often seen with dhcp device_owner requests)
+        should not create duplicate port database entries.
+        """
+        with self._create_resources():
+            with self._create_resources():
+                assert(len(nexus_db_v2.get_nexusport_switch_bindings
+                           (NEXUS_IP_ADDR)) == 1)
+
 
 class TestCiscoNetworksV2(CiscoML2MechanismTestCase,
                           test_plugin.TestMl2NetworksV2):
