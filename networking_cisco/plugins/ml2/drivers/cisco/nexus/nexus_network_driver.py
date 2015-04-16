@@ -19,6 +19,7 @@ Implements a Nexus-OS NETCONF over SSHv2 API Client
 
 import re
 
+from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
@@ -132,6 +133,7 @@ class CiscoNexusDriver(object):
         nexus_ssh_port = int(self.nexus_switches[nexus_host, 'ssh_port'])
         nexus_user = self.nexus_switches[nexus_host, const.USERNAME]
         nexus_password = self.nexus_switches[nexus_host, const.PASSWORD]
+        hostkey_verify = cfg.CONF.ml2_cisco.host_key_checks
         try:
             try:
                 # With new ncclient version, we can pass device_params...
@@ -139,6 +141,7 @@ class CiscoNexusDriver(object):
                                             port=nexus_ssh_port,
                                             username=nexus_user,
                                             password=nexus_password,
+                                            hostkey_verify=hostkey_verify,
                                             device_params={"name": "nexus"})
             except TypeError:
                 # ... but if that causes an error, we appear to have the old
@@ -146,7 +149,8 @@ class CiscoNexusDriver(object):
                 man = self.ncclient.connect(host=nexus_host,
                                             port=nexus_ssh_port,
                                             username=nexus_user,
-                                            password=nexus_password)
+                                            password=nexus_password,
+                                            hostkey_verify=hostkey_verify)
         except Exception as e:
             # Raise a Neutron exception. Include a description of
             # the original ncclient exception.

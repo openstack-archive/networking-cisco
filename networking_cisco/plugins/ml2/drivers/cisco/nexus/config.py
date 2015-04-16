@@ -41,6 +41,9 @@ ml2_cisco_opts = [
         help=_('Create and delete Nexus switch VXLAN global settings; '
                'feature nv overlay, feature vn-segment-vlan-based, '
                'interface nve + source-interface loopback')),
+    cfg.BoolOpt('host_key_checks', default=False,
+                help=_("Enable strict host key checks when "
+                       "connecting to Nexus switches")),
 ]
 
 
