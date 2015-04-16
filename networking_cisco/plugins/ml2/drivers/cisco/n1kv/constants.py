@@ -47,6 +47,13 @@ POLICY = 'policy'
 
 TENANT_ID_NOT_SET = 'TENANT_ID_NOT_SET'
 
+NETWORK_PROFILES = 'network_profiles'
+NETWORKS = 'networks'
+SUBNETS = 'subnets'
+PORTS = 'ports'
+VMNETWORKS = 'vmnetworks'
+BRIDGE_DOMAINS = 'bridge_domains'
+
 #Values for MD5 hashes
 MD5_HASHES = 'md5_hashes'
 NETWORK_PROFILE_MD5 = 'network_profile_md5'
@@ -54,3 +61,7 @@ NETWORK_MD5 = 'network_md5'
 SUBNET_MD5 = 'subnet_md5'
 PORT_MD5 = 'port_md5'
 CONSOLIDATED_MD5 = 'consolidated_md5'
+
+SYNC_START = 'start'
+SYNC_END = 'end'
+SYNC_NO_CHANGE = 'no-change'
