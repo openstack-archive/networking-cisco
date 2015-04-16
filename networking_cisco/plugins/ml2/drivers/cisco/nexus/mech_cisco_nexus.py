@@ -380,9 +380,13 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         host_connections = self._get_switch_info(host_id)
         for switch_ip, intf_type, nexus_port in host_connections:
             port_id = '%s:%s' % (intf_type, nexus_port)
-            nxos_db.add_nexusport_binding(port_id, str(vlan_id), str(vni),
-                                          switch_ip, device_id,
-                                          is_provider_vlan)
+            try:
+                nxos_db.get_nexusport_binding(port_id, vlan_id, switch_ip,
+                                              device_id)
+            except excep.NexusPortBindingNotFound:
+                nxos_db.add_nexusport_binding(port_id, str(vlan_id), str(vni),
+                                              switch_ip, device_id,
+                                              is_provider_vlan)
 
     def _configure_port_binding(self, is_provider_vlan, duplicate_type,
                                 switch_ip, vlan_id,
