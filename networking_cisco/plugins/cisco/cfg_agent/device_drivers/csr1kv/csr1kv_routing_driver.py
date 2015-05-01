@@ -83,13 +83,13 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
 
     def external_gateway_added(self, ri, ex_gw_port):
         self._csr_create_subinterface(ri, ex_gw_port)
-        ex_gw_ip = ex_gw_port['subnet']['gateway_ip']
+        ex_gw_ip = ex_gw_port['subnets'][0]['gateway_ip']
         if ex_gw_ip:
             #Set default route via this network's gateway ip
             self._csr_add_default_route(ri, ex_gw_ip)
 
     def external_gateway_removed(self, ri, ex_gw_port):
-        ex_gw_ip = ex_gw_port['subnet']['gateway_ip']
+        ex_gw_ip = ex_gw_port['subnets'][0]['gateway_ip']
         if ex_gw_ip:
             #Remove default route via this network's gateway ip
             self._csr_remove_default_route(ri, ex_gw_ip)
