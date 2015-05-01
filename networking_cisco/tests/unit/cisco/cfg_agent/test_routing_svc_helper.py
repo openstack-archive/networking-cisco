@@ -39,8 +39,8 @@ def prepare_router_data(enable_snat=None, num_internal_ports=1):
                   'network_id': _uuid(),
                   'fixed_ips': [{'ip_address': '19.4.4.4',
                                  'subnet_id': _uuid()}],
-                  'subnet': {'cidr': '19.4.4.0/24',
-                             'gateway_ip': '19.4.4.1'}}
+                  'subnets': [{'cidr': '19.4.4.0/24',
+                             'gateway_ip': '19.4.4.1'}]}
     int_ports = []
     for i in range(num_internal_ports):
         int_ports.append({'id': _uuid(),
@@ -49,8 +49,8 @@ def prepare_router_data(enable_snat=None, num_internal_ports=1):
                           'fixed_ips': [{'ip_address': '35.4.%s.4' % i,
                                          'subnet_id': _uuid()}],
                           'mac_address': 'ca:fe:de:ad:be:ef',
-                          'subnet': {'cidr': '35.4.%s.0/24' % i,
-                                     'gateway_ip': '35.4.%s.1' % i}})
+                          'subnets': [{'cidr': '35.4.%s.0/24' % i,
+                                     'gateway_ip': '35.4.%s.1' % i}]})
     hosting_device = {'id': _uuid(),
                       "name": "CSR1kv_template",
                       "booting_time": 300,
@@ -81,8 +81,8 @@ class TestRouterInfo(base.BaseTestCase):
                            'network_id': _uuid(),
                            'fixed_ips': [{'ip_address': '19.4.4.4',
                                           'subnet_id': _uuid()}],
-                           'subnet': {'cidr': '19.4.4.0/24',
-                                      'gateway_ip': '19.4.4.1'}}
+                           'subnets': [{'cidr': '19.4.4.0/24',
+                                      'gateway_ip': '19.4.4.1'}]}
         self.router = {'id': _uuid(),
                        'enable_snat': True,
                        'routes': [],
@@ -122,8 +122,8 @@ class TestBasicRoutingOperations(base.BaseTestCase):
                            'network_id': _uuid(),
                            'fixed_ips': [{'ip_address': '19.4.4.4',
                                          'subnet_id': _uuid()}],
-                           'subnet': {'cidr': '19.4.4.0/24',
-                                      'gateway_ip': '19.4.4.1'}}
+                           'subnets': [{'cidr': '19.4.4.0/24',
+                                      'gateway_ip': '19.4.4.1'}]}
         self.hosting_device = {'id': "100",
                                'name': "CSR1kv_template",
                                'booting_time': 300,

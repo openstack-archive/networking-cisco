@@ -636,5 +636,5 @@ class RoutingServiceHelper(object):
         if len(ips) > 1:
             LOG.error(_LE("Ignoring multiple IPs on router port %s"),
                       port['id'])
-        prefixlen = netaddr.IPNetwork(port['subnet']['cidr']).prefixlen
+        prefixlen = netaddr.IPNetwork(port['subnets'][0]['cidr']).prefixlen
         port['ip_cidr'] = "%s/%s" % (ips[0]['ip_address'], prefixlen)
