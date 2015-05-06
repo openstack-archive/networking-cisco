@@ -24,6 +24,7 @@ import sqlalchemy as sa
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 
+from neutron.common import constants as n_const
 from neutron.common import exceptions as exc
 from neutron.db import api as db_api
 from neutron.i18n import _LE, _LI, _LW
@@ -35,7 +36,7 @@ from neutron.plugins.ml2.drivers import type_tunnel
 LOG = log.getLogger(__name__)
 
 # Nexus switches start VNI at 4096 = max VLAN + 2 (2 for reserved VLAN 0, 4095)
-MIN_NEXUS_VNI = p_const.MAX_VLAN_TAG + 2
+MIN_NEXUS_VNI = n_const.MAX_VLAN_TAG + 2
 
 nexus_vxlan_opts = [
     cfg.ListOpt('vni_ranges',
@@ -115,7 +116,7 @@ class NexusVxlanTypeDriver(type_tunnel.TunnelTypeDriver):
                         "tunnel range."))
 
     def _is_valid_nexus_vni(self, vni):
-        return MIN_NEXUS_VNI <= vni <= p_const.MAX_VXLAN_VNI
+        return MIN_NEXUS_VNI <= vni <= n_const.MAX_VXLAN_VNI
 
     def _parse_mcast_ranges(self):
         ranges = (range.split(':') for range in self.conf_mcast_ranges)

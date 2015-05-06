@@ -17,17 +17,17 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import type_nexus_vxlan
 
+from neutron.common import constants as n_const
 import neutron.db.api as db
-from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import driver_api as api
 
 from neutron.tests.unit import testlib_api
 
 VNI_RANGES = [(100, 102), (200, 202)]
 VNI_RANGE_LOW_INVALID = [str(type_nexus_vxlan.MIN_NEXUS_VNI - 1) + ':' +
-                         str(p_const.MAX_VXLAN_VNI)]
+                         str(n_const.MAX_VXLAN_VNI)]
 VNI_RANGE_HIGH_INVALID = [str(type_nexus_vxlan.MIN_NEXUS_VNI) + ':' +
-                          str(p_const.MAX_VXLAN_VNI + 1)]
+                          str(n_const.MAX_VXLAN_VNI + 1)]
 MCAST_GROUP_RANGES = ['224.0.0.1:224.0.0.2', '224.0.1.1:224.0.1.2']
 
 
