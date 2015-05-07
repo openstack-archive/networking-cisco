@@ -243,7 +243,8 @@ class N1kvTrunkingPlugDriver(plug.PluginSidePluggingDriver):
         # Create port for on trunk network
         p_spec['port'].update({'name': port_namebase + index,
                                'network_id': t_n[resource_index]['id'],
-                               'n1kv:profile_id': port_profile})
+                               'n1kv:profile_id': port_profile,
+                               'mac_address': attributes.ATTR_NOT_SPECIFIED})
         t_p.append(self._core_plugin.create_port(context, p_spec))
         LOG.debug('Created %(t_n)s port with name %(name)s, id %(id)s on '
                   'subnet %(subnet)s',
