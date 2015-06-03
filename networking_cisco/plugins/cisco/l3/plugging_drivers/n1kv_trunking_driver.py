@@ -195,7 +195,7 @@ class N1kvTrunkingPlugDriver(plug.PluginSidePluggingDriver):
                     'ip_version': 4,
                     'dns_nameservers': attributes.ATTR_NOT_SPECIFIED,
                     'host_routes': attributes.ATTR_NOT_SPECIFIED}}
-                for i in xrange(max_hosted):
+                for i in range(max_hosted):
                     # Create T1 trunk network for this router
                     self._create_resources(
                         context, "T1", i, n_spec, n1kv_const.T1_NETWORK_NAME,

@@ -276,7 +276,7 @@ class RouterSchedulingTestCase(L3RouterApplianceTestCaseBase,
     def _wait_for_backlog_processing(
             self, fcn, wait_time=CHK_INTERVAL, max_attempts=10, **kwargs):
         routers = []
-        for attempts in xrange(max_attempts):
+        for attempts in range(max_attempts):
             routers = fcn(**kwargs)
             if routers:
                 if fcn == self.plugin.get_sync_data_ext:

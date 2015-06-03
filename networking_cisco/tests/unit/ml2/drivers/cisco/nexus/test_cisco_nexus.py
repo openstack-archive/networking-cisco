@@ -252,7 +252,7 @@ class TestCiscoNexusDevice(testlib_api.SqlTestCase):
             len(driver_result),
             "Unexpected driver count")
 
-        for idx in xrange(0, len(driver_result)):
+        for idx in range(0, len(driver_result)):
             self.assertNotEqual(self.mock_ncclient.connect.
                 return_value.edit_config.mock_calls[idx][2]['config'],
                 None, "mock_data is None")
@@ -790,7 +790,7 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
             len(driver_result),
             "Unexpected driver count")
 
-        for idx in xrange(0, len(driver_result)):
+        for idx in range(0, len(driver_result)):
             self.assertNotEqual(self.mock_ncclient.connect.
                 return_value.edit_config.mock_calls[idx][2]['config'],
                 None, "mock_data is None")

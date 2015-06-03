@@ -19,6 +19,7 @@ import netaddr
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import excutils
+import six
 import sqlalchemy as sa
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -170,7 +171,7 @@ class NexusVxlanTypeDriver(type_tunnel.TunnelTypeDriver):
         # determine current configured allocatable vnis
         vxlan_vnis = set()
         for tun_min, tun_max in self.tunnel_ranges:
-            vxlan_vnis |= set(xrange(tun_min, tun_max + 1))
+            vxlan_vnis |= set(six.moves.range(tun_min, tun_max + 1))
 
         session = db_api.get_session()
         with session.begin(subtransactions=True):

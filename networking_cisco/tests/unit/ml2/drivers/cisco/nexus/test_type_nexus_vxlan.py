@@ -41,11 +41,16 @@ class NexusVxlanTypeTest(testlib_api.SqlTestCase):
         self.driver.sync_allocations()
         self.session = db.get_session()
 
+    def vni_in_range(self, vni):
+        # SegmentTypeDriver.allocate_partially_specified_segment allocates
+        # a random VNI from the range
+        return any(lower <= vni <= upper for (lower, upper) in VNI_RANGES)
+
     def test_allocate_tenant_segment(self):
         segment = self.driver.allocate_tenant_segment(self.session)
         self.assertEqual(segment[api.NETWORK_TYPE], const.TYPE_NEXUS_VXLAN)
         self.assertEqual(segment[api.PHYSICAL_NETWORK], '224.0.0.1')
-        self.assertEqual(segment[api.SEGMENTATION_ID], 100)
+        self.assertTrue(self.vni_in_range(segment[api.SEGMENTATION_ID]))
 
     def test_allocate_shared_mcast_group(self):
         segments = []
@@ -54,11 +59,12 @@ class NexusVxlanTypeTest(testlib_api.SqlTestCase):
         self.assertEqual(segments[0][api.NETWORK_TYPE],
                          const.TYPE_NEXUS_VXLAN)
         self.assertEqual(segments[0][api.PHYSICAL_NETWORK], '224.0.0.1')
-        self.assertEqual(segments[0][api.SEGMENTATION_ID], 100)
+        self.assertTrue(self.vni_in_range(segments[0][api.SEGMENTATION_ID]))
         self.assertEqual(segments[-1][api.NETWORK_TYPE],
                          const.TYPE_NEXUS_VXLAN)
         self.assertEqual(segments[-1][api.PHYSICAL_NETWORK], '224.0.0.1')
-        self.assertEqual(segments[-1][api.SEGMENTATION_ID], 202)
+        self.assertTrue(self.vni_in_range(segments[-1][api.SEGMENTATION_ID]))
+        self.assertNotEqual(segments[0], segments[-1])
 
     def test_reserve_provider_segment_full_specs(self):
         segment = {api.NETWORK_TYPE: const.TYPE_NEXUS_VXLAN,
@@ -83,7 +89,7 @@ class NexusVxlanTypeTest(testlib_api.SqlTestCase):
         mcast_group = self.driver._get_mcast_group_for_vni(self.session,
                                                            alloc.vxlan_vni)
         self.assertTrue(alloc.allocated)
-        self.assertEqual(alloc.vxlan_vni, 100)
+        self.assertTrue(self.vni_in_range(alloc.vxlan_vni))
         self.assertEqual(mcast_group, '224.0.0.1')
 
     def test_invalid_vni_ranges(self):

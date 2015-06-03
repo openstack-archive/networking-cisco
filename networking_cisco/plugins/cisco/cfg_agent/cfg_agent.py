@@ -288,7 +288,7 @@ class CiscoCfgAgentWithStateReport(CiscoCfgAgent):
         failure to register after the required number of attempts,
         the agent stops itself.
         """
-        for attempts in xrange(MAX_REGISTRATION_ATTEMPTS):
+        for attempts in range(MAX_REGISTRATION_ATTEMPTS):
             context = n_context.get_admin_context_without_session()
             self.send_agent_report(self.agent_state, context)
             res = self.devmgr_rpc.register_for_duty(context)
