@@ -14,6 +14,7 @@
 #    under the License.
 
 import re
+import six
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -173,7 +174,7 @@ class NCSMechanismDriver(api.MechanismDriver):
         """
         if isinstance(obj, dict):
             obj = dict((self.escape(k), self.escape_keys(v))
-                       for k, v in obj.iteritems())
+                       for k, v in six.iteritems(obj))
         if isinstance(obj, list):
             obj = [self.escape_keys(x) for x in obj]
         return obj

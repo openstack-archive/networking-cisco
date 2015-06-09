@@ -13,6 +13,7 @@
 #    under the License.
 
 import random
+import six
 
 from keystoneclient import exceptions as k_exceptions
 from keystoneclient.v2_0 import client as k_client
@@ -481,7 +482,7 @@ class DeviceHandlingMixin(object):
         if active is not None:
             query = (query.filter(agents_db.Agent.admin_state_up == active))
         if filters:
-            for key, value in filters.iteritems():
+            for key, value in six.iteritems(filters):
                 column = getattr(agents_db.Agent, key, None)
                 if column:
                     query = query.filter(column.in_(value))

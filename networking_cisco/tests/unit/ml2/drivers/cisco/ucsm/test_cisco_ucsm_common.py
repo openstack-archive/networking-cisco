@@ -35,7 +35,7 @@ class ConfigMixin(object):
     def set_up_mocks(self):
         # Mock the configuration file
 
-        args = ['--config-file', base.etcdir('neutron.conf.test')]
+        args = ['--config-file', base.etcdir('neutron.conf')]
         neutron_config.init(args=args)
 
         # Configure the ML2 mechanism drivers and network types

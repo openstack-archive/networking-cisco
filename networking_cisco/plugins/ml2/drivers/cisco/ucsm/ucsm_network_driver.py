@@ -13,6 +13,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import six
+
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
@@ -466,7 +468,7 @@ class CiscoUcsmDriver(object):
 
     def _remove_vlan_from_all_service_profiles(self, handle, vlan_id):
         service_profile_list = []
-        for host_id, value in self.ucsm_host_dict.iteritems():
+        for host_id, value in six.iteritems(self.ucsm_host_dict):
             if value:
                 service_profile_list.append(value)
 
