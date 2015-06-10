@@ -22,7 +22,9 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
 
 from neutron import context as ncontext
 import neutron.db.api as db
+from neutron.db import models_v2
 from neutron.i18n import _LE
+from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2.drivers.cisco.n1kv import n1kv_models
 
 LOG = log.getLogger(__name__)
@@ -269,3 +271,19 @@ def get_network_profile_by_network(network_id):
                              filter_by(network_id=network_id).one())
     return (db_session.query(n1kv_models.NetworkProfile).
             filter_by(id=network_profile_local.profile_id).one())
+
+
+def get_vxlan_networks():
+    """
+    Get all VxLAN networks.
+
+    :return: A list of all VxLAN networks
+    """
+    db_session = db.get_session()
+    network_binding_rows = db_session.query(
+        models_v2.Network, n1kv_models.N1kvNetworkBinding).filter(
+            models_v2.Network.id ==
+            n1kv_models.N1kvNetworkBinding.network_id).filter(
+                n1kv_models.N1kvNetworkBinding.network_type ==
+                p_const.TYPE_VXLAN).all()
+    return [network for (network, binding) in network_binding_rows]

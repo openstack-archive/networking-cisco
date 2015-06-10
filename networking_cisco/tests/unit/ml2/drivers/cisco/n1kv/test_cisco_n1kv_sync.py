@@ -159,3 +159,10 @@ class TestN1kvSyncDriver(TestN1KVMechanismDriver):
         self.sync_driver._md5_hash_comparison(None)
         self.assertTrue(self.sync_driver.sync_resource[n1kv_const.PORTS])
         self.TEST_NEUTRON_PORTS.append(port)
+
+    def test_bd_sync_triggered_on_neutron_restart(self):
+        """
+        Test whether bridge-domain sync flags are set to True on Neutron
+        restarts, for all VSMs.
+        """
+        self.assertTrue(all(self.sync_driver.sync_bds.values()))
