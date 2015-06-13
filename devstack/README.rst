@@ -8,7 +8,7 @@
 
      > cat local.conf
      [[local|localrc]]
-     enable_plugin networking-cisco https://git.openstack.org/stackforge/networking-cisco.git
+     enable_plugin networking-cisco https://git.openstack.org/openstack/networking-cisco.git
      enable_service net-cisco
 
 
