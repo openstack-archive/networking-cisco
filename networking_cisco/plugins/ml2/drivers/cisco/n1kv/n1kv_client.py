@@ -49,8 +49,8 @@ class Client(object):
     This client implements functions to communicate with
     Cisco Nexus1000V VSM.
 
-    For every Neutron objects, Cisco Nexus1000V Neutron Plugin
-    creates a corresponding object in the controller (Cisco
+    For every Neutron object, Cisco Nexus1000V Neutron Plugin
+    creates a corresponding object on the controller (Cisco
     Nexus1000V VSM).
 
     CONCEPTS:
@@ -114,6 +114,7 @@ class Client(object):
     bridge_domain_path = "/kvm/bridge-domain/%s"
     logical_network_path = "/logical-network/%s"
     md5_path = "/kvm/config-md5-hashes"
+    sync_notification_path = "/sync-notification"
 
     pool = eventlet.GreenPool(cfg.CONF.ml2_cisco_n1kv.http_pool_size)
 
@@ -140,6 +141,15 @@ class Client(object):
                                   "Invalid format for VSM IP address: %s") %
                                 vsm_ip)
 
+    def send_sync_notification(self, msg, vsm_ip):
+        """Send a start/end/no-change sync notification to the VSM.
+
+        :param vsm_ip: string representing the IP address of the VSM
+        :param msg: message string, start, end or no-change
+        """
+        body = {'status': msg}
+        self._post(self.sync_notification_path, body=body, vsm_ip=vsm_ip)
+
     def list_port_profiles(self, vsm_ip=None):
         """Fetch all policy profiles from the VSM.
 
@@ -152,7 +162,7 @@ class Client(object):
         """Fetch all network profiles from VSM.
 
         :param vsm_ip: string representing the IP address of the VSM
-        :returns: JSON string
+        :return: JSON string
         """
         return self._get(self.network_segment_pools_path, vsm_ip=vsm_ip)
 
@@ -160,7 +170,7 @@ class Client(object):
         """Fetch all networks from VSM.
 
         :param vsm_ip: string representing the IP address of the VSM
-        :returns: JSON string
+        :return: JSON string
         """
         return self._get(self.network_segments_path, vsm_ip=vsm_ip)
 
@@ -168,7 +178,7 @@ class Client(object):
         """Fetch all subnets from VSM.
 
         :param vsm_ip: string representing the IP address of the VSM
-        :returns: JSON string
+        :return: JSON string
         """
         return self._get(self.ip_pools_path, vsm_ip=vsm_ip)
 
@@ -176,19 +186,18 @@ class Client(object):
         """Fetch all VM networks from VSM.
 
         :param vsm_ip: string representing the IP address of the VSM
-        :returns: JSON string
+        :return: JSON string
         """
         return self._get(self.vm_networks_path, vsm_ip=vsm_ip)
 
     def list_md5_hashes(self, vsm_ip=None):
-        """Fetch the list of MD5 hashes from the VSM.
+        """Fetch MD5 hashes for all resources from VSM.
 
-        Fetch MD5 hashes for network profiles, networks, subnets,
-        ports and a consolidated hash of these hashes from the
-        VSM.
+        Fetch MD5 hashes for network profiles, networks, subnets, ports and
+        a consolidated hash of these hashes from the VSM
 
         :param vsm_ip: string representing the IP address of the VSM
-        :returns: JSON string
+        :return: JSON string
         """
         return self._get(self.md5_path, vsm_ip=vsm_ip)
 
@@ -196,7 +205,7 @@ class Client(object):
         """Fetch the list of all bridge domains on the VSM.
 
         :param vsm_ip: string representing the IP address of the VSM
-        :returns: JSON string
+        :return: JSON string
         """
         return self._get(self.bridge_domains_path, vsm_ip=vsm_ip)
 
@@ -205,7 +214,7 @@ class Client(object):
 
         :param network_id: UUID of the network whose details are needed
         :param vsm_ip: string representing the IP address of the VSM
-        :returns: JSON string
+        :return: JSON string
         """
         return self._get(self.network_segment_path % network_id, vsm_ip=vsm_ip)
 
@@ -226,6 +235,7 @@ class Client(object):
 
         :param logical_network_name: string representing name of the logical
                                      network
+        :param vsm_ip: string representing the IP address of the VSM
         """
         return self._delete(
             self.logical_network_path % logical_network_name, vsm_ip=vsm_ip)
@@ -291,7 +301,7 @@ class Client(object):
                 # Reraise the exception so that caller method executes further
                 # clean up.
                 if network[providernet.NETWORK_TYPE] == p_const.TYPE_VXLAN:
-                    self._delete_bridge_domain(bd_name, vsm_ip)
+                    self._delete_bridge_domain(bd_name, vsm_ip=vsm_ip)
 
     def update_network_segment(self, updated_network):
         """Update a network segment on the VSM.
@@ -317,7 +327,7 @@ class Client(object):
             bd_name = network_segment_id + n1kv_const.BRIDGE_DOMAIN_SUFFIX
             self._delete_bridge_domain(bd_name, vsm_ip=vsm_ip)
         return self._delete(self.network_segment_path % network_segment_id,
-                            vsm_ip)
+                            vsm_ip=vsm_ip)
 
     def _create_bridge_domain(self, network, vsm_ip=None):
         """Create a bridge domain on VSM.
@@ -511,14 +521,14 @@ class Client(object):
     def get_vsm_hosts(self):
         """Retrieve a list of VSM ip addresses.
 
-        :returns: list of host ip addresses
+        :return: list of host ip addresses
         """
         return self.n1kv_vsm_ips
 
     def _get_auth_header(self):
         """Retrieve header with auth info for the VSM.
 
-        :returns: authorization header dict
+        :return: authorization header dict
         """
         auth = base64.encodestring("%s:%s" %
                                    (self.username,
