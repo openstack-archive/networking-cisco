@@ -69,6 +69,7 @@ class TestN1KVMechanismDriver(
     fmt = "json"
     shared = False
     upd_shared = False
+    vsm_retry = False
 
     def setUp(self):
 
@@ -113,19 +114,20 @@ class TestN1KVMechanismDriver(
         if self.shared:
             client_patch = mock.patch(n1kv_client.__name__ + ".Client",
                                       new=fake_client.TestClientSharedNetwork)
-            client_patch.start()
         # For tests that update the network to be shared, we need to have a
         # separate mock that initially checks the network create as normal
         # then verifies the tenant_id is set to 0 as expected on update.
         elif self.upd_shared:
             client_patch = mock.patch(n1kv_client.__name__ + ".Client",
                 new=fake_client.TestClientUpdateSharedNetwork)
-            client_patch.start()
+        elif self.vsm_retry:
+            client_patch = mock.patch(n1kv_client.__name__ + ".Client",
+                new=fake_client.TestClientVSMRetry)
         # Normal mock for most test cases- verifies request parameters.
         else:
             client_patch = mock.patch(n1kv_client.__name__ + ".Client",
                                       new=fake_client.TestClient)
-            client_patch.start()
+        client_patch.start()
         # Create a mock for FullSync since there is no VSM at the time of UT.
         sync_patcher = mock.patch(n1kv_sync.
                                   __name__ + ".N1kvSyncDriver.do_sync")
@@ -262,3 +264,27 @@ class TestN1KVMechDriverVxlanMultiRange(
                                 TestN1KVMechanismDriver):
 
     pass
+
+
+class TestN1KVCLientVSMRetry(TestN1KVMechanismDriver):
+
+    def setUp(self):
+        self.vsm_retry = True
+        super(TestN1KVCLientVSMRetry, self).setUp()
+
+    def test_vsm_retry(self):
+        """Test retry count for VSM REST API."""
+        max_retries = 3
+        ml2_config.cfg.CONF.set_override('max_vsm_retries', max_retries,
+                                         'ml2_cisco_n1kv')
+        with mock.patch.object(fake_client.TestClientVSMRetry,
+                               '_fake_pool_spawn') as mock_method:
+            # Mock the fake HTTP conn method to generate timeouts
+            mock_method.side_effect = Exception("Conn timeout")
+            # Create client instance
+            client = n1kv_client.Client()
+            # Test that the GET API for profiles is retried
+            self.assertRaises(n1kv_exc.VSMConnectionFailed,
+                              client.list_port_profiles)
+            # Verify that number of attempts = 1 + max_retries
+            self.assertEqual(1 + max_retries, mock_method.call_count)

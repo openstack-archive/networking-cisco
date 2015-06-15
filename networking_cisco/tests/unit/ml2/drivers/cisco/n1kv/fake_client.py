@@ -99,6 +99,16 @@ class TestClientUpdateSharedNetwork(TestClient):
         self.upd_shared_net = True
 
 
+class TestClientVSMRetry(n1kv_client.Client):
+    """Base class for test client"""
+    def __init__(self, **kwargs):
+        super(TestClientVSMRetry, self).__init__()
+        self.pool.spawn = self._fake_pool_spawn
+
+    def _fake_pool_spawn(self):
+        pass
+
+
 def _validate_resource(action, body=None):
     """Validate expected keys are present in outgoing request"""
     if body:

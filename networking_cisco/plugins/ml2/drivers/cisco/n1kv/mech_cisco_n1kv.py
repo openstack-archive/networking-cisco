@@ -154,10 +154,8 @@ class N1KVMechanismDriver(api.MechanismDriver):
         netp = n1kv_db.get_network_profile_by_type(network_type, session)
         try:
             self.n1kvclient.create_network_segment(network, netp)
-        except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed) as e:
-            with excutils.save_and_reraise_exception(reraise=False):
-                LOG.info(e.message)
-                raise ml2_exc.MechanismDriverError()
+        except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
+            raise ml2_exc.MechanismDriverError()
         LOG.info(_LI("Create network(postcommit) succeeded for network: "
                      "%(network_id)s of type: %(network_type)s with segment "
                      "id: %(segment_id)s"),
@@ -181,10 +179,8 @@ class N1KVMechanismDriver(api.MechanismDriver):
                for val in modifiable_vals):
             try:
                 self.n1kvclient.update_network_segment(updated_network)
-            except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed) as e:
-                with excutils.save_and_reraise_exception(reraise=False):
-                    LOG.info(e.message)
-                    raise ml2_exc.MechanismDriverError()
+            except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
+                raise ml2_exc.MechanismDriverError()
         LOG.info(_LI("Update network(postcommit) succeeded for network: %s") %
                  old_network['id'])
 
@@ -199,10 +195,8 @@ class N1KVMechanismDriver(api.MechanismDriver):
             return
         try:
             self.n1kvclient.delete_network_segment(network['id'], network_type)
-        except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed) as e:
-            with excutils.save_and_reraise_exception(reraise=False):
-                LOG.info(e.message)
-                raise ml2_exc.MechanismDriverError()
+        except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
+            raise ml2_exc.MechanismDriverError()
         LOG.info(_LI("Delete network(postcommit) succeeded for network: "
                      "%(network_id)s of type: %(network_type)s with segment "
                      "ID: %(segment_id)s"),
@@ -215,10 +209,8 @@ class N1KVMechanismDriver(api.MechanismDriver):
         subnet = context.current
         try:
             self.n1kvclient.create_ip_pool(subnet)
-        except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed) as e:
-            with excutils.save_and_reraise_exception(reraise=False):
-                LOG.info(e.message)
-                raise ml2_exc.MechanismDriverError()
+        except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
+            raise ml2_exc.MechanismDriverError()
         LOG.info(_LI("Create subnet(postcommit) succeeded for subnet: "
                      "ID: %s"), subnet['id'])
 
@@ -227,10 +219,8 @@ class N1KVMechanismDriver(api.MechanismDriver):
         updated_subnet = context.current
         try:
             self.n1kvclient.update_ip_pool(updated_subnet)
-        except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed) as e:
-            with excutils.save_and_reraise_exception(reraise=False):
-                LOG.info(e.message)
-                raise ml2_exc.MechanismDriverError()
+        except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
+            raise ml2_exc.MechanismDriverError()
         LOG.info(_LI("Update subnet(postcommit) succeeded for subnet: "
                      "ID: %s"), updated_subnet['id'])
 
@@ -238,10 +228,8 @@ class N1KVMechanismDriver(api.MechanismDriver):
         """Send delete subnet notification to the VSM."""
         try:
             self.n1kvclient.delete_ip_pool(context.current['id'])
-        except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed) as e:
-            with excutils.save_and_reraise_exception(reraise=False):
-                LOG.info(e.message)
-                raise ml2_exc.MechanismDriverError()
+        except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
+            raise ml2_exc.MechanismDriverError()
         LOG.info(_LI("Delete subnet(postcommit) succeeded for subnet: "
                      "ID: %s"), context.current['id'])
 
@@ -261,10 +249,8 @@ class N1KVMechanismDriver(api.MechanismDriver):
             self.n1kvclient.create_n1kv_port(port,
                                              vmnetwork_name,
                                              policy_profile)
-        except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed) as e:
-            with excutils.save_and_reraise_exception(reraise=False):
-                LOG.info(e.message)
-                raise ml2_exc.MechanismDriverError()
+        except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
+            raise ml2_exc.MechanismDriverError()
         LOG.info(_LI("Create port(postcommit) succeeded for port: "
                      "%(id)s on network: %(network_id)s with policy "
                      "profile ID: %(profile_id)s"),
@@ -294,8 +280,7 @@ class N1KVMechanismDriver(api.MechanismDriver):
                 self.n1kvclient.create_n1kv_port(port,
                                                  vmnetwork_name,
                                                  policy_profile)
-            except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed) as e:
-                LOG.info(e.message)
+            except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
                 raise ml2_exc.MechanismDriverError()
             LOG.info(_LI("Update port(postcommit) succeeded for port: "
                          "%(id)s on network: %(network_id)s with policy "
@@ -319,10 +304,8 @@ class N1KVMechanismDriver(api.MechanismDriver):
                                       port['network_id'])
         try:
             self.n1kvclient.delete_n1kv_port(vmnetwork_name, port['id'])
-        except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed) as e:
-            with excutils.save_and_reraise_exception(reraise=False):
-                LOG.info(e.message)
-                raise ml2_exc.MechanismDriverError()
+        except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
+            raise ml2_exc.MechanismDriverError()
         LOG.info(_LI("Delete port(postcommit) succeeded for port: "
                      "%(id)s on network: %(network_id)s with policy "
                      "profile ID: %(profile_id)s"),
