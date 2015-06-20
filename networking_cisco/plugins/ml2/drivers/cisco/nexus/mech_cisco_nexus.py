@@ -18,6 +18,7 @@ ML2 Mechanism Driver for Cisco Nexus platforms.
 """
 
 import eventlet
+import os
 import threading
 
 from oslo_concurrency import lockutils
@@ -173,6 +174,10 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         self.driver = nexus_network_driver.CiscoNexusDriver()
 
+        # This method is only called once regardless of number of
+        # api/rpc workers defined.
+        self._ppid = os.getpid()
+
         self.monitor = CiscoNexusCfgMonitor(self.driver, self)
         self.timer = None
         self.monitor_timeout = conf.cfg.CONF.ml2_cisco.switch_heartbeat_time
@@ -228,7 +233,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         return switch_connections
 
     def is_switch_configurable(self, switch_ip):
-        if self.monitor_timeout > 0:
+        if self.monitor_timeout > 0 and self._ppid == os.getpid():
             return self.get_switch_ip_and_active_state(switch_ip)
         else:
             return True
