@@ -290,7 +290,7 @@ class Client(object):
         elif network[providernet.NETWORK_TYPE] == p_const.TYPE_VXLAN:
             # Create a bridge domain on VSM
             bd_name = network['id'] + n1kv_const.BRIDGE_DOMAIN_SUFFIX
-            self._create_bridge_domain(network, vsm_ip)
+            self.create_bridge_domain(network, vsm_ip=vsm_ip)
             body['bridgeDomain'] = bd_name
         try:
             return self._post(self.network_segment_path % network['id'],
@@ -301,7 +301,7 @@ class Client(object):
                 # Reraise the exception so that caller method executes further
                 # clean up.
                 if network[providernet.NETWORK_TYPE] == p_const.TYPE_VXLAN:
-                    self._delete_bridge_domain(bd_name, vsm_ip=vsm_ip)
+                    self.delete_bridge_domain(bd_name, vsm_ip=vsm_ip)
 
     def update_network_segment(self, updated_network):
         """Update a network segment on the VSM.
@@ -325,11 +325,11 @@ class Client(object):
         """
         if network_type == p_const.TYPE_VXLAN:
             bd_name = network_segment_id + n1kv_const.BRIDGE_DOMAIN_SUFFIX
-            self._delete_bridge_domain(bd_name, vsm_ip=vsm_ip)
+            self.delete_bridge_domain(bd_name, vsm_ip=vsm_ip)
         return self._delete(self.network_segment_path % network_segment_id,
                             vsm_ip=vsm_ip)
 
-    def _create_bridge_domain(self, network, vsm_ip=None):
+    def create_bridge_domain(self, network, vsm_ip=None):
         """Create a bridge domain on VSM.
 
         :param network: network dict
@@ -349,7 +349,7 @@ class Client(object):
         return self._post(self.bridge_domains_path,
                           body=body, vsm_ip=vsm_ip)
 
-    def _delete_bridge_domain(self, name, vsm_ip=None):
+    def delete_bridge_domain(self, name, vsm_ip=None):
         """Delete a bridge domain on VSM.
 
         :param name: name of the bridge domain to be deleted
