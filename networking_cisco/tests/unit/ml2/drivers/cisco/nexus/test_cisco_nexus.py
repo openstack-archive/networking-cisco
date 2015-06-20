@@ -15,6 +15,7 @@
 
 import collections
 import mock
+import os
 from oslo_utils import importutils
 import re
 import testtools
@@ -222,6 +223,7 @@ class TestCiscoNexusDevice(testlib_api.SqlTestCase):
             mech_instance.driver = importutils.import_object(NEXUS_DRIVER)
             mech_instance.monitor_timeout = (
                 cisco_config.cfg.CONF.ml2_cisco.switch_heartbeat_time)
+            mech_instance._ppid = os.getpid()
 
             mech_instance._nexus_switches = {}
             for name, config in TestCiscoNexusDevice.test_configs.items():
@@ -699,6 +701,7 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
             mech_instance.driver = importutils.import_object(NEXUS_DRIVER)
             mech_instance.monitor_timeout = (
                 cisco_config.cfg.CONF.ml2_cisco.switch_heartbeat_time)
+            mech_instance._ppid = os.getpid()
 
             mech_instance._switch_state = {}
             mech_instance._nexus_switches = {}
