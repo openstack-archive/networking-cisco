@@ -16,17 +16,17 @@
 from apicapi import apic_manager
 from keystoneclient.v2_0 import client as keyclient
 import netaddr
+from neutron.common import constants as n_constants
+from neutron.plugins.common import constants
+from neutron.plugins.ml2 import driver_api as api
+from neutron.plugins.ml2 import models
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from neutron.common import constants as n_constants
-from neutron.plugins.common import constants
-from neutron.plugins.ml2 import driver_api as api
-from neutron.plugins.ml2.drivers.cisco.apic import apic_model
-from neutron.plugins.ml2.drivers.cisco.apic import apic_sync
-from neutron.plugins.ml2.drivers.cisco.apic import config
-from neutron.plugins.ml2 import models
+from networking_cisco.plugins.ml2.drivers.cisco.apic import apic_model
+from networking_cisco.plugins.ml2.drivers.cisco.apic import apic_sync
+from networking_cisco.plugins.ml2.drivers.cisco.apic import config
 
 
 LOG = logging.getLogger(__name__)

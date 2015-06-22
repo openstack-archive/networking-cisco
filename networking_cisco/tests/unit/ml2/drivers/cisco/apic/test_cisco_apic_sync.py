@@ -19,8 +19,10 @@ import mock
 
 sys.modules["apicapi"] = mock.Mock()
 
-from neutron.plugins.ml2.drivers.cisco.apic import apic_sync
 from neutron.tests import base
+
+from networking_cisco.plugins.ml2.drivers.cisco.apic import apic_sync
+
 
 LOOPING_CALL = 'oslo_service.loopingcall.FixedIntervalLoopingCall'
 GET_PLUGIN = 'neutron.manager.NeutronManager.get_plugin'

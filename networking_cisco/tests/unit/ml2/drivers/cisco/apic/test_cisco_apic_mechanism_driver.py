@@ -21,10 +21,13 @@ sys.modules["apicapi"] = mock.Mock()
 
 from neutron.common import constants as n_constants
 from neutron.extensions import portbindings
-from neutron.plugins.ml2.drivers.cisco.apic import mechanism_apic as md
 from neutron.plugins.ml2.drivers import type_vlan  # noqa
 from neutron.tests import base
-from neutron.tests.unit.plugins.ml2.drivers.cisco.apic import base as mocked
+
+from networking_cisco.plugins.ml2.drivers.cisco.apic import (
+    mechanism_apic as md)
+from networking_cisco.tests.unit.ml2.drivers.cisco.apic import (
+    test_cisco_apic_common as mocked)
 
 
 HOST_ID1 = 'ubuntu'

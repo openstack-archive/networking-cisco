@@ -19,11 +19,13 @@ import mock
 
 sys.modules["apicapi"] = mock.Mock()
 
-from neutron.plugins.ml2.drivers.cisco.apic import mechanism_apic as md
-from neutron.services.l3_router import l3_apic
-from neutron.tests.unit.ml2.drivers.cisco.apic import (
-    test_cisco_apic_common as mocked)
 from neutron.tests.unit import testlib_api
+
+from networking_cisco.plugins.ml2.drivers.cisco.apic import (
+    mechanism_apic as md)
+from networking_cisco.services.l3_router import l3_apic
+from networking_cisco.tests.unit.ml2.drivers.cisco.apic import (
+    test_cisco_apic_common as mocked)
 
 
 TENANT = 'tenant1'
@@ -67,8 +69,8 @@ class TestCiscoApicL3Plugin(testlib_api.SqlTestCase,
                             mocked.ConfigMixin):
     def setUp(self):
         super(TestCiscoApicL3Plugin, self).setUp()
-        mock.patch('neutron.plugins.ml2.drivers.cisco.apic.apic_model.'
-                   'ApicDbModel').start()
+        mock.patch('networking_cisco.plugins.ml2.drivers.cisco.apic.'
+                   'apic_model.ApicDbModel').start()
         mocked.ControllerMixin.set_up_mocks(self)
         mocked.ConfigMixin.set_up_mocks(self)
         self.plugin = l3_apic.ApicL3ServicePlugin()

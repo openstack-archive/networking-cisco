@@ -19,11 +19,13 @@ import mock
 
 sys.modules["apicapi"] = mock.Mock()
 
-from neutron.plugins.ml2.drivers.cisco.apic import apic_topology
 from neutron.tests import base
-from neutron.tests.unit.plugins.ml2.drivers.cisco.apic import base as mocked
 
-NOTIFIER = ('neutron.plugins.ml2.drivers.cisco.apic.'
+from networking_cisco.plugins.ml2.drivers.cisco.apic import apic_topology
+from networking_cisco.tests.unit.ml2.drivers.cisco.apic import (
+    test_cisco_apic_common as mocked)
+
+NOTIFIER = ('networking_cisco.plugins.ml2.drivers.cisco.apic.'
             'apic_topology.ApicTopologyServiceNotifierApi')
 RPC_CONNECTION = 'neutron.common.rpc.Connection'
 AGENTS_DB = 'neutron.db.agents_db'

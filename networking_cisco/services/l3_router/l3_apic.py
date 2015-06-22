@@ -21,7 +21,7 @@ from neutron.db import extraroute_db
 from neutron.db import l3_dvr_db
 from neutron.plugins.common import constants
 
-from neutron.plugins.ml2.drivers.cisco.apic import mechanism_apic
+from networking_cisco.plugins.ml2.drivers.cisco.apic import mechanism_apic
 
 
 class ApicL3ServicePlugin(db_base_plugin_v2.NeutronDbPluginV2,

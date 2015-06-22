@@ -20,13 +20,6 @@ import eventlet
 
 eventlet.monkey_patch()
 
-from oslo_concurrency import lockutils
-from oslo_config import cfg
-from oslo_log import log as logging
-import oslo_messaging
-from oslo_service import periodic_task
-from oslo_service import service as svc
-
 from neutron.agent.common import config
 from neutron.agent.linux import ip_lib
 from neutron.agent.linux import utils
@@ -36,10 +29,18 @@ from neutron.common import utils as neutron_utils
 from neutron.db import agents_db
 from neutron.i18n import _LE, _LI
 from neutron import manager
-from neutron.plugins.ml2.drivers.cisco.apic import mechanism_apic as ma
 from neutron.plugins.ml2.drivers import type_vlan  # noqa
-
 from neutron import service
+from oslo_concurrency import lockutils
+from oslo_config import cfg
+from oslo_log import log as logging
+import oslo_messaging
+from oslo_service import periodic_task
+from oslo_service import service as svc
+
+
+from networking_cisco.plugins.ml2.drivers.cisco.apic import (
+    mechanism_apic as ma)
 
 ACI_PORT_DESCR_FORMATS = [
     r'topology/pod-1/node-(\d+)/sys/conng/path-\[eth(\d+)/(\d+)\]',
@@ -326,13 +327,13 @@ def launch(binary, manager, topic=None):
     server = service.Service.create(
         binary=binary, manager=manager, topic=topic,
         report_interval=report_period, periodic_interval=poll_period)
-    svc.launch(server).wait()
+    svc.launch(cfg.CONF, server).wait()
 
 
 def service_main():
     launch(
         BINARY_APIC_SERVICE_AGENT,
-        'neutron.plugins.ml2.drivers.' +
+        'networking_cisco.plugins.ml2.drivers.' +
         'cisco.apic.apic_topology.ApicTopologyService',
         TOPIC_APIC_SERVICE)
 
@@ -340,5 +341,5 @@ def service_main():
 def agent_main():
     launch(
         BINARY_APIC_HOST_AGENT,
-        'neutron.plugins.ml2.drivers.' +
+        'networking_cisco.plugins.ml2.drivers.' +
         'cisco.apic.apic_topology.ApicTopologyAgent')
