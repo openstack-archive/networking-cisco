@@ -144,10 +144,19 @@ class CiscoNexusCfgMonitor(object):
                     self.replay_config(switch_ip)
                     # If replay failed, it stops trying to configure db entries
                     # and sets switch state to False so this caller knows
-                    # it failed.
+                    # it failed.  If it did fail, we increment the
+                    # retry counter else reset it to 0.
                     if self._mdriver.get_switch_ip_and_active_state(
                         switch_ip) is False:
                         self._mdriver.incr_switch_retry_count(switch_ip)
+                        LOG.warn(_LW("Replay config failed for "
+                            "ip %(switch_ip)s"),
+                            {'switch_ip': switch_ip})
+                    else:
+                        self._mdriver.reset_switch_retry_count(switch_ip)
+                        LOG.info(_LI("Replay config successful for "
+                            "ip %(switch_ip)s"),
+                            {'switch_ip': switch_ip})
 
 
 class CiscoNexusMechanismDriver(api.MechanismDriver):
