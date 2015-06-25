@@ -15,6 +15,8 @@
 from sqlalchemy.orm import exc as s_exc
 
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
+    config as ml2_n1kv_config)
+from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     exceptions as c_exc)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     n1kv_db)
@@ -37,6 +39,9 @@ TEST_NETWORK_PROFILE_VXLAN = {'name': 'test_profile2',
 TEST_POLICY_PROFILE = {'id': '4a417990-76fb-11e2-bcfd-0800200c9a66',
                        'name': 'test_policy_profile',
                        'vsm_ip': '127.0.0.1'}
+TEST_PPROFILES = [TEST_POLICY_PROFILE]
+TEST_VSM_HOSTS = ['127.0.0.1']
+TEST_MULTI_VSM_HOSTS = ['127.0.0.1', '127.0.0.2']
 pprofile_mixin = policy_profile_service.PolicyProfile_db_mixin()
 
 
@@ -148,11 +153,32 @@ class PolicyProfileTests(testlib_api.SqlTestCase):
                       TEST_POLICY_PROFILE['name'])
 
     def test_get_policy_profile_by_name(self):
+        ml2_n1kv_config.cfg.CONF.set_override('n1kv_vsm_ips', TEST_VSM_HOSTS,
+                                            'ml2_cisco_n1kv')
         profile = _create_test_policy_profile_if_not_there(self.session)
         got_profile = n1kv_db.get_policy_profile_by_name(
                                             TEST_POLICY_PROFILE['name'])
         self.assertEqual(profile.id, got_profile.id)
         self.assertEqual(profile.name, got_profile.name)
+
+    def test_get_policy_profile_by_uuid(self):
+        ml2_n1kv_config.cfg.CONF.set_override('n1kv_vsm_ips', TEST_VSM_HOSTS,
+                                            'ml2_cisco_n1kv')
+        profile = _create_test_policy_profile_if_not_there(self.session)
+        got_profile = n1kv_db.get_policy_profile_by_uuid(self.session,
+                                            TEST_POLICY_PROFILE['id'])
+        self.assertEqual(profile.id, got_profile.id)
+        self.assertEqual(profile.name, got_profile.name)
+        ml2_n1kv_config.cfg.CONF.set_override('n1kv_vsm_ips',
+                                TEST_MULTI_VSM_HOSTS, 'ml2_cisco_n1kv')
+        self.assertRaises(c_exc.PolicyProfileNotFound,
+                          n1kv_db.get_policy_profile_by_uuid,
+                          self.session, TEST_POLICY_PROFILE['id'])
+
+    def test_check_policy_profile_exists_on_all_vsm(self):
+        _create_test_policy_profile_if_not_there(self.session)
+        self.assertTrue(n1kv_db.check_policy_profile_exists_on_all_vsm(
+                                            TEST_PPROFILES, TEST_VSM_HOSTS))
 
 
 class NetworkBindingsTest(test_db_base_plugin_v2.NeutronDbPluginV2TestCase):

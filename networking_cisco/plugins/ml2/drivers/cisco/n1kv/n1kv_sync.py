@@ -27,6 +27,7 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     constants as n1kv_const)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     exceptions as n1kv_exc)
+from networking_cisco.plugins.ml2.drivers.cisco.n1kv import config
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import n1kv_client
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import n1kv_db
 
@@ -52,7 +53,7 @@ class N1kvSyncDriver(object):
         # default to True so that BDs for all VSMs are synced at a neutron
         # restart
         self.sync_bds = {vsm_ip: True for vsm_ip in
-                         self.n1kvclient.get_vsm_hosts()}
+                         config.get_vsm_hosts()}
         self.bd_names = set()
 
     @property
@@ -106,7 +107,7 @@ class N1kvSyncDriver(object):
         """
         while True:
             try:
-                vsm_hosts = self.n1kvclient.get_vsm_hosts()
+                vsm_hosts = config.get_vsm_hosts()
                 for vsm_ip in vsm_hosts:
                     try:
                         self._sync_vsm(vsm_ip=vsm_ip)
@@ -372,26 +373,30 @@ class N1kvSyncDriver(object):
                          vsm_port_uuids]
         for port in missing_ports:
             # create these ports on VSM
-            network_uuid = port['network_id']
-            binding = n1kv_db.get_policy_binding(port['id'])
-            policy_profile_id = binding.profile_id
-            policy_profile = n1kv_db.get_policy_profile_by_uuid(
-                db.get_session(), policy_profile_id)
-            if not policy_profile:
-                LOG.error(_LE("Cannot sync port with id %(port_id)s "
-                              "because policy profile with id %(profile_id)s"
-                              "does not exist."),
-                          {"port_id": port['id'],
-                           "profile_name": policy_profile})
-                continue
-            vmnetwork_name = "%s%s_%s" % (n1kv_const.VM_NETWORK_PREFIX,
-                                          policy_profile_id, network_uuid)
             try:
+                network_uuid = port['network_id']
+                binding = n1kv_db.get_policy_binding(port['id'])
+                policy_profile_id = binding.profile_id
+                policy_profile = n1kv_db.get_policy_profile_by_uuid(
+                    db.get_session(), policy_profile_id)
+                if not policy_profile:
+                    LOG.error(_LE("Cannot sync port with id %(port_id)s "
+                                  "because policy profile with id "
+                                  "%(profile_id)s does not exist."),
+                              {"port_id": port['id'],
+                               "profile_name": policy_profile})
+                    continue
+                vmnetwork_name = "%s%s_%s" % (n1kv_const.VM_NETWORK_PREFIX,
+                                          policy_profile_id, network_uuid)
                 self.n1kvclient.create_n1kv_port(port, vmnetwork_name,
                                                  policy_profile, vsm_ip=vsm_ip)
             except (n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
                 LOG.warning(_LW('Sync Exception: Port create failed for '
                                 '%s.') % port['id'])
+            except n1kv_exc.PolicyProfileNotFound:
+                LOG.warning(_LW('Sync Exception: Port create failed as Policy '
+                                'profile %s does not exist on all VSM'),
+                            policy_profile_id)
 
     def _sync_delete_ports(self, combined_res_info, vsm_ip):
         """Sync ports by deleting extraneous ones from VSM."""
