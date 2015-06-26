@@ -15,8 +15,8 @@ import sys
 
 import datetime
 import mock
+from oslo_utils import uuidutils
 
-from neutron.openstack.common import uuidutils
 
 sys.modules['ncclient'] = mock.MagicMock()
 sys.modules['ciscoconfparse'] = mock.MagicMock()

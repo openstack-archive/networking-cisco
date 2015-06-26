@@ -14,12 +14,12 @@
 
 import mock
 from oslo_config import cfg
+from oslo_utils import uuidutils
 import testtools
 
 from neutron.agent.common import config
 from neutron.common import config as base_config
 from neutron.common import constants as l3_constants
-from neutron.openstack.common import uuidutils
 from neutron.tests import base
 
 from networking_cisco.plugins.cisco.cfg_agent import cfg_agent

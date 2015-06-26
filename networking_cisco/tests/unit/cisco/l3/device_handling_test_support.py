@@ -17,11 +17,11 @@ from novaclient import exceptions as nova_exc
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
+from oslo_utils import uuidutils
 
 from neutron import context as n_context
 from neutron.i18n import _LE
 from neutron import manager
-from neutron.openstack.common import uuidutils
 from neutron.plugins.common import constants
 
 LOG = logging.getLogger(__name__)
