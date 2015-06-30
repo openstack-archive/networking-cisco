@@ -1,0 +1,64 @@
+# ciscocfgagent
+# -------------
+
+# This file implements functions required to configure ciscocfgagent as the third-party
+# system used with devstack's Neutron.  To include this file, specify the following
+# variables in localrc:
+#
+# * enable_service ciscocfgagent
+#
+
+
+# Save trace setting
+CISCO_XTRACE=$(set +o | grep xtrace)
+set +o xtrace
+
+function configure_ciscocfgagent {
+    Q_CISCO_CFGAGENT_ENABLED=True
+    AGENT_CISCO_CFGAGENT_BINARY=${AGENT_CISCO_CFGAGENT_BINARY:-"$NEUTRON_BIN_DIR/neutron-cisco-cfg-agent"}
+    CISCO_CFGAGENT_CONFIG_DIR=$NEUTRON_CONF_DIR/plugins/cisco
+    mkdir -p $CISCO_CFGAGENT_CONFIG_DIR
+    Q_CISCO_CFGAGENT_CONF_FILE=$CISCO_CFGAGENT_CONFIG_DIR/cisco_cfg_agent.ini
+
+    if [[ -f $NEUTRON_DIR/etc/neutron/plugins/cisco/cisco_cfg_agent.ini ]]; then
+        cp $NEUTRON_DIR/etc/neutron/plugins/cisco/cisco_cfg_agent.ini $Q_CISCO_CFGAGENT_CONF_FILE
+    else
+        touch $Q_CISCO_CFGAGENT_CONF_FILE
+    fi
+    iniset $Q_CISCO_CFGAGENT_CONF_FILE DEFAULT verbose True
+    iniset $Q_CISCO_CFGAGENT_CONF_FILE DEFAULT debug $ENABLE_DEBUG_LOG_LEVEL
+}
+
+function init_ciscocfgagent {
+    :
+}
+
+function install_ciscocfgagent {
+    :
+}
+
+function start_ciscocfgagent {
+    # We do not start the cfg agent using the 3rd party system mechanism
+    # since it starts the 3rd party systems before neutron server.
+    :
+}
+
+function start_the_ciscocfgagent {
+    # We start the cfg agent when the other agents are started
+    # Need to enable q-ciscocfgagent due to how is_service_enabled function works
+    enable_service q-ciscocfgagent
+    configure_ciscocfgagent
+    CISCO_CFG_CONF_FILES="--config-file $NEUTRON_CONF --config-file=$Q_CISCO_CFGAGENT_CONF_FILE"
+    screen_it q-ciscocfgagent "cd $NEUTRON_DIR && python $AGENT_CISCO_CFGAGENT_BINARY $CISCO_CFG_CONF_FILES"
+}
+
+function stop_ciscocfgagent {
+    :
+}
+
+function check_ciscocfgagent {
+    :
+}
+
+# Restore xtrace
+$CISCO_XTRACE

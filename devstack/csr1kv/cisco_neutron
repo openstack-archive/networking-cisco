@@ -1,0 +1,252 @@
+#!/bin/bash
+#
+# lib/neutron
+# functions - functions specific to neutron
+
+# Dependencies:
+# ``functions`` file
+# ``DEST`` must be defined
+# ``STACK_USER`` must be defined
+
+# ``stack.sh`` calls the entry points in this order:
+#
+# - net_configure_neutron
+# - net_start_neutron_agents
+# - net_create_neutron_initial_network
+#
+# ``unstack.sh`` calls the entry points in this order:
+#
+# - net_stop_neutron
+
+# Neutron Networking
+# ------------------
+
+# Make sure that neutron is enabled in ``ENABLED_SERVICES``.  If you want
+# to run Neutron on this host, make sure that q-svc is also in
+# ``ENABLED_SERVICES``.
+#
+# See "Neutron Network Configuration" below for additional variables
+# that must be set in localrc for connectivity across hosts with
+# Neutron.
+#
+# With Neutron networking the NETWORK_MANAGER variable is ignored.
+
+# Settings
+# --------
+# Set up default directories
+NEUTRON_CONF_DIR=/etc/neutron
+NEUTRON_CONF=$NEUTRON_CONF_DIR/neutron.conf
+count=0
+Q_CISCO_CSR1KV_SETUP_SCRIPT_DIR=${Q_CISCO_CSR1KV_SETUP_SCRIPT_DIR:-$DIR_CISCO/devstack/csr1kv}
+# Default Neutron Plugin
+Q_PLUGIN=${Q_PLUGIN:-cisco}
+# Default Neutron Port
+Q_PORT=${Q_PORT:-9696}
+# Default protocol
+Q_PROTOCOL=${Q_PROTOCOL:-$SERVICE_PROTOCOL}
+# RHEL's support for namespaces requires using veths with ovs
+Q_USE_ROOTWRAP=${Q_USE_ROOTWRAP:-True}
+# nova vif driver that all plugins should use
+Q_NOTIFY_NOVA_PORT_STATUS_CHANGES=${Q_NOTIFY_NOVA_PORT_STATUS_CHANGES:-True}
+Q_NOTIFY_NOVA_PORT_DATA_CHANGES=${Q_NOTIFY_NOVA_PORT_DATA_CHANGES:-True}
+
+# MySQL info
+MYSQL_USER=${MYSQL_USER:root}
+MYSQL_PASSWORD=${MYSQL_PASSWORD:password}
+# Cisco subplugins
+declare -a Q_CISCO_PLUGIN_SUBPLUGINS
+source $DIR_CISCO/devstack/csr1kv/cisco
+source $DIR_CISCO/devstack/csr1kv/cisco_router
+source $DIR_CISCO/devstack/csr1kv/ciscocfgagent
+
+# Cisco Routing Service Plugin functions
+# ---------------------------------
+# Use security group or not
+# Save trace setting
+XTRACE=$(set +o | grep xtrace)
+set +o xtrace
+# Functions
+# ---------
+# Test if any Neutron services are enabled
+# is_neutron_enabled
+function is_neutron_enabled {
+    [[ ,${ENABLED_SERVICES} =~ ,"q-" ]] && return 0
+    return 1
+}
+
+function configure_cisco_csr_router {
+    net_create_neutron_accounts
+    net_configure_neutron
+    net_start_neutron_agents
+    Q_L3_ENABLED="False"
+}
+
+function start_cisco_csr_router {
+    if [[ "$count" == 0 ]];then
+        setup_for_csr1kv
+        Q_L3_ENABLED="True"
+        net_create_neutron_initial_network
+        count=$((count+1))
+    fi
+}
+
+
+# net_configure_neutron()
+# Set common config for Cisco router after neutron server and agents.
+function net_configure_neutron {
+    # goes before q-svc to init Q_SERVICE_PLUGIN_CLASSES
+    if is_service_enabled q-ciscorouter; then
+        _configure_neutron_cisco_router
+    fi
+    if is_service_enabled q-agt q-svc; then
+        _configure_neutron_service
+    fi
+}
+
+function get_or_add_user_role {
+    # Gets user role id
+    local user_role_id=$(openstack user role list \
+        $2 \
+        --project $3 \
+        --column "ID" \
+        --column "Name" \
+        | grep " $1 " | get_field 1)
+    if [[ -z "$user_role_id" ]]; then
+        # Adds role to user
+        user_role_id=$(openstack role add \
+            $1 \
+            --user $2 \
+            --project $3 \
+            | grep " id " | get_field 2)
+    fi
+    echo $user_role_id
+}
+# net_create_neutron_accounts() - Set up common required neutron accounts
+
+# Tenant               User       Roles
+# ------------------------------------------------------------------
+# service              neutron    admin        # if enabled
+
+# Migrated from keystone_data.sh
+function net_create_neutron_accounts {
+    local service_tenant=$(openstack project list | awk "/ $SERVICE_TENANT_NAME / { print \$2 }")
+    local service_role=$(openstack role list | awk "/ service / { print \$2 }")
+
+    if [[ "$ENABLED_SERVICES" =~ "q-svc" ]]; then
+
+        local neutron_user=$(get_or_create_user "neutron" \
+            "$SERVICE_PASSWORD" $service_tenant)
+        get_or_add_user_role $service_role $neutron_user $service_tenant
+        if [[ "$KEYSTONE_CATALOG_BACKEND" = 'sql' ]]; then
+
+            local neutron_service=$(get_or_create_service "neutron" \
+                "network" "Neutron Service")
+            get_or_create_endpoint $neutron_service \
+                "$REGION_NAME" \
+                "$Q_PROTOCOL://$SERVICE_HOST:$Q_PORT/" \
+                "$Q_PROTOCOL://$SERVICE_HOST:$Q_PORT/" \
+                "$Q_PROTOCOL://$SERVICE_HOST:$Q_PORT/"
+        fi
+    fi
+}
+
+function setup_for_csr1kv {
+    if [[ "$Q_PLUGIN" == "csr1kv_openvswitch" ]]; then
+	    plugin=ovs
+    elif [[ "$Q_PLUGIN" == "cisco" || "${Q_CISCO_PLUGIN_SUBPLUGINS[0]}" == "n1kv" ]]; then
+	    plugin=n1kv
+    else
+	    die $LINENO "Not a deployment with CSR1kv. Exiting!"
+    fi
+    echo "Running CSR1Kv setup with ${MYSQL_USER} ${MYSQL_PASSWORD}"
+    if [[ -f $TOP_DIR/localrc ]]; then
+        localrc_name=$TOP_DIR/localrc
+    else
+        localrc_name=$TOP_DIR/local.conf
+    fi
+    (cd $Q_CISCO_CSR1KV_SETUP_SCRIPT_DIR; ./csr1kv_install_all.sh neutron $plugin $localrc_name $MYSQL_USER $MYSQL_PASSWORD $Q_CISCO_MGMT_CFG_AGENT_IP)
+}
+
+function net_create_neutron_initial_network {
+      if [[ "$Q_L3_ENABLED" == "True" ]]; then
+        # Create a router, and add the private subnet as one of its interfaces
+        if [[ "$Q_L3_ROUTER_PER_TENANT" == "True" ]]; then
+            # create a tenant-owned router.
+            ROUTER_ID=$(neutron router-create --tenant-id $TENANT_ID $Q_ROUTER_NAME | grep ' id ' | get_field 2)
+            die_if_not_set $LINENO ROUTER_ID "Failure creating ROUTER_ID for $TENANT_ID $Q_ROUTER_NAME"
+        else
+            # Plugin only supports creating a single router, which should be admin owned.
+            ROUTER_ID=$(neutron router-create $Q_ROUTER_NAME | grep ' id ' | get_field 2)
+            die_if_not_set $LINENO ROUTER_ID "Failure creating ROUTER_ID for $Q_ROUTER_NAME"
+        fi
+
+        # Create an external network, and a subnet. Configure the external network as router gw
+        if [ "$Q_USE_PROVIDERNET_FOR_PUBLIC" = "True" ]; then
+            EXT_NET_ID=$(neutron net-create "$PUBLIC_NETWORK_NAME" -- --router:external=True --provider:network_type=flat --provider:physical_network=${PUBLIC_PHYSICAL_NETWORK} | grep ' id ' | get_field 2)
+        else
+            EXT_NET_ID=$(neutron net-create "$PUBLIC_NETWORK_NAME" -- --router:external=True | grep ' id ' | get_field 2)
+        fi
+        die_if_not_set $LINENO EXT_NET_ID "Failure creating EXT_NET_ID for $PUBLIC_NETWORK_NAME"
+        if [[ "$IP_VERSION" =~ 4.* ]]; then
+            # Configure router for IPv4 public access
+            _neutron_configure_router_v4
+        fi
+
+        if [[ "$IP_VERSION" =~ .*6 ]]; then
+            # Configure router for IPv6 public access
+            _neutron_configure_router_v6
+        fi
+    fi
+
+}
+
+# Start running processes, including screen
+function net_start_neutron_agents {
+    if is_service_enabled ciscocfgagent; then
+        start_the_ciscocfgagent
+    fi
+}
+
+# net_stop_neutron() - Stop running processes (non-screen)
+function net_stop_neutron {
+    if is_service_enabled q-ciscorouter; then
+         neutron_cisco_router_stop
+    fi
+}
+
+function _configure_neutron_cisco_router {
+    neutron_cisco_router_configure_common
+}
+
+# _configure_neutron_service() - Set config files for neutron service
+# It is called when q-svc is enabled.
+function _configure_neutron_service {
+    Q_API_PASTE_FILE=$NEUTRON_CONF_DIR/api-paste.ini
+    Q_POLICY_FILE=$NEUTRON_CONF_DIR/policy.json
+
+     # Update either configuration file with plugin
+    iniset $NEUTRON_CONF DEFAULT core_plugin $Q_PLUGIN_CLASS
+
+    if [[ $Q_SERVICE_PLUGIN_CLASSES != '' ]]; then
+        iniset $NEUTRON_CONF DEFAULT service_plugins $Q_SERVICE_PLUGIN_CLASSES
+    fi
+    # Configuration for neutron notifations to nova.
+    iniset $NEUTRON_CONF DEFAULT notify_nova_on_port_status_changes $Q_NOTIFY_NOVA_PORT_STATUS_CHANGES
+    iniset $NEUTRON_CONF DEFAULT notify_nova_on_port_data_changes $Q_NOTIFY_NOVA_PORT_DATA_CHANGES
+    iniset $NEUTRON_CONF DEFAULT nova_url "$NOVA_SERVICE_PROTOCOL://$NOVA_SERVICE_HOST:$NOVA_SERVICE_PORT/v2"
+    iniset $NEUTRON_CONF DEFAULT nova_admin_username nova
+    iniset $NEUTRON_CONF DEFAULT nova_admin_password $SERVICE_PASSWORD
+    ADMIN_TENANT_ID=$(openstack project list | awk "/ service / { print \$2 }")
+    iniset $NEUTRON_CONF DEFAULT nova_admin_tenant_id $ADMIN_TENANT_ID
+    iniset $NEUTRON_CONF DEFAULT nova_admin_auth_url  "$KEYSTONE_SERVICE_PROTOCOL://$KEYSTONE_SERVICE_HOST:$KEYSTONE_AUTH_PORT/v2.0"
+
+    # Configure plugin
+    net_neutron_plugin_configure_service
+}
+# Restore xtrace
+$XTRACE
+
+# Tell emacs to use shell-script-mode
+## Local variables:
+## mode: shell-script
+## End:
