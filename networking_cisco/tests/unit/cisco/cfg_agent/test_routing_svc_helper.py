@@ -152,7 +152,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         l3plugin_api_cls.return_value = self.plugin_api
         self.plugin_api.get_routers = mock.MagicMock()
         self.looping_call_p = mock.patch(
-            'neutron.openstack.common.loopingcall.FixedIntervalLoopingCall')
+            'oslo_service.loopingcall.FixedIntervalLoopingCall')
         self.looping_call_p.start()
         mock.patch('neutron.common.rpc.create_connection').start()
 
