@@ -2,17 +2,17 @@
 
 echo "Adding neutron patches into the testing env"
 
-DIRECTORY="$1/src/neutron"
+NEUTRON_SRC="$1"
 LIST_SRC="$2/test-patches.txt"
 
-echo "Checking Directory Existance: $DIRECTORY"
+echo "Checking Directory Existence: $NEUTRON_SRC"
 
-if [ ! -d "$DIRECTORY" ]; then
-  echo "Directory $DIRECTORY does not exist, aborting..."
+if [ ! -d "$NEUTRON_SRC" ]; then
+  echo "Directory $NEUTRON_SRC does not exist, aborting..."
   exit 1
 fi
 
-cd $DIRECTORY
+cd $NEUTRON_SRC
 
 # Ensure we're on toxBranch not master or other branches
 git checkout -b toxBranch 2> /dev/null
