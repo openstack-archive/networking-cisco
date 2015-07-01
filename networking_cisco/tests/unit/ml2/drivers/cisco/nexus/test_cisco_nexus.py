@@ -210,6 +210,9 @@ class TestCiscoNexusDevice(testlib_api.SqlTestCase):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
         super(TestCiscoNexusDevice, self).setUp()
 
+        cisco_config.cfg.CONF.set_default('api_workers', 0)
+        cisco_config.cfg.CONF.set_default('rpc_workers', 0)
+
         # Use a mock netconf client
         self.mock_ncclient = mock.Mock()
         mock.patch.object(nexus_network_driver.CiscoNexusDriver,
@@ -671,6 +674,9 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
         super(TestCiscoNexusReplay, self).setUp()
+
+        cisco_config.cfg.CONF.set_default('api_workers', 0)
+        cisco_config.cfg.CONF.set_default('rpc_workers', 0)
 
         # Use a mock netconf client
         self.mock_ncclient = mock.Mock()
