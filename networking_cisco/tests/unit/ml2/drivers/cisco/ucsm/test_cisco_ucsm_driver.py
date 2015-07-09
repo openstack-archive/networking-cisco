@@ -453,7 +453,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         name = PORT_NAME
         port_id = PORT_ID
         vnic_type = VNIC_NORMAL
-        profile = {'pci_vendor_info': const.PCI_INFO_CISCO_VIC_1240}
+        profile = None
 
         network_context = self._create_network_context()
         port_context = FakePortContext(name, port_id, vnic_type,
@@ -492,3 +492,59 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         self.assertRaises(exceptions.UcsmDisconnectFailed,
                           self.ucsm_driver.ucs_manager_disconnect,
                           handle)
+
+    def test_generic_create_profile(self):
+        """Test to verify duplicate creation exceptions.
+
+        This is a generic test to mimic the behavior of any UCS Manager
+        driver function that creates a profile on the UCS Manager. The
+        first time the profile is created, the create succeeds if all
+        parameters are correct. If we attempt to create it any number
+        of times after that, UCS Manager throws an exception. This test
+        code mimics that behavior by using counter to keep track of how
+        many times 'update_serviceprofile' is being called.
+        counter == 0 -> Simulates invalid input, so raise an exception.
+        counter == 1 -> Simulates valid inputs and 1st creation request.
+        counter > 1 -> Simulates duplicate creation request and results
+        in UCS Manager throwing a duplicate creation request.
+        """
+        def static_vars(**kwargs):
+            def decorate(func):
+                for k in kwargs:
+                    setattr(func, k, kwargs[k])
+                return func
+            return decorate
+
+        @static_vars(counter=-1)
+        def new_create_ucsm_profile(mech_context, host_id, vlan_id):
+            new_create_ucsm_profile.counter += 1
+            try:
+                if new_create_ucsm_profile.counter == 0:
+                    raise Exception("Invalid Operation")
+                elif new_create_ucsm_profile.counter > 1:
+                    raise Exception(const.DUPLICATE_EXCEPTION)
+                else:
+                    return True
+            except Exception as e:
+                if const.DUPLICATE_EXCEPTION in str(e):
+                    return True
+                else:
+                    raise exceptions.UcsmConfigFailed(config=vlan_id,
+                                            ucsm_ip=UCSM_IP_ADDRESS, exc=e)
+
+        mock.patch.object(ucsm_network_driver.CiscoUcsmDriver,
+                          'update_serviceprofile',
+                          new=new_create_ucsm_profile).start()
+
+        # Results in new_create_ucsm_profile being called with counter=-1
+        self.assertRaises(exceptions.UcsmConfigFailed,
+                          self.ucsm_driver.update_serviceprofile,
+                          HOST1, VLAN_ID_1)
+
+        # Results in new_create_ucsm_profile being called with counter=0
+        self.assertTrue(self.ucsm_driver.update_serviceprofile(
+                        HOST1, VLAN_ID_1))
+
+        # Results in new_create_ucsm_profile being called with counter=1
+        self.assertTrue(self.ucsm_driver.update_serviceprofile(
+                        HOST1, VLAN_ID_1))
