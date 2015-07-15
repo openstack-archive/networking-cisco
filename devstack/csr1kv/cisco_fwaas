@@ -1,0 +1,43 @@
+# cisco-fwaas
+# -------------
+
+# This file implements functions required to configure the Cisco FWaaS drivers
+# for use with DevStack. To include this file, specify the following
+# variables in localrc/local.conf:
+#
+# * enable_service cisco-fwaas
+#
+# This cannot be used with the q-l3 or q-fwaas services and should be used with
+# the ciscocfgagent and q-ciscorouter services.
+
+# Save trace setting
+CSR_FWAAS_XTRACE=$(set +o | grep xtrace)
+set +o xtrace
+
+CISCO_FWAAS_PLUGIN=neutron_fwaas.services.firewall.plugins.cisco.cisco_fwaas_plugin.CSRFirewallPlugin
+
+function install_cisco_fwaas {
+    git_clone $NEUTRON_FWAAS_REPO $NEUTRON_FWAAS_DIR $NEUTRON_FWAAS_BRANCH
+    setup_develop $NEUTRON_FWAAS_DIR
+}
+
+function configure_cisco_fwaas {
+    echo "Checking preconditions for Cisco FWaaS ..."
+    if is_service_enabled q-fwaas q-l3; then
+        echo "Cannot use cisco-fwaas service when q-fwaas or q-l3 are enabled."
+        echo "Aborting..."
+        die $LINENO "Cannot use cisco-fwaas with q-fwaas or q-l3. Exiting!"
+    fi
+    _neutron_service_plugin_class_add $CISCO_FWAAS_PLUGIN
+}
+
+function start_cisco_fwaas {
+     $NEUTRON_BIN_DIR/neutron-db-manage --service fwaas --config-file $NEUTRON_CONF --config-file /$Q_PLUGIN_CONF_FILE upgrade head
+}
+
+function cisco_fwaas_stop {
+    :
+}
+
+# Restore xtrace
+$CSR_FWAAS_XTRACE
