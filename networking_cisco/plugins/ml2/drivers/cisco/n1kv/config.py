@@ -53,3 +53,10 @@ n1kv_opts = [
 
 
 cfg.CONF.register_opts(n1kv_opts, "ml2_cisco_n1kv")
+
+
+def get_vsm_hosts():
+    """Retrieve a list of VSM ip addresses.
+    :return: list of VSM ip addresses
+    """
+    return cfg.CONF.ml2_cisco_n1kv.n1kv_vsm_ips
