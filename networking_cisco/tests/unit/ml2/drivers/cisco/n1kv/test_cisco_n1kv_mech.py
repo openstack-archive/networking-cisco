@@ -17,6 +17,8 @@ import mock
 import webob.exc
 
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
+    config as ml2_n1kv_config)
+from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     exceptions as n1kv_exc)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     mech_cisco_n1kv)
@@ -80,15 +82,15 @@ class TestN1KVMechanismDriver(
             'tenant_network_types': ['vlan', 'vxlan']}
         ml2_cisco_opts = {
             'n1kv_vsm_ips': ['127.0.0.1'],
-            'username': ['admin'],
-            'password': ['Sfish123'],
+            'username': 'admin',
+            'password': 'Sfish123',
             'default_policy_profile': DEFAULT_PP
         }
         for opt, val in ml2_opts.items():
             ml2_config.cfg.CONF.set_override(opt, val, 'ml2')
 
         for opt, val in ml2_cisco_opts.items():
-            ml2_config.cfg.CONF.set_override(opt, val, 'ml2_cisco_n1kv')
+            ml2_n1kv_config.cfg.CONF.set_override(opt, val, 'ml2_cisco_n1kv')
 
         # Configure the ML2 VLAN parameters
         phys_vrange = ':'.join([PHYS_NET, str(VLAN_MIN), str(VLAN_MAX)])

@@ -124,20 +124,20 @@ class Client(object):
         self.format = 'json'
 
         # Extract configuration parameters from the configuration file.
-        self.n1kv_vsm_ips = cfg.CONF.ml2_cisco_n1kv.n1kv_vsm_ips
         self.username = cfg.CONF.ml2_cisco_n1kv.username
         self.password = cfg.CONF.ml2_cisco_n1kv.password
+        self.vsm_ips = config.get_vsm_hosts()
         self.action_prefix = 'http://%s/api/n1k'
         self.timeout = cfg.CONF.ml2_cisco_n1kv.http_timeout
         self.max_vsm_retries = cfg.CONF.ml2_cisco_n1kv.max_vsm_retries
-        required_opts = ('n1kv_vsm_ips', 'username', 'password')
+        required_opts = ('vsm_ips', 'username', 'password')
         # Validate whether required options are configured
         for opt in required_opts:
             if not getattr(self, opt):
                 raise cfg.RequiredOptError(opt, 'ml2_cisco_n1kv')
         # Validate the configured VSM IP addresses
         # Note: Currently only support IPv4
-        for vsm_ip in self.n1kv_vsm_ips:
+        for vsm_ip in self.vsm_ips:
             if not netaddr.valid_ipv4(vsm_ip):
                 raise cfg.Error(_("Cisco Nexus1000V ML2 driver config: "
                                   "Invalid format for VSM IP address: %s") %
@@ -479,7 +479,7 @@ class Client(object):
         if vsm_ip:
             hosts.append(vsm_ip)
         else:
-            hosts = self.get_vsm_hosts()
+            hosts = self.vsm_ips
         if not headers:
             headers = self._get_auth_header()
             headers['Content-Type'] = headers['Accept'] = "application/json"
@@ -529,13 +529,6 @@ class Client(object):
     def _put(self, action, body=None, headers=None, vsm_ip=None):
         return self._do_request("PUT", action, body=body,
                                 headers=headers, vsm_ip=vsm_ip)
-
-    def get_vsm_hosts(self):
-        """Retrieve a list of VSM ip addresses.
-
-        :return: list of host ip addresses
-        """
-        return self.n1kv_vsm_ips
 
     def _get_auth_header(self):
         """Retrieve header with auth info for the VSM.
