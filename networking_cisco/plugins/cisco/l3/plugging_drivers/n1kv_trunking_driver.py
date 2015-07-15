@@ -13,6 +13,7 @@
 #    under the License.
 
 import eventlet
+from netaddr import IPNetwork
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -185,13 +186,18 @@ class N1kvTrunkingPlugDriver(plug.PluginSidePluggingDriver):
                 # Until Nova allows spinning up VMs with VIFs on
                 # networks without subnet(s) we create "dummy" subnets
                 # for the trunk networks
+                net = IPNetwork(n1kv_const.SUBNET_PREFIX)
+                gateway_ip = str(net[1])
+                # We make the allocation pool by excluding the network
+                # address, gateway_ip and the broadcast address
+                pool = [{'start': str(net[2]), 'end': str(net[len(net) - 2])}]
                 s_spec = {'subnet': {
                     'tenant_id': tenant_id,
                     'admin_state_up': True,
                     'cidr': n1kv_const.SUBNET_PREFIX,
                     'enable_dhcp': False,
-                    'gateway_ip': attributes.ATTR_NOT_SPECIFIED,
-                    'allocation_pools': attributes.ATTR_NOT_SPECIFIED,
+                    'gateway_ip': gateway_ip,
+                    'allocation_pools': pool,
                     'ip_version': 4,
                     'dns_nameservers': attributes.ATTR_NOT_SPECIFIED,
                     'host_routes': attributes.ATTR_NOT_SPECIFIED}}
@@ -204,6 +210,8 @@ class N1kvTrunkingPlugDriver(plug.PluginSidePluggingDriver):
                         n1kv_const.T1_PORT_NAME, self.t1_port_profile_id(),
                         t_p)
                     # Create T2 trunk network for this router
+                    # We also reset the pool in the subnet spec
+                    s_spec['subnet']['allocation_pools'] = pool
                     self._create_resources(
                         context, "T2", i, n_spec, n1kv_const.T2_NETWORK_NAME,
                         self.t2_network_profile_id(), t2_n, s_spec,
