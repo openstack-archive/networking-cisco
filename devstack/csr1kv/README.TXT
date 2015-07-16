@@ -6,9 +6,9 @@
 
 2. To enable CSR1kv Routing-aaS, in file localrc or local.conf in the root
 DevStack directory, add networking-cisco repo as an external repository and
-enable cisco-csr.
+enable q-ciscorouter and ciscocfgagent.
 
-Refer to following example for the settings:
+Refer to following examples for the settings:
 local.conf.csr1kv_and_n1kv
 localrc.csr1kv_and_n1kv
 
