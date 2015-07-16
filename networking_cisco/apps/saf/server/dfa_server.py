@@ -25,9 +25,9 @@ eventlet.monkey_patch()
 import os
 import paramiko
 import platform
-import Queue
 import re
 import six
+from six.moves import queue
 import sys
 import time
 
@@ -235,14 +235,14 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin):
             seg_id_min, seg_id_max + 1))
 
         # Create queue for exception returned by a thread.
-        self._excpq = Queue.Queue()
+        self._excpq = queue.Queue()
 
         # Loading project and network info and updating the cache.
         self._load_project_info_cache()
         self._load_network_info()
 
         # Create priority queue for events.
-        self.pqueue = Queue.PriorityQueue()
+        self.pqueue = queue.PriorityQueue()
         self.PRI_HIGH_START = 10
         self.PRI_MEDIUM_START = 20
         self.PRI_LOW_START = 30
@@ -1040,7 +1040,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin):
             while not self.pqueue.empty():
                 try:
                     events = self.pqueue.get(block=False)
-                except Queue.Empty:
+                except queue.Empty:
                     pass
                 except Exception as exc:
                     LOG.exception(_LE('ERROR %s:Failed to process queue'),
@@ -1335,7 +1335,7 @@ def dfa_server():
                     LOG.info(_LI("Thread %s is not active."), trd.name)
                 try:
                     exc = trd._excq.get(block=False)
-                except Queue.Empty:
+                except queue.Empty:
                     pass
                 else:
                     trd_name = eval(exc).get('name')

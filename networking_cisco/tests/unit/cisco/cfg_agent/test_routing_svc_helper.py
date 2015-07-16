@@ -402,7 +402,8 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.assertEqual(2, configurations['total interfaces'])
         self.assertEqual(0, configurations['total floating_ips'])
         self.assertEqual(hd_exp_result, configurations['hosting_devices'])
-        self.assertEqual([], configurations['non_responding_hosting_devices'])
+        self.assertEqual(
+            [], list(configurations['non_responding_hosting_devices']))
 
     def test_sort_resources_per_hosting_device(self):
         router1, port = prepare_router_data()

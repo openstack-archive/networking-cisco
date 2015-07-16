@@ -15,7 +15,7 @@
 #
 
 
-import Queue
+from six.moves import queue
 import time
 
 from neutron.i18n import _LE
@@ -48,7 +48,7 @@ class IptablesDriver(object):
         self.rule_info = []
 
         # Queue to keep messages from server
-        self._iptq = Queue.Queue()
+        self._iptq = queue.Queue()
 
     def update_rule_entry(self, rule_info):
         """Update the rule_info list."""
@@ -202,7 +202,7 @@ class IptablesDriver(object):
                 event = self._iptq.get(block=False)
                 LOG.debug('Dequeue event: %s.', event)
                 self.update_rule_entry(event)
-            except Queue.Empty:
+            except queue.Empty:
                 self.update_iptables()
                 time.sleep(1)
             except Exception:

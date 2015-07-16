@@ -15,11 +15,11 @@
 #
 
 import netaddr
+import six
 
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import excutils
-import six
 import sqlalchemy as sa
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -136,7 +136,7 @@ class NexusVxlanTypeDriver(type_tunnel.TunnelTypeDriver):
 
         mcast_for_vni = None
         for mcast_ip in self._parse_mcast_ranges():
-            if not unicode(mcast_ip) in allocs:
+            if not six.u(mcast_ip) in allocs:
                 mcast_for_vni = mcast_ip
                 break
         try:

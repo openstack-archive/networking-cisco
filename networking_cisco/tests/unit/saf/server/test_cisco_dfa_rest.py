@@ -49,16 +49,23 @@ class TestCiscoDFAClient(base.BaseTestCase):
         config.default_dcnm_opts['dcnm']['timeout_resp'] = 0.01
         self.cfg = config.CiscoDFAConfig().cfg
 
+        self.send_req = mock.patch.object(dc.DFARESTClient,
+                                          '_send_request').start()
+        self.get_vers = mock.patch.object(dc.DFARESTClient,
+                                          'get_version').start()
+        self.login = mock.patch.object(dc.DFARESTClient, '_login').start()
+        self.logout = mock.patch.object(dc.DFARESTClient, '_logout').start()
+        self.send_req.return_value = mock.Mock()
+        self.send_req.return_value.status_code = 200
+        self.send_req.return_value.json.return_value = {}
+        self.get_vers.return_value = ""
+
         self.dcnm_client = dc.DFARESTClient(self.cfg)
-        mock.patch.object(self.dcnm_client, '_send_request').start()
-        mock.patch.object(self.dcnm_client, '_login').start()
-        mock.patch.object(self.dcnm_client, '_logout').start()
-        self.dcnm_client._send_request.return_value = mock.Mock()
-        self.dcnm_client._send_request.return_value.status_code = 200
         self.testnetwork = TestNetwork()
 
     def test_create_project(self):
         """Test create project."""
+        self.send_req.reset_mock()
 
         org_name = 'Cisco'
         part_name = self.dcnm_client._part_name
@@ -136,6 +143,7 @@ class TestCiscoDFAClient(base.BaseTestCase):
 
     def test_delete_project(self):
         """Test delete tenant."""
+        self.send_req.reset_mock()
 
         tenant_name = 'cisco'
         part_name = self.dcnm_client._part_name

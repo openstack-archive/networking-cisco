@@ -19,10 +19,8 @@ import re
 import time
 import xml.etree.ElementTree as ET
 
-import ciscoconfparse
-from ncclient import manager
-
 from oslo_config import cfg
+from oslo_utils import importutils
 
 from neutron.i18n import _LE, _LI, _LW
 
@@ -32,6 +30,9 @@ from networking_cisco.plugins.cisco.cfg_agent.device_drivers import (
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
     cisco_csr1kv_snippets as snippets)
 from networking_cisco.plugins.cisco.extensions import ha
+
+ciscoconfparse = importutils.try_import('ciscoconfparse')
+ncclient = importutils.try_import('ncclient')
 
 LOG = logging.getLogger(__name__)
 
@@ -270,7 +271,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
             if self._ncc_connection and self._ncc_connection.connected:
                 return self._ncc_connection
             else:
-                self._ncc_connection = manager.connect(
+                self._ncc_connection = ncclient.manager.connect(
                     host=self._host_ip, port=self._host_ssh_port,
                     username=self._username, password=self._password,
                     device_params={'name': "csr"}, timeout=self._timeout)

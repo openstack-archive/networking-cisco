@@ -23,8 +23,8 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
 
 import neutron.db.api as db
 
-from test_cisco_n1kv_mech import TestN1KVMechanismDriver
-import test_n1kv_db
+from networking_cisco.tests.unit.ml2.drivers.cisco.n1kv.test_cisco_n1kv_mech import TestN1KVMechanismDriver  # noqa
+from networking_cisco.tests.unit.ml2.drivers.cisco.n1kv import test_n1kv_db
 
 TEST_STALE_POLICY_PROFILE = {'id': '5a417990-76fb-11e2-bcfd-0800200c9a66',
                        'name': 'test_stale_policy_profile',

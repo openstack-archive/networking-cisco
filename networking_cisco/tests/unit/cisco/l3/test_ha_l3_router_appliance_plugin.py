@@ -48,6 +48,10 @@ L3_PLUGIN_KLASS = (
 extensions_path = networking_cisco.plugins.__path__[0] + '/cisco/extensions'
 
 
+def _sort_routes(routes):
+    return sorted(routes, key=lambda route: route['destination'])
+
+
 class TestHAL3RouterApplianceExtensionManager(
         test_db_routertype.L3TestRoutertypeExtensionManager):
 
@@ -1273,9 +1277,10 @@ class HAL3RouterApplianceVMTestCase(
                                r[ha.DETAILS][ha.REDUNDANCY_ROUTERS]])
             routers = self._list('routers', query_params=params)['routers']
             routers.append(updated_r)
-            correct_routes = sorted(routes)
+            correct_routes = _sort_routes(routes)
             for router in routers:
-                self.assertEqual(sorted(router['routes']), correct_routes)
+                self.assertEqual(_sort_routes(router['routes']),
+                                 correct_routes)
             self._routes_update_cleanup(p['id'], None, r['id'], [])
 
     def _rr_routes_update_prepare(self, router_id, subnet_id, port_id,
@@ -1314,12 +1319,13 @@ class HAL3RouterApplianceVMTestCase(
             params = "id=%s" % r[ha.DETAILS][ha.REDUNDANCY_ROUTERS][1]['id']
             routers = self._list('routers', query_params=params)['routers']
             routers.append(updated_r)
-            correct_routes1 = sorted(routes1)
+            correct_routes1 = _sort_routes(routes1)
             for router in routers:
-                self.assertEqual(sorted(router['routes']), correct_routes1)
+                self.assertEqual(_sort_routes(router['routes']),
+                                 correct_routes1)
             routes1.extend(routes2)
-            self.assertEqual(sorted(updated_rr1['routes']),
-                             sorted(routes1))
+            self.assertEqual(_sort_routes(updated_rr1['routes']),
+                             _sort_routes(routes1))
             self._rr_routes_update_cleanup(p2['id'], None, r['id'], rr1_id, [])
             self._routes_update_cleanup(p1['id'], None, r['id'], [])
 
@@ -1446,9 +1452,10 @@ class L3CfgAgentHARouterApplianceTestCase(
             e_context = context.get_admin_context()
             routers = self.plugin.get_sync_data_ext(e_context, router_ids)
             self.assertEqual(len(router_ids), len(routers))
-            correct_routes = sorted(routes)
+            correct_routes = _sort_routes(routes)
             for router in routers:
-                self.assertEqual(sorted(router['routes']), correct_routes)
+                self.assertEqual(_sort_routes(router['routes']),
+                                 correct_routes)
             self._routes_update_cleanup(p['id'], None, r['id'], r['id'], [])
 
     def test_l3_cfg_agent_query_ha_rdcy_router_routes_include_user_vsbl_router(
@@ -1476,12 +1483,14 @@ class L3CfgAgentHARouterApplianceTestCase(
             e_context = context.get_admin_context()
             routers = self.plugin.get_sync_data_ext(e_context, router_ids)
             self.assertEqual(len(router_ids), len(routers))
-            correct_routes1 = sorted(routes1)
+            correct_routes1 = _sort_routes(routes1)
             for router in routers:
-                self.assertEqual(sorted(router['routes']), correct_routes1)
+                self.assertEqual(_sort_routes(router['routes']),
+                                 correct_routes1)
             routers = self.plugin.get_sync_data_ext(e_context, [rr1_id])
             routes1.extend(routes2)
-            self.assertEqual(sorted(routers[0]['routes']), sorted(routes1))
+            self.assertEqual(_sort_routes(routers[0]['routes']),
+                             _sort_routes(routes1))
             self._routes_update_cleanup(p2['id'], None, r['id'], rr1_id, [])
             self._routes_update_cleanup(p1['id'], None, r['id'], r['id'], [])
 

@@ -19,6 +19,7 @@ ML2 Sync for periodic MD5 based resource sync between Neutron and VSM
 
 import eventlet
 import hashlib
+import six
 
 from oslo_config import cfg
 from oslo_log import log
@@ -69,7 +70,7 @@ class N1kvSyncDriver(object):
         """
         res_md5 = hashlib.md5()
         for uuid in sorted(uuids):
-            res_md5.update(uuid)
+            res_md5.update(six.b(uuid))
         return res_md5.hexdigest()
 
     @staticmethod
@@ -187,7 +188,7 @@ class N1kvSyncDriver(object):
         neutron_consolidated_md5 = hashlib.md5()
         neutron_md5_dict = self._get_neutron_md5_dict()
         for res in resources:
-            neutron_consolidated_md5.update(neutron_md5_dict[res])
+            neutron_consolidated_md5.update(six.b(neutron_md5_dict[res]))
 
         # compare VSM and Neutron md5 hashes here
         if neutron_consolidated_md5.hexdigest() != vsm_consolidated_md5:

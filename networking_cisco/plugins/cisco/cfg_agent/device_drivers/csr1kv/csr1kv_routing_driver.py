@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from functools import wraps
 import logging
 import netaddr
 import re
@@ -19,11 +20,8 @@ import time
 import xml.etree.ElementTree as ET
 
 from oslo_config import cfg
+from oslo_utils import importutils
 
-import ciscoconfparse
-
-from functools import wraps
-from ncclient import manager
 from neutron.i18n import _LE, _LI, _LW
 
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions as cfg_exc
@@ -31,6 +29,9 @@ from networking_cisco.plugins.cisco.cfg_agent.device_drivers import (
     devicedriver_api)
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
     cisco_csr1kv_snippets as snippets)
+
+ciscoconfparse = importutils.try_import('ciscoconfparse')
+ncclient = importutils.try_import('ncclient')
 
 LOG = logging.getLogger(__name__)
 
@@ -279,12 +280,13 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
             if self._csr_conn and self._csr_conn.connected:
                 return self._csr_conn
             else:
-                self._csr_conn = manager.connect(host=self._csr_host,
-                                                 port=self._csr_ssh_port,
-                                                 username=self._csr_user,
-                                                 password=self._csr_password,
-                                                 device_params={'name': "csr"},
-                                                 timeout=self._timeout)
+                self._csr_conn = ncclient.manager.connect(
+                    host=self._csr_host,
+                    port=self._csr_ssh_port,
+                    username=self._csr_user,
+                    password=self._csr_password,
+                    device_params={'name': "csr"},
+                    timeout=self._timeout)
                 if not self._intfs_enabled:
                     self._intfs_enabled = self._enable_intfs(self._csr_conn)
             return self._csr_conn

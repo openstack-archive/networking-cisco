@@ -19,6 +19,7 @@ import os
 from oslo_config import cfg
 from oslo_utils import importutils
 import re
+import six
 import testtools
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -229,7 +230,7 @@ class TestCiscoNexusDevice(testlib_api.SqlTestCase):
                 cfg.CONF.ml2_cisco.switch_heartbeat_time)
             mech_instance._ppid = os.getpid()
 
-            mech_instance._nexus_switches = {}
+            mech_instance._nexus_switches = collections.OrderedDict()
             for name, config in TestCiscoNexusDevice.test_configs.items():
                 ip_addr = config.nexus_ip_addr
                 host_name = config.host_name
@@ -423,7 +424,7 @@ class TestCiscoNexusDevice(testlib_api.SqlTestCase):
                 exceptions.NexusConfigFailed,
                 self._create_port,
                 TestCiscoNexusDevice.test_configs[test_case])
-        self.assertIn(test_id, unicode(e))
+        self.assertIn(test_id, six.u(str(e)))
 
     def _delete_port_failure(self, attr, match_str, test_case, test_id):
         """Verifies exception handling during object deletion.
@@ -453,7 +454,7 @@ class TestCiscoNexusDevice(testlib_api.SqlTestCase):
                 exceptions.NexusConfigFailed,
                 self._delete_port,
                 TestCiscoNexusDevice.test_configs[test_case])
-        self.assertIn(test_id, unicode(e))
+        self.assertIn(test_id, six.u(str(e)))
 
     def test_create_delete_ports(self):
         """Tests creation and deletion of two new virtual Ports."""
@@ -538,7 +539,7 @@ class TestCiscoNexusDevice(testlib_api.SqlTestCase):
                               self._create_port,
                               TestCiscoNexusDevice.test_configs[
                                   'test_config1'])
-        self.assertIn(CONNECT_ERROR, unicode(e))
+        self.assertIn(CONNECT_ERROR, six.u(str(e)))
         self.assertEqual(self.mock_ncclient.connect.call_count, 1)
 
     def test_get_nexus_type_failure(self):
@@ -806,6 +807,7 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
         '\<no\>\s+\<vlan\>\s+<vlan-id-create-delete\>'
         '\s+\<__XML__PARAM_value\>267',
     ]
+    test_configs = collections.OrderedDict(sorted(test_configs.items()))
 
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
@@ -833,7 +835,7 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
             mech_instance._ppid = os.getpid()
 
             mech_instance._switch_state = {}
-            mech_instance._nexus_switches = {}
+            mech_instance._nexus_switches = collections.OrderedDict()
             for name, config in TestCiscoNexusReplay.test_configs.items():
                 ip_addr = config.nexus_ip_addr
                 host_name = config.host_name

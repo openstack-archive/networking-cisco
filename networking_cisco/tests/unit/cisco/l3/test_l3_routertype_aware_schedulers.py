@@ -351,7 +351,8 @@ class L3RoutertypeAwareHostingDeviceSchedulerTestCaseBase(
         # item in the argument sequence
         self.random_patch = mock.patch('random.choice')
         random_mock = self.random_patch.start()
-        random_mock.side_effect = lambda seq: seq[0]
+
+        random_mock.side_effect = lambda seq: sorted(seq)[0]
 
     def tearDown(self):
         self.random_patch.stop()

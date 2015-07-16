@@ -12,17 +12,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import sys
-
 import mock
 import netaddr
-import test_csr1kv_routing_driver
+import sys
+
+from oslo_utils import uuidutils
 
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
     cisco_csr1kv_snippets as snippets)
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
     csr1kv_hotplug_routing_driver as csr_driver)
-from oslo_utils import uuidutils
+
+from networking_cisco.tests.unit.cisco.cfg_agent import (
+    test_csr1kv_routing_driver)
 
 sys.modules['ncclient'] = mock.MagicMock()
 sys.modules['ciscoconfparse'] = mock.MagicMock()

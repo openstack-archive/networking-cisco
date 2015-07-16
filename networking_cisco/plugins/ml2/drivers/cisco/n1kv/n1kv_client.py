@@ -17,6 +17,7 @@ import base64
 import eventlet
 import netaddr
 import requests
+import six
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -541,7 +542,7 @@ class Client(object):
 
         :return: authorization header dict
         """
-        auth = base64.encodestring("%s:%s" %
+        auth = base64.encodestring(six.b("%s:%s" %
                                    (self.username,
-                                    self.password)).rstrip()
+                                    self.password))).rstrip()
         return {"Authorization": "Basic %s" % auth}

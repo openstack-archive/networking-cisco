@@ -12,14 +12,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import ciscoconfparse
 import netaddr
-
 import re
 import six
 import xml.etree.ElementTree as ET
 
 from oslo_log import log as logging
+from oslo_utils import importutils
 
 from neutron.common import constants
 from neutron.i18n import _LI
@@ -31,6 +30,7 @@ from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.extensions import routerrole
 
+ciscoconfparse = importutils.try_import('ciscoconfparse')
 
 LOG = logging.getLogger(__name__)
 

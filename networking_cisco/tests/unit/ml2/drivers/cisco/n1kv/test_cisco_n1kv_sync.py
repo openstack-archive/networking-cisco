@@ -15,6 +15,7 @@
 
 import hashlib
 import mock
+import six
 
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     constants as n1kv_const)
@@ -22,7 +23,7 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     n1kv_client)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     n1kv_sync)
-from test_cisco_n1kv_mech import TestN1KVMechanismDriver
+from networking_cisco.tests.unit.ml2.drivers.cisco.n1kv.test_cisco_n1kv_mech import TestN1KVMechanismDriver  # noqa
 
 
 class TestN1kvSyncDriver(TestN1KVMechanismDriver):
@@ -82,7 +83,7 @@ class TestN1kvSyncDriver(TestN1KVMechanismDriver):
             md5 = hashlib.md5()
             res_name = 'TEST_VSM_' + resource.split('_md5')[0].upper() + 'S'
             for uuid in sorted(getattr(self, res_name)):
-                md5.update(uuid)
+                md5.update(six.b(uuid))
             return md5.hexdigest()
 
         res_order = [n1kv_const.NETWORK_PROFILE_MD5, n1kv_const.SUBNET_MD5,
@@ -90,7 +91,7 @@ class TestN1kvSyncDriver(TestN1KVMechanismDriver):
         res_md5 = {res: calc_md5(res) for res in res_order}
         consolidated_md5 = hashlib.md5()
         for res in res_order:
-            consolidated_md5.update(res_md5[res])
+            consolidated_md5.update(six.b(res_md5[res]))
         res_md5[n1kv_const.CONSOLIDATED_MD5] = consolidated_md5.hexdigest()
         vsm_md5_hashes = {
             'md5_hashes': {

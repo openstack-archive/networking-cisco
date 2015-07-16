@@ -392,7 +392,7 @@ class TestCiscoPortsV2(CiscoML2MechanismTestCase,
                 return False
             return real_has_attr(item, attr)
 
-        with mock.patch('__builtin__.hasattr',
+        with mock.patch('six.moves.hasattr',
                         new=fakehasattr):
             plugin_obj = manager.NeutronManager.get_plugin()
             orig = plugin_obj.create_port
@@ -1128,7 +1128,7 @@ class TestCiscoNetworksV2(CiscoML2MechanismTestCase,
         plugin_obj = manager.NeutronManager.get_plugin()
         orig = plugin_obj.create_network
         #ensures the API choose the emulation code path
-        with mock.patch('__builtin__.hasattr',
+        with mock.patch('six.moves.builtins.hasattr',
                         new=fakehasattr):
             with mock.patch.object(plugin_obj,
                                    '_create_network_db') as patched_plugin:
@@ -1177,7 +1177,7 @@ class TestCiscoSubnetsV2(CiscoML2MechanismTestCase,
                 return False
             return real_has_attr(item, attr)
 
-        with mock.patch('__builtin__.hasattr',
+        with mock.patch('six.moves.builtins.hasattr',
                         new=fakehasattr):
             plugin_obj = manager.NeutronManager.get_plugin()
             orig = plugin_obj.create_subnet

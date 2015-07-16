@@ -493,7 +493,7 @@ class HA_db_mixin(object):
                 self.remove_router_interface(context, r_id, subnets_info[i])
                 LOG.debug("Removed interface on %(s_id)s to redundancy router "
                           "with %(r_id)s",
-                          {'s_id': port['network_id'], 'r_id': r_id})
+                          {'s_id': ports[i]['network_id'], 'r_id': r_id})
                 # There is only one ha group per network so only delete once
                 if delete_ha_groups and r_id == router_ids[0]:
                     self._delete_ha_group(context, ports[i]['id'])
