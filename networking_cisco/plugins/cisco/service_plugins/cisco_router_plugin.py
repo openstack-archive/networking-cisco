@@ -62,7 +62,7 @@ class CiscoRouterPlugin(common_db_mixin.CommonDbMixin,
         self.setup_rpc()
         # for backlogging of non-scheduled routers
         self._setup_backlog_handling()
-        self._setup_device_handling()
+        #self._setup_device_handling()
 
     def setup_rpc(self):
         # RPC support
