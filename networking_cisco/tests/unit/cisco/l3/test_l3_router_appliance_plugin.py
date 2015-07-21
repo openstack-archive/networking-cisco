@@ -76,15 +76,24 @@ class TestNoL3NatPlugin(test_l3.TestNoL3NatPlugin,
         super(TestNoL3NatPlugin, self).__init__()
 
     def _make_network_dict(self, network, fields=None,
-                           process_extensions=True):
+                           process_extensions=True,
+                           context=None):
         res = {'id': network['id'],
                'name': network['name'],
                'tenant_id': network['tenant_id'],
                'admin_state_up': network['admin_state_up'],
                'status': network['status'],
-               'shared': network['shared'],
                'subnets': [subnet['id']
                            for subnet in network['subnets']]}
+
+        shared = False
+        for entry in network.rbac_entries:
+            if (entry.action == 'access_as_shared' and
+                    entry.target_tenant in ('*', context.tenant_id)):
+                shared = True
+                break
+        res['shared'] = shared
+
         try:
             tag = self.tags[network['id']]
         except KeyError:

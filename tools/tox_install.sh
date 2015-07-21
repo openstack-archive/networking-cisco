@@ -37,6 +37,9 @@ elif [ -x "$ZUUL_CLONER" ]; then
 else
     echo "PIP HARDCODE" > /tmp/tox_install.txt
     pip install -U -egit+https://git.openstack.org/openstack/neutron#egg=neutron
+    #cd $VIRTUAL_ENV/src/neutron
+    #git checkout 3e0328b992d8a90213a56ec5a4144677279bea66
+    #cd "$cwd"
     $cwd/tools/add_neutron_patches.sh $VIRTUAL_ENV/src/neutron $cwd
     pip install -U -e $VIRTUAL_ENV/src/neutron
 fi
