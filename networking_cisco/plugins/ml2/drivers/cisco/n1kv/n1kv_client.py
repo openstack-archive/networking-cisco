@@ -138,7 +138,7 @@ class Client(object):
         # Validate the configured VSM IP addresses
         # Note: Currently only support IPv4
         for vsm_ip in self.vsm_ips:
-            if not netaddr.valid_ipv4(vsm_ip):
+            if not (netaddr.valid_ipv4(vsm_ip) or netaddr.valid_ipv6(vsm_ip)):
                 raise cfg.Error(_("Cisco Nexus1000V ML2 driver config: "
                                   "Invalid format for VSM IP address: %s") %
                                 vsm_ip)
@@ -484,7 +484,12 @@ class Client(object):
             headers = self._get_auth_header()
             headers['Content-Type'] = headers['Accept'] = "application/json"
         for vsm_ip in hosts:
-            vsm_action = action % vsm_ip
+            if netaddr.valid_ipv6(vsm_ip):
+                # Enclose IPv6 address in [] in the URL
+                vsm_action = action % ("[%s]" % vsm_ip)
+            else:
+                # IPv4 address
+                vsm_action = action % vsm_ip
             for attempt in range(self.max_vsm_retries + 1):
                 try:
                     LOG.debug("[VSM %(vsm)s attempt %(id)s]: Connecting.." %
