@@ -364,4 +364,4 @@ def main(manager='networking_cisco.plugins.cisco.cfg_agent.'
         topic=c_constants.CFG_AGENT,
         report_interval=cfg.CONF.AGENT.report_interval,
         manager=manager)
-    service.launch(server).wait()
+    service.launch(conf, server).wait()

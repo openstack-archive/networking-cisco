@@ -126,7 +126,7 @@ class TestApplianceL3RouterServicePlugin(
 
     def __init__(self):
         self._setup_backlog_handling()
-        self._svc_vm_mgr = service_vm_lib.ServiceVMManager()
+        self._svc_vm_mgr_obj = service_vm_lib.ServiceVMManager()
         super(TestApplianceL3RouterServicePlugin, self).__init__()
 
     def get_plugin_type(self):

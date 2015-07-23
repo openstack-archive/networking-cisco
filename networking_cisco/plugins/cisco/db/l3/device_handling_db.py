@@ -104,19 +104,34 @@ class DeviceHandlingMixin(object):
     _plugging_driver = None
 
     # Service VM manager object that interacts with Nova
-    _svc_vm_mgr = None
+    _svc_vm_mgr_obj = None
 
     # Flag indicating is needed Nova services are reported as up.
     _nova_running = False
 
     @classmethod
+    def get_auth_param(cls):
+        auth_url = cfg.CONF.keystone_authtoken.auth_uri + "/v2.0"
+        user = cfg.CONF.keystone_authtoken.username
+        pw = cfg.CONF.keystone_authtoken.password
+        return (auth_url, user, pw)
+
+    @property
+    def _svc_vm_mgr(self):
+        if self._svc_vm_mgr_obj is None:
+            auth_url, u_name, pw = self.get_auth_param()
+            tenant = cfg.CONF.general.l3_admin_tenant
+            self._svc_vm_mgr_obj = service_vm_lib.ServiceVMManager(
+                user=u_name, passwd=pw, l3_admin_tenant=tenant,
+                auth_url=auth_url)
+        return self._svc_vm_mgr_obj
+
+    @classmethod
     def l3_tenant_id(cls):
         """Returns id of tenant owning hosting device resources."""
         if cls._l3_tenant_uuid is None:
-            auth_url = cfg.CONF.keystone_authtoken.auth_uri
-            user = cfg.CONF.keystone_authtoken.admin_user
-            pw = cfg.CONF.keystone_authtoken.admin_password
-            tenant = cfg.CONF.keystone_authtoken.admin_tenant_name
+            auth_url, user, pw = cls.get_auth_param()
+            tenant = cfg.CONF.keystone_authtoken.project_name
             keystone = k_client.Client(username=user, password=pw,
                                        tenant_name=tenant,
                                        auth_url=auth_url)
@@ -205,7 +220,6 @@ class DeviceHandlingMixin(object):
                 LOG.exception(_LE('Error loading hosting device driver'))
             return cls._hosting_device_driver
 
-    @classmethod
     def get_hosting_device_plugging_driver(cls):
         """Returns  plugging driver."""
         if cls._plugging_driver:
@@ -278,6 +292,7 @@ class DeviceHandlingMixin(object):
                 'credentials': credentials,
                 'management_ip_address': mgmt_ip,
                 'protocol_port': hosting_device.protocol_port,
+                'timeout': None,
                 'created_at': str(hosting_device.created_at),
                 'booting_time': cfg.CONF.hosting_devices.csr1kv_booting_time,
                 'cfg_agent_id': hosting_device.cfg_agent_id}
