@@ -276,7 +276,8 @@ class CiscoNexusDriver(object):
         """Delete a VLAN on Nexus Switch given the VLAN ID."""
         confstr = snipp.CMD_NO_VLAN_CONF_SNIPPET % vlanid
         confstr = self.create_xml_snippet(confstr)
-        self._edit_config(nexus_host, target='running', config=confstr)
+        self._edit_config(nexus_host, target='running', config=confstr,
+                          allowed_exc_strs=["None of the VLANs exist"])
 
     def build_intf_confstr(self, snippet, intf_type, interface, vlanid):
         """Build the VLAN config string xml snippet to be used."""
