@@ -284,6 +284,7 @@ class TestCiscoNexusDevice(testlib_api.SqlTestCase):
         port_context = FakePortContext(instance_id, host_name,
             device_owner, network_context, bottom_context)
 
+        self._cisco_mech_driver.create_port_postcommit(port_context)
         self._cisco_mech_driver.update_port_precommit(port_context)
         self._cisco_mech_driver.update_port_postcommit(port_context)
         for port_id in nexus_port.split(','):
@@ -348,6 +349,8 @@ class TestCiscoNexusDevice(testlib_api.SqlTestCase):
                 config = filter[1]
             if all(word in config for word in keywords):
                 raise exc
+            else:
+                return mock.DEFAULT
         return _side_effect_method
 
     def _create_port_failure(self, attr, match_str, test_case, test_id):
@@ -489,6 +492,15 @@ class TestCiscoNexusDevice(testlib_api.SqlTestCase):
                               TestCiscoNexusDevice.test_configs[
                                   'test_config1'])
         self.assertIn(CONNECT_ERROR, unicode(e))
+
+    def test_get_nexus_type(self):
+        """Verifies exception during ncclient get inventory. """
+
+        self._create_port_failure(
+            'connect.return_value.get.side_effect',
+            'show inventory',
+            'test_config1',
+            __name__)
 
     def test_get_interface_failure(self):
         """Verifies exception during ncclient get interface. """
@@ -742,6 +754,7 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
             port_context = FakePortContext(instance_id, host_name,
                 device_owner, network_context)
 
+        self._cisco_mech_driver.create_port_postcommit(port_context)
         self._cisco_mech_driver.update_port_precommit(port_context)
         self._cisco_mech_driver.update_port_postcommit(port_context)
         for port_id in nexus_port.split(','):
@@ -855,6 +868,8 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
                 config = filter[1]
             if all(word in config for word in keywords):
                 raise exc
+            else:
+                return mock.DEFAULT
         return _side_effect_method
 
     def _create_port_failure(self, attr, match_str, test_case, test_id):
