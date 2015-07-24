@@ -498,7 +498,7 @@ class TestCiscoNexusDevice(testlib_api.SqlTestCase):
                                   'test_config1'])
         self.assertIn(CONNECT_ERROR, unicode(e))
 
-    def test_get_nexus_type(self):
+    def test_get_nexus_type_failure(self):
         """Verifies exception during ncclient get inventory. """
 
         self._create_port_failure(

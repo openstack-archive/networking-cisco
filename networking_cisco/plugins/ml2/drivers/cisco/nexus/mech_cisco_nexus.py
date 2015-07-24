@@ -744,11 +744,11 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             # For each unique switch, verify you can talk
             # to it; otherwise, let exception bubble
             # up so other dbs cleaned and no further retries.
-            verified = {}
+            verified = []
             for switch_ip, intf_type, nexus_port in host_connections:
-                    if switch_ip not in verified:
-                        verified[switch_ip] = True
-                        self.driver.get_nexus_type(switch_ip)
+                if switch_ip not in verified:
+                    self.driver.get_nexus_type(switch_ip)
+                    verified.append(switch_ip)
 
     @lockutils.synchronized('cisco-nexus-portlock')
     def update_port_precommit(self, context):
