@@ -734,6 +734,23 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             self.timer = None
 
     @lockutils.synchronized('cisco-nexus-portlock')
+    def create_port_postcommit(self, context):
+        """Create port non-database commit event."""
+
+        port = context.current
+        host_id = port.get(portbindings.HOST_ID)
+        host_connections = self._get_switch_info(host_id)
+        if self._is_supported_deviceowner(port):
+            # For each unique switch, verify you can talk
+            # to it; otherwise, let exception bubble
+            # up so other dbs cleaned and no further retries.
+            verified = {}
+            for switch_ip, intf_type, nexus_port in host_connections:
+                    if switch_ip not in verified:
+                        verified[switch_ip] = True
+                        self.driver.get_nexus_type(switch_ip)
+
+    @lockutils.synchronized('cisco-nexus-portlock')
     def update_port_precommit(self, context):
         """Update port pre-database transaction commit event."""
         vlan_segment, vxlan_segment = self._get_segments(
