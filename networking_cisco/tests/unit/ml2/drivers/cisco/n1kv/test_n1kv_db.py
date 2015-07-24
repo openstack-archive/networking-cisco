@@ -21,11 +21,12 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     n1kv_db)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
+    n1kv_models)
+from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     policy_profile_service)
 
 import neutron.db.api as db
 from neutron.plugins.common import constants as p_const
-from neutron.plugins.ml2.drivers.cisco.n1kv import n1kv_models
 from neutron.tests.unit.db import test_db_base_plugin_v2
 from neutron.tests.unit import testlib_api
 

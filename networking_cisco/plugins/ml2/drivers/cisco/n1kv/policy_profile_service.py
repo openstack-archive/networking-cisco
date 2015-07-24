@@ -28,6 +28,8 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     n1kv_client)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     n1kv_db)
+from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
+    n1kv_models)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import config
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv.extensions import (
     policy_profile)
@@ -36,7 +38,6 @@ from neutron.api import extensions as api_extensions
 import neutron.db.api as db
 from neutron.db import common_db_mixin as base_db
 from neutron.i18n import _LW
-from neutron.plugins.ml2.drivers.cisco.n1kv import n1kv_models
 
 LOG = logging.getLogger(__name__)
 

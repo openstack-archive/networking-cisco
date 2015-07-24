@@ -735,6 +735,10 @@ class TestCiscoPortsV2(CiscoML2MechanismTestCase,
           PortContext.current['binding:host_id']: previous value
           PortContext.top_bound_segment: new value
         """
+        #--------------------------------------------
+        # TODO(HenryG): remove this when bug is fixed
+        self.skipTest('until bug #1475297 is fixed')
+        #--------------------------------------------
 
         # Create network, subnet and port.
         with self._create_resources() as result:

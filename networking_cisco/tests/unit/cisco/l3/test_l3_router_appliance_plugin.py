@@ -333,6 +333,12 @@ class RouterSchedulingTestCase(L3RouterApplianceTestCaseBase,
             self.assertIsNotNone(hosting_device['cfg_agent_id'])
 
     def test_dead_device_is_removed(self):
+
+        #--------------------------------------------
+        # TODO(HenryG): remove this when bug is fixed
+        self.skipTest('until bug #1480421 is fixed')
+        #--------------------------------------------
+
         cfg_dh_rpc = devices_cfgagent_rpc_cb.DeviceCfgRpcCallbackMixin()
         cfg_dh_rpc._l3plugin = self.plugin
         with mock.patch(

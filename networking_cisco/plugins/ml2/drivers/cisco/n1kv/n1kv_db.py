@@ -21,11 +21,12 @@ from sqlalchemy import sql
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     exceptions as n1kv_exc)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import config
+from networking_cisco.plugins.ml2.drivers.cisco.n1kv import n1kv_models
+
 from neutron import context as ncontext
 import neutron.db.api as db
 from neutron.db import models_v2
 from neutron.plugins.common import constants as p_const
-from neutron.plugins.ml2.drivers.cisco.n1kv import n1kv_models
 
 LOG = log.getLogger(__name__)
 
