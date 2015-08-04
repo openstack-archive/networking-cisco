@@ -227,7 +227,7 @@ class CiscoNexusDriver(object):
         if response:
             nexus_type = re.findall(
                 "\<[mod:]*desc\>\"*Nexus\s*(\d)\d+\s*[0-9A-Z]+\s*"
-                "Chassis\s*\"*\<\/[mod:]*desc\>",
+                "[cC]hassis\s*\"*\<\/[mod:]*desc\>",
                 response)
             if len(nexus_type) > 0:
                 LOG.debug("GET call returned Nexus type %d",
