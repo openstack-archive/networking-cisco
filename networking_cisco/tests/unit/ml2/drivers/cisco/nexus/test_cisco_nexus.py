@@ -1132,6 +1132,7 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
         2) Verify further attempts to configure replay data stops.
         3) Verify upon receipt of new transaction that retry count
         is reset to 0 so replay attempts will restart.
+        4) Verify retry count is reset when replay is successful.
         """
 
         unique_driver_result1 = [
@@ -1187,3 +1188,31 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
         assert(self._cisco_mech_driver.get_switch_retry_count(
                RP_NEXUS_IP_ADDRESS_1) == 0)
         self._verify_replay_results([])
+
+        # Replay Retry test 4)
+        # Set-up failed config which puts switch in inactive state
+        self.test_replay_create_vlan_failure()
+        # Make sure there is only a single attempt to configure.
+        self._verify_replay_results(unique_driver_result1)
+
+        # Perform replay once to increment retry count to 1.
+        # Verify retry count is 1.
+        self._cfg_monitor.check_connections()
+        assert(self._cisco_mech_driver.get_switch_retry_count(
+               RP_NEXUS_IP_ADDRESS_1) == 1)
+
+        # Clean all the ncclient mock_calls to clear
+        # mock_call history.
+        self.mock_ncclient.reset_mock()
+
+        # Clear the driver exception.
+        config = {'connect.return_value.edit_config.side_effect':
+                  None}
+        self.mock_ncclient.configure_mock(**config)
+
+        # Perform replay once which will be successful causing
+        # retry count to be reset to 0.
+        # Then verify retry count is indeed 0.
+        self._cfg_monitor.check_connections()
+        assert(self._cisco_mech_driver.get_switch_retry_count(
+               RP_NEXUS_IP_ADDRESS_1) == 0)
