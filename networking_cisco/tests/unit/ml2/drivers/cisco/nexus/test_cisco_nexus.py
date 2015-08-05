@@ -609,6 +609,7 @@ RP_NEXUS_PORT_1 = 'ethernet:1/10'
 RP_NEXUS_PORT_2 = 'ethernet:1/20'
 RP_VLAN_ID_1 = 267
 RP_VLAN_ID_2 = 265
+MAX_REPLAY_COUNT = 4
 
 
 class TestCiscoNexusReplay(testlib_api.SqlTestCase):
@@ -881,6 +882,14 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
                 return mock.DEFAULT
         return _side_effect_method
 
+    def _set_nexus_type_failure(self):
+        """Sets exception during ncclient get nexus type. """
+
+        config = {'connect.return_value.get.side_effect':
+            self._config_side_effects('show inventory',
+            Exception(__name__))}
+        self.mock_ncclient.configure_mock(**config)
+
     def _create_port_failure(self, attr, match_str, test_case, test_id):
         """Verifies exception handling during initial create object.
 
@@ -1125,14 +1134,17 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
         # no attempt to configure anything.
         self._verify_replay_results([])
 
-    def test_replay_retry_handling(self):
-        """Verifies a series of events to check retry_count operations.
+    def test_replay_no_retry_failure_handling(self):
+        """Tests to check replay 'no retry' failure handling.
 
-        1) Verify retry count is incremented upon failure during replay.
-        2) Verify further attempts to configure replay data stops.
-        3) Verify upon receipt of new transaction that retry count
-        is reset to 0 so replay attempts will restart.
-        4) Verify retry count is reset when replay is successful.
+        1) Verify config_failure is incremented upon failure during
+        replay config and verify create_vlan transactions are seen.
+        2) Verify contact_failure is incremented upon failure during
+        get_nexus_type transaction.
+        3) Verify receipt of new transaction does not reset
+        failure statistics.
+        4) Verify config&contact_failure is reset when replay is
+        successful.
         """
 
         unique_driver_result1 = [
@@ -1143,8 +1155,9 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
             '\<vlan\-name\>q\-267\<\/vlan\-name>',
             '\<vlan\-name\>q\-267\<\/vlan\-name>',
             '\<vlan\-name\>q\-267\<\/vlan\-name>',
+            '\<vlan\-name\>q\-267\<\/vlan\-name>',
         ]
-        config_replay = cisco_config.cfg.CONF.ml2_cisco.switch_replay_count
+        config_replay = MAX_REPLAY_COUNT
 
         #Set-up failed config which puts switch in inactive state
         self.test_replay_create_vlan_failure()
@@ -1153,17 +1166,20 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
 
         # Don't reset_mock so create_vlan continues failing
 
-        # Perform replay 4 times to exceed retry count of 3.
+        # Test 1:
+        # Perform replay MAX_REPLAY_COUNT times
         # This should not roll-up an exception but merely quit
-        for i in range(config_replay + 1):
+        for i in range(config_replay):
             self._cfg_monitor.check_connections()
 
-        # Verify switch retry count reached configured max and
-        # verify only 4 attempts to send create_vlan.
+        # Verify FAIL_CONFIG reached(MAX_REPLAY_COUNT) and there
+        # were only MAX_REPLAY_COUNT+1 attempts to send create_vlan.
         # first is from test_replay_create_vlan_failure()
-        # and only 3 from check_connections()
-        assert(self._cisco_mech_driver.get_switch_retry_count(
-               RP_NEXUS_IP_ADDRESS_1) == (config_replay + 1))
+        # and MAX_REPLAY_COUNT from check_connections()
+        assert(self._cisco_mech_driver.get_switch_replay_failure(
+               const.FAIL_CONFIG,
+               RP_NEXUS_IP_ADDRESS_1) ==
+               config_replay)
         self._verify_replay_results(unique_driver_result2)
 
         # Clean all the ncclient mock_calls to clear exception
@@ -1174,45 +1190,68 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
         assert(len(nexus_db_v2.get_nexusport_switch_bindings(
                RP_NEXUS_IP_ADDRESS_1)) == 1)
 
-        # Sent another config which should reset retry count
-        # Verify replay results again
-        self._delete_port(
-            TestCiscoNexusReplay.test_configs['test_replay_unique1'])
+        # Test 2)
+        # Set it up so get nexus type returns exception.
+        # So FAIL_CONTACT increments
 
-        # Verify port binding has been removed
-        # Verify switch retry count reset to 0 and
-        # verify no driver transactions have been sent
-        self.assertRaises(exceptions.NexusPortBindingNotFound,
-                     nexus_db_v2.get_nexusport_switch_bindings,
-                     RP_NEXUS_IP_ADDRESS_1)
-        assert(self._cisco_mech_driver.get_switch_retry_count(
-               RP_NEXUS_IP_ADDRESS_1) == 0)
-        self._verify_replay_results([])
-
-        # Replay Retry test 4)
-        # Set-up failed config which puts switch in inactive state
-        self.test_replay_create_vlan_failure()
-        # Make sure there is only a single attempt to configure.
-        self._verify_replay_results(unique_driver_result1)
-
-        # Perform replay once to increment retry count to 1.
-        # Verify retry count is 1.
-        self._cfg_monitor.check_connections()
-        assert(self._cisco_mech_driver.get_switch_retry_count(
-               RP_NEXUS_IP_ADDRESS_1) == 1)
-
-        # Clean all the ncclient mock_calls to clear
-        # mock_call history.
-        self.mock_ncclient.reset_mock()
-
-        # Clear the driver exception.
+        # Clear the edit driver exception to make sure it's not
+        # interfering in this test.
         config = {'connect.return_value.edit_config.side_effect':
                   None}
         self.mock_ncclient.configure_mock(**config)
 
+        self._set_nexus_type_failure()
+
+        # Perform replay MAX_REPLAY_COUNT times
+        # This should not roll-up an exception but merely quit
+        for i in range(config_replay):
+            self._cfg_monitor.check_connections()
+
+        # Verify switch FAIL_CONTACT reached (MAX_REPLAY_COUNT)
+        # and there were no attempts to send create_vlan.
+        assert(self._cisco_mech_driver.get_switch_replay_failure(
+               const.FAIL_CONFIG, RP_NEXUS_IP_ADDRESS_1) ==
+               config_replay)
+        assert(self._cisco_mech_driver.get_switch_replay_failure(
+               const.FAIL_CONTACT, RP_NEXUS_IP_ADDRESS_1) ==
+               config_replay)
+        self._verify_replay_results([])
+
+        # Test 3)
+        # Verify this transaction doesn't affect failure stats.
+        self._delete_port(
+            TestCiscoNexusReplay.test_configs['test_replay_unique1'])
+
+        # Verify port binding has been removed
+        # Verify failure stats is not reset and
+        # verify no driver transactions have been sent
+        self.assertRaises(exceptions.NexusPortBindingNotFound,
+                     nexus_db_v2.get_nexusport_switch_bindings,
+                     RP_NEXUS_IP_ADDRESS_1)
+        assert(self._cisco_mech_driver.get_switch_replay_failure(
+               const.FAIL_CONFIG,
+               RP_NEXUS_IP_ADDRESS_1) == config_replay)
+        assert(self._cisco_mech_driver.get_switch_replay_failure(
+               const.FAIL_CONTACT,
+               RP_NEXUS_IP_ADDRESS_1) == config_replay)
+        self._verify_replay_results([])
+
+        # Test 4)
+        # Verify config&contact_failure is reset when replay is
+        # successful.
+
+        # Clear the get driver exception.
+        config = {'connect.return_value.get.side_effect':
+                  None}
+        self.mock_ncclient.configure_mock(**config)
+
         # Perform replay once which will be successful causing
-        # retry count to be reset to 0.
-        # Then verify retry count is indeed 0.
+        # failure stats to be reset to 0.
+        # Then verify these stats are indeed 0.
         self._cfg_monitor.check_connections()
-        assert(self._cisco_mech_driver.get_switch_retry_count(
+        assert(self._cisco_mech_driver.get_switch_replay_failure(
+               const.FAIL_CONFIG,
+               RP_NEXUS_IP_ADDRESS_1) == 0)
+        assert(self._cisco_mech_driver.get_switch_replay_failure(
+               const.FAIL_CONTACT,
                RP_NEXUS_IP_ADDRESS_1) == 0)

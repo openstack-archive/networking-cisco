@@ -29,8 +29,6 @@ ml2_cisco_opts = [
                 help=_("To make Nexus configuration persistent")),
     cfg.IntOpt('switch_heartbeat_time', default=0,
         help=_("Periodic time to check switch connection. (0=disabled)")),
-    cfg.IntOpt('switch_replay_count', default=3,
-        help=_("Number of times to attempt config replay with switch.")),
     cfg.BoolOpt('provider_vlan_auto_create', default=True,
         help=_('Provider VLANs are automatically created as needed '
                'on the Nexus switch')),
