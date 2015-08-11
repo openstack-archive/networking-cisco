@@ -77,20 +77,41 @@ class CiscoNexusDriver(object):
            :returns: Configuration requested in string format
 
            """
-        try:
-            # If exception raised in connect, mgr left unassigned
-            # resulting in error during exception handling
-            mgr = None
+
+        # For loop added to handle stale ncclient handle after switch reboot.
+        # If the attempt fails,
+        #     close the session, save first exception
+        #     loop back around
+        #     try again
+        #     then quit
+        for retry_count in (1, 2):
             mgr = self.nxos_connect(nexus_host)
-            data_xml = mgr.get(filter=('subtree', filter)).data_xml
-            return data_xml
-        except Exception as e:
             try:
-                self._close_session(mgr, nexus_host)
-            except Exception:
-                pass
-            raise cexc.NexusConfigFailed(nexus_host=nexus_host, config=filter,
-                                         exc=e)
+                data_xml = mgr.get(filter=('subtree', filter)).data_xml
+            except Exception as e:
+                try:
+                    self._close_session(mgr, nexus_host)
+                except Exception:
+                    pass
+
+                # if transaction is snipp.EXEC_GET_INVENTORY_SNIPPET,
+                # don't retry since this is used as a ping to
+                # validate connection and retry is already built
+                # into replay code.
+                if snipp.EXEC_GET_INVENTORY_SNIPPET == filter:
+                    raise cexc.NexusConfigFailed(nexus_host=nexus_host,
+                                                 config=filter,
+                                                 exc=e)
+
+                # if first try, save first exception and retry
+                if retry_count == 1:
+                    first_exc = e
+                else:
+                    raise cexc.NexusConfigFailed(nexus_host=nexus_host,
+                                                 config=filter,
+                                                 exc=first_exc)
+            else:
+                return data_xml
 
     def _edit_config(self, nexus_host, target='running', config='',
                      allowed_exc_strs=None, check_to_close_session=True):
@@ -111,27 +132,35 @@ class CiscoNexusDriver(object):
         """
         if not allowed_exc_strs:
             allowed_exc_strs = []
-        try:
-            # If exception raised in connect, mgr left unassigned
-            # resulting in error during exception handling
-            mgr = None
+
+        # For loop added to handle stale ncclient handle after switch reboot.
+        # If the attempt fails and not an allowed exception,
+        #     close the session, save first exception
+        #     loop back around
+        #     try again
+        #     then quit
+        for retry_count in (1, 2):
             mgr = self.nxos_connect(nexus_host)
             LOG.debug("NexusDriver edit config: %s", config)
-            if mgr:
-                mgr.edit_config(target=target, config=config)
-        except Exception as e:
-            for exc_str in allowed_exc_strs:
-                if exc_str in unicode(e):
-                    return
             try:
-                self._close_session(mgr, nexus_host)
-            except Exception:
-                pass
-
-            # Raise a Neutron exception. Include a description of
-            # the original ncclient exception.
-            raise cexc.NexusConfigFailed(nexus_host=nexus_host, config=config,
-                                         exc=e)
+                mgr.edit_config(target=target, config=config)
+                break
+            except Exception as e:
+                for exc_str in allowed_exc_strs:
+                    if exc_str in unicode(e):
+                        return
+                try:
+                    self._close_session(mgr, nexus_host)
+                except Exception:
+                    pass
+                if retry_count == 1:
+                    first_exc = e
+                else:
+                    # Raise a Neutron exception. Include a description of
+                    # the original ncclient exception.
+                    raise cexc.NexusConfigFailed(nexus_host=nexus_host,
+                                                 config=config,
+                                                 exc=first_exc)
 
         # if configured, close the ncclient ssh session.
         if check_to_close_session and self._get_close_ssh_session():
@@ -149,22 +178,13 @@ class CiscoNexusDriver(object):
         nexus_password = self.nexus_switches[nexus_host, const.PASSWORD]
         hostkey_verify = cfg.CONF.ml2_cisco.host_key_checks
         try:
-            try:
-                # With new ncclient version, we can pass device_params...
-                man = self.ncclient.connect(host=nexus_host,
-                                            port=nexus_ssh_port,
-                                            username=nexus_user,
-                                            password=nexus_password,
-                                            hostkey_verify=hostkey_verify,
-                                            device_params={"name": "nexus"})
-            except TypeError:
-                # ... but if that causes an error, we appear to have the old
-                # ncclient installed, which doesn't understand this parameter.
-                man = self.ncclient.connect(host=nexus_host,
-                                            port=nexus_ssh_port,
-                                            username=nexus_user,
-                                            password=nexus_password,
-                                            hostkey_verify=hostkey_verify)
+            # With new ncclient version, we can pass device_params...
+            man = self.ncclient.connect(host=nexus_host,
+                                        port=nexus_ssh_port,
+                                        username=nexus_user,
+                                        password=nexus_password,
+                                        hostkey_verify=hostkey_verify,
+                                        device_params={"name": "nexus"})
         except Exception as e:
             # Raise a Neutron exception. Include a description of
             # the original ncclient exception.
