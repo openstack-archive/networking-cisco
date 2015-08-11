@@ -117,22 +117,17 @@ class CiscoNexusCfgMonitor(object):
 
         for switch_ip in switch_connections:
             state = self._mdriver.get_switch_ip_and_active_state(switch_ip)
-            retry_count = self._mdriver.get_switch_retry_count(switch_ip)
-            cfg_retry = conf.cfg.CONF.ml2_cisco.switch_replay_count
-            if retry_count > cfg_retry:
-                continue
-            if retry_count == cfg_retry:
-                LOG.warn(_LW("check_connections() switch "
-                         "%(switch_ip)s retry count %(rcnt)d exceeded "
-                         "configured threshold %(thld)d"),
-                         {'switch_ip': switch_ip,
-                         'rcnt': retry_count,
-                         'thld': cfg_retry})
-                self._mdriver.incr_switch_retry_count(switch_ip)
-                continue
+            config_failure = self._mdriver.get_switch_replay_failure(
+                const.FAIL_CONFIG, switch_ip)
+            contact_failure = self._mdriver.get_switch_replay_failure(
+                const.FAIL_CONTACT, switch_ip)
             LOG.debug("check_connections() switch "
-                      "%(switch_ip)s state %(state)d",
-                      {'switch_ip': switch_ip, 'state': state})
+                      "%(switch_ip)s state %(state)d "
+                      "contact_failure %(contact_failure)d "
+                      "config_failure %(config_failure)d ",
+                      {'switch_ip': switch_ip, 'state': state,
+                       'contact_failure': contact_failure,
+                       'config_failure': config_failure})
             try:
                 nexus_type = self._driver.get_nexus_type(switch_ip)
             except Exception:
@@ -141,6 +136,9 @@ class CiscoNexusCfgMonitor(object):
                         "%(switch_ip)s"), {'switch_ip': switch_ip})
                     self._mdriver.set_switch_ip_and_active_state(
                         switch_ip, False)
+                else:
+                    self._mdriver.incr_switch_replay_failure(
+                        const.FAIL_CONTACT, switch_ip)
             else:
                 if state is False:
                     self._configure_nexus_type(switch_ip, nexus_type)
@@ -156,12 +154,16 @@ class CiscoNexusCfgMonitor(object):
                     # retry counter else reset it to 0.
                     if self._mdriver.get_switch_ip_and_active_state(
                         switch_ip) is False:
-                        self._mdriver.incr_switch_retry_count(switch_ip)
+                        self._mdriver.incr_switch_replay_failure(
+                            const.FAIL_CONFIG, switch_ip)
                         LOG.warn(_LW("Replay config failed for "
                             "ip %(switch_ip)s"),
                             {'switch_ip': switch_ip})
                     else:
-                        self._mdriver.reset_switch_retry_count(switch_ip)
+                        self._mdriver.reset_switch_replay_failure(
+                            const.FAIL_CONFIG, switch_ip)
+                        self._mdriver.reset_switch_replay_failure(
+                            const.FAIL_CONTACT, switch_ip)
                         LOG.info(_LI("Replay config successful for "
                             "ip %(switch_ip)s"),
                             {'switch_ip': switch_ip})
@@ -219,19 +221,29 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         else:
             return -1
 
-    def reset_switch_retry_count(self, switch_ip):
-        self._switch_state[switch_ip, '_retry_count'] = 0
+    def _valid_replay_key(self, fail_key, switch_ip):
+        if (switch_ip, const.REPLAY_FAILURES) not in self._switch_state:
+            self._switch_state[switch_ip, const.REPLAY_FAILURES] = {
+                const.FAIL_CONTACT: 0,
+                const.FAIL_CONFIG: 0}
 
-    def incr_switch_retry_count(self, switch_ip):
-        if (switch_ip, '_retry_count') in self._switch_state:
-            self._switch_state[switch_ip, '_retry_count'] += 1
+        return fail_key in self._switch_state[switch_ip,
+                                              const.REPLAY_FAILURES]
+
+    def reset_switch_replay_failure(self, fail_key, switch_ip):
+        if self._valid_replay_key(fail_key, switch_ip):
+            self._switch_state[switch_ip, const.REPLAY_FAILURES][fail_key] = 0
+
+    def incr_switch_replay_failure(self, fail_key, switch_ip):
+        if self._valid_replay_key(fail_key, switch_ip):
+            self._switch_state[switch_ip, const.REPLAY_FAILURES][fail_key] += 1
+
+    def get_switch_replay_failure(self, fail_key, switch_ip):
+        if self._valid_replay_key(fail_key, switch_ip):
+            return self._switch_state[switch_ip,
+                   const.REPLAY_FAILURES][fail_key]
         else:
-            self.reset_switch_retry_count(switch_ip)
-
-    def get_switch_retry_count(self, switch_ip):
-        if (switch_ip, '_retry_count') not in self._switch_state:
-            self.reset_switch_retry_count(switch_ip)
-        return self._switch_state[switch_ip, '_retry_count']
+            return 0
 
     def get_switch_state(self):
         switch_connections = []
@@ -324,7 +336,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         for switch_ip in host_nve_connections:
             if self.is_switch_configurable(switch_ip) is False:
-                self.reset_switch_retry_count(switch_ip)
                 continue
             # If configured to set global VXLAN values then
             #   If this is the first database entry for this switch_ip
@@ -377,7 +388,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         host_nve_connections = self._get_switch_nve_info(host_id)
         for switch_ip in host_nve_connections:
             if self.is_switch_configurable(switch_ip) is False:
-                self.reset_switch_retry_count(switch_ip)
                 continue
             try:
                 if not nxos_db.get_nve_vni_switch_bindings(vni, switch_ip):
@@ -468,7 +478,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         for switch_ip, intf_type, nexus_port in host_connections:
 
             if self.is_switch_configurable(switch_ip) is False:
-                self.reset_switch_retry_count(switch_ip)
                 continue
 
             # The VLAN needs to be created on the switch if no other
@@ -584,7 +593,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         for switch_ip, intf_type, nexus_port in host_connections:
 
             if self.is_switch_configurable(switch_ip) is False:
-                self.reset_switch_retry_count(switch_ip)
                 continue
 
             # if there are no remaining db entries using this vlan on this
