@@ -597,31 +597,6 @@ class TestCiscoPortsV2(CiscoML2MechanismTestCase,
 #        self._test_nexus_providernet(auto_create=True, auto_trunk=True,
 #                                     name=P_VLAN_NAME_TOO_LONG)
 
-    def test_ncclient_version_detect(self):
-        """Test ability to handle connection to old and new-style ncclient.
-
-        We used to require a custom version of the ncclient library. However,
-        recent contributions to the ncclient make this unnecessary. Our
-        driver was modified to be able to establish a connection via both
-        the old and new type of ncclient.
-
-        The new style ncclient.connect() function takes one additional
-        parameter.
-
-        The ML2 driver uses this to detect whether we are dealing with an
-        old or new ncclient installation.
-
-        """
-        # The code we are exercising calls connect() twice, if there is a
-        # TypeError on the first call (if the old ncclient is installed).
-        # The second call should succeed. That's what we are simulating here.
-        orig_connect_return_val = self.mock_ncclient.connect.return_value
-        with self._patch_ncclient('connect.side_effect',
-                                  [TypeError, orig_connect_return_val]):
-            with self._create_resources() as result:
-                self.assertEqual(result.status_int,
-                                 wexc.HTTPOk.code)
-
     def test_ncclient_get_config_fail(self):
         """Test that the connection is reset after a get_config error
 
@@ -630,13 +605,15 @@ class TestCiscoPortsV2(CiscoML2MechanismTestCase,
         """
 
         with self._patch_ncclient(
-            'connect.return_value.edit_config.side_effect',
+            'connect.return_value.get.side_effect',
             [IOError, None, None]):
             with self._create_resources() as result:
                 self._assertExpectedHTTP(result.status_int,
                                          c_exc.NexusConfigFailed)
-            #on deleting the resources, connect should be called a second time
-            self.assertEqual(self.mock_ncclient.connect.call_count, 2)
+            # on deleting the resources, connect called 3 times
+            # +1 1st connect during Create vlan + 1 connect during get
+            # during loop after failure + 1 connect during delete
+            self.assertEqual(self.mock_ncclient.connect.call_count, 3)
 
     def test_ncclient_fail_on_second_connect(self):
         """Test that other errors during connect() sequences are still handled.
@@ -808,6 +785,8 @@ class TestCiscoPortsV2(CiscoML2MechanismTestCase,
             mock_edit_config_a):
             with self._create_resources() as result:
                 self.assertEqual(result.status_int, wexc.HTTPOk.code)
+                # No reconnect attempted...call_count will be one
+                self.assertEqual(self.mock_ncclient.connect.call_count, 1)
 
         def mock_edit_config_b(target, config):
             if all(word in config for word in ['no', 'shutdown']):
@@ -818,6 +797,8 @@ class TestCiscoPortsV2(CiscoML2MechanismTestCase,
             mock_edit_config_b):
             with self._create_resources() as result:
                 self.assertEqual(result.status_int, wexc.HTTPOk.code)
+                # No reconnect attempted...call_count will be one
+                self.assertEqual(self.mock_ncclient.connect.call_count, 1)
 
     def test_nexus_vlan_config_rollback(self):
         """Test rollback following Nexus VLAN state config failure.
