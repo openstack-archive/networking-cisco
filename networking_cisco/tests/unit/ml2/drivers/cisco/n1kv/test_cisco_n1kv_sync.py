@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections import namedtuple
 import hashlib
 import mock
 
@@ -67,9 +66,6 @@ class TestN1kvSyncDriver(TestN1KVMechanismDriver):
                  to res
         """
         res_list = getattr(self, 'TEST_NEUTRON_' + res.upper())
-        net_profile = namedtuple('NetProfile', ('id',))
-        if res == n1kv_const.NETWORK_PROFILES:
-            return [net_profile(np) for np in res_list]
         return [{'id': x} for x in res_list]
 
     def _fake_get_vsm_md5_hashes(self):

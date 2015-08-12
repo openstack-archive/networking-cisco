@@ -25,12 +25,6 @@ n1kv_opts = [
     cfg.StrOpt('password',
                help=_("Password for all configured Cisco Nexus1000V VSMs."),
                secret=True),
-    cfg.StrOpt('default_vlan_network_profile', default='default-vlan-np',
-               help=_("Cisco Nexus1000V default network profile for VLAN "
-                      "networks.")),
-    cfg.StrOpt('default_vxlan_network_profile', default='default-vxlan-np',
-               help=_("Cisco Nexus1000V default network profile for VXLAN "
-                      "networks.")),
     cfg.StrOpt('default_policy_profile', default='default-pp',
                help=_("Cisco Nexus1000V default policy profile.")),
     cfg.BoolOpt('restrict_policy_profiles', default=False,
@@ -48,7 +42,9 @@ n1kv_opts = [
                help=_("Time interval between consecutive neutron-VSM syncs.")),
     cfg.IntOpt('max_vsm_retries', default=2,
                help=_("Maximum number of retry attempts for VSM REST API.")),
-
+    cfg.BoolOpt('restrict_network_profiles', default=False,
+               help=_("Restrict the visibility of network profiles to the "
+                      "tenants.")),
 ]
 
 

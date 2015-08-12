@@ -19,7 +19,7 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import n1kv_client
 _resource_metadata = {'network-segment': ['publishName', 'description', 'id',
                                           'tenantId', 'mode', 'segmentType',
                                           'networkSegmentPool', 'vlan',
-                                          'vxlan'],
+                                          'vxlan', 'bridgeDomain'],
                       'port': ['id', 'macAddress', 'ipAddress', 'subnetId'],
                       'vmnetwork': ['name', 'networkSegmentId',
                                     'networkSegment', 'portProfile',

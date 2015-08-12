@@ -56,6 +56,21 @@ def add_network_binding(network_id,
     return binding
 
 
+def update_network_binding_with_segment_id(net_id,
+                                           segment_id,
+                                           db_session):
+    """
+    Update the network to network profile binding
+
+    :param net_id: UUID representing the network
+    :param segment_id: integer representing VLAN or VXLAN ID
+    :param db_session: database session
+    """
+    with db_session.begin(subtransactions=True):
+        db_session.query(n1kv_models.N1kvNetworkBinding).filter_by(
+            network_id=net_id).update({'segmentation_id': segment_id})
+
+
 def get_network_profile_by_type(segment_type, db_session=None):
     """
     Retrieve a network profile using its type.
@@ -72,18 +87,41 @@ def get_network_profile_by_type(segment_type, db_session=None):
         raise n1kv_exc.NetworkProfileNotFound(profile=segment_type)
 
 
-def add_network_profile(netp_name, netp_type, db_session=None):
+def get_network_profile_by_name(name, db_session=None):
+    """Retrieve a network profile using its name."""
+    db_session = db_session or db.get_session()
+    try:
+        return (db_session.query(n1kv_models.NetworkProfile).
+                filter_by(name=name).one())
+    except sa_exc.NoResultFound:
+        raise n1kv_exc.NetworkProfileNotFound(profile=name)
+
+
+def get_network_profile_by_uuid(netp_id, db_session=None):
+    """Retrieve a network profile using its UUID."""
+    db_session = db_session or db.get_session()
+    try:
+        return (db_session.query(n1kv_models.NetworkProfile).
+                filter_by(id=netp_id).one())
+    except sa_exc.NoResultFound:
+        raise n1kv_exc.NetworkProfileNotFound(profile=netp_id)
+
+
+def add_network_profile(netp_name, netp_type,
+                        netp_sub_type=None, db_session=None):
     """
     Create a network profile.
 
     :param netp_name: string representing the name of the network profile
     :param netp_type: string representing the type of the network profile
+    :param netp_sub_type: string representing sub-type of the network profile
     :param db_session: database session
     :returns: network profile object
     """
     db_session = db_session or db.get_session()
     netp = n1kv_models.NetworkProfile(name=netp_name,
-                                      segment_type=netp_type)
+                                      segment_type=netp_type,
+                                      sub_type=netp_sub_type)
     db_session.add(netp)
     db_session.flush()
     return netp
@@ -185,14 +223,15 @@ def check_policy_profile_exists_on_all_vsm(pprofiles, vsm_hosts):
             len(set(pprofile['id'] for pprofile in pprofiles)) == 1)
 
 
-def get_network_binding(network_id):
+def get_network_binding(network_id, db_session=None):
     """
     Retrieve network binding.
 
     :param network_id: string representing the UUID of the network
+    :param db_session: database session
     :returns: network to network profile binding object
     """
-    db_session = db.get_session()
+    db_session = db_session or db.get_session()
     try:
         return (db_session.query(n1kv_models.N1kvNetworkBinding).
                 filter_by(network_id=network_id).one())

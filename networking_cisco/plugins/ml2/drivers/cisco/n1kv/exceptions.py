@@ -48,3 +48,21 @@ class NetworkProfileNotFound(exceptions.NotFound):
 class PolicyProfileNotFound(exceptions.NotFound):
     """Policy Profile with given UUID/name cannot be found."""
     message = _("Policy Profile %(profile)s could not be found.")
+
+
+class ProfileTenantBindingNotFound(exceptions.NotFound):
+    """Profile to Tenant binding for given profile ID cannot be found."""
+    message = _("Profile-Tenant binding for profile %(profile_id)s could "
+                "not be found.")
+
+
+class NetworkProfileInUse(exceptions.InUse):
+    """Network Profile with the given UUID is in use."""
+    message = _("One or more network segments belonging to network "
+                "profile %(profile)s is in use.")
+
+
+class ProfileDeletionNotSupported(exceptions.NotSupported):
+    """Deletion of default network profile is not supported."""
+    message = _("Deletion of default network profile %(profile)s "
+                "is not supported.")
