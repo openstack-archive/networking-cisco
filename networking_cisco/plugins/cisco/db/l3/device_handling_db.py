@@ -31,11 +31,11 @@ from neutron import context as neutron_context
 from neutron.db import agents_db
 from neutron.i18n import _LE, _LI, _LW
 from neutron import manager
-from neutron.plugins.cisco.db.l3 import l3_models
 from neutron.plugins.common import constants as svc_constants
 
 from networking_cisco.plugins.cisco.common import (
     cisco_constants as c_constants)
+from networking_cisco.plugins.cisco.db.l3 import l3_models
 from networking_cisco.plugins.cisco.l3 import service_vm_lib
 
 LOG = logging.getLogger(__name__)

@@ -27,9 +27,9 @@ from neutron.db import models_v2
 from neutron.extensions import providernet as pr_net
 from neutron.i18n import _LE, _LI, _LW
 from neutron import manager
-from neutron.plugins.cisco.db.l3 import l3_models
 from neutron.plugins.common import constants
 
+from networking_cisco.plugins.cisco.db.l3 import l3_models
 # TODO(Tom): clean this up when we support the n1kv ML2 driver
 #from networking_cisco.plugins.cisco.extensions import n1kv
 import networking_cisco.plugins.cisco.l3.plugging_drivers as plug
