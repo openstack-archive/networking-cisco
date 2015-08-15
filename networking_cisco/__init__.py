@@ -12,8 +12,16 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import gettext
+import six
+
 import pbr.version
 
 
 __version__ = pbr.version.VersionInfo(
     'networking_cisco').version_string()
+
+if six.PY2:
+    gettext.install('neutron', unicode=1)
+else:
+    gettext.install('neutron')
