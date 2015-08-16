@@ -16,12 +16,11 @@
 import collections
 import mock
 import os
+from oslo_config import cfg
 from oslo_utils import importutils
 import re
 import testtools
 
-from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
-    config as cisco_config)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -211,8 +210,10 @@ class TestCiscoNexusDevice(testlib_api.SqlTestCase):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
         super(TestCiscoNexusDevice, self).setUp()
 
-        cisco_config.cfg.CONF.set_default('api_workers', 0)
-        cisco_config.cfg.CONF.set_default('rpc_workers', 0)
+        cfg.CONF.import_opt('api_workers', 'neutron.service')
+        cfg.CONF.set_default('api_workers', 0)
+        cfg.CONF.import_opt('rpc_workers', 'neutron.service')
+        cfg.CONF.set_default('rpc_workers', 0)
 
         # Use a mock netconf client
         self.mock_ncclient = mock.Mock()
@@ -225,7 +226,7 @@ class TestCiscoNexusDevice(testlib_api.SqlTestCase):
         def new_nexus_init(mech_instance):
             mech_instance.driver = importutils.import_object(NEXUS_DRIVER)
             mech_instance.monitor_timeout = (
-                cisco_config.cfg.CONF.ml2_cisco.switch_heartbeat_time)
+                cfg.CONF.ml2_cisco.switch_heartbeat_time)
             mech_instance._ppid = os.getpid()
 
             mech_instance._nexus_switches = {}
@@ -521,8 +522,7 @@ class TestCiscoNexusDevice(testlib_api.SqlTestCase):
 
         # Set configuration variable to add/delete the VXLAN global nexus
         # switch values.
-        cisco_config.cfg.CONF.set_override('vxlan_global_config', True,
-                                           'ml2_cisco')
+        cfg.CONF.set_override('vxlan_global_config', True, 'ml2_cisco')
         self._create_port_failure(
             'connect.return_value.edit_config.side_effect',
             'feature nv overlay vn-segment-vlan-based',
@@ -534,8 +534,7 @@ class TestCiscoNexusDevice(testlib_api.SqlTestCase):
 
         # Set configuration variable to add/delete the VXLAN global nexus
         # switch values.
-        cisco_config.cfg.CONF.set_override('vxlan_global_config', True,
-                                           'ml2_cisco')
+        cfg.CONF.set_override('vxlan_global_config', True, 'ml2_cisco')
         self._delete_port_failure(
             'connect.return_value.edit_config.side_effect',
             'no feature nv overlay vn-segment-vlan-based',
@@ -690,8 +689,10 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
         super(TestCiscoNexusReplay, self).setUp()
 
-        cisco_config.cfg.CONF.set_default('api_workers', 0)
-        cisco_config.cfg.CONF.set_default('rpc_workers', 0)
+        cfg.CONF.import_opt('api_workers', 'neutron.service')
+        cfg.CONF.set_default('api_workers', 0)
+        cfg.CONF.import_opt('rpc_workers', 'neutron.service')
+        cfg.CONF.set_default('rpc_workers', 0)
 
         # Use a mock netconf client
         self.mock_ncclient = mock.Mock()
@@ -701,13 +702,12 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
         data_xml = {'connect.return_value.get.return_value.data_xml': ''}
         self.mock_ncclient.configure_mock(**data_xml)
 
-        cisco_config.cfg.CONF.set_override('switch_heartbeat_time',
-            30, 'ml2_cisco')
+        cfg.CONF.set_override('switch_heartbeat_time', 30, 'ml2_cisco')
 
         def new_nexus_init(mech_instance):
             mech_instance.driver = importutils.import_object(NEXUS_DRIVER)
             mech_instance.monitor_timeout = (
-                cisco_config.cfg.CONF.ml2_cisco.switch_heartbeat_time)
+                cfg.CONF.ml2_cisco.switch_heartbeat_time)
             mech_instance._ppid = os.getpid()
 
             mech_instance._switch_state = {}
@@ -1035,8 +1035,7 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
 
         # Set configuration variable to add/delete the VXLAN global nexus
         # switch values.
-        cisco_config.cfg.CONF.set_override('vxlan_global_config', True,
-                                           'ml2_cisco')
+        cfg.CONF.set_override('vxlan_global_config', True, 'ml2_cisco')
         self._create_port_failure(
             'connect.return_value.edit_config.side_effect',
             'feature nv overlay vn-segment-vlan-based',
@@ -1048,8 +1047,7 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
 
         # Set configuration variable to add/delete the VXLAN global nexus
         # switch values.
-        cisco_config.cfg.CONF.set_override('vxlan_global_config', True,
-                                           'ml2_cisco')
+        cfg.CONF.set_override('vxlan_global_config', True, 'ml2_cisco')
         self._delete_port_failure(
             'connect.return_value.edit_config.side_effect',
             'no feature nv overlay vn-segment-vlan-based',
