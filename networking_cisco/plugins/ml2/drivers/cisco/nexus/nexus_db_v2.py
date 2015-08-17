@@ -22,7 +22,7 @@ from neutron.i18n import _LW
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     exceptions as c_exc)
-from neutron.plugins.ml2.drivers.cisco.nexus import (
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_models_v2)
 
 LOG = logging.getLogger(__name__)
