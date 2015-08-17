@@ -15,8 +15,8 @@
 
 from sqlalchemy import orm
 
+from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucsm_model
 from neutron.db import api as db_api
-from neutron.plugins.ml2.drivers.cisco.ucsm import ucsm_model
 
 
 class UcsmDbModel(object):
