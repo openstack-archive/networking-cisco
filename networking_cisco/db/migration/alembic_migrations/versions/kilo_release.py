@@ -1,5 +1,3 @@
-# Copyright 2015 Cisco Systems, Inc.
-#
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -11,23 +9,21 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+#
 
-"""Initial Liberty no-op expand script.
+"""kilo
 
-Revision ID: 3c7f8bae9239
-Revises: kilo
-Create Date: 2015-07-28 17:38:34.209525
+Revision ID: kilo
+Revises: None
+Create Date: 2015-04-16 00:00:00.000000
 
 """
 
-from neutron.db.migration import cli
-
-
 # revision identifiers, used by Alembic.
-revision = '3c7f8bae9239'
-down_revision = 'kilo'
-branch_labels = (cli.EXPAND_BRANCH,)
+revision = 'kilo'
+down_revision = None
 
 
 def upgrade():
+    """A no-op migration for marking the Kilo release."""
     pass
