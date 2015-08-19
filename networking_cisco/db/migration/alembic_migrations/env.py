@@ -25,6 +25,7 @@ from neutron.db.migration.models import head  # noqa
 from neutron.db import model_base
 
 from networking_cisco.db.migration import alembic_migrations
+from networking_cisco.db.migration.models import head  # noqa
 
 
 MYSQL_ENGINE = None
