@@ -163,7 +163,8 @@ class ConfigMixin(object):
             'tenant_network_types': ['vlan'],
         }
         for opt, val in ml2_opts.items():
-                cfg.CONF.set_override(opt, val, 'ml2')
+            cfg.CONF.import_opt(opt, 'neutron.plugins.ml2.config', 'ml2')
+            cfg.CONF.set_override(opt, val, 'ml2')
 
         # Configure the ML2 type_vlan opts
         ml2_type_vlan_opts = {

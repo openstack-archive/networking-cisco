@@ -16,6 +16,7 @@
 import contextlib
 import mock
 
+from oslo_config import cfg
 from oslo_log import log as logging
 import webob.exc as wexc
 
@@ -119,8 +120,10 @@ class CiscoML2MechanismTestCase(test_plugin.Ml2PluginV2TestCase):
         if self._testMethodName in self._unsupported:
             self.skipTest("Unsupported test case")
 
-        cisco_config.cfg.CONF.set_override('api_workers', 0)
-        cisco_config.cfg.CONF.set_override('rpc_workers', 0)
+        cfg.CONF.import_opt('api_workers', 'neutron.service')
+        cfg.CONF.set_override('api_workers', 0)
+        cfg.CONF.import_opt('rpc_workers', 'neutron.service')
+        cfg.CONF.set_override('rpc_workers', 0)
 
         # Configure the Cisco Nexus mechanism driver
         nexus_config = {
@@ -267,8 +270,7 @@ class CiscoML2MechanismTestCase(test_plugin.Ml2PluginV2TestCase):
         result = all(word in last_cfg for word in words)
 
         # If persistent_switch_config, 'copy run start' also sent.
-        if (result is True and
-            cisco_config.cfg.CONF.ml2_cisco.persistent_switch_config):
+        if result is True and cfg.CONF.ml2_cisco.persistent_switch_config:
             last_cfg = (self.mock_ncclient.connect.return_value.
                         edit_config.mock_calls[-1][2]['config'])
             preserve_words = ['copy', 'running-config', 'startup-config']
@@ -494,8 +496,7 @@ class TestCiscoPortsV2(CiscoML2MechanismTestCase,
            self._is_in_last_nexus_cfg which checks that
            other configure staggered around 'copy run start'.
         """
-        cisco_config.cfg.CONF.set_override('persistent_switch_config',
-            True, 'ml2_cisco')
+        cfg.CONF.set_override('persistent_switch_config', True, 'ml2_cisco')
 
         self.test_nexus_enable_vlan_cmd_on_same_host()
 
@@ -991,8 +992,7 @@ class TestCiscoPortsV2(CiscoML2MechanismTestCase,
 
         # Set configuration variable to add/delete the VXLAN global nexus
         # switch values.
-        cisco_config.cfg.CONF.set_override('vxlan_global_config', True,
-                                           'ml2_cisco')
+        cfg.CONF.set_override('vxlan_global_config', True, 'ml2_cisco')
 
         # Configure bound segments to indicate VXLAN+VLAN.
         self.mock_top_bound_segment.return_value = BOUND_SEGMENT_VXLAN
