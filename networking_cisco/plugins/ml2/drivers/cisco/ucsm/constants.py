@@ -32,6 +32,8 @@ NONE = "none"
 # Max ports that this port profile can be applied to
 MAX_PORTS = 64
 
+VIF_TYPE_802_QBH = '802.1qbh'
+
 VNIC_PATH_PREFIX = "/vnic-"
 VLAN_PATH_PREFIX = "/if-"
 VLAN_PROFILE_PATH_PREFIX = "/net-"

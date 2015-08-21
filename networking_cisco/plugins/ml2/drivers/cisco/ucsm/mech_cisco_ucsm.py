@@ -33,7 +33,7 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
     """ML2 Mechanism Driver for Cisco UCS Manager."""
 
     def initialize(self):
-        self.vif_type = portbindings.VIF_TYPE_802_QBH
+        self.vif_type = const.VIF_TYPE_802_QBH
         self.vif_details = {portbindings.CAP_PORT_FILTER: False}
         self.driver = ucsm_network_driver.CiscoUcsmDriver()
         self.ucsm_db = ucsm_db.UcsmDbModel()

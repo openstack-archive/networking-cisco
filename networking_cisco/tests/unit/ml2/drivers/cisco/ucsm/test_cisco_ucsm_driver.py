@@ -175,7 +175,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
 
         self.mech_driver = md.CiscoUcsmMechanismDriver()
         self.mech_driver.initialize()
-        self.vif_type = portbindings.VIF_TYPE_802_QBH
+        self.vif_type = const.VIF_TYPE_802_QBH
         self.db = ucsm_db.UcsmDbModel()
         self.ucsm_driver = ucsm_network_driver.CiscoUcsmDriver()
 
