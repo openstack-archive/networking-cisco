@@ -16,14 +16,26 @@ if is_service_enabled net-cisco; then
         echo "Installing Networking-Cisco"
         sudo python setup.py install
 
+        if is_service_enabled cisco-fwaas; then
+            echo "Installing neutron-fwaas"
+            source $DIR_CISCO/devstack/csr1kv/cisco_fwaas
+            install_cisco_fwaas
+        fi
+
     elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
         if is_service_enabled cisco-csr; then
-           source $DIR_CISCO/devstack/csr1kv/cisco_neutron
-           configure_cisco_csr_router
-       fi
+            source $DIR_CISCO/devstack/csr1kv/cisco_neutron
+            if is_service_enabled cisco-fwaas; then
+                configure_cisco_fwaas
+            fi
+            configure_cisco_csr_router
+        fi
 
     elif [[ "$1" == "stack" && "$2" == "extra" ]]; then
        if is_service_enabled cisco-csr; then
+           if is_service_enabled cisco-fwaas; then
+               start_cisco_fwaas
+           fi
            start_cisco_csr_router
        fi
     fi
