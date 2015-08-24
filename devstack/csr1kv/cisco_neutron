@@ -53,8 +53,7 @@ Q_NOTIFY_NOVA_PORT_DATA_CHANGES=${Q_NOTIFY_NOVA_PORT_DATA_CHANGES:-True}
 # MySQL info
 MYSQL_USER=${MYSQL_USER:root}
 MYSQL_PASSWORD=${MYSQL_PASSWORD:password}
-# Cisco subplugins
-declare -a Q_CISCO_PLUGIN_SUBPLUGINS
+
 source $DIR_CISCO/devstack/csr1kv/cisco
 source $DIR_CISCO/devstack/csr1kv/cisco_router
 source $DIR_CISCO/devstack/csr1kv/ciscocfgagent
