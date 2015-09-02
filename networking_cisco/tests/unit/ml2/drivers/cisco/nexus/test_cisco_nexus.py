@@ -776,6 +776,36 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
             '225.1.1.1',
             DEVICE_OWNER_COMPUTE),
     }
+    driver_result_unique_add1 = [
+        '\<vlan\-name\>q\-267\<\/vlan\-name>',
+        '\<vstate\>active\<\/vstate>',
+        '\<no\>\s+\<shutdown\/\>\s+\<\/no\>',
+        '\<interface\>1\/10\<\/interface\>\s+'
+        '[\x20-\x7e]+\s+\<switchport\>\s+\<trunk\>\s+'
+        '\<allowed\>\s+\<vlan\>\s+\<vlan_id\>267',
+    ]
+    driver_result_unique_add2 = [
+        '\<vlan\-name\>q\-265\<\/vlan\-name>',
+        '\<vstate\>active\<\/vstate>',
+        '\<no\>\s+\<shutdown\/\>\s+\<\/no\>',
+        '\<interface\>1\/10\<\/interface\>\s+'
+        '[\x20-\x7e]+\s+\<switchport\>\s+\<trunk\>\s+'
+        '\<allowed\>\s+\<vlan\>\s+\<vlan_id\>265',
+    ]
+    driver_result_unique_del1 = [
+        '\<interface\>1\/10\<\/interface\>\s+'
+        '[\x20-\x7e\s]+\<switchport\>\s+\<trunk\>\s+'
+        '\<allowed\>\s+\<vlan\>\s+\<remove\>\s+\<vlan\>265',
+        '\<no\>\s+\<vlan\>\s+<vlan-id-create-delete\>'
+        '\s+\<__XML__PARAM_value\>265',
+    ]
+    driver_result_unique_del2 = [
+        '\<interface\>1\/10\<\/interface\>\s+'
+        '[\x20-\x7e\s]+\<switchport\>\s+\<trunk\>\s+'
+        '\<allowed\>\s+\<vlan\>\s+\<remove\>\s+\<vlan\>267',
+        '\<no\>\s+\<vlan\>\s+<vlan-id-create-delete\>'
+        '\s+\<__XML__PARAM_value\>267',
+    ]
 
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
@@ -915,7 +945,56 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
                     edit_config.mock_calls[idx][2]['config']),
                 None, "Expected result data not found")
 
-    def _process_replay(self, test1, test2, driver_results):
+    def _basic_create_verify_port_vlan(self, test_name, test_result,
+                                       nbr_of_bindings=1):
+        """Create port vlan and verify results."""
+
+        # Configure port entry config which puts switch in inactive state
+        self._create_port(
+            TestCiscoNexusReplay.test_configs[test_name])
+
+        # Verify it's in the port binding data base
+        port_cfg = TestCiscoNexusReplay.test_configs[test_name]
+        assert(len(nexus_db_v2.get_nexusport_switch_bindings(
+               port_cfg.nexus_ip_addr)) == nbr_of_bindings)
+
+        # Make sure there is only a single attempt to configure.
+        self._verify_replay_results(test_result)
+
+        # Clean all the ncclient mock_calls to clear exception
+        # and other mock_call history.
+        self.mock_ncclient.reset_mock()
+
+    def _basic_delete_verify_port_vlan(self, test_name, test_result,
+                                       nbr_of_bindings=0):
+        """Create port vlan and verify results."""
+
+        self._delete_port(
+            TestCiscoNexusReplay.test_configs[test_name])
+
+        # Verify port binding has been removed
+        # Verify failure stats is not reset and
+        # verify no driver transactions have been sent
+        port_cfg = TestCiscoNexusReplay.test_configs[test_name]
+        if nbr_of_bindings == 0:
+            self.assertRaises(exceptions.NexusPortBindingNotFound,
+                         nexus_db_v2.get_nexusport_switch_bindings,
+                         port_cfg.nexus_ip_addr)
+        else:
+            # Verify it's in the port binding data base
+            assert(len(nexus_db_v2.get_nexusport_switch_bindings(
+                   port_cfg.nexus_ip_addr)) == nbr_of_bindings)
+
+        # Make sure there is only a single attempt to configure.
+        self._verify_replay_results(test_result)
+
+        # Clean all the ncclient mock_calls to clear exception
+        # and other mock_call history.
+        self.mock_ncclient.reset_mock()
+
+    def _process_replay(self, test1, test2,
+                        add_result1, add_result2,
+                        del_result1, del_result2):
         """Tests create, replay, delete of two ports."""
 
         # Set all connection state to True except for
@@ -932,25 +1011,29 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
             self._cisco_mech_driver.set_switch_ip_and_active_state(
                 port_cfg.nexus_ip_addr, state)
 
-        self._create_port(
-            TestCiscoNexusReplay.test_configs[test1])
-        self._create_port(
-            TestCiscoNexusReplay.test_configs[test2])
-
-        # Clean all the ncclient mock_calls so we can evaluate
-        # content as a result of replay()
-        self.mock_ncclient.reset_mock()
+        self._basic_create_verify_port_vlan(
+            test1, add_result1['driver_results'],
+            add_result1['nbr_db_entries'])
+        self._basic_create_verify_port_vlan(
+            test2, add_result2['driver_results'],
+            add_result2['nbr_db_entries'])
 
         # Since only this test case connection state is False,
         # it should be the only one replayed
         self._cfg_monitor.check_connections()
-        self._verify_replay_results(driver_results)
+        self._verify_replay_results(add_result2['driver_results'] +
+                                    add_result1['driver_results'])
 
-        self._delete_port(
-            TestCiscoNexusReplay.test_configs[test1])
+        # Clear mock_call history so we can evaluate
+        # just the result of replay()
+        self.mock_ncclient.reset_mock()
 
-        self._delete_port(
-            TestCiscoNexusReplay.test_configs[test2])
+        self._basic_delete_verify_port_vlan(
+                test2, del_result1['driver_results'],
+                del_result1['nbr_db_entries'])
+        self._basic_delete_verify_port_vlan(
+                test1, del_result2['driver_results'],
+                del_result2['nbr_db_entries'])
 
     def _config_side_effects(self, match_config, exc):
         """Generates config-dependent side effect for ncclient.
@@ -1009,11 +1092,13 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
             Exception(test_id))}
         self.mock_ncclient.configure_mock(**config)
 
-        self._create_port(TestCiscoNexusReplay.test_configs[test_case])
+        self.assertRaises(
+                exceptions.NexusConfigFailed,
+                self._create_port,
+                TestCiscoNexusReplay.test_configs[test_case])
 
-        # _create_port should complete successfully but switch state changed
-        # to inactive.
-        self.assertFalse(
+        # _create_port should complete with no switch state change.
+        self.assertTrue(
             self._cisco_mech_driver.get_switch_ip_and_active_state(switch_ip))
 
     def _delete_port_failure(self, attr, match_str, test_case, test_id):
@@ -1050,23 +1135,50 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
             Exception(test_id))}
         self.mock_ncclient.configure_mock(**config)
 
-        self._delete_port(TestCiscoNexusReplay.test_configs[test_case])
+        self.assertRaises(
+                exceptions.NexusConfigFailed,
+                self._delete_port,
+                TestCiscoNexusReplay.test_configs[test_case])
 
-        # _delete_port should complete successfully but switch state changed
-        # to inactive.
-        self.assertFalse(
+        # Verify nothing in the port binding data base
+        self.assertRaises(exceptions.NexusPortBindingNotFound,
+                          nexus_db_v2.get_nexusport_switch_bindings,
+                          switch_ip)
+
+        # Verify nothing in the nve data base
+        assert(len(nexus_db_v2.get_nve_switch_bindings(
+               switch_ip)) == 0)
+
+        # _delete_port should complete with no switch state change.
+        self.assertTrue(
             self._cisco_mech_driver.get_switch_ip_and_active_state(switch_ip))
 
     def test_replay_unique_ports(self):
         """Provides replay data and result data for unique ports. """
-        unique_driver_result = [
-            '\<vlan\-name\>q\-265\<\/vlan\-name>',
-            '\<vstate\>active\<\/vstate>',
-            '\<no\>\s+\<shutdown\/\>\s+\<\/no\>',
-            '\<interface\>1\/10\<\/interface\>\s+'
-            '[\x20-\x7e]+\s+\<switchport\>\s+\<trunk\>\s+'
-            '\<allowed\>\s+\<vlan\>\s+\<vlan_id\>265',
+        first_add = {'driver_results': self.
+                     driver_result_unique_add1,
+                     'nbr_db_entries': 1}
+        second_add = {'driver_results': self.
+                      driver_result_unique_add2,
+                      'nbr_db_entries': 2}
+        first_del = {'driver_results': self.
+                     driver_result_unique_del1,
+                     'nbr_db_entries': 1}
+        second_del = {'driver_results': self.
+                      driver_result_unique_del2,
+                      'nbr_db_entries': 0}
 
+        self._process_replay('test_replay_unique1',
+                             'test_replay_unique2',
+                             first_add,
+                             second_add,
+                             first_del,
+                             second_del)
+
+    def test_replay_duplicate_vlan(self):
+        """Provides replay data and result data for duplicate vlans. """
+
+        driver_result_duplvlan_add1 = [
             '\<vlan\-name\>q\-267\<\/vlan\-name>',
             '\<vstate\>active\<\/vstate>',
             '\<no\>\s+\<shutdown\/\>\s+\<\/no\>',
@@ -1074,33 +1186,44 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
             '[\x20-\x7e]+\s+\<switchport\>\s+\<trunk\>\s+'
             '\<allowed\>\s+\<vlan\>\s+\<vlan_id\>267',
         ]
-
-        self._process_replay('test_replay_unique1',
-                             'test_replay_unique2',
-                             unique_driver_result)
-
-    def test_replay_duplicate_vlan(self):
-        """Provides replay data and result data for duplicate vlans. """
-        duplicate_vlan_result = [
-            '\<vlan\-name\>q\-267\<\/vlan\-name>',
-            '\<vstate\>active\<\/vstate>',
-            '\<no\>\s+\<shutdown\/\>\s+\<\/no\>',
-            '\<interface\>1\/10\<\/interface\>\s+'
-            '[\x20-\x7e]+\s+\<switchport\>\s+\<trunk\>\s+'
-            '\<allowed\>\s+\<vlan\>\s+\<vlan_id\>267',
-
+        driver_result_duplvlan_add2 = [
             '\<interface\>1\/20\<\/interface\>\s+'
             '[\x20-\x7e]+\s+\<switchport\>\s+\<trunk\>\s+'
             '\<allowed\>\s+\<vlan\>\s+\<vlan_id\>267',
         ]
+        driver_result_duplvlan_del1 = [
+            '\<interface\>1\/20\<\/interface\>\s+'
+            '[\x20-\x7e\s]+\<switchport\>\s+\<trunk\>\s+'
+            '\<allowed\>\s+\<vlan\>\s+\<remove\>\s+\<vlan\>267',
+        ]
+        driver_result_duplvlan_del2 = [
+            '\<interface\>1\/10\<\/interface\>\s+'
+            '[\x20-\x7e\s]+\<switchport\>\s+\<trunk\>\s+'
+            '\<allowed\>\s+\<vlan\>\s+\<remove\>\s+\<vlan\>267',
+            '\<no\>\s+\<vlan\>\s+<vlan-id-create-delete\>'
+            '\s+\<__XML__PARAM_value\>267',
+        ]
+        first_add = {'driver_results': (
+                     driver_result_duplvlan_add1 +
+                     driver_result_duplvlan_add2),
+                     'nbr_db_entries': 2}
+        second_add = {'driver_results': [],
+                      'nbr_db_entries': 4}
+        first_del = {'driver_results': [],
+                     'nbr_db_entries': 2}
+        second_del = {'driver_results': (
+                      driver_result_duplvlan_del2 +
+                      driver_result_duplvlan_del1),
+                      'nbr_db_entries': 0}
 
         self._process_replay('test_replay_duplvlan1',
                              'test_replay_duplvlan2',
-                             duplicate_vlan_result)
+                             first_add, second_add,
+                             first_del, second_del)
 
     def test_replay_duplicate_ports(self):
         """Provides replay data and result data for duplicate ports. """
-        duplicate_port_result = [
+        driver_result_duplport_add1 = [
             '\<vlan\-name\>q\-267\<\/vlan\-name>',
             '\<vstate\>active\<\/vstate>',
             '\<no\>\s+\<shutdown\/\>\s+\<\/no\>',
@@ -1108,10 +1231,28 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
             '[\x20-\x7e]+\s+\<switchport\>\s+\<trunk\>\s+'
             '\<allowed\>\s+\<vlan\>\s+\<vlan_id\>267',
         ]
+        driver_result_duplport_del1 = [
+            '\<interface\>1\/10\<\/interface\>\s+'
+            '[\x20-\x7e\s]+\<switchport\>\s+\<trunk\>\s+'
+            '\<allowed\>\s+\<vlan\>\s+\<remove\>\s+\<vlan\>267',
+            '\<no\>\s+\<vlan\>\s+<vlan-id-create-delete\>'
+            '\s+\<__XML__PARAM_value\>267',
+        ]
+        first_add = {'driver_results':
+                     driver_result_duplport_add1,
+                     'nbr_db_entries': 1}
+        second_add = {'driver_results': [],
+                      'nbr_db_entries': 2}
+        first_del = {'driver_results': [],
+                     'nbr_db_entries': 1}
+        second_del = {'driver_results':
+                      driver_result_duplport_del1,
+                      'nbr_db_entries': 0}
 
         self._process_replay('test_replay_duplport1',
                              'test_replay_duplport2',
-                             duplicate_port_result)
+                             first_add, second_add,
+                             first_del, second_del)
 
     def test_replay_get_interface_failure(self):
         """Verifies exception during ncclient get interface. """
@@ -1203,12 +1344,15 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
     def test_replay_get_nexus_type_failure(self):
         """Verifies exception during get nexus_type while replaying. """
 
-        #Set-up failed config which puts switch in inactive state
-        self.test_replay_create_vlan_failure()
+        # Set switch state to False so replay config will start.
+        # This should not affect user configuration.
+        port_cfg = TestCiscoNexusReplay.test_configs['test_replay_unique1']
+        self._cisco_mech_driver.set_switch_ip_and_active_state(
+            port_cfg.nexus_ip_addr, False)
 
-        # Clean all the ncclient mock_calls so we can evaluate
-        # content as a result of replay()
-        self.mock_ncclient.reset_mock()
+        # Set-up successful creation of port vlan config
+        self._basic_create_verify_port_vlan('test_replay_unique1',
+            self.driver_result_unique_add1)
 
         # Set-up so get_nexus_type driver fails
         config = {'connect.return_value.get.side_effect':
@@ -1223,6 +1367,48 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
         # Since get of nexus_type failed, there should be
         # no attempt to configure anything.
         self._verify_replay_results([])
+
+        # Clean-up the port entry
+        self._basic_delete_verify_port_vlan('test_replay_unique1',
+            self.driver_result_unique_del2)
+
+    def test_replay_create_vlan_failure_during_replay(self):
+        """Verifies exception during create vlan while replaying. """
+
+        vlan267 = '\<vlan\-name\>q\-267\<\/vlan\-name>'
+        driver_result1 = [vlan267] * 2
+
+        # Set switch state to False so replay config will start.
+        # This should not affect user configuration.
+        port_cfg = TestCiscoNexusReplay.test_configs['test_replay_unique1']
+        self._cisco_mech_driver.set_switch_ip_and_active_state(
+            port_cfg.nexus_ip_addr, False)
+
+        # Set-up successful creation of port vlan config
+        self._basic_create_verify_port_vlan('test_replay_unique1',
+            self.driver_result_unique_add1)
+
+        # set-up exception during create_vlan
+        config = {'connect.return_value.edit_config.side_effect':
+                  self._config_side_effects(
+                      'vlan-id-create-delete vlan-name',
+                      Exception(__name__ + '1'))}
+        self.mock_ncclient.configure_mock(**config)
+
+        # Perform replay which should not send back exception
+        # but merely quit
+        self._cfg_monitor.check_connections()
+
+        # The edit of create_vlan failed, but there will
+        # be 2 create vlan attempts in mock call history.
+        self._verify_replay_results(driver_result1)
+
+        # Clear mock_call history.
+        self.mock_ncclient.reset_mock()
+
+        # Clean-up the port entry
+        self._basic_delete_verify_port_vlan('test_replay_unique1',
+            self.driver_result_unique_del2)
 
     def test_replay_no_retry_failure_handling(self):
         """Tests to check replay 'no retry' failure handling.
@@ -1240,21 +1426,28 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
         # Due to 2 retries in driver to deal with stale ncclient
         # handle, the results are doubled.
         vlan267 = '\<vlan\-name\>q\-267\<\/vlan\-name>'
-        unique_driver_result1 = [vlan267] * 2
-        unique_driver_result2 = [vlan267] * 10
+        driver_result2 = [vlan267] * 8
 
         config_replay = MAX_REPLAY_COUNT
 
-        #Set-up failed config which puts switch in inactive state
-        self.test_replay_create_vlan_failure()
-        # Make sure there is only a single attempt to configure.
-        self._verify_replay_results(unique_driver_result1)
-
-        # Don't reset_mock so create_vlan continues failing
+        # Set-up successful creation of port vlan config
+        self._basic_create_verify_port_vlan('test_replay_unique1',
+            self.driver_result_unique_add1)
 
         # Test 1:
+        # Set the edit create vlan driver exception
         # Perform replay MAX_REPLAY_COUNT times
         # This should not roll-up an exception but merely quit
+        # and increment FAIL_CONFIG statistics
+        config = {'connect.return_value.edit_config.side_effect':
+                  self._config_side_effects(
+                      'vlan-id-create-delete vlan-name',
+                      Exception(__name__ + '1'))}
+        self.mock_ncclient.configure_mock(**config)
+
+        port_cfg = TestCiscoNexusReplay.test_configs['test_replay_unique1']
+        self._cisco_mech_driver.set_switch_ip_and_active_state(
+            port_cfg.nexus_ip_addr, False)
         for i in range(config_replay):
             self._cfg_monitor.check_connections()
 
@@ -1266,25 +1459,23 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
                const.FAIL_CONFIG,
                RP_NEXUS_IP_ADDRESS_1) ==
                config_replay)
-        self._verify_replay_results(unique_driver_result2)
-
-        # Clean all the ncclient mock_calls to clear exception
-        # and other mock_call history.
-        self.mock_ncclient.reset_mock()
+        self._verify_replay_results(driver_result2)
 
         # Verify there exists a single port binding
         assert(len(nexus_db_v2.get_nexusport_switch_bindings(
                RP_NEXUS_IP_ADDRESS_1)) == 1)
 
-        # Test 2)
-        # Set it up so get nexus type returns exception.
-        # So FAIL_CONTACT increments
+        # Clear mock_call history.
+        self.mock_ncclient.reset_mock()
 
-        # Clear the edit driver exception to make sure it's not
-        # interfering in this test.
+        # Clear the edit driver exception for next test.
         config = {'connect.return_value.edit_config.side_effect':
                   None}
         self.mock_ncclient.configure_mock(**config)
+
+        # Test 2)
+        # Set it up so get nexus type returns exception.
+        # FAIL_CONTACT should increment.
 
         self._set_nexus_type_failure()
 
@@ -1304,32 +1495,26 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
         self._verify_replay_results([])
 
         # Test 3)
-        # Verify this transaction doesn't affect failure stats.
-        self._delete_port(
-            TestCiscoNexusReplay.test_configs['test_replay_unique1'])
+        # Verify delete transaction doesn't affect failure stats.
+        self._basic_delete_verify_port_vlan('test_replay_unique1',
+            self.driver_result_unique_del2)
 
-        # Verify port binding has been removed
-        # Verify failure stats is not reset and
-        # verify no driver transactions have been sent
-        self.assertRaises(exceptions.NexusPortBindingNotFound,
-                     nexus_db_v2.get_nexusport_switch_bindings,
-                     RP_NEXUS_IP_ADDRESS_1)
+        # Verify failure stats is not reset
         assert(self._cisco_mech_driver.get_switch_replay_failure(
                const.FAIL_CONFIG,
                RP_NEXUS_IP_ADDRESS_1) == config_replay)
         assert(self._cisco_mech_driver.get_switch_replay_failure(
                const.FAIL_CONTACT,
                RP_NEXUS_IP_ADDRESS_1) == config_replay)
-        self._verify_replay_results([])
+
+        # Clear the get nexus type driver exception.
+        config = {'connect.return_value.get.side_effect':
+                  None}
+        self.mock_ncclient.configure_mock(**config)
 
         # Test 4)
         # Verify config&contact_failure is reset when replay is
         # successful.
-
-        # Clear the get driver exception.
-        config = {'connect.return_value.get.side_effect':
-                  None}
-        self.mock_ncclient.configure_mock(**config)
 
         # Perform replay once which will be successful causing
         # failure stats to be reset to 0.
@@ -1341,3 +1526,7 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
         assert(self._cisco_mech_driver.get_switch_replay_failure(
                const.FAIL_CONTACT,
                RP_NEXUS_IP_ADDRESS_1) == 0)
+
+        # Verify switch state is now active following successful replay.
+        assert(self._cisco_mech_driver.get_switch_ip_and_active_state(
+                RP_NEXUS_IP_ADDRESS_1) is True)
