@@ -30,7 +30,8 @@ from neutron import manager
 from neutron.plugins.cisco.db.l3 import l3_models
 from neutron.plugins.common import constants
 
-from networking_cisco.plugins.cisco.extensions import n1kv
+# TODO(Tom): clean this up when we support the n1kv ML2 driver
+#from networking_cisco.plugins.cisco.extensions import n1kv
 import networking_cisco.plugins.cisco.l3.plugging_drivers as plug
 from networking_cisco.plugins.cisco.l3.plugging_drivers import (
     n1kv_plugging_constants as n1kv_const)
@@ -335,12 +336,14 @@ class N1kvTrunkingPlugDriver(plug.PluginSidePluggingDriver):
     def setup_logical_port_connectivity(self, context, port_db):
         # Add the VLAN to the VLANs that the hosting port trunks.
         self._perform_logical_port_connectivity_action(
-            context, port_db, 'Adding', n1kv.SEGMENT_ADD)
+            # TODO(Tom): clean this up when we support the n1kv ML2 driver
+            context, port_db, 'Adding', 'n1kv.SEGMENT_ADD')
 
     def teardown_logical_port_connectivity(self, context, port_db):
         # Remove the VLAN from the VLANs that the hosting port trunks.
         self._perform_logical_port_connectivity_action(
-            context, port_db, 'Removing', n1kv.SEGMENT_DEL)
+            # TODO(Tom): clean this up when we support the n1kv ML2 driver
+            context, port_db, 'Removing', 'n1kv.SEGMENT_DEL')
 
     def extend_hosting_port_info(self, context, port_db, hosting_info):
         hosting_info['segmentation_id'] = port_db.hosting_info.segmentation_id
@@ -413,8 +416,10 @@ class N1kvTrunkingPlugDriver(plug.PluginSidePluggingDriver):
             return
         np_id_t_nw = self._core_plugin.get_network(
             context, port_db.hosting_info.hosting_port['network_id'],
-            [n1kv.PROFILE_ID])
-        if np_id_t_nw.get(n1kv.PROFILE_ID) == self.t1_network_profile_id():
+            # TODO(Tom): clean this up when we support the n1kv ML2 driver
+            ['n1kv.PROFILE_ID'])
+        # TODO(Tom): clean this up when we support the n1kv ML2 driver
+        if np_id_t_nw.get('n1kv.PROFILE_ID') == self.t1_network_profile_id():
             # for vxlan trunked segment, id:s end with ':'link local vlan tag
             trunk_spec = (port_db['network_id'] + ':' +
                           str(port_db.hosting_info.segmentation_id))
