@@ -44,9 +44,10 @@ class CiscoNexusDriver(object):
         self.ncclient = None
         self.nexus_switches = conf.ML2MechCiscoConfig.nexus_dict
         self.connections = {}
-        self._close_ssh_session = False if (
-            (cfg.CONF.rpc_workers + cfg.CONF.api_workers) <
-            const.MAX_NEXUS_SSH_SESSIONS) else True
+        self._close_ssh_session = True if (
+            cfg.CONF.ml2_cisco.never_cache_ssh_connection or
+            (cfg.CONF.rpc_workers + cfg.CONF.api_workers) >=
+            const.MAX_NEXUS_SSH_SESSIONS) else False
 
     def _import_ncclient(self):
         """Import the NETCONF client (ncclient) module.
