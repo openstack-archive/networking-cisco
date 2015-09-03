@@ -453,7 +453,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                     row.port_id == intf_type + ':' + nexus_port]
             if duplicate_port:
                 duplicate_type = const.DUPLICATE_PORT
-            elif previous_bindings or (switch_ip in vlan_already_created):
+            elif previous_bindings and (switch_ip in vlan_already_created):
                 duplicate_type = const.DUPLICATE_VLAN
             else:
                 vlan_already_created.append(switch_ip)
