@@ -676,7 +676,7 @@ class TestCiscoPortsV2(CiscoML2MechanismTestCase,
                         with _create_port_check_vlan(
                             COMP_HOST_NAME_2,
                             DEVICE_ID_2,
-                            vlan_creation_expected=False):
+                            vlan_creation_expected=True):
                             pass
 
                         # Instance on second host is now terminated.

@@ -994,6 +994,7 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
 
     def _process_replay(self, test1, test2,
                         add_result1, add_result2,
+                        replay_result,
                         del_result1, del_result2):
         """Tests create, replay, delete of two ports."""
 
@@ -1021,8 +1022,10 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
         # Since only this test case connection state is False,
         # it should be the only one replayed
         self._cfg_monitor.check_connections()
-        self._verify_replay_results(add_result2['driver_results'] +
-                                    add_result1['driver_results'])
+        if not replay_result:
+            replay_result = (add_result2['driver_results'] +
+                            add_result1['driver_results'])
+        self._verify_replay_results(replay_result)
 
         # Clear mock_call history so we can evaluate
         # just the result of replay()
@@ -1172,16 +1175,19 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
                              'test_replay_unique2',
                              first_add,
                              second_add,
+                             [],
                              first_del,
                              second_del)
 
     def test_replay_duplicate_vlan(self):
         """Provides replay data and result data for duplicate vlans. """
 
-        driver_result_duplvlan_add1 = [
+        driver_result_duplvlan_add_vlan = [
             '\<vlan\-name\>q\-267\<\/vlan\-name>',
             '\<vstate\>active\<\/vstate>',
             '\<no\>\s+\<shutdown\/\>\s+\<\/no\>',
+        ]
+        driver_result_duplvlan_add1 = [
             '\<interface\>1\/10\<\/interface\>\s+'
             '[\x20-\x7e]+\s+\<switchport\>\s+\<trunk\>\s+'
             '\<allowed\>\s+\<vlan\>\s+\<vlan_id\>267',
@@ -1204,7 +1210,9 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
             '\s+\<__XML__PARAM_value\>267',
         ]
         first_add = {'driver_results': (
+                     driver_result_duplvlan_add_vlan +
                      driver_result_duplvlan_add1 +
+                     driver_result_duplvlan_add_vlan +
                      driver_result_duplvlan_add2),
                      'nbr_db_entries': 2}
         second_add = {'driver_results': [],
@@ -1219,6 +1227,9 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
         self._process_replay('test_replay_duplvlan1',
                              'test_replay_duplvlan2',
                              first_add, second_add,
+                             (driver_result_duplvlan_add_vlan +
+                              driver_result_duplvlan_add1 +
+                              driver_result_duplvlan_add2),
                              first_del, second_del)
 
     def test_replay_duplicate_ports(self):
@@ -1252,6 +1263,7 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
         self._process_replay('test_replay_duplport1',
                              'test_replay_duplport2',
                              first_add, second_add,
+                             [],
                              first_del, second_del)
 
     def test_replay_get_interface_failure(self):
