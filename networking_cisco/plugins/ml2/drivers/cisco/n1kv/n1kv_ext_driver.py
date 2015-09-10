@@ -30,7 +30,9 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
 
 from neutron.api import extensions as api_extensions
 from neutron.api.v2 import attributes
+from neutron.extensions import providernet
 from neutron.i18n import _LE
+from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2.common import exceptions as ml2_exc
 from neutron.plugins.ml2 import driver_api as api
 
@@ -77,14 +79,14 @@ class CiscoN1kvExtensionDriver(api.ExtensionDriver):
                         LOG.error(_LE("Policy Profile %(profile)s does "
                                       "not exist."),
                                   {"profile": policy_profile_attr})
-                        raise ml2_exc.MechanismDriverError()
+                        raise ml2_exc.ExtensionDriverError()
                 elif not (n1kv_db.get_policy_profile_by_uuid(
                              context.session,
                              policy_profile_attr)):
                     LOG.error(_LE("Policy Profile %(profile)s does not "
                                   "exist."),
                               {"profile": policy_profile_attr})
-                    raise ml2_exc.MechanismDriverError()
+                    raise ml2_exc.ExtensionDriverError()
                 n1kv_db.add_policy_binding(port_id,
                                            policy_profile_attr,
                                            context.session)
@@ -99,4 +101,55 @@ class CiscoN1kvExtensionDriver(api.ExtensionDriver):
                 result[constants.N1KV_PROFILE] = res.profile_id
             except n1kv_exc.PortBindingNotFound:
                 # Do nothing if the port binding is not found.
+                pass
+
+    def process_create_network(self, context, data, result):
+        """Implementation of abstract method from ExtensionDriver class."""
+        net_id = result.get('id')
+        prov_net_type = data.get(providernet.NETWORK_TYPE)
+        net_prof_attr = data.get(constants.N1KV_PROFILE)
+        if not attributes.is_attr_set(net_prof_attr):
+            if not attributes.is_attr_set(prov_net_type):
+                network_type = cfg.CONF.ml2.tenant_network_types[0]
+            else:
+                network_type = prov_net_type
+            if network_type == p_const.TYPE_VLAN:
+                net_prof_attr = constants.DEFAULT_VLAN_NETWORK_PROFILE_NAME
+            elif network_type == p_const.TYPE_VXLAN:
+                net_prof_attr = constants.DEFAULT_VXLAN_NETWORK_PROFILE_NAME
+            else:
+                # This network type is not supported with network profiles
+                return
+        with context.session.begin(subtransactions=True):
+            try:
+                if not uuidutils.is_uuid_like(net_prof_attr):
+                    net_prof_attr = n1kv_db.get_network_profile_by_name(
+                        net_prof_attr, context.session)
+                else:
+                    net_prof_attr = n1kv_db.get_network_profile_by_uuid(
+                        net_prof_attr, context.session)
+                # TODO(sopatwar) Handle restrict_network_profiles = True
+                # Add logic to check for network profile :: tenant binding
+            except n1kv_exc.NetworkProfileNotFound:
+                LOG.error(_LE("Network Profile %(profile)s does "
+                              "not exist."), {"profile":
+                               net_prof_attr})
+                raise ml2_exc.ExtensionDriverError()
+            segment_type = net_prof_attr.segment_type
+            n1kv_db.add_network_binding(net_id, segment_type,
+                                        0,
+                                        net_prof_attr.id,
+                                        context.session)
+            data[providernet.NETWORK_TYPE] = segment_type
+        result[constants.N1KV_PROFILE] = net_prof_attr.id
+
+    def extend_network_dict(self, session, model, result):
+        """Implementation of abstract method from ExtensionDriver class."""
+        net_id = result.get('id')
+        with session.begin(subtransactions=True):
+            try:
+                res = n1kv_db.get_network_binding(net_id, session)
+                result[constants.N1KV_PROFILE] = res.profile_id
+            except n1kv_exc.NetworkBindingNotFound:
+                # Do nothing if the network binding is not found.
                 pass

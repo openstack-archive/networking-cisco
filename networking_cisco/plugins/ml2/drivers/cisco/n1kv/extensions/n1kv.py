@@ -25,6 +25,11 @@ EXTENDED_ATTRIBUTES_2_0 = {
         'allow_post': True,
         'allow_put': False,
         'default': attributes.ATTR_NOT_SPECIFIED,
+        'is_visible': True}},
+    'networks': {PROFILE: {
+        'allow_post': True,
+        'allow_put': False,
+        'default': attributes.ATTR_NOT_SPECIFIED,
         'is_visible': True}}}
 
 
@@ -40,7 +45,8 @@ class N1kv(extensions.ExtensionDescriptor):
 
     @classmethod
     def get_description(cls):
-        return _("Add new policy profile attribute to port resource.")
+        return _("Add new policy profile attribute to port resource and "
+                 "network profile attribute to network resource.")
 
     @classmethod
     def get_updated(cls):

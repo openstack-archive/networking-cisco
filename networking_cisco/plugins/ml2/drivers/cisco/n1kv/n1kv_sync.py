@@ -83,9 +83,7 @@ class N1kvSyncDriver(object):
         :param res_info: list of objects or dictionaries
         :return: list of UUIDs
         """
-        if res != n1kv_const.NETWORK_PROFILES:
-            return [info['id'] for info in res_info]
-        return [info.id for info in res_info]
+        return [info['id'] for info in res_info]
 
     def _get_neutron_md5_dict(self):
         neutron_md5_dict = {}
@@ -273,13 +271,13 @@ class N1kvSyncDriver(object):
         """Sync network profiles by creating missing ones on VSM."""
         (vsm_net_profile_uuids, neutron_net_profiles) = combined_res_info
         for np_obj in neutron_net_profiles:
-            if np_obj.id not in vsm_net_profile_uuids:
+            if np_obj['id'] not in vsm_net_profile_uuids:
                 # create these network profiles on VSM
                 try:
                     self.n1kvclient.create_network_segment_pool(np_obj, vsm_ip)
                 except (n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
                     LOG.warning(_LW('Sync exception: Network profile creation '
-                                    'failed for %s.') % np_obj.id)
+                                    'failed for %s.') % np_obj['id'])
 
     def _sync_delete_network_profiles(self, combined_res_info, vsm_ip):
         """Sync network profiles by deleting extraneous ones from VSM."""
@@ -437,11 +435,13 @@ class N1kvSyncDriver(object):
             bd_name = network['id'] + n1kv_const.BRIDGE_DOMAIN_SUFFIX
             if bd_name not in vsm_bds:
                 binding = n1kv_db.get_network_binding(network['id'])
+                netp = n1kv_db.get_network_profile_by_uuid(binding.profile_id)
                 network[providernet.SEGMENTATION_ID] = binding.segmentation_id
                 network[providernet.NETWORK_TYPE] = binding.network_type
                 # create this BD on VSM
                 try:
                     self.n1kvclient.create_bridge_domain(network,
+                                                         netp,
                                                          vsm_ip=vsm_ip)
                 except(n1kv_exc.VSMConnectionFailed, n1kv_exc.VSMError):
                     LOG.warning(_LW('Sync Exception: Bridge domain creation '

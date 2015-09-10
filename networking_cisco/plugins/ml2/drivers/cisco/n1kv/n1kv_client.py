@@ -226,8 +226,8 @@ class Client(object):
         :param network_profile: network profile dict
         :param vsm_ip: string representing the IP address of the VSM
         """
-        body = {'description': network_profile.name}
-        logical_network_name = (network_profile.id +
+        body = {'description': network_profile['name']}
+        logical_network_name = (network_profile['id'] +
                                 n1kv_const.LOGICAL_NETWORK_SUFFIX)
         return self._post(self.logical_network_path % logical_network_name,
                           body=body, vsm_ip=vsm_ip)
@@ -249,14 +249,14 @@ class Client(object):
         :param vsm_ip: string representing the IP address of the VSM
         """
         self._create_logical_network(network_profile, vsm_ip=vsm_ip)
-        logical_network_name = (network_profile.id +
+        logical_network_name = (network_profile['id'] +
                                 n1kv_const.LOGICAL_NETWORK_SUFFIX)
-        body = {'name': network_profile.name,
-                'description': network_profile.name,
-                'id': network_profile.id,
+        body = {'name': network_profile['name'],
+                'description': network_profile['name'],
+                'id': network_profile['id'],
                 'logicalNetwork': logical_network_name}
         return self._post(
-            self.network_segment_pool_path % network_profile.id,
+            self.network_segment_pool_path % network_profile['id'],
             body=body, vsm_ip=vsm_ip)
 
     def delete_network_segment_pool(self, network_segment_pool_id,
@@ -282,8 +282,8 @@ class Client(object):
                 'id': network['id'],
                 'tenantId': network['tenant_id'],
                 'mode': 'access',
-                'segmentType': network_profile.segment_type,
-                'networkSegmentPool': network_profile.id}
+                'segmentType': network_profile['segment_type'],
+                'networkSegmentPool': network_profile['id']}
         # Override tenantId if network is shared
         if network['shared']:
             body['tenantId'] = '0'
@@ -292,7 +292,7 @@ class Client(object):
         elif network[providernet.NETWORK_TYPE] == p_const.TYPE_VXLAN:
             # Create a bridge domain on VSM
             bd_name = network['id'] + n1kv_const.BRIDGE_DOMAIN_SUFFIX
-            self.create_bridge_domain(network, vsm_ip=vsm_ip)
+            self.create_bridge_domain(network, network_profile, vsm_ip=vsm_ip)
             body['bridgeDomain'] = bd_name
         try:
             return self._post(self.network_segment_path % network['id'],
@@ -331,23 +331,24 @@ class Client(object):
         return self._delete(self.network_segment_path % network_segment_id,
                             vsm_ip=vsm_ip)
 
-    def create_bridge_domain(self, network, vsm_ip=None):
+    def create_bridge_domain(self, network, net_prof, vsm_ip=None):
         """Create a bridge domain on VSM.
 
         :param network: network dict
+        :param net_prof: network profile dict
         :param vsm_ip: string representing the IP address of the VSM
         """
-        group_ip = cfg.CONF.ml2_type_vxlan.vxlan_group
-        if group_ip:
-            vxlan_subtype = n1kv_const.MODE_NATIVE_VXLAN
-        else:
+        if net_prof['sub_type'] == n1kv_const.CLI_VXLAN_MODE_ENHANCED:
             vxlan_subtype = n1kv_const.MODE_UNICAST
+        else:
+            vxlan_subtype = n1kv_const.MODE_NATIVE_VXLAN
         body = {'name': network['id'] + n1kv_const.BRIDGE_DOMAIN_SUFFIX,
                 'segmentId': network[providernet.SEGMENTATION_ID],
                 'subType': vxlan_subtype,
                 'tenantId': network['tenant_id']}
-        if group_ip:
-            body['groupIp'] = group_ip
+        if vxlan_subtype == n1kv_const.MODE_NATIVE_VXLAN:
+            start_ip, end_ip = net_prof['multicast_ip_range'].split('-', 1)
+            body['groupIp'] = start_ip
         return self._post(self.bridge_domains_path,
                           body=body, vsm_ip=vsm_ip)
 

@@ -20,6 +20,9 @@ NEXUS_VLAN_RESERVED_MAX = 4047
 NEXUS_VXLAN_MIN = 4096
 NEXUS_VXLAN_MAX = 16000000
 
+# Nexus1000V reserved default network profile names
+DEFAULT_VLAN_NETWORK_PROFILE_NAME = 'cisco_n1kv_default_vlan_network_profile'
+DEFAULT_VXLAN_NETWORK_PROFILE_NAME = 'cisco_n1kv_default_vxlan_network_profile'
 
 # Affix values
 VM_NETWORK_PREFIX = 'vmn_'
@@ -34,13 +37,23 @@ ID = 'id'
 # Network Profile Types
 TYPE_TRUNK = 'trunk'
 
+# Network Profile attributes
+ADD_TENANTS = 'add_tenants'
+REMOVE_TENANTS = 'remove_tenants'
+
 # VXLAN modes
 MODE_NATIVE_VXLAN = 'native_vxlan'
 MODE_UNICAST = 'unicast'
 
+# VXLAN strings used in CLI
+CLI_SEG_TYPE_OVERLAY = 'overlay'
+CLI_VXLAN_MODE_NATIVE = 'native'
+CLI_VXLAN_MODE_ENHANCED = 'enhanced'
+
 # Attribute extension identifier
 N1KV_PROFILE = 'n1kv:profile'
 CISCO_N1KV = 'CISCO_N1KV'
+CISCO_N1KV_NET_PROFILE = 'CISCO_N1KV_NET_PROFILE'
 
 # Profile Types
 POLICY = 'policy'

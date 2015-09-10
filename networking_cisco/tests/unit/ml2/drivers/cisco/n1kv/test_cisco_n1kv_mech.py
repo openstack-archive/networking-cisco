@@ -19,6 +19,8 @@ import webob.exc
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     config as ml2_n1kv_config)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
+    constants as n1kv_const)
+from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     exceptions as n1kv_exc)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     mech_cisco_n1kv)
@@ -30,6 +32,8 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     n1kv_sync)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     policy_profile_service)
+from networking_cisco.plugins.ml2.drivers.cisco.n1kv.extensions import (
+    network_profile as network_profile_module)
 from networking_cisco.tests.unit.ml2.drivers.cisco.n1kv import (
     fake_client)
 
@@ -42,9 +46,13 @@ from neutron.tests.unit.db import test_db_base_plugin_v2
 from neutron.tests.unit.plugins.ml2.drivers import test_type_vlan
 from neutron.tests.unit.plugins.ml2.drivers import test_type_vxlan
 
+
 ML2_PLUGIN = 'neutron.plugins.ml2.plugin.Ml2Plugin'
-SERVICE_PLUGIN = ('networking_cisco.plugins.ml2.drivers.cisco.n1kv.'
+POLICY_PROFILE_PLUGIN = ('networking_cisco.plugins.ml2.drivers.cisco.n1kv.'
                   'policy_profile_service.PolicyProfilePlugin')
+NETWORK_PROFILE_PLUGIN = ('networking_cisco.plugins.ml2.drivers.cisco.n1kv.'
+                  'network_profile_service.NetworkProfilePlugin')
+
 PHYS_NET = 'some-phys-net'
 VLAN_MIN = 100
 VLAN_MAX = 500
@@ -141,11 +149,42 @@ class TestN1KVMechanismDriver(
          _poll_policy_profiles) = _fake_poll_policy_profiles
         # Setup the policy profile service plugin in order to load policy
         # profiles for testing
-        service_plugins = {"CISCO_N1KV": SERVICE_PLUGIN}
+        service_plugins = {
+            "CISCO_N1KV_POLICY_PROFILE_PLUGIN": POLICY_PROFILE_PLUGIN,
+            "CISCO_N1KV_NETWORK_PROFILE_PLUGIN": NETWORK_PROFILE_PLUGIN}
         super(TestN1KVMechanismDriver,
               self).setUp(plugin=ML2_PLUGIN,
-                          service_plugins=service_plugins)
+                          service_plugins=service_plugins,
+                          ext_mgr=network_profile_module.Network_profile())
         self.port_create_status = 'DOWN'
+
+    def network_profile(self, data):
+        net_prof_req = self.new_create_request('network_profiles', data)
+        res = net_prof_req.get_response(self.ext_api)
+        if res.status_int < webob.exc.HTTPClientError.code:
+            return self.deserialize(self.fmt, res)
+
+    def get_test_network_profile_dict(self, segment_type,
+                                      multicast_ip_range=None,
+                                      sub_type=None,
+                                      name='test-net-profile',
+                                      tenant_id='admin'):
+        net_prof = {"network_profile": {
+            "name": name,
+            "segment_type": segment_type,
+            "tenant_id": tenant_id}
+        }
+        valid_subtypes = [n1kv_const.CLI_VXLAN_MODE_ENHANCED,
+                          n1kv_const.CLI_VXLAN_MODE_NATIVE]
+        if segment_type == p_const.TYPE_VLAN:
+            net_prof["network_profile"]["physical_network"] = "physnet"
+        elif segment_type == p_const.TYPE_VXLAN:
+            self.assertIn(needle=sub_type, haystack=valid_subtypes)
+            net_prof["network_profile"]["sub_type"] = sub_type
+            if multicast_ip_range:
+                net_prof["network_profile"]["multicast_ip_range"] = (
+                    multicast_ip_range)
+        return net_prof
 
 
 class TestN1KVMechDriverNetworkProfiles(TestN1KVMechanismDriver):
@@ -158,11 +197,224 @@ class TestN1KVMechDriverNetworkProfiles(TestN1KVMechanismDriver):
         self.assertEqual(p_const.TYPE_VXLAN, profile.segment_type)
         # Ensure no additional profiles are created (get by type returns one())
         mech = mech_cisco_n1kv.N1KVMechanismDriver()
+        mech.initialize()
         mech._ensure_network_profiles_created_on_vsm()
         profile = n1kv_db.get_network_profile_by_type(p_const.TYPE_VLAN)
         self.assertEqual(p_const.TYPE_VLAN, profile.segment_type)
         profile = n1kv_db.get_network_profile_by_type(p_const.TYPE_VXLAN)
         self.assertEqual(p_const.TYPE_VXLAN, profile.segment_type)
+
+    def test_create_network_profile_vlan(self):
+        """Test a VLAN network profile creation."""
+        data = self.get_test_network_profile_dict(segment_type='vlan')
+        network_req = self.new_create_request('network_profiles', data)
+        res = network_req.get_response(self.ext_api)
+        self.assertEqual(webob.exc.HTTPCreated.code, res.status_int)
+
+    def test_create_network_profile_overlay_native(self):
+        """Test a native VxLAN network profile creation."""
+        data = self.get_test_network_profile_dict(
+            segment_type='vxlan',
+            multicast_ip_range="224.1.1.1-224.1.1.10",
+            sub_type='native')
+        network_req = self.new_create_request('network_profiles', data)
+        res = network_req.get_response(self.ext_api)
+        self.assertEqual(webob.exc.HTTPCreated.code, res.status_int)
+
+    def test_create_network_profile_overlay_native_invalid_mcast(self):
+        """
+        Test a native VxLAN network profile creation with invalid
+        multi-cast address.
+
+        """
+
+        data = self.get_test_network_profile_dict(
+            segment_type='vxlan',
+            multicast_ip_range="3.1.1.1-2.1.1.10",
+            sub_type='native')
+        network_req = self.new_create_request('network_profiles', data)
+        res = network_req.get_response(self.ext_api)
+        self.assertEqual(webob.exc.HTTPBadRequest.code, res.status_int)
+
+    def test_create_network_profile_overlay_native_reserved_mcast(self):
+        """
+        Test a native VxLAN network profile creation with reserved
+        multi-cast address.
+
+        """
+        data = self.get_test_network_profile_dict(
+            segment_type='vxlan',
+            multicast_ip_range="224.0.0.100-224.0.1.100",
+            sub_type='native')
+        network_req = self.new_create_request('network_profiles', data)
+        res = network_req.get_response(self.ext_api)
+        self.assertEqual(webob.exc.HTTPBadRequest.code, res.status_int)
+
+    def test_create_network_profile_overlay_native_global(self):
+        """Test a global native VxLAN network profile creation."""
+        ml2_config.cfg.CONF.set_override('vxlan_group',
+                                         '239.1.1.1',
+                                         'ml2_type_vxlan')
+        data = self.get_test_network_profile_dict(
+            segment_type='vxlan',
+            sub_type='native')
+        network_req = self.new_create_request('network_profiles', data)
+        res = network_req.get_response(self.ext_api)
+        self.assertEqual(webob.exc.HTTPCreated.code, res.status_int)
+
+    def test_create_network_profile_overlay_native_no_multicast(self):
+        """
+        Test a shared native VxLAN network profile creation with no
+        multi-cast address.
+
+        """
+        data = self.get_test_network_profile_dict(
+            segment_type='vxlan',
+            sub_type='native')
+        network_req = self.new_create_request('network_profiles', data)
+        res = network_req.get_response(self.ext_api)
+        self.assertEqual(webob.exc.HTTPBadRequest.code, res.status_int)
+
+    def test_create_network_profile_overlay_enhanced(self):
+        """Test a enhanced VxLAN network profile creation."""
+        data = self.get_test_network_profile_dict(segment_type='vxlan',
+                                                  sub_type='enhanced')
+        network_req = self.new_create_request('network_profiles', data)
+        res = network_req.get_response(self.ext_api)
+        self.assertEqual(webob.exc.HTTPCreated.code, res.status_int)
+
+    def test_create_network_profile_with_default_network_profile_names(self):
+        # test for default VLAN network profile
+        data = self.get_test_network_profile_dict(
+            segment_type='vlan',
+            name=n1kv_const.DEFAULT_VLAN_NETWORK_PROFILE_NAME)
+        network_req = self.new_create_request('network_profiles', data)
+        res = network_req.get_response(self.ext_api)
+        self.assertEqual(webob.exc.HTTPBadRequest.code, res.status_int)
+        # test for default VxLAN network profile
+        data = self.get_test_network_profile_dict(
+            segment_type='vxlan',
+            name=n1kv_const.DEFAULT_VXLAN_NETWORK_PROFILE_NAME,
+            sub_type='enhanced')
+        network_req = self.new_create_request('network_profiles', data)
+        res = network_req.get_response(self.ext_api)
+        self.assertEqual(webob.exc.HTTPBadRequest.code, res.status_int)
+
+    def test_create_network_profile_invalid_segment_type(self):
+        """Test a network profile create with invalid segment type."""
+        data = self.get_test_network_profile_dict(
+            segment_type='unknown_segment_type')
+        network_req = self.new_create_request('network_profiles', data)
+        res = network_req.get_response(self.ext_api)
+        self.assertEqual(webob.exc.HTTPBadRequest.code, res.status_int)
+
+    def test_create_network_profile_overlay_missing_subtype(self):
+        """Test a VxLAN network profile creation with missing sub-type."""
+        data = self.get_test_network_profile_dict(
+            segment_type='vxlan',
+            multicast_ip_range="224.1.1.1-224.1.1.10",
+            sub_type='native')
+        data['network_profile'].pop('sub_type')
+        network_req = self.new_create_request('network_profiles', data)
+        res = network_req.get_response(self.ext_api)
+        self.assertEqual(webob.exc.HTTPBadRequest.code, res.status_int)
+
+    def test_create_network_profile_overlay_unknown_subtype(self):
+        """Test a VxLAN network profile creation with unknown sub-type."""
+        data = self.get_test_network_profile_dict(
+            segment_type='vxlan',
+            multicast_ip_range="224.1.1.1-224.1.1.10",
+            sub_type='native')
+        data['network_profile']['sub_type'] = 'unknown-sub-type'
+        network_req = self.new_create_request('network_profiles', data)
+        res = network_req.get_response(self.ext_api)
+        self.assertEqual(webob.exc.HTTPBadRequest.code, res.status_int)
+
+    def test_network_profile_create_on_vsm_error(self):
+        """Test a network profile creation when the operation fails on VSM."""
+        data = self.get_test_network_profile_dict(segment_type='vxlan',
+                                                  sub_type='enhanced')
+        new_net_prof_name = data["network_profile"]["name"]
+        mocked_ex = mock.MagicMock(side_effect=n1kv_exc.VSMError(
+            reason='Internal VSM error'))
+        with mock.patch(n1kv_client.__name__ +
+                        ".Client.create_network_segment_pool", mocked_ex):
+            network_req = self.new_create_request('network_profiles', data)
+            res = network_req.get_response(self.ext_api)
+            self.assertEqual(webob.exc.HTTPInternalServerError.code,
+                             res.status_int)
+        # list all network profiles
+        list_req = self.new_list_request('network_profiles')
+        list_res = list_req.get_response(self.ext_api)
+        netprofs = self.deserialize(self.fmt, list_res)
+        # assert that the network profile created is cleaned up on neutron
+        # when creation on VSM fails
+        self.assertNotIn(
+            needle=new_net_prof_name,
+            haystack=[d["name"] for d in netprofs["network_profiles"]])
+
+    def test_network_profile_create_on_vsm_connection_failed(self):
+        """Test a network profile creation when the operation fails on VSM."""
+        data = self.get_test_network_profile_dict(segment_type='vxlan',
+                                                  sub_type='enhanced')
+        new_net_prof_name = data["network_profile"]["name"]
+        mocked_ex = mock.MagicMock(side_effect=n1kv_exc.VSMConnectionFailed(
+            reason='Connection to VSM lost'))
+        with mock.patch(n1kv_client.__name__ +
+                        ".Client.create_network_segment_pool", mocked_ex):
+            network_req = self.new_create_request('network_profiles', data)
+            res = network_req.get_response(self.ext_api)
+            self.assertEqual(webob.exc.HTTPServiceUnavailable.code,
+                             res.status_int)
+        # list all network profiles
+        list_req = self.new_list_request('network_profiles')
+        list_res = list_req.get_response(self.ext_api)
+        netprofs = self.deserialize(self.fmt, list_res)
+        # assert that the network profile created is cleaned up on neutron
+        # when creation on VSM fails
+        self.assertNotIn(
+            needle=new_net_prof_name,
+            haystack=[d["name"] for d in netprofs["network_profiles"]])
+
+    def test_delete_network_profile_by_id(self):
+        """Test a network profile delete by its ID."""
+        data = self.get_test_network_profile_dict(segment_type='vlan')
+        net_prof = self.network_profile(data)
+        req = self.new_delete_request('network_profiles', net_prof[
+            'network_profile']['id'])
+        res = req.get_response(self.ext_api)
+        self.assertEqual(webob.exc.HTTPNoContent.code, res.status_int)
+
+    def test_delete_default_network_profile(self):
+        """Test the deletion of default network profiles."""
+        list_req = self.new_list_request('network_profiles')
+        list_res = list_req.get_response(self.ext_api)
+        default_netprofs = self.deserialize(self.fmt, list_res)
+        for default_netprof in default_netprofs["network_profiles"]:
+            default_netprof_id = default_netprof["id"]
+            del_req = self.new_delete_request(
+                'network_profiles',
+                default_netprof_id)
+            del_res = del_req.get_response(self.ext_api)
+            self.assertEqual(webob.exc.HTTPInternalServerError.code,
+                             del_res.status_int)
+
+    def test_delete_network_profile_with_network(self):
+        """Test a network profile delete when its network is around."""
+        data = self.get_test_network_profile_dict(segment_type='vlan')
+        net_prof = self.network_profile(data)
+        net_prof_id = net_prof['network_profile']['id']
+        net_res = self._create_network(
+            self.fmt,
+            name='vlan-net',
+            admin_state_up=True,
+            arg_list=('n1kv:profile',),
+            **{n1kv_const.N1KV_PROFILE: net_prof_id})
+        self.assertEqual(webob.exc.HTTPCreated.code, net_res.status_int)
+        net_prof_req = self.new_delete_request('network_profiles', net_prof[
+            'network_profile']['id'])
+        net_prof_res = net_prof_req.get_response(self.ext_api)
+        self.assertEqual(webob.exc.HTTPConflict.code, net_prof_res.status_int)
 
 
 class TestN1KVMechDriverBasicGet(test_db_base_plugin_v2.TestBasicGet,
@@ -196,10 +448,26 @@ class TestN1KVMechDriverNetworksV2(test_db_base_plugin_v2.TestNetworksV2,
             self.upd_shared = True
         super(TestN1KVMechDriverNetworksV2, self).setUp()
 
-    def test_create_network_with_default_n1kv_network_profile_id(self):
-        """Test network create without passing network profile id."""
+    def test_create_network_with_default_n1kv_vlan_network_profile_id(self):
+        """Test VLAN network create without passing network profile id."""
         with self.network() as network:
-            np = n1kv_db.get_network_profile_by_type(p_const.TYPE_VLAN)
+            np = n1kv_db.get_network_profile_by_name(
+                n1kv_const.DEFAULT_VLAN_NETWORK_PROFILE_NAME)
+            self.assertEqual(n1kv_const.DEFAULT_VLAN_NETWORK_PROFILE_NAME,
+                             np["name"])
+            net_np = n1kv_db.get_network_binding(network['network']['id'])
+            self.assertEqual(network['network']['id'], net_np['network_id'])
+            self.assertEqual(net_np['profile_id'], np['id'])
+
+    def test_create_network_with_default_n1kv_vxlan_network_profile_id(self):
+        """Test VxLAN network create without passing network profile id."""
+        ml2_config.cfg.CONF.set_override('tenant_network_types',
+                                         ['vxlan', 'vlan'], 'ml2')
+        with self.network() as network:
+            np = n1kv_db.get_network_profile_by_name(
+                n1kv_const.DEFAULT_VXLAN_NETWORK_PROFILE_NAME)
+            self.assertEqual(n1kv_const.DEFAULT_VXLAN_NETWORK_PROFILE_NAME,
+                             np["name"])
             net_np = n1kv_db.get_network_binding(network['network']['id'])
             self.assertEqual(network['network']['id'], net_np['network_id'])
             self.assertEqual(net_np['profile_id'], np['id'])
@@ -207,6 +475,109 @@ class TestN1KVMechDriverNetworksV2(test_db_base_plugin_v2.TestNetworksV2,
     def test_delete_network_with_default_n1kv_network_profile_id(self):
         """Test network delete without passing network profile id."""
         res = self._create_network(self.fmt, name='net', admin_state_up=True)
+        network = self.deserialize(self.fmt, res)
+        req = self.new_delete_request('networks', network['network']['id'])
+        req.get_response(self.api)
+        self.assertRaises(n1kv_exc.NetworkBindingNotFound,
+                          n1kv_db.get_network_binding,
+                          network['network']['id'])
+
+    def test_create_network_with_admin_defined_vlan_network_profile_name(self):
+        """Test network create with admin created VLAN network profile name."""
+        data = self.get_test_network_profile_dict(segment_type='vlan')
+        net_prof = self.network_profile(data)
+        net_prof_name = net_prof['network_profile']['name']
+        net_prof_id = net_prof['network_profile']['id']
+        res = self._create_network(self.fmt, name='vlan-net',
+                                   admin_state_up=True,
+                                   arg_list=('n1kv:profile',),
+                                   **{n1kv_const.N1KV_PROFILE: net_prof_name})
+        self.assertEqual(webob.exc.HTTPCreated.code, res.status_int)
+        network = self.deserialize(self.fmt, res)
+        net_np = n1kv_db.get_network_binding(network['network']['id'])
+        self.assertEqual(net_prof_id, network['network'][
+            n1kv_const.N1KV_PROFILE])
+        self.assertEqual(net_np['network_id'], network['network']['id'])
+        self.assertEqual(net_np['profile_id'], net_prof_id)
+
+    def test_create_network_with_admin_defined_overlay_network_profile_name(
+            self):
+        """
+        Test network create with admin defined VxLAN network profile
+        name.
+
+        """
+        data = self.get_test_network_profile_dict(
+            segment_type='vxlan',
+            sub_type='enhanced',
+            multicast_ip_range="224.1.1.1-224.1.1.10")
+        net_prof = self.network_profile(data)
+        net_prof_name = net_prof['network_profile']['name']
+        net_prof_id = net_prof['network_profile']['id']
+        res = self._create_network(self.fmt, name='vxlan-net',
+                                   admin_state_up=True,
+                                   arg_list=('n1kv:profile',),
+                                   **{n1kv_const.N1KV_PROFILE: net_prof_name})
+        self.assertEqual(webob.exc.HTTPCreated.code, res.status_int)
+        network = self.deserialize(self.fmt, res)
+        net_np = n1kv_db.get_network_binding(network['network']['id'])
+        self.assertEqual(net_prof_id, network['network'][
+            n1kv_const.N1KV_PROFILE])
+        self.assertEqual(net_np['network_id'], network['network']['id'])
+        self.assertEqual(net_np['profile_id'], net_prof_id)
+
+    def test_create_network_with_admin_defined_vlan_network_profile_id(self):
+        """Test network create with admin defined VLAN network profile ID."""
+        data = self.get_test_network_profile_dict(segment_type='vlan')
+        net_prof = self.network_profile(data)
+        net_prof_id = net_prof['network_profile']['id']
+        res = self._create_network(self.fmt, name='vlan-net',
+                                   admin_state_up=True,
+                                   arg_list=('n1kv:profile',),
+                                   **{n1kv_const.N1KV_PROFILE: net_prof_id})
+        self.assertEqual(webob.exc.HTTPCreated.code, res.status_int)
+        network = self.deserialize(self.fmt, res)
+        net_np = n1kv_db.get_network_binding(network['network']['id'])
+        self.assertEqual(net_prof_id, network['network'][
+            n1kv_const.N1KV_PROFILE])
+        self.assertEqual(net_np['network_id'], network['network']['id'])
+        self.assertEqual(net_np['profile_id'], net_prof_id)
+
+    def test_delete_vlan_network_with_admin_defined_n1kv_network_profile(self):
+        """
+        Test network delete for a network created using admin defined
+        VLAN network profile name.
+
+        """
+        data = self.get_test_network_profile_dict(segment_type='vlan')
+        net_prof = self.network_profile(data)
+        net_prof_name = net_prof['network_profile']['name']
+        res = self._create_network(self.fmt, name='vlan-net',
+                                   admin_state_up=True,
+                                   arg_list=('n1kv:profile',),
+                                   **{n1kv_const.N1KV_PROFILE: net_prof_name})
+        network = self.deserialize(self.fmt, res)
+        req = self.new_delete_request('networks', network['network']['id'])
+        req.get_response(self.api)
+        self.assertRaises(n1kv_exc.NetworkBindingNotFound,
+                          n1kv_db.get_network_binding,
+                          network['network']['id'])
+
+    def test_delete_vxlan_network_with_admin_defined_n1kv_network_profile(
+            self):
+        """
+        Test network delete for a network created using admin defined
+        VxLAN network profile name.
+
+        """
+        data = self.get_test_network_profile_dict(segment_type='vxlan',
+                                                  sub_type='enhanced')
+        net_prof = self.network_profile(data)
+        net_prof_name = net_prof['network_profile']['name']
+        res = self._create_network(self.fmt, name='vxlan-net',
+                                   admin_state_up=True,
+                                   arg_list=('n1kv:profile',),
+                                   **{n1kv_const.N1KV_PROFILE: net_prof_name})
         network = self.deserialize(self.fmt, res)
         req = self.new_delete_request('networks', network['network']['id'])
         req.get_response(self.api)
