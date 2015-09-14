@@ -19,6 +19,8 @@ import sqlalchemy.orm.exc as sa_exc
 from sqlalchemy import sql
 
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
+    constants as n1kv_const)
+from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     exceptions as n1kv_exc)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import config
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import n1kv_models
@@ -69,6 +71,15 @@ def update_network_binding_with_segment_id(net_id,
     with db_session.begin(subtransactions=True):
         db_session.query(n1kv_models.N1kvNetworkBinding).filter_by(
             network_id=net_id).update({'segmentation_id': segment_id})
+
+
+def update_policy_profile_binding_with_tenant_id(profile_id,
+                                                 tenant_id, db_session):
+    with db_session.begin(subtransactions=True):
+        db_session.query(n1kv_models.ProfileBinding).filter_by(
+            profile_id=profile_id, profile_type='policy',
+            tenant_id=n1kv_const.TENANT_ID_NOT_SET
+        ).update({'tenant_id': tenant_id})
 
 
 def get_network_profile_by_type(segment_type, db_session=None):
@@ -200,6 +211,24 @@ def get_policy_profiles_by_host(vsm_ip, db_session=None):
             raise n1kv_exc.PolicyProfileNotFound(profile=vsm_ip)
 
 
+def get_profile_binding(tenant_id, profile_id, db_session=None):
+    """Get Profile - Tenant binding."""
+    db_session = db_session or db.get_session()
+    try:
+        return (db_session.query(n1kv_models.ProfileBinding).filter_by(
+                tenant_id=tenant_id, profile_id=profile_id).one())
+    except sa_exc.NoResultFound:
+        raise n1kv_exc.ProfileTenantBindingNotFound(profile_id=profile_id)
+
+
+def get_profiles_for_tenant(db_session, tenant_id, profile_type):
+    """Get network or policy profile IDs for a tenant."""
+    bindings = (db_session.query(n1kv_models.ProfileBinding.profile_id)
+                .filter_by(tenant_id=tenant_id,
+                           profile_type=profile_type).all())
+    return [profile_id for (profile_id, ) in bindings]
+
+
 def policy_profile_in_use(profile_id, db_session=None):
     """
     Checks if a policy profile is being used in a port binding.
@@ -252,6 +281,17 @@ def add_policy_binding(port_id, pprofile_id, db_session=None):
     with db_session.begin(subtransactions=True):
         binding = n1kv_models.N1kvPortBinding(port_id=port_id,
                                               profile_id=pprofile_id)
+        db_session.add(binding)
+        return binding
+
+
+def add_profile_tenant_binding(profile_type, profile_id, tenant_id,
+                               db_session):
+    db_session = db_session or db.get_session()
+    with db_session.begin(subtransactions=True):
+        binding = n1kv_models.ProfileBinding(profile_type=profile_type,
+                                             profile_id=profile_id,
+                                             tenant_id=tenant_id)
         db_session.add(binding)
         return binding
 

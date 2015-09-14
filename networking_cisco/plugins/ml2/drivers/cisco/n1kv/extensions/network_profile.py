@@ -26,6 +26,8 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import constants
 
 NETWORK_PROFILE = 'network_profile'
 NETWORK_PROFILES = NETWORK_PROFILE + 's'
+NETWORK_PROFILE_BINDING = NETWORK_PROFILE + '_binding'
+NETWORK_PROFILE_BINDINGS = NETWORK_PROFILE_BINDING + 's'
 # Attribute Map
 RESOURCE_ATTRIBUTE_MAP = {
     NETWORK_PROFILES: {
@@ -78,6 +80,13 @@ RESOURCE_ATTRIBUTE_MAP = {
             'convert_to': attributes.convert_none_to_empty_list,
         },
     },
+    NETWORK_PROFILE_BINDINGS: {
+        'profile_id': {'allow_post': False, 'allow_put': False,
+                       'validate': {'type:regex': attributes.UUID_PATTERN},
+                       'is_visible': True},
+        'tenant_id': {'allow_post': True, 'allow_put': False,
+                      'is_visible': True},
+    },
 }
 
 
@@ -109,16 +118,18 @@ class Network_profile(extensions.ExtensionDescriptor):
         exts = []
         plugin = (manager.NeutronManager.
                   get_service_plugins()[constants.CISCO_N1KV_NET_PROFILE])
-        resource_name = NETWORK_PROFILE
-        collection_name = NETWORK_PROFILES
-        controller = base.create_resource(
-            collection_name,
-            resource_name,
-            plugin,
-            RESOURCE_ATTRIBUTE_MAP.get(collection_name))
-        ex = extensions.ResourceExtension(collection_name,
-                                          controller)
-        exts.append(ex)
+        resource_names = [NETWORK_PROFILE, NETWORK_PROFILE_BINDING]
+        collection_names = [NETWORK_PROFILES, NETWORK_PROFILE_BINDINGS]
+        for resource_name, collection_name in zip(resource_names,
+                                                  collection_names):
+            controller = base.create_resource(
+                collection_name,
+                resource_name,
+                plugin,
+                RESOURCE_ATTRIBUTE_MAP.get(collection_name))
+            ex = extensions.ResourceExtension(collection_name,
+                                              controller)
+            exts.append(ex)
         return exts
 
 

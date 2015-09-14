@@ -37,7 +37,7 @@ class TestClient(n1kv_client.Client):
     def __init__(self, **kwargs):
         self.broken = False
         self.inject_params = False
-        self.total_profiles = 1
+        self.total_profiles = 2
         self.shared_net = False
         self.upd_shared_net = False
         super(TestClient, self).__init__()

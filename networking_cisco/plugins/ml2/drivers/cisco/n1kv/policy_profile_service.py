@@ -86,6 +86,8 @@ class PolicyProfile_db_mixin(policy_profile.PolicyProfilePluginBase,
         """
         if not self._policy_profile_exists(pprofile_id, vsm_ip):
             self._create_policy_profile(pprofile_id, name, vsm_ip)
+        self._create_profile_binding(db.get_session(), tenant_id,
+                                     pprofile_id)
 
     def _get_policy_profiles(self):
         """Retrieve all policy profiles."""
@@ -100,12 +102,18 @@ class PolicyProfile_db_mixin(policy_profile.PolicyProfilePluginBase,
             return profile
 
     def _get_policy_collection_for_tenant(self, db_session, model, tenant_id):
-        profile_ids = (db_session.query(n1kv_models.
-                       ProfileBinding.profile_id)
-                       .filter_by(tenant_id=tenant_id).
-                       filter_by(profile_type=n1kv_const.POLICY).all())
+        policy_profile_ids = n1kv_db.get_profiles_for_tenant(
+            db_session=db_session,
+            tenant_id=tenant_id,
+            profile_type=n1kv_const.POLICY)
+        # get default policy profile objects
+        default_pp_name = cfg.CONF.ml2_cisco_n1kv.default_policy_profile
+        default_policy_profile = n1kv_db.get_policy_profile_by_name(
+            default_pp_name)
+        # append IDs of default policy profiles to the policy_profile_ids list
+        policy_profile_ids.append(default_policy_profile.id)
         profiles = db_session.query(model).filter(model.id.in_(
-            pid[0] for pid in profile_ids))
+            policy_profile_ids))
         return [self._make_policy_profile_dict(p) for p in profiles]
 
     def _get_policy_profiles_by_host(self, vsm_ip):
@@ -120,6 +128,9 @@ class PolicyProfile_db_mixin(policy_profile.PolicyProfilePluginBase,
         if pprofile:
             db_session.delete(pprofile)
             db_session.flush()
+        # remove the all tenant bindings for this policy profile too
+        db_session.query(n1kv_models.ProfileBinding).filter_by(
+            profile_id=pprofile_id).delete()
 
     def get_policy_profile(self, context, pprofile_id, fields=None):
         """
@@ -133,6 +144,30 @@ class PolicyProfile_db_mixin(policy_profile.PolicyProfilePluginBase,
         """
         profile = self._get_policy_profile(context.session, pprofile_id)
         return self._make_policy_profile_dict(profile, fields)
+
+    def get_policy_profile_bindings(self, context, filters=None, fields=None):
+        policy_profile_list = self.get_policy_profiles(context, filters,
+                                                       fields)
+        bindings = [{'profile_id': policy_prof['id'], 'tenant_id':
+            context.tenant_id} for policy_prof in policy_profile_list]
+        return bindings
+
+    def _create_profile_binding(self, db_session, tenant_id, profile_id):
+        """Create Policy Profile association with a tenant."""
+        db_session = db_session or db.get_session()
+        try:
+            binding = n1kv_db.get_profile_binding(
+                db_session=db_session,
+                tenant_id=tenant_id,
+                profile_id=profile_id)
+        except n1kv_exc.ProfileTenantBindingNotFound:
+            with db_session.begin(subtransactions=True):
+                binding = n1kv_db.add_profile_tenant_binding(
+                    profile_type='policy',
+                    profile_id=profile_id,
+                    tenant_id=tenant_id,
+                    db_session=db_session)
+        return binding
 
     def get_policy_profiles(self, context, filters=None, fields=None):
         """
@@ -225,7 +260,8 @@ class PolicyProfilePlugin(PolicyProfile_db_mixin):
                     for pid in vsm_profiles_set.difference(
                                                 plugin_profiles_set):
                         self._add_policy_profile(pid, vsm_profiles[pid],
-                                                 vsm_ip)
+                                                 vsm_ip,
+                                                 n1kv_const.TENANT_ID_NOT_SET)
                     # Delete profiles from database if they were deleted in VSM
                     for pid in plugin_profiles_set.difference(
                                                    vsm_profiles_set):
@@ -270,6 +306,10 @@ class PolicyProfilePlugin(PolicyProfile_db_mixin):
         return super(PolicyProfilePlugin, self).get_policy_profile(context,
                                                                    pprofile_id,
                                                                    fields)
+
+    def get_policy_profile_bindings(self, context, filters=None, fields=None):
+        return super(PolicyProfilePlugin, self).get_policy_profile_bindings(
+            context, filters, fields)
 
     def sanitize_policy_profile_table(self):
         """Clear policy profiles from stale VSM."""

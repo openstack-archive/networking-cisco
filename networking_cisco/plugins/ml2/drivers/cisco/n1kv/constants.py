@@ -57,8 +57,9 @@ CISCO_N1KV_NET_PROFILE = 'CISCO_N1KV_NET_PROFILE'
 
 # Profile Types
 POLICY = 'policy'
+NETWORK = 'network'
 
-TENANT_ID_NOT_SET = 'TENANT_ID_NOT_SET'
+TENANT_ID_NOT_SET = 'tenant_id_not_set'
 
 NETWORK_PROFILES = 'network_profiles'
 NETWORKS = 'networks'
