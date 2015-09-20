@@ -184,7 +184,9 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         snip_name = 'CREATE_SUBINTERFACE'
         e_type = 'Fake error'
         e_tag = 'Fake error tag'
-        params = {'snippet': snip_name, 'type': e_type, 'tag': e_tag}
+        confstr = 'Fake conf str'
+        params = {'snippet': snip_name, 'type': e_type, 'tag': e_tag,
+                  'confstr': confstr}
         self.routing_helper._internal_network_added.side_effect = (
             cfg_exceptions.CSR1kvConfigException(**params))
         router, ports = prepare_router_data()

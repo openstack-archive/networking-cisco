@@ -44,6 +44,7 @@ class TestCSR1kvRouting(base.BaseTestCase):
                          'protocol_port': 22,
                          'credentials': {"username": "stack",
                                          "password": "cisco"},
+                         'timeout': None
                          }
         self.driver = csr_driver.CSR1kvRoutingDriver(
             **device_params)

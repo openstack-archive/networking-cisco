@@ -37,7 +37,15 @@ class CSR1kvConnectionException(DriverException):
 class CSR1kvConfigException(DriverException):
     """Configuration exception thrown when modifying the running config."""
     message = (_("Error executing snippet:%(snippet)s. "
-                 "ErrorType:%(type)s ErrorTag:%(tag)s."))
+                 "ErrorType:%(type)s ErrorTag:%(tag)s Config string:%("
+                 "confstr)s."))
+
+
+class CSR1kvMissingInterfaceException(DriverException):
+    """Configuration exception thrown when modifying the running config."""
+    message = (_("Interface corresponding to port:%(id)s and mac-address:%("
+                 "mac)s is missing in the CSR. Cannot proceed with interface"
+                 "config."))
 
 
 class CSR1kvUnknownValueException(DriverException):

@@ -19,24 +19,30 @@ import time
 import xml.etree.ElementTree as ET
 
 import ciscoconfparse
+
+from functools import wraps
 from ncclient import manager
-
-from oslo_config import cfg
-
 from neutron.i18n import _LE, _LI, _LW
-
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions as cfg_exc
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers import (
     devicedriver_api)
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
     cisco_csr1kv_snippets as snippets)
+from oslo_config import cfg
 
 LOG = logging.getLogger(__name__)
-
 
 # N1kv constants
 T1_PORT_NAME_PREFIX = 't1_p:'  # T1 port/network is for VXLAN
 T2_PORT_NAME_PREFIX = 't2_p:'  # T2 port/network is for VLAN
+
+
+def save_config(func):
+    @wraps(func)
+    def inner(self, *args, **kwargs):
+        func(self, *args, **kwargs)
+        self._csr_save_config()
+    return inner
 
 
 class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
@@ -58,7 +64,8 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
             if credentials:
                 self._csr_user = credentials['username']
                 self._csr_password = credentials['password']
-            self._timeout = cfg.CONF.cfg_agent.device_connection_timeout
+            self._timeout = (device_params['timeout'] or
+                             cfg.CONF.cfg_agent.device_connection_timeout)
             self._csr_conn = None
             self._intfs_enabled = False
         except KeyError as e:
@@ -67,20 +74,25 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
             raise cfg_exc.CSR1kvInitializationException()
 
     ###### Public Functions ########
+
     def router_added(self, ri):
         self._csr_create_vrf(ri)
 
     def router_removed(self, ri):
         self._csr_remove_vrf(ri)
 
+    @save_config
     def internal_network_added(self, ri, port):
         self._csr_create_subinterface(ri, port)
         if port.get('ha_info') is not None and ri.ha_info['ha:enabled']:
             self._csr_add_ha(ri, port)
 
+    @save_config
     def internal_network_removed(self, ri, port):
         self._csr_remove_subinterface(port)
+        self._csr_save_config()
 
+    @save_config
     def external_gateway_added(self, ri, ex_gw_port):
         self._csr_create_subinterface(ri, ex_gw_port)
         ex_gw_ip = ex_gw_port['subnets'][0]['gateway_ip']
@@ -88,6 +100,7 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
             #Set default route via this network's gateway ip
             self._csr_add_default_route(ri, ex_gw_ip)
 
+    @save_config
     def external_gateway_removed(self, ri, ex_gw_port):
         ex_gw_ip = ex_gw_port['subnets'][0]['gateway_ip']
         if ex_gw_ip:
@@ -96,20 +109,26 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
         #Finally, remove external network subinterface
         self._csr_remove_subinterface(ex_gw_port)
 
+    @save_config
     def enable_internal_network_NAT(self, ri, port, ex_gw_port):
         self._csr_add_internalnw_nat_rules(ri, port, ex_gw_port)
 
+    @save_config
     def disable_internal_network_NAT(self, ri, port, ex_gw_port):
         self._csr_remove_internalnw_nat_rules(ri, [port], ex_gw_port)
 
+    @save_config
     def floating_ip_added(self, ri, ex_gw_port, floating_ip, fixed_ip):
         self._csr_add_floating_ip(ri, floating_ip, fixed_ip)
 
+    @save_config
     def floating_ip_removed(self, ri, ex_gw_port, floating_ip, fixed_ip):
         self._csr_remove_floating_ip(ri, ex_gw_port, floating_ip, fixed_ip)
 
+    @save_config
     def routes_updated(self, ri, action, route):
         self._csr_update_routing_table(ri, action, route)
+        self._csr_save_config()
 
     def clear_connection(self):
         self._csr_conn = None
@@ -160,8 +179,8 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
 
     def _csr_add_internalnw_nat_rules(self, ri, port, ex_port):
         vrf_name = self._csr_get_vrf_name(ri)
-        in_vlan = self._get_interface_vlan_from_hosting_port(port)
-        acl_no = 'acl_' + str(in_vlan)
+        num = self._generate_acl_num_from_hosting_port(port)
+        acl_no = 'acl_' + str(num)
         internal_cidr = port['ip_cidr']
         internal_net = netaddr.IPNetwork(internal_cidr).network
         netmask = netaddr.IPNetwork(internal_cidr).hostmask
@@ -176,8 +195,8 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
         #First disable nat in all inner ports
         for port in ports:
             in_intfc_name = self._get_interface_name_from_hosting_port(port)
-            inner_vlan = self._get_interface_vlan_from_hosting_port(port)
-            acls.append("acl_" + str(inner_vlan))
+            num = self._generate_acl_num_from_hosting_port(port)
+            acls.append("acl_" + str(num))
             self._remove_interface_nat(in_intfc_name, 'inside')
 
         #Wait for two second
@@ -276,9 +295,12 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
         intfc_name = 'GigabitEthernet%s.%s' % (int_no, vlan)
         return intfc_name
 
-    @staticmethod
-    def _get_interface_vlan_from_hosting_port(port):
+    def _get_interface_vlan_from_hosting_port(self, port):
         return port['hosting_info']['segmentation_id']
+
+    def _generate_acl_num_from_hosting_port(self, port):
+        # In the case of the N1kv driver, we use the vlan of the tenant netwk
+        return self._get_interface_vlan_from_hosting_port(port)
 
     @staticmethod
     def _get_interface_no_from_hosting_port(port):
@@ -386,7 +408,7 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
         vrfs = []
         ioscfg = self._get_running_config()
         parse = ciscoconfparse.CiscoConfParse(ioscfg)
-        vrfs_raw = parse.find_lines("^ip vrf")
+        vrfs_raw = parse.find_lines("^vrf definition")
         for line in vrfs_raw:
             #  raw format ['ip vrf <vrf-name>',....]
             vrf_name = line.strip().split(' ')[2]
@@ -566,10 +588,11 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
         self._check_response(rpc_obj, 'SET_NAT ' + intfc_type)
 
     def _remove_interface_nat(self, intfc_name, intfc_type):
-        conn = self._get_connection()
-        confstr = snippets.REMOVE_NAT % (intfc_name, intfc_type)
-        rpc_obj = conn.edit_config(target='running', config=confstr)
-        self._check_response(rpc_obj, 'REMOVE_NAT ' + intfc_type)
+        if intfc_name:
+            conn = self._get_connection()
+            confstr = snippets.REMOVE_NAT % (intfc_name, intfc_type)
+            rpc_obj = conn.edit_config(target='running', config=confstr)
+            self._check_response(rpc_obj, 'REMOVE_NAT ' + intfc_type)
 
     def _remove_dyn_nat_rule(self, acl_no, outer_intfc_name, vrf_name):
         conn = self._get_connection()
@@ -645,10 +668,10 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
     def _edit_running_config(self, confstr, snippet):
         conn = self._get_connection()
         rpc_obj = conn.edit_config(target='running', config=confstr)
-        self._check_response(rpc_obj, snippet)
+        self._check_response(rpc_obj, snippet, confstr=confstr)
 
     @staticmethod
-    def _check_response(rpc_obj, snippet_name):
+    def _check_response(rpc_obj, snippet_name, confstr=None):
         """This function checks the rpc response object for status.
 
         This function takes as input the response rpc_obj and the snippet name
@@ -684,5 +707,14 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
         # Not Ok, we throw a ConfigurationException
         e_type = rpc_obj._root[0][0].text
         e_tag = rpc_obj._root[0][1].text
-        params = {'snippet': snippet_name, 'type': e_type, 'tag': e_tag}
+        params = {'snippet': snippet_name, 'type': e_type, 'tag': e_tag,
+                  'confstr': confstr}
         raise cfg_exc.CSR1kvConfigException(**params)
+
+    def _csr_save_config(self):
+        """Send command to router to save to the config to NVRAM
+        :return:
+        """
+        conn = self._get_connection()
+        confstr = snippets.WR_MEM
+        conn.get(filter=confstr)

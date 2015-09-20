@@ -12,9 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from novaclient import client
 from novaclient import exceptions as nova_exc
 from novaclient import utils as n_utils
+from novaclient.v2 import client
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -43,8 +43,8 @@ class ServiceVMManager(object):
 
     def __init__(self, user=None, passwd=None, l3_admin_tenant=None,
                  auth_url=''):
-        self._nclient = client.Client('1.1', user, passwd, l3_admin_tenant,
-                                      auth_url, service_type="compute")
+        self._nclient = client.Client(user, passwd, l3_admin_tenant, auth_url,
+                                      service_type="compute")
 
     @property
     def _core_plugin(self):
@@ -56,7 +56,7 @@ class ServiceVMManager(object):
         returns: True if all needed Nova services are up, False otherwise
         """
         required = set(['nova-conductor', 'nova-cert', 'nova-scheduler',
-                        'nova-compute', 'nova-consoleauth'])
+                       'nova-compute'])
         try:
             services = self._nclient.services.list()
         # There are several individual Nova client exceptions but they have
@@ -92,8 +92,9 @@ class ServiceVMManager(object):
 
     def dispatch_service_vm(self, context, instance_name, vm_image,
                             vm_flavor, hosting_device_drv, mgmt_port,
-                            ports=None):
+                            ports):
         nics = [{'port-id': mgmt_port['id']}]
+        ports = ports or []  # if ports is not set, an empty list is used
         for port in ports:
             nics.append({'port-id': port['id']})
 
@@ -140,5 +141,24 @@ class ServiceVMManager(object):
                 nova_exc.ConnectionRefused, nova_exc.ClientException,
                 Exception) as e:
             LOG.error(_LE('Failed to delete service VM instance %(id)s, '
-                        'due to %(err)s'), {'id': vm_id, 'err': e})
+                          'due to %(err)s'), {'id': vm_id, 'err': e})
             return False
+
+    def interface_attach(self, vm_id, port_id):
+        self._nclient.servers.interface_attach(vm_id, port_id=port_id,
+                                               net_id=None, fixed_ip=None)
+        LOG.debug(_("Nova interface add succeeded on VM:%(vm)s "
+                  "for port:%(id)s"), {'vm': vm_id, 'id': port_id})
+
+    def interface_detach(self, vm_id, port_id):
+        self._nclient.servers.interface_detach(vm_id, port_id)
+        LOG.debug(_("Nova interface detach succeeded on VM:%(vm)s "
+                  "for port:%(id)s"), {'vm': vm_id, 'id': port_id})
+
+    def vm_interface_list(self, vm_id):
+        servers = self._nclient.servers.interface_list(vm_id)
+        ips = []
+        for s in servers:
+            ips.append(s.fixed_ips[0]['ip_address'])
+        LOG.info(_("Interfaces connected on VM:%(vm_id)s is %(ips)s"),
+            {'ips': ips, 'vm_id': vm_id})

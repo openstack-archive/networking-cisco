@@ -333,13 +333,15 @@ class N1kvTrunkingPlugDriver(plug.PluginSidePluggingDriver):
                             'for service vm due to %(err)s'),
                           {'resource_name': name, 'net_id': item_id, 'err': e})
 
-    def setup_logical_port_connectivity(self, context, port_db):
+    def setup_logical_port_connectivity(self, context, port_db,
+                                        hosting_device_id):
         # Add the VLAN to the VLANs that the hosting port trunks.
         self._perform_logical_port_connectivity_action(
             # TODO(Tom): clean this up when we support the n1kv ML2 driver
             context, port_db, 'Adding', 'n1kv.SEGMENT_ADD')
 
-    def teardown_logical_port_connectivity(self, context, port_db):
+    def teardown_logical_port_connectivity(self, context, port_db,
+                                           hosting_device_id):
         # Remove the VLAN from the VLANs that the hosting port trunks.
         self._perform_logical_port_connectivity_action(
             # TODO(Tom): clean this up when we support the n1kv ML2 driver

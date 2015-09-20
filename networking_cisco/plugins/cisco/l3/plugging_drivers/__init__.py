@@ -88,7 +88,8 @@ class PluginSidePluggingDriver(object):
         pass
 
     @abc.abstractmethod
-    def setup_logical_port_connectivity(self, context, port_db):
+    def setup_logical_port_connectivity(self, context, port_db,
+                                        hosting_device_id):
         """Establishes connectivity for a logical port.
 
         Performs the configuration tasks needed in the infrastructure
@@ -96,11 +97,13 @@ class PluginSidePluggingDriver(object):
 
         :param context: Neutron api request context.
         :param port_db: Neutron port that has been created.
+        :param hosting_device_id: ID of the device where this port is attached.
         """
         pass
 
     @abc.abstractmethod
-    def teardown_logical_port_connectivity(self, context, port_db):
+    def teardown_logical_port_connectivity(self, context, port_db,
+                                           hosting_device_id):
         """Removes connectivity for a logical port.
 
         Performs the configuration tasks needed in the infrastructure
@@ -110,6 +113,7 @@ class PluginSidePluggingDriver(object):
 
         :param context: Neutron api request context.
         :param port_db: Neutron port about to be deleted.
+        :param hosting_device_id: ID of the device where this port is attached.
         """
         pass
 
