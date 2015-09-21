@@ -4,4 +4,4 @@ source = networking_cisco
 omit = networking_cisco/tests/*,networking_cisco/openstack/*
 
 [report]
-ignore-errors = True
+ignore_errors = True
