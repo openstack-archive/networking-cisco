@@ -254,6 +254,9 @@ class NexusVxlanTypeDriver(type_tunnel.TunnelTypeDriver):
     def delete_endpoint(self, ip):
         pass
 
+    def delete_endpoint_by_host_or_ip(self, host, ip):
+        pass
+
     def get_endpoint_by_host(self, host):
         pass
 
