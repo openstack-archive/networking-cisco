@@ -139,8 +139,7 @@ class DeviceHandlingTestSupportMixin(object):
                 'tenant_id': tenant_id or _uuid()}
 
     def _get_test_context(self, user_id=None, tenant_id=None, is_admin=False):
-        return n_context.Context(user_id, tenant_id, is_admin,
-                                 load_admin_roles=True)
+        return n_context.Context(user_id, tenant_id, is_admin)
 
 
 # Used to fake Glance images, Nova VMs and Nova services
