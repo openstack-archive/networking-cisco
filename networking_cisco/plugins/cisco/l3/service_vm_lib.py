@@ -12,9 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from novaclient import client
 from novaclient import exceptions as nova_exc
 from novaclient import utils as n_utils
-from novaclient.v1_1 import client
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -43,8 +43,8 @@ class ServiceVMManager(object):
 
     def __init__(self, user=None, passwd=None, l3_admin_tenant=None,
                  auth_url=''):
-        self._nclient = client.Client(user, passwd, l3_admin_tenant, auth_url,
-                                      service_type="compute")
+        self._nclient = client.Client('1.1', user, passwd, l3_admin_tenant,
+                                      auth_url, service_type="compute")
 
     @property
     def _core_plugin(self):

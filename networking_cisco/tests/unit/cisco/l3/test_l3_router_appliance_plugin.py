@@ -274,7 +274,7 @@ class RouterSchedulingTestCase(L3RouterApplianceTestCaseBase,
         callback = agents_db.AgentExtRpcCallback()
         callback.report_state(self.adminContext,
                               agent_state={'agent_state': FIRST_CFG_AGENT},
-                              time=timeutils.strtime())
+                              time=timeutils.utcnow().isoformat())
         agent_db = self.core_plugin.get_agents_db(self.adminContext,
                                                   filters={'host': [HOST]})
         self.agent_id1 = agent_db[0].id

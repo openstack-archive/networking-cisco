@@ -145,7 +145,7 @@ class TestN1KVMechanismDriver(
         # Return None for Full Sync for No Op
         FakeSync.return_value = None
         # Mock the policy profile polling method with a single call to populate
-        (policy_profile_service.
+        (policy_profile_service.PolicyProfilePlugin.
          _poll_policy_profiles) = _fake_poll_policy_profiles
         # Setup the policy profile service plugin in order to load policy
         # profiles for testing
