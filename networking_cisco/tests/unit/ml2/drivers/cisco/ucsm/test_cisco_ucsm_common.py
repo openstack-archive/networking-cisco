@@ -51,7 +51,6 @@ class ConfigMixin(object):
             'ucsm_ip': UCSM_IP_ADDRESS,
             'ucsm_username': UCSM_USERNAME,
             'ucsm_password': UCSM_PASSWORD,
-            'ucsm_host_list': HOST_CONFIG1,
         }
 
         for opt, val in ucsm_test_config.items():

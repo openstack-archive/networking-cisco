@@ -42,7 +42,6 @@ PORT_PROFILE_NAME_PREFIX = "OS-PP-"
 CLIENT_PROFILE_NAME_PREFIX = "OS-CL-"
 CLIENT_PROFILE_PATH_PREFIX = "/cl-"
 
-SERVICE_PROFILE_PATH_PREFIX = "org-root/ls-"
 ETH0 = "/ether-eth0"
 ETH1 = "/ether-eth1"
 DUPLICATE_EXCEPTION = "object already exists"

@@ -43,7 +43,8 @@ class CiscoUcsmDriver(object):
         self.supported_sriov_vnic_types = [portbindings.VNIC_DIRECT,
                                            portbindings.VNIC_MACVTAP]
         self.supported_pci_devs = config.parse_pci_vendor_config()
-        self.ucsm_host_dict = config.parse_ucsm_host_config()
+        self.ucsm_host_dict = {}
+        self._create_ucsm_host_to_service_profile_mapping(self.ucsm_ip)
 
     def _validate_config(self):
         if not cfg.CONF.ml2_cisco_ucsm.get('ucsm_ip'):
@@ -136,6 +137,42 @@ class CiscoUcsmDriver(object):
 
         return handle
 
+    def _get_server_name(self, handle, service_profile_mo):
+        """Get the contents of the 'Name' field associated with UCS Server.
+
+        When a valid connection hande to UCS Manager is handed in, the Name
+        field associated with a UCS Server is returned.
+        """
+        try:
+            resolved_dest = handle.ConfigResolveDn(service_profile_mo.PnDn)
+            server_list = resolved_dest.OutConfig.GetChild()
+            if not server_list:
+                return ""
+            return server_list[0].Name
+        except Exception as e:
+            # Raise a Neutron exception. Include a description of
+            # the original  exception.
+            raise cexc.UcsmConfigReadFailed(ucsm_ip=self.ucsm_ip, exc=e)
+
+    def _create_ucsm_host_to_service_profile_mapping(self, ucsm_ip):
+        """Reads list of Service profiles and finds associated Server."""
+        with self.ucsm_connect_disconnect() as handle:
+            try:
+                sp_list_temp = handle.ConfigResolveClass('lsServer', None,
+                    inHierarchical=False)
+                if sp_list_temp and sp_list_temp.OutConfigs is not None:
+                    sp_list = sp_list_temp.OutConfigs.GetChild() or []
+                    for sp in sp_list:
+                        if sp.PnDn != "":
+                            server_name = self._get_server_name(handle, sp)
+                            if server_name != "":
+                                key = (ucsm_ip, server_name)
+                                self.ucsm_host_dict[key] = sp.Dn
+            except Exception as e:
+                # Raise a Neutron exception. Include a description of
+                # the original  exception.
+                raise cexc.UcsmConfigReadFailed(ucsm_ip=self.ucsm_ip, exc=e)
+
     def _create_vlanprofile(self, vlan_id):
         """Creates VLAN profile to be assosiated with the Port Profile."""
         vlan_name = self.make_vlan_name(vlan_id)
@@ -175,7 +212,8 @@ class CiscoUcsmDriver(object):
                     return True
 
             except Exception as e:
-                self._handle_ucsm_exception(e, 'Vlan Profile', vlan_name)
+                return self._handle_ucsm_exception(e, 'Vlan Profile',
+                    vlan_name)
 
     def _create_port_profile(self, profile_name, vlan_id, vnic_type):
         """Creates a Port Profile on the UCS Manager.
@@ -275,7 +313,8 @@ class CiscoUcsmDriver(object):
                 return True
 
             except Exception as e:
-                self._handle_ucsm_exception(e, 'Port Profile', profile_name)
+                return self._handle_ucsm_exception(e, 'Port Profile',
+                    profile_name)
 
     def create_portprofile(self, profile_name, vlan_id, vnic_type):
         """Top level method to create Port Profiles on the UCS Manager.
@@ -305,10 +344,8 @@ class CiscoUcsmDriver(object):
         the UCS Server, is updated with the VLAN profile corresponding
         to the vlan_id passed in.
         """
-        service_profile_path = (const.SERVICE_PROFILE_PATH_PREFIX +
-                                str(service_profile))
-        eth0 = service_profile_path + const.ETH0
-        eth1 = service_profile_path + const.ETH1
+        eth0 = str(service_profile) + const.ETH0
+        eth1 = str(service_profile) + const.ETH1
         eth_port_paths = [eth0, eth1]
         vlan_name = self.make_vlan_name(vlan_id)
 
@@ -317,11 +354,11 @@ class CiscoUcsmDriver(object):
                 obj = handle.GetManagedObject(
                     None,
                     self.ucsmsdk.LsServer.ClassId(),
-                    {self.ucsmsdk.LsServer.DN: service_profile_path})
+                    {self.ucsmsdk.LsServer.DN: service_profile})
 
                 if not obj:
                     LOG.debug('UCS Manager network driver could not find '
-                              'Service Profile %s at', service_profile_path)
+                              'Service Profile %s at', service_profile)
                     return False
 
                 for eth_port_path in eth_port_paths:
@@ -353,7 +390,8 @@ class CiscoUcsmDriver(object):
                 return True
 
             except Exception as e:
-                self._handle_ucsm_exception(e, 'Service Profile', vlan_name)
+                return self._handle_ucsm_exception(e, 'Service Profile',
+                    vlan_name)
 
     def update_serviceprofile(self, host_id, vlan_id):
         """Top level method to update Service Profiles on UCS Manager.
@@ -362,14 +400,14 @@ class CiscoUcsmDriver(object):
         ultimately result in a vlan_id getting programed on a server's
         ethernet ports and the Fabric Interconnect's network ports.
         """
-        service_profile = self.ucsm_host_dict[host_id]
+        service_profile = self.ucsm_host_dict.get((self.ucsm_ip, host_id))
         if service_profile:
             LOG.debug("UCS Manager network driver Service Profile : %s",
                 service_profile)
         else:
             LOG.info(_LI('UCS Manager network driver does not support Host_id '
                          '%s'), str(host_id))
-            return
+            return False
 
         # Create Vlan Profile
         if not self._create_vlanprofile(vlan_id):
@@ -442,8 +480,8 @@ class CiscoUcsmDriver(object):
     def _remove_vlan_from_all_service_profiles(self, vlan_id):
         """Deletes VLAN Profile config from server's ethernet ports."""
         service_profile_list = []
-        for host_id, value in six.iteritems(self.ucsm_host_dict):
-            if value:
+        for ucsm, host_id, value in six.iteritems(self.ucsm_host_dict):
+            if ucsm == self.ucsm_ip and value:
                 service_profile_list.append(value)
 
         if not service_profile_list:
@@ -454,10 +492,8 @@ class CiscoUcsmDriver(object):
             try:
                 handle.StartTransaction()
                 for service_profile in service_profile_list:
-                    service_profile_path = (const.SERVICE_PROFILE_PATH_PREFIX +
-                                            service_profile)
-                    eth0 = service_profile_path + const.ETH0
-                    eth1 = service_profile_path + const.ETH1
+                    eth0 = service_profile + const.ETH0
+                    eth1 = service_profile + const.ETH1
                     eth_port_paths = [eth0, eth1]
 
                     # 1. From the Service Profile config, access the
@@ -467,7 +503,7 @@ class CiscoUcsmDriver(object):
                     obj = handle.GetManagedObject(
                             None,
                             self.ucsmsdk.LsServer.ClassId(),
-                            {self.ucsmsdk.LsServer.DN: service_profile_path})
+                            {self.ucsmsdk.LsServer.DN: service_profile})
 
                     if obj:
                         # Check if this vlan_id has been configured on the
