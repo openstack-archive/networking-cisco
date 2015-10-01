@@ -1,48 +1,27 @@
 #!/bin/sh
 
 # Many of neutron's repos suffer from the problem of depending on neutron,
-# but it not existing on pypi.
-
-# This wrapper for tox's package installer will use the existing package
-# if it exists, else use zuul-cloner if that program exists, else grab it
-# from neutron master via a hard-coded URL. That last case should only
-# happen with devs running unit tests locally.
-
-# From the tox.ini config page:
-# install_command=ARGV
-# default:
-# pip install {opts} {packages}
-
-ZUUL_CLONER=/usr/zuul-env/bin/zuul-cloner
-neutron_installed=$(echo "import neutron" | python 2>/dev/null ; echo $?)
-
+# but it not existing on pypi. This ensures its installed into the test environment.
 set -ex
 
-cwd=$(/bin/pwd)
+ZUUL_CLONER=/usr/zuul-env/bin/zuul-cloner
 
-if [ $neutron_installed -eq 0 ]; then
-    echo "ALREADY INSTALLED" > /tmp/tox_install.txt
-    echo "Neutron already installed; using existing package"
-elif [ -x "$ZUUL_CLONER" ]; then
-    echo "ZUUL CLONER" > /tmp/tox_install.txt
-    cd /tmp
-    $ZUUL_CLONER --cache-dir \
-        /opt/git \
-        git://git.openstack.org \
-        openstack/neutron
-    cd openstack/neutron
-    $cwd/tools/add_neutron_patches.sh /tmp/openstack/neutron $cwd
-    pip install -e .
-    cd "$cwd"
+mkdir -p .test-tars
+
+if $(python -c "import neutron" 2> /dev/null); then
+    echo "Neutron already installed."
+elif [ -x $ZUUL_CLONER ]; then
+    # Use zuul-cloner to clone openstack/neutron, this will ensure the Depends-On
+    # references are retrieved from zuul and rebased into the repo, then installed.
+    $ZUUL_CLONER --cache-dir /opt/git --workspace /tmp git://git.openstack.org openstack/neutron
+    pip install /tmp/openstack/neutron
 else
-    echo "PIP HARDCODE" > /tmp/tox_install.txt
-    pip install -U -egit+https://git.openstack.org/openstack/neutron#egg=neutron
-    #cd $VIRTUAL_ENV/src/neutron
-    #git checkout 3e0328b992d8a90213a56ec5a4144677279bea66
-    #cd "$cwd"
-    $cwd/tools/add_neutron_patches.sh $VIRTUAL_ENV/src/neutron $cwd
-    pip install -U -e $VIRTUAL_ENV/src/neutron
+    # Download or update neutron-master tarball and install
+    ( cd .test-tars && wget -N http://tarballs.openstack.org/neutron/neutron-master.tar.gz )
+    pip install .test-tars/neutron-master.tar.gz
 fi
 
+# Install the rest of the requirements as normal
 pip install -U $*
+
 exit $?

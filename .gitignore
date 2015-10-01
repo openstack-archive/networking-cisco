@@ -28,3 +28,4 @@ setuptools*.egg/
 !/.mailmap
 !/.pylintrc
 !/.testr.conf
+*.tar.gz
