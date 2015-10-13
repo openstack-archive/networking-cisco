@@ -21,6 +21,12 @@ class DriverException(exceptions.NeutronException):
     """Exception created by the Driver class."""
 
 
+class DriverExpectedKeyNotSetException(DriverException):
+    """An attribute expected to be set by plugin is missing"""
+    message = (_("Value for expected key: %(key)s is missing."
+                 "Driver cannot proceed"))
+
+
 class CSR1kvInitializationException(DriverException):
     """Exception when initialization of CSR1kv Routing Driver object."""
     message = (_("Critical device parameter missing. Failed initializing "

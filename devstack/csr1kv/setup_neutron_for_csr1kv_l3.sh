@@ -7,6 +7,8 @@
 osn=${1:-neutron}
 plugin=${2:-n1kv}
 localrc=$3
+TOP_DIR=$(cd $(dirname $localrc) && pwd)
+net_cisco=${4:-networking-cisco}
 
 
 if [[ ! -z $localrc && -f $localrc ]]; then
@@ -27,12 +29,12 @@ vsmIP=${Q_CISCO_PLUGIN_VSM_IP:-192.168.168.2}
 vsmUsername=${Q_CISCO_PLUGIN_VSM_USERNAME:-admin}
 vsmPassword=${Q_CISCO_PLUGIN_VSM_PASSWORD:-Sfish123}
 
-base_dir=/opt/stack/data/$osn/cisco
+base_dir=/opt/stack/data/$net_cisco/cisco
+DIR_CISCO=/opt/stack/networking-cisco
 templates_dir=$base_dir/templates
 template_name=csr1kv_cfg_template
 template_file=$templates_dir/$template_name
-#template_file_src=/opt/stack/$osn/$osn/plugins/cisco/l3/configdrive_templates/$template_name
-template_file_src=/opt/stack/networking-cisco/networking_cisco/plugins/cisco/l3/configdrive_templates/$template_name
+template_file_src=$DIR_CISCO/networking_cisco/plugins/cisco/device_manager/configdrive_templates/$template_name
 osnMgmtNwName=osn_mgmt_nw
 mgmtSecGrp=mgmt_sec_grp
 mgmtProviderNwName=mgmt_net
@@ -158,7 +160,7 @@ function get_port_profile_id() {
 }
 
 
-tenantId=`keystone tenant-get $l3AdminTenant 2>&1 | awk '/No tenant|id/ { if ($1 == "No") print "No"; else print $4; }'`
+tenantId=`keystone tenant-get $l3AdminTenant 2>&1 | awk '/No tenant|id/ { if ($1 == "No") print "No"; else if ($2 == "id") print $4; }'`
 if [ "$tenantId" == "No" ]; then
     echo "No $l3AdminTenant exists, please create one using the setup_keystone... script then re-run this script."
     echo "Aborting!"
@@ -166,7 +168,7 @@ if [ "$tenantId" == "No" ]; then
 fi
 
 
-source ~/devstack/openrc $adminUser $L3adminTenant
+source $TOP_DIR/openrc $adminUser $L3adminTenant
 
 
 echo -n "Checking if $templates_dir exists..."
@@ -179,7 +181,7 @@ fi
 
 
 #Hareesh - Copying of template file everytime to cater for template file changes
-echo -n "Copying base template in $template_file_src to $template_file ..."
+echo "Copying base template in $template_file_src to $template_file ..."
     cp $template_file_src $template_file
 
 if [ "$plugin" == "n1kv" ]; then
@@ -210,7 +212,7 @@ if [ "$plugin" == "n1kv" ]; then
     done
 fi
 
-
+echo -n ""
 echo -n "Checking if $osnMgmtNwName network exists ..."
 hasMgmtNetwork=`$osn net-show $osnMgmtNwName 2>&1 | awk '/Unable to find|enabled/ { if ($1 == "Unable") print "No"; else print "Yes"; }'`
 

@@ -12,12 +12,74 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+# Constants related to device manager
+# ===================================
+# Service type for device manager plugin
+DEVICE_MANAGER = "DEVICE_MANAGER"
+
+# RPC topic for device manager
+DEVICE_MANAGER_PLUGIN = 'n-devmgr-plugin'
+
 
 # Type and topic for Cisco cfg agent
 # ==================================
 AGENT_TYPE_CFG = 'Cisco cfg agent'
+AGENT_TYPE_L3_CFG = 'Cisco l3 cfg agent'
 
 # Topic for Cisco configuration agent
 CFG_AGENT = 'cisco_cfg_agent'
 # Topic for routing service helper in Cisco configuration agent
 CFG_AGENT_L3_ROUTING = 'cisco_cfg_agent_l3_routing'
+
+# Device manager and (hosting) devices
+# ====================================
+# Default name of hosting device template for network nodes
+# hosting Linux network namespace-based Neutron routers.
+NETWORK_NODE_TEMPLATE = 'NetworkNode_template'
+
+# Service VM status
+SVM_OK = 'OK'
+SVM_ERROR = 'ERROR'
+SVM_NON_RESPONSIVE = 'NON_RESPONSIVE'
+
+
+# Routing service
+# ==============
+# Default name of router type for Neutron routers implemented
+# as Linux network namespaces in network nodes.
+NAMESPACE_ROUTER_TYPE = 'Namespace_Neutron_router'
+
+# Default name of router type for Neutron routers implemented
+# as VRFs inside a CSR1kv VM instance.
+CSR1KV_ROUTER_TYPE = 'CSR1kv_router'
+
+# Router roles
+ROUTER_ROLE_GLOBAL = 'Global'
+ROUTER_ROLE_LOGICAL_GLOBAL = 'Logical-Global'
+ROUTER_ROLE_HA_REDUNDANCY = 'HA-Redundancy'
+ALLOWED_ROUTER_ROLES = [ROUTER_ROLE_GLOBAL, ROUTER_ROLE_LOGICAL_GLOBAL,
+                        ROUTER_ROLE_HA_REDUNDANCY]
+
+# Prefix of name given to global routers
+ROUTER_ROLE_NAME_PREFIX = ROUTER_ROLE_GLOBAL + '-router'
+LOGICAL_ROUTER_ROLE_NAME = ROUTER_ROLE_LOGICAL_GLOBAL + '-router'
+# Number of characters of hosting device id added to role name
+ROLE_ID_LEN = 17
+
+# The status of a Neutron Router created using the
+# Cisco service plugin is one of the following:
+# Created but not scheduled nor deployed
+ROUTER_PENDING_CREATE = "PENDING_CREATE"
+#  Scheduling in progress
+ROUTER_SCHEDULING = 'SCHEDULING'
+# Backlogged due to unsuccessful scheduling attempt
+ROUTER_BACKLOGGED = 'BACKLOGGED'
+# Backlogged due to non-ready hosting device (e.g., still booting)
+ROUTER_WAITING_HOST = 'AWAITING_HOST'
+# Deployed and configured
+ROUTER_ACTIVE = "ACTIVE"
+# Deletion in progress (by cfg agent)
+ROUTER_PENDING_DELETE = "PENDING_DELETE"
+# Values for network profile fields
+ADD_TENANTS = 'add_tenants'
+REMOVE_TENANTS = 'remove_tenants'

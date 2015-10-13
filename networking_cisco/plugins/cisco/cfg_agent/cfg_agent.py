@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from datetime import datetime
 import eventlet
 eventlet.monkey_patch()
 import pprint
@@ -26,13 +27,13 @@ from oslo_service import loopingcall
 from oslo_service import periodic_task
 from oslo_service import service
 from oslo_utils import importutils
-from oslo_utils import timeutils
 
 from neutron.agent.common import config
 from neutron.agent.linux import external_process
 from neutron.agent.linux import interface
 from neutron.agent import rpc as agent_rpc
 from neutron.common import config as common_config
+from neutron.common import constants
 from neutron.common import rpc as n_rpc
 from neutron.common import topics
 from neutron import context as n_context
@@ -41,8 +42,8 @@ from neutron import manager
 from neutron import service as neutron_service
 
 from networking_cisco.plugins.cisco.cfg_agent import device_status
-from networking_cisco.plugins.cisco.common import (
-    cisco_constants as c_constants)
+from networking_cisco.plugins.cisco.common import (cisco_constants as
+                                                   c_constants)
 
 LOG = logging.getLogger(__name__)
 
@@ -75,6 +76,13 @@ class CiscoDeviceManagementApi(object):
         cctxt = self.client.prepare()
         return cctxt.call(context, 'register_for_duty', host=self.host)
 
+    def get_hosting_devices_for_agent(self, context):
+        """Get a list of hosting devices assigned to this agent."""
+        cctxt = self.client.prepare()
+        return cctxt.call(context,
+                          'get_hosting_devices_for_agent',
+                          host=self.host)
+
 
 class CiscoCfgAgent(manager.Manager):
     """Cisco Cfg Agent.
@@ -105,13 +113,10 @@ class CiscoCfgAgent(manager.Manager):
                           "lets each service helper to process its neutron "
                           "resources.")),
         cfg.StrOpt('routing_svc_helper_class',
-           default='networking_cisco.plugins.cisco.cfg_agent.service_helpers'
-           '.routing_svc_helper.RoutingServiceHelper',
-           help=_("Path of the routing service helper class.")),
-        cfg.StrOpt('fw_svc_helper_class',
-                   default='neutron_fwaas.services.firewall.drivers.cisco'
-                           '.csr_firewall_svc_helper.CsrFirewallServiceHelper',
-                   help=_("Path of the firewall service helper class.")),
+                   default='networking_cisco.plugins.cisco.cfg_agent.'
+                           'service_helpers.routing_svc_helper.'
+                           'RoutingServiceHelper',
+                   help=_("Path of the routing service helper class.")),
     ]
 
     def __init__(self, host, conf=None):
@@ -125,7 +130,8 @@ class CiscoCfgAgent(manager.Manager):
         super(CiscoCfgAgent, self).__init__(host=self.conf.host)
 
     def _initialize_rpc(self, host):
-        self.devmgr_rpc = CiscoDeviceManagementApi(topics.L3PLUGIN, host)
+        self.devmgr_rpc = CiscoDeviceManagementApi(
+            c_constants.DEVICE_MANAGER_PLUGIN, host)
 
     def _initialize_service_helpers(self, host):
         svc_helper_class = self.conf.cfg_agent.routing_svc_helper_class
@@ -134,21 +140,10 @@ class CiscoCfgAgent(manager.Manager):
                 svc_helper_class, host, self.conf, self)
         except ImportError as e:
             LOG.warning(_LW("Error in loading routing service helper. Class "
-                       "specified is %(class)s. Reason:%(reason)s"),
-                     {'class': self.conf.cfg_agent.routing_svc_helper_class,
-                      'reason': e})
+                            "specified is %(class)s. Reason:%(reason)s"),
+                        {'class': self.conf.cfg_agent.routing_svc_helper_class,
+                         'reason': e})
             self.routing_service_helper = None
-
-        fw_svc_helper_class = self.conf.cfg_agent.fw_svc_helper_class
-        try:
-            self.fw_service_helper = importutils.import_object(
-                fw_svc_helper_class, host, self.conf, self)
-        except ImportError as e:
-            LOG.warn(_LW("Error in loading firewall service helper. Class "
-                       "specified is %(class)s. Reason:%(reason)s"),
-                     {'class': self.conf.cfg_agent.fw_svc_helper_class,
-                      'reason': e})
-            self.fw_service_helper = None
 
     def _start_periodic_tasks(self):
         self.loop = loopingcall.FixedIntervalLoopingCall(self.process_services)
@@ -216,11 +211,6 @@ class CiscoCfgAgent(manager.Manager):
                                                         removed_devices_info)
         else:
             LOG.warning(_LW("No routing service helper loaded"))
-
-        if self.fw_service_helper:
-            self.fw_service_helper.process_service(device_ids,
-                                                   removed_devices_info)
-
         LOG.debug("Processing services completed")
 
     def _process_backlogged_hosting_devices(self, context):
@@ -242,6 +232,42 @@ class CiscoCfgAgent(manager.Manager):
             self.devmgr_rpc.report_dead_hosting_devices(context,
                                                         hd_ids=res['dead'])
 
+    def agent_updated(self, context, payload):
+        """Deal with agent updated RPC message."""
+        try:
+            if payload['admin_state_up']:
+                #TODO(hareeshp): implement agent updated handling
+                pass
+        except KeyError as e:
+            LOG.error(_LE("Invalid payload format for received RPC message "
+                          "`agent_updated`. Error is %(error)s. Payload is "
+                          "%(payload)s"), {'error': e, 'payload': payload})
+
+    def hosting_devices_assigned_to_cfg_agent(self, context, payload):
+        """Deal with hosting devices assigned to this config agent."""
+        LOG.debug("ZZZZZ Got hosting device assigned, payload: %s" % payload)
+        try:
+            if payload['hosting_device_ids']:
+                #TODO(hareeshp): implement assignment of hosting devices
+                self.routing_service_helper.fullsync = True
+        except KeyError as e:
+            LOG.error(_LE("Invalid payload format for received RPC message "
+                          "`hosting_devices_assigned_to_cfg_agent`. Error is "
+                          "%(error)s. Payload is %(payload)s"),
+                      {'error': e, 'payload': payload})
+
+    def hosting_devices_unassigned_from_cfg_agent(self, context, payload):
+        """Deal with hosting devices unassigned from this config agent."""
+        try:
+            if payload['hosting_device_ids']:
+                #TODO(hareeshp): implement unassignment of hosting devices
+                pass
+        except KeyError as e:
+            LOG.error(_LE("Invalid payload format for received RPC message "
+                          "`hosting_devices_unassigned_from_cfg_agent`. Error "
+                          "is %(error)s. Payload is %(payload)s"),
+                      {'error': e, 'payload': payload})
+
     def hosting_devices_removed(self, context, payload):
         """Deal with hosting device removed RPC message."""
         try:
@@ -250,9 +276,14 @@ class CiscoCfgAgent(manager.Manager):
                     self.process_services(removed_devices_info=payload)
         except KeyError as e:
             LOG.error(_LE("Invalid payload format for received RPC message "
-                        "`hosting_devices_removed`. Error is %(error)s. "
-                        "Payload is %(payload)s"),
-                      {'error': e, 'payload': payload})
+                          "`hosting_devices_removed`. Error is %(error)s. "
+                          "Payload is %(payload)s"), {'error': e,
+                                                      'payload': payload})
+
+    def get_assigned_hosting_devices(self):
+        context = n_context.get_admin_context_without_session()
+        res = self.devmgr_rpc.get_hosting_devices_for_agent(context)
+        return res
 
 
 class CiscoCfgAgentWithStateReport(CiscoCfgAgent):
@@ -294,7 +325,7 @@ class CiscoCfgAgentWithStateReport(CiscoCfgAgent):
             res = self.devmgr_rpc.register_for_duty(context)
             if res is True:
                 LOG.info(_LI("[Agent registration] Agent successfully "
-                           "registered"))
+                             "registered"))
                 return
             elif res is False:
                 LOG.warning(_LW("[Agent registration] Neutron server said "
@@ -307,7 +338,7 @@ class CiscoCfgAgentWithStateReport(CiscoCfgAgent):
                               "Exiting!"))
                 raise SystemExit("Cfg Agent exiting")
         LOG.error(_LE("[Agent registration] %d unsuccessful registration "
-                    "attempts. Exiting!"), MAX_REGISTRATION_ATTEMPTS)
+                      "attempts. Exiting!"), MAX_REGISTRATION_ATTEMPTS)
         raise SystemExit("Cfg Agent exiting")
 
     def _report_state(self):
@@ -321,13 +352,17 @@ class CiscoCfgAgentWithStateReport(CiscoCfgAgent):
         """
         LOG.debug("Report state task started")
         configurations = {}
+        service_agents = []
         if self.routing_service_helper:
+            service_agents.append(c_constants.AGENT_TYPE_L3_CFG)
             configurations = self.routing_service_helper.collect_state(
                 self.agent_state['configurations'])
         non_responding = self._dev_status.get_backlogged_hosting_devices_info()
         configurations['non_responding_hosting_devices'] = non_responding
+        configurations['service_agents'] = service_agents
         self.agent_state['configurations'] = configurations
-        self.agent_state['local_time'] = str(timeutils.utcnow())
+        self.agent_state['local_time'] = datetime.utcnow().strftime(
+            constants.ISO8601_TIME_FORMAT)
         LOG.debug("State report data: %s", pprint.pformat(self.agent_state))
         self.send_agent_report(self.agent_state, self.context)
 
@@ -341,7 +376,7 @@ class CiscoCfgAgentWithStateReport(CiscoCfgAgent):
         except AttributeError:
             # This means the server does not support report_state
             LOG.warning(_LW("Neutron server does not support state report. "
-                       "State report for this agent will be disabled."))
+                            "State report for this agent will be disabled."))
             self.heartbeat.stop()
             return
         except Exception:
@@ -364,4 +399,4 @@ def main(manager='networking_cisco.plugins.cisco.cfg_agent.'
         topic=c_constants.CFG_AGENT,
         report_interval=cfg.CONF.AGENT.report_interval,
         manager=manager)
-    service.launch(conf, server).wait()
+    service.launch(cfg.CONF, server).wait()

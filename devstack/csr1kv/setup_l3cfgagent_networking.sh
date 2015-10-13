@@ -6,23 +6,36 @@
 # it should be 'neutron'.
 osn=${1:-neutron}
 plugin=${2:-n1kv}
+localrc=$3
+
+if [[ ! -z $localrc && -f $localrc ]]; then
+    eval $(grep ^OVS_PHYSICAL_BRIDGE= $localrc)
+fi
+
+if ! `sudo ovs-vsctl br-exists $OVS_PHYSICAL_BRIDGE`; then
+    echo "EEROR! Cannot find bridge $OVS_PHYSICAL_BRIDGE. Please create it and then rerun this script"
+    exit 1
+fi
 
 adminUser=$osn
 l3AdminTenant=L3AdminTenant
 
 osnMgmtNwName=osn_mgmt_nw
 osnMgmtNwLen=24
-l3CfgAgentMgmtIP=${3:-10.0.100.2}
+l3CfgAgentMgmtIP=${4:-10.0.100.2}
 portName=l3CfgAgent1
 n1kvPortPolicyProfileNames=(osn_mgmt_pp osn_t1_pp osn_t2_pp)
 vethHostSideName=l3cfgagent_hs
 vethBridgeSideName=l3cfgagent_bs
 
-tenantId=`keystone tenant-get $l3AdminTenant 2>&1 | awk '/No tenant|id/ { if ($1 == "No") print "No"; else print $4; }'`
+echo -n "Checking if $l3AdminTenant exists ..."
+tenantId=`keystone tenant-get $l3AdminTenant 2>&1 | awk '/No tenant|id/ { if ($1 == "No") print "No"; else if ($2 == "id") print $4; }'`
 if [ "$tenantId" == "No" ]; then
-    echo "No $l3AdminTenant exists, please create one using the setup_keystone... script then re-run this script."
+    echo " No it does not, please create one using the setup_keystone... script then re-run this script."
     echo "Aborting!"
     exit 1
+else
+	echo " Yes, it does."
 fi
 
 
@@ -47,11 +60,14 @@ elif [ "$plugin" == "ovs" ]; then
     nw=`$osn net-show $osnMgmtNwName`
     mgmtVLAN=`echo "$nw" | awk '/provider:segmentation_id/ { print $4; }'`
     if [ -z ${mgmtVLAN+x} ] || [ "$mgmtVLAN" == "" ]; then
-        echo "Failed to lookup VLAN of $osnMgmtNwName network, please check health of plugin and VSM then re-run this script."
+        echo "Failed to lookup VLAN of $osnMgmtNwName network, please check health of ML2 plugin."
         echo "Aborting!"
         exit 1
+    else
+    	echo "MgmtVAN is $mgmtVLAN"
     fi
 fi
+
 
 echo -n "Checking if $portName port exists ..."
 port=`$osn port-show $portName 2>&1`
@@ -65,11 +81,14 @@ fi
 
 macAddr=`echo "$port" | awk '/mac_address/ { print $4; }'`
 if [ -z ${macAddr+x} ] || [ "$macAddr" == "" ]; then
-    echo "Failed to create $portName port, please check health of plugin and VSM then re-run this script."
+    echo "Failed to create $portName port, please check health of ML2 plugin."
     echo "Aborting!"
     exit 1
 fi
+echo "Mac address is $macAddr"
 portId=`echo "$port" | awk '/ id/ { print $4; }'`
+echo "Portid is $portId"
+
 
 hasVeth=`ip link show | awk '/'"$vethHostSideName"'/ { print $2; }'`
 if [ "$hasVeth" != "" ]; then
@@ -83,7 +102,13 @@ sudo ip link set $vethHostSideName up
 sudo ip link set $vethBridgeSideName up
 sudo ip -4 addr add $l3CfgAgentMgmtIP/$osnMgmtNwLen dev $vethHostSideName
 
-if [ "$plugin" == "ovs" ]; then
+if [ "$plugin" == "n1kv" ]; then
+    plugging_bridge=$OVS_BRIDGE
+else  # We are in ovs (with ml2)
+    plugging_bridge=$OVS_PHYSICAL_BRIDGE
+    echo "Plugging bridge: $plugging_bridge"
     extra_ovs_params="tag=$mgmtVLAN"
+    echo "extra ovs params : $extra_ovs_params"
 fi
-sudo ovs-vsctl -- --may-exist add-port br-int $vethBridgeSideName $extra_ovs_params -- set interface $vethBridgeSideName external-ids:iface-id=$portId -- set interface $vethBridgeSideName external-ids:attached-mac=$macAddr -- set interface $vethBridgeSideName external-ids:iface-status=active
+sudo ovs-vsctl -- --may-exist add-port $plugging_bridge $vethBridgeSideName $extra_ovs_params -- set interface $vethBridgeSideName external-ids:iface-id=$portId -- set interface $vethBridgeSideName external-ids:attached-mac=$macAddr -- set interface $vethBridgeSideName external-ids:iface-status=active
+

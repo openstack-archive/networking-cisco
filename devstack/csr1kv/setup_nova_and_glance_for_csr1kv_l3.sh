@@ -8,6 +8,7 @@ adminUser=${1:-neutron}
 osn=$adminUser
 plugin=${2:-n1kv}
 localrc=$3
+TOP_DIR=$(cd $(dirname $localrc) && pwd)
 mysql_user=$4
 mysql_password=$5
 
@@ -65,7 +66,7 @@ function add_host_to_aggregate {
 }
 
 
-tenantId=`keystone tenant-get $l3AdminTenant 2>&1 | awk '/No tenant|id/ { if ($1 == "No") print "No"; else print $4; }'`
+tenantId=`keystone tenant-get $l3AdminTenant 2>&1 | awk '/No tenant|id/ { if ($1 == "No") print "No"; else if ($2 == "id") print $4; }'`
 if [ "$tenantId" == "No" ]; then
    echo "No $l3AdminTenant exists, please create one using the setup_keystone... script then re-run this script."
    echo "Aborting!"
@@ -73,11 +74,10 @@ if [ "$tenantId" == "No" ]; then
 fi
 
 
-source ~/devstack/openrc $adminUser $L3AdminTenant
+source $TOP_DIR/openrc $adminUser $L3AdminTenant
 
 echo -n "Checking if flavor '$csr1kvFlavorName' exists ..."
-flavorId=`nova flavor-show $csr1kvFlavorId 2>&1 | awk '
-/No flavor|id|endpoint/ {
+flavorId=`nova flavor-show $csr1kvFlavorId 2>&1 | awk '/No flavor|id|endpoint/ {
    if (index($0, "endpoint") > 0) {
       print "NO SERVER"; nextfile;
    }
@@ -157,7 +157,7 @@ hasImage=`glance image-show $csr1kvImageName 2>&1 | awk '
 
 if [ "$hasImage" == "No" ]; then
    echo " No, it does not. Creating it."
-   glance image-create --name $csr1kvImageName --owner $tenantId --disk-format $csr1kvDiskFormat --container-format $csr1kvContainerFormat --file $csr1kvImageSrc $csr1kvGlanceExtraParams
+   glance image-create --name $csr1kvImageName --disk-format $csr1kvDiskFormat --container-format $csr1kvContainerFormat --file $csr1kvImageSrc $csr1kvGlanceExtraParams
 elif [ "$hasImage" == "NO SERVER" ]; then
    echo " Glance does not seem to be running. Skipping!"
 else

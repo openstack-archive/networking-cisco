@@ -15,66 +15,48 @@
 import sqlalchemy as sa
 from sqlalchemy import orm
 
-from neutron.db import agents_db
 from neutron.db import l3_db
 from neutron.db import model_base
 from neutron.db import models_v2
 
+from networking_cisco.plugins.cisco.db.device_manager import hd_models
 
-class HostingDevice(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
-    """Represents an appliance hosting Neutron router(s).
 
-       When the hosting device is a Nova VM 'id' is uuid of that VM.
+class RouterType(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
+    """Represents Neutron router types.
+
+    A router type is associated with a with hosting device template.
+    The template is used when hosting device for the router type is created.
+
+    Only 'id', 'name', 'description' are visible in non-admin context.
     """
-    __tablename__ = 'cisco_hosting_devices'
+    __tablename__ = 'cisco_router_types'
 
-    # complementary id to enable identification of associated Neutron resources
-    complementary_id = sa.Column(sa.String(36))
-    # manufacturer id of the device, e.g., its serial number
-    device_id = sa.Column(sa.String(255))
-    admin_state_up = sa.Column(sa.Boolean, nullable=False, default=True)
-    # 'management_port_id' is the Neutron Port used for management interface
-    management_port_id = sa.Column(sa.String(36),
-                                   sa.ForeignKey('ports.id',
-                                                 ondelete="SET NULL"))
-    management_port = orm.relationship(models_v2.Port)
-    # 'protocol_port' is udp/tcp port of hosting device. May be empty.
-    protocol_port = sa.Column(sa.Integer)
-    cfg_agent_id = sa.Column(sa.String(36),
-                             sa.ForeignKey('agents.id'),
-                             nullable=True)
-    cfg_agent = orm.relationship(agents_db.Agent)
-    # Service VMs take time to boot so we store creation time
-    # so we can give preference to older ones when scheduling
-    created_at = sa.Column(sa.DateTime, nullable=False)
-    status = sa.Column(sa.String(16))
-
-
-class HostedHostingPortBinding(model_base.BASEV2):
-    """Represents binding of logical resource's port to its hosting port."""
-    __tablename__ = 'cisco_port_mappings'
-
-    logical_resource_id = sa.Column(sa.String(36), primary_key=True)
-    logical_port_id = sa.Column(sa.String(36),
-                                sa.ForeignKey('ports.id',
-                                              ondelete="CASCADE"),
-                                primary_key=True)
-    logical_port = orm.relationship(
-        models_v2.Port,
-        primaryjoin='Port.id==HostedHostingPortBinding.logical_port_id',
-        backref=orm.backref('hosting_info', cascade='all', uselist=False))
-    # type of hosted port, e.g., router_interface, ..._gateway, ..._floatingip
-    port_type = sa.Column(sa.String(32))
-    # type of network the router port belongs to
-    network_type = sa.Column(sa.String(32))
-    hosting_port_id = sa.Column(sa.String(36),
-                                sa.ForeignKey('ports.id',
-                                              ondelete='CASCADE'))
-    hosting_port = orm.relationship(
-        models_v2.Port,
-        primaryjoin='Port.id==HostedHostingPortBinding.hosting_port_id')
-    # VLAN tag for trunk ports
-    segmentation_id = sa.Column(sa.Integer, autoincrement=False)
+    # name of router type, should preferably be unique
+    name = sa.Column(sa.String(255), nullable=False)
+    # description of this router type
+    description = sa.Column(sa.String(255))
+    # template to use to create hosting devices for this router type
+    template_id = sa.Column(sa.String(36),
+                            sa.ForeignKey('cisco_hosting_device_templates.id',
+                                          ondelete='CASCADE'))
+    template = orm.relationship(hd_models.HostingDeviceTemplate)
+    # 'ha_enabled_by_default' is True if routers of this type should have HA on
+    ha_enabled_by_default = sa.Column(sa.Boolean, default=False,
+                                      nullable=False)
+    # 'shared' is True if routertype is available to all tenants
+    shared = sa.Column(sa.Boolean, default=True, nullable=False)
+    #TODO(bobmel): add HA attribute: One of None, 'GPLB', 'VRRP', or 'HSRP'
+    # The number of slots this router type consume in hosting device
+    slot_need = sa.Column(sa.Integer, autoincrement=False)
+    # module to be used as scheduler for router of this type
+    scheduler = sa.Column(sa.String(255), nullable=False)
+    # module to be used by router plugin as router type driver
+    driver = sa.Column(sa.String(255), nullable=False)
+    # module to be used by configuration agent as service helper driver
+    cfg_agent_service_helper = sa.Column(sa.String(255), nullable=False)
+    # module to be used by configuration agent for in-device configurations
+    cfg_agent_driver = sa.Column(sa.String(255), nullable=False)
 
 
 class RouterHostingDeviceBinding(model_base.BASEV2):
@@ -87,11 +69,25 @@ class RouterHostingDeviceBinding(model_base.BASEV2):
     router = orm.relationship(
         l3_db.Router,
         backref=orm.backref('hosting_info', cascade='all', uselist=False))
+    # 'router_role' specifies the type of role the router serves in
+    role = sa.Column(sa.String(255), default=None)
+    # 'router_type_id' is id of router type for this router
+    router_type_id = sa.Column(
+        sa.String(36),
+        sa.ForeignKey('cisco_router_types.id'),
+        primary_key=True,
+        nullable=False)
+    router_type = orm.relationship(RouterType)
+    # 'inflated_slot_need' is the slot need of the router plus the
+    # number slots needed by other resources to be associated with the
+    # router. It's only considered if > 0.
+    inflated_slot_need = sa.Column(sa.Integer, default=0, autoincrement=False)
     # If 'auto_schedule' is True then router is automatically scheduled
     # if it lacks a hosting device or its hosting device fails.
     auto_schedule = sa.Column(sa.Boolean, default=True, nullable=False)
+    share_hosting_device = sa.Column(sa.Boolean, default=True, nullable=False)
     # id of hosting device hosting this router, None/NULL if unscheduled.
     hosting_device_id = sa.Column(sa.String(36),
                                   sa.ForeignKey('cisco_hosting_devices.id',
                                                 ondelete='SET NULL'))
-    hosting_device = orm.relationship(HostingDevice)
+    hosting_device = orm.relationship(hd_models.HostingDevice)

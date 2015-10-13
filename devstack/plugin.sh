@@ -41,6 +41,7 @@ if is_service_enabled net-cisco; then
     fi
 
     if [[ "$1" == "unstack" ]]; then
+        source $DIR_CISCO/devstack/csr1kv/cisco_neutron
         net_stop_neutron
     fi
 

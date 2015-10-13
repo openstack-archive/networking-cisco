@@ -18,17 +18,19 @@ import re
 import time
 import xml.etree.ElementTree as ET
 
+from oslo_config import cfg
+
 import ciscoconfparse
 
 from functools import wraps
 from ncclient import manager
 from neutron.i18n import _LE, _LI, _LW
+
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions as cfg_exc
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers import (
     devicedriver_api)
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
     cisco_csr1kv_snippets as snippets)
-from oslo_config import cfg
 
 LOG = logging.getLogger(__name__)
 
@@ -132,6 +134,9 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
 
     def clear_connection(self):
         self._csr_conn = None
+
+    def cleanup_invalid_cfg(self, hosting_device, routers):
+        pass
 
     ##### Internal Functions  ####
 
