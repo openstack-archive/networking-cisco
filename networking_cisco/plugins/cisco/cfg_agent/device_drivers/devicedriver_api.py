@@ -23,8 +23,8 @@ class RoutingDriverBase(object):
     This class defines the abstract interface/API for the Routing and
     NAT related operations. Driver class corresponding to a hosting device
     should inherit this base driver and implement its methods.
-    RouterInfo object
-    (networking_cisco.plugins.cisco.cfg_agent.router_info.RouterInfo)
+    RouterInfo object (
+    networking_cisco.plugins.cisco.cfg_agent.router_info.RouterInfo)
     is a wrapper around the router dictionary, with attributes for easy access
     to parameters.
     """
@@ -53,8 +53,8 @@ class RoutingDriverBase(object):
         """An internal network was connected to a router.
 
         :param router_info: RouterInfo object for this router
-        :param port : port dictionary for the port where the internal
-                      network is connected
+        :param port       : port dictionary for the port where the internal
+                            network is connected
         :return None
         """
         pass
@@ -64,85 +64,85 @@ class RoutingDriverBase(object):
         """An internal network was removed from a router.
 
         :param router_info: RouterInfo object for this router
-        :param port : port dictionary for the port where the internal
-                     network was connected
+        :param port       : port dictionary for the port where the internal
+                            network was connected
         :return None
         """
         pass
 
     @abc.abstractmethod
-    def external_gateway_added(self, router_info, ex_gw_port):
+    def external_gateway_added(self, router_info, ext_gw_port):
         """An external network was added to a router.
 
         :param router_info: RouterInfo object of the router
-        :param ex_gw_port : port dictionary for the port where the external
-                           gateway network is connected
+        :param ext_gw_port: port dictionary for the port where the external
+                            gateway network is connected
         :return None
         """
         pass
 
     @abc.abstractmethod
-    def external_gateway_removed(self, router_info, ex_gw_port):
+    def external_gateway_removed(self, router_info, ext_gw_port):
         """An external network was removed from the router.
 
         :param router_info: RouterInfo object of the router
-        :param ex_gw_port : port dictionary for the port where the external
-                           gateway network was connected
+        :param ext_gw_port: port dictionary for the port where the external
+                            gateway network was connected
         :return None
         """
         pass
 
     @abc.abstractmethod
-    def enable_internal_network_NAT(self, router_info, port, ex_gw_port):
+    def enable_internal_network_NAT(self, router_info, port, ext_gw_port):
         """Enable NAT on an internal network.
 
         :param router_info: RouterInfo object for this router
         :param port       : port dictionary for the port where the internal
-                           network is connected
-        :param ex_gw_port : port dictionary for the port where the external
-                           gateway network is connected
+                            network is connected
+        :param ext_gw_port: port dictionary for the port where the external
+                            gateway network is connected
         :return None
         """
         pass
 
     @abc.abstractmethod
-    def disable_internal_network_NAT(self, router_info, port, ex_gw_port):
+    def disable_internal_network_NAT(self, router_info, port, ext_gw_port):
         """Disable NAT on an internal network.
 
         :param router_info: RouterInfo object for this router
         :param port       : port dictionary for the port where the internal
-                           network is connected
-        :param ex_gw_port : port dictionary for the port where the external
-                           gateway network is connected
+                            network is connected
+        :param ext_gw_port: port dictionary for the port where the external
+                            gateway network is connected
         :return None
         """
         pass
 
     @abc.abstractmethod
-    def floating_ip_added(self, router_info, ex_gw_port,
+    def floating_ip_added(self, router_info, ext_gw_port,
                           floating_ip, fixed_ip):
         """A floating IP was added.
 
         :param router_info: RouterInfo object for this router
-        :param ex_gw_port : port dictionary for the port where the external
-                           gateway network is connected
+        :param ext_gw_port : port dictionary for the port where the external
+                            gateway network is connected
         :param floating_ip: Floating IP as a string
         :param fixed_ip   : Fixed IP of internal internal interface as
-                           a string
+                            a string
         :return None
         """
         pass
 
     @abc.abstractmethod
-    def floating_ip_removed(self, router_info, ex_gw_port,
+    def floating_ip_removed(self, router_info, ext_gw_port,
                             floating_ip, fixed_ip):
         """A floating IP was removed.
 
         :param router_info: RouterInfo object for this router
-        :param ex_gw_port : port dictionary for the port where the external
+        :param ext_gw_port: port dictionary for the port where the external
                             gateway network is connected
         :param floating_ip: Floating IP as a string
-        :param fixed_ip: Fixed IP of internal internal interface as a string
+        :param fixed_ip:    Fixed IP of internal internal interface as a string
         :return None
         """
         pass
@@ -154,6 +154,16 @@ class RoutingDriverBase(object):
         :param router_info: RouterInfo object for this router
         :param action : Action on the route , either 'replace' or 'delete'
         :param route: route dictionary with keys 'destination' & 'next_hop'
+        :return None
+        """
+        pass
+
+    @abc.abstractmethod
+    def cleanup_invalid_cfg(self, hosting_device, routers):
+        """Cleanup any invalid configuration in backend.
+
+        :param hosting_device: hosting_device dictionary for backend
+        :param routers: list of router dictionaries for routers on backend
         :return None
         """
         pass

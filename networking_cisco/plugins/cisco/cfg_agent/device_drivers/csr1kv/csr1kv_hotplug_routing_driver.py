@@ -25,6 +25,7 @@ from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv.\
     csr1kv_routing_driver import CSR1kvRoutingDriver
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv.\
     csr1kv_routing_driver import save_config
+
 from neutron.i18n import _LI
 
 LOG = logging.getLogger(__name__)

@@ -1,0 +1,37 @@
+[router_types]
+[cisco_router_type:1]
+name=Namespace_Neutron_router
+description="Neutron router implemented in Linux network namespace"
+template_id=1
+ha_enabled_by_default=False
+shared=True
+slot_need=0
+scheduler=
+driver=
+cfg_agent_service_helper=
+cfg_agent_driver=
+
+[cisco_router_type:2]
+name=CSR1kv_router
+description="Neutron router implemented in Cisco CSR1kv device"
+template_id=2
+ha_enabled_by_default=False
+shared=True
+slot_need=10
+scheduler=networking_cisco.plugins.cisco.l3.schedulers.l3_router_hosting_device_scheduler.L3RouterHostingDeviceLongestRunningScheduler
+driver=networking_cisco.plugins.cisco.l3.drivers.noop_routertype_driver.NoopL3RouterDriver
+cfg_agent_service_helper=networking_cisco.plugins.cisco.cfg_agent.service_helpers.routing_svc_helper.RoutingServiceHelper
+cfg_agent_driver=networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv.csr1kv_routing_driver.CSR1kvRoutingDriver
+
+[cisco_router_type:3]
+name=ASR1k_router
+description="Neutron router implemented in Cisco ASR1k device"
+template_id=3
+ha_enabled_by_default=True
+shared=True
+slot_need=1
+scheduler=networking_cisco.plugins.cisco.l3.schedulers.l3_router_hosting_device_scheduler.L3RouterHostingDeviceHARandomScheduler
+driver=networking_cisco.plugins.cisco.l3.drivers.asr1k.asr1k_routertype_driver.ASR1kL3RouterDriver
+cfg_agent_service_helper=networking_cisco.plugins.cisco.cfg_agent.service_helpers.routing_svc_helper.RoutingServiceHelper
+cfg_agent_driver=networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k.asr1k_routing_driver.ASR1kRoutingDriver
+

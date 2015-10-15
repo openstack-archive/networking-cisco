@@ -13,13 +13,19 @@
 #    under the License.
 
 from functools import wraps
+import imp
 import time
 
 from oslo_log import log as logging
 
-from neutron.i18n import _LW
+from neutron.common import exceptions as nexception
+from neutron.i18n import _LE, _LW
 
 LOG = logging.getLogger(__name__)
+
+
+class DriverNotFound(nexception.NetworkNotFound):
+    message = _("Driver %(driver)s does not exist")
 
 
 def retry(ExceptionToCheck, tries=4, delay=3, backoff=2):
@@ -53,3 +59,21 @@ def retry(ExceptionToCheck, tries=4, delay=3, backoff=2):
         return f_retry  # true decorator
 
     return deco_retry
+
+
+def convert_validate_driver_class(driver_class_name):
+    # Verify that import_obj is a loadable class
+    if driver_class_name is None or driver_class_name == '':
+        return driver_class_name
+    else:
+        parts = driver_class_name.split('.')
+        m_pathname = '/'.join(parts[:-1])
+        try:
+            info = imp.find_module(m_pathname)
+            mod = imp.load_module(parts[-2], *info)
+            if parts[-1] in dir(mod):
+                return driver_class_name
+        except ImportError as e:
+            LOG.error(_LE('Failed to verify driver module %(name)s: %(err)s'),
+                      {'name': driver_class_name, 'err': e})
+    raise DriverNotFound(driver=driver_class_name)

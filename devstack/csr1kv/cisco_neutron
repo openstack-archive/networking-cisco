@@ -50,6 +50,10 @@ Q_USE_ROOTWRAP=${Q_USE_ROOTWRAP:-True}
 Q_NOTIFY_NOVA_PORT_STATUS_CHANGES=${Q_NOTIFY_NOVA_PORT_STATUS_CHANGES:-True}
 Q_NOTIFY_NOVA_PORT_DATA_CHANGES=${Q_NOTIFY_NOVA_PORT_DATA_CHANGES:-True}
 
+Q_CISCO_MGMT_CFG_AGENT_IP=10.0.100.2
+# Enable ASR1K
+Q_CISCO_ASR1K_ENABLED=${Q_CISCO_ASR1K_ENABLED:-True}
+
 # MySQL info
 MYSQL_USER=${MYSQL_USER:root}
 MYSQL_PASSWORD=${MYSQL_PASSWORD:password}
@@ -82,7 +86,11 @@ function configure_cisco_csr_router {
 
 function start_cisco_csr_router {
     if [[ "$count" == 0 ]];then
-        setup_for_csr1kv
+        if [[ "$Q_CISCO_ASR1K_ENABLED" == "True" ]]; then
+            setup_for_asr1k
+        else
+            setup_for_csr1kv
+        fi
         Q_L3_ENABLED="True"
         net_create_neutron_initial_network
         count=$((count+1))
@@ -149,6 +157,20 @@ function net_create_neutron_accounts {
     fi
 }
 
+function setup_for_asr1k {
+    if [[ "$Q_PLUGIN" == "ml2" ]]; then
+	    plugin=ovs
+    fi
+    echo "Running ASR1K setup scripts with ${MYSQL_USER} ${MYSQL_PASSWORD}"
+    if [[ -f $TOP_DIR/localrc ]]; then
+        localrc_name=$TOP_DIR/localrc
+    else
+        localrc_name=$TOP_DIR/local.conf
+    fi
+    (cd $Q_CISCO_CSR1KV_SETUP_SCRIPT_DIR; ./csr1kv_install_all.sh neutron $plugin $localrc_name $MYSQL_USER $MYSQL_PASSWORD $Q_CISCO_MGMT_CFG_AGENT_IP True)
+
+}
+
 function setup_for_csr1kv {
     if [[ "$Q_PLUGIN" == "csr1kv_openvswitch" ]]; then
 	    plugin=ovs
@@ -163,7 +185,7 @@ function setup_for_csr1kv {
     else
         localrc_name=$TOP_DIR/local.conf
     fi
-    (cd $Q_CISCO_CSR1KV_SETUP_SCRIPT_DIR; ./csr1kv_install_all.sh neutron $plugin $localrc_name $MYSQL_USER $MYSQL_PASSWORD $Q_CISCO_MGMT_CFG_AGENT_IP)
+    (cd $Q_CISCO_CSR1KV_SETUP_SCRIPT_DIR; ./csr1kv_install_all.sh neutron $plugin $localrc_name $MYSQL_USER $MYSQL_PASSWORD $Q_CISCO_MGMT_CFG_AGENT_IP False)
 }
 
 function net_create_neutron_initial_network {
