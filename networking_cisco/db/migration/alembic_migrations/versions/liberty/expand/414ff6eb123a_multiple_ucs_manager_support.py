@@ -1,5 +1,4 @@
 # Copyright 2015 Cisco Systems, Inc.
-# All rights reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -13,18 +12,24 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+"""Multiple UCS Manager support
+
+Revision ID: 414ff6eb123a
+Revises: 1e9e22602685
+Create Date: 2015-10-19 15:21:10.806609
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = '414ff6eb123a'
+down_revision = '1e9e22602685'
+
+from alembic import op
 import sqlalchemy as sa
 
-from neutron.db import model_base
 
-
-class PortProfile(model_base.BASEV2):
-
-    """Port profiles created on the UCS Manager."""
-
-    __tablename__ = 'ml2_ucsm_port_profiles'
-
-    vlan_id = sa.Column(sa.Integer(), nullable=False, primary_key=True)
-    profile_id = sa.Column(sa.String(64), nullable=False)
-    device_id = sa.Column(sa.String(64), nullable=False)
-    created_on_ucs = sa.Column(sa.Boolean(), nullable=False)
+def upgrade():
+    op.add_column(
+        'ml2_ucsm_port_profiles',
+        sa.Column('device_id', sa.String(length=64), nullable=False)
+    )

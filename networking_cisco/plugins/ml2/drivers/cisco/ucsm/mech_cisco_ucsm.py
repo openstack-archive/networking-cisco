@@ -21,7 +21,7 @@ from oslo_log import log as logging
 
 from neutron.common import constants
 from neutron.extensions import portbindings
-from neutron.i18n import _LE, _LW
+from neutron.i18n import _LE, _LI, _LW
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import driver_api as api
 
@@ -35,8 +35,8 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
     def initialize(self):
         self.vif_type = const.VIF_TYPE_802_QBH
         self.vif_details = {portbindings.CAP_PORT_FILTER: False}
-        self.driver = ucsm_network_driver.CiscoUcsmDriver()
         self.ucsm_db = ucsm_db.UcsmDbModel()
+        self.driver = ucsm_network_driver.CiscoUcsmDriver()
 
     def _get_vlanid(self, context):
         """Returns vlan_id associated with a bound VLAN segment."""
@@ -54,22 +54,22 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
         4. If no, create a new port profile with this vlan_id and
         associate with this port
         """
-        LOG.debug("Inside update_port_precommit")
         vnic_type = context.current.get(portbindings.VNIC_TYPE,
                                         portbindings.VNIC_NORMAL)
 
         profile = context.current.get(portbindings.PROFILE, {})
+        host_id = context.current.get(portbindings.HOST_ID)
 
         if not self.driver.check_vnic_type_and_vendor_info(vnic_type,
                                                            profile):
-            LOG.debug("update_port_precommit encountered a non-SR-IOV port")
+            LOG.debug('update_port_precommit encountered a non-SR-IOV port')
             return
 
         # If this is an Intel SR-IOV vnic, then no need to create port
         # profile on the UCS manager. So no need to update the DB.
         if not self.driver.is_vmfex_port(profile):
-            LOG.debug("update_port_precommit has nothing to do for this "
-                      "sr-iov port")
+            LOG.debug('update_port_precommit has nothing to do for this '
+                      'sr-iov port')
             return
 
         vlan_id = self._get_vlanid(context)
@@ -83,7 +83,8 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                   p_profile_name, vlan_id)
 
         # Create a new port profile entry in the db
-        self.ucsm_db.add_port_profile(p_profile_name, vlan_id)
+        ucsm_ip = self.driver.get_ucsm_ip_for_host(host_id)
+        self.ucsm_db.add_port_profile(p_profile_name, vlan_id, ucsm_ip)
 
     def update_port_postcommit(self, context):
         """Creates a port profile on UCS Manager.
@@ -91,20 +92,23 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
         Creates a Port Profile for this VLAN if it does not already
         exist.
         """
-        LOG.debug("Inside update_port_postcommit")
         vlan_id = self._get_vlanid(context)
 
         if not vlan_id:
             LOG.warn(_LW("update_port_postcommit: vlan_id is None."))
             return
 
-        # Check if UCS Manager needs to create a Port Profile.
-        # 1. Make sure this is a vm_fex_port.(Port profiles are created
-        # only for VM-FEX ports.)
-        # 2. Make sure update_port_precommit added an entry in the DB
-        # for this port profile
-        # 3. Make sure that the Port Profile hasn't already been created.
+        # Checks to perform before UCS Manager can create a Port Profile.
+        # 1. Make sure this host is on a known UCS Manager.
+        host_id = context.current.get(portbindings.HOST_ID)
+        ucsm_ip = self.driver.get_ucsm_ip_for_host(host_id)
+        if not ucsm_ip:
+            LOG.info(_LI('Host_id %s is not controlled by any known UCS '
+                'Manager'), str(host_id))
+            return
 
+        # 2. Make sure this is a vm_fex_port.(Port profiles are created
+        # only for VM-FEX ports.)
         profile = context.current.get(portbindings.PROFILE, {})
         vnic_type = context.current.get(portbindings.VNIC_TYPE,
                                         portbindings.VNIC_NORMAL)
@@ -112,27 +116,31 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
         if (self.driver.check_vnic_type_and_vendor_info(vnic_type, profile) and
             self.driver.is_vmfex_port(profile)):
 
-            LOG.debug("update_port_postcommit: VM-FEX port updated for "
-                      "vlan_id %d", vlan_id)
+            # 3. Make sure update_port_precommit added an entry in the DB
+            # for this port profile
+            profile_name = self.ucsm_db.get_port_profile_for_vlan(vlan_id,
+                ucsm_ip)
 
-            profile_name = self.ucsm_db.get_port_profile_for_vlan(vlan_id)
-            if self.ucsm_db.is_port_profile_created(vlan_id):
+            # 4. Make sure that the Port Profile hasn't already been created
+            # on the UCS Manager
+            if profile_name and self.ucsm_db.is_port_profile_created(vlan_id,
+                ucsm_ip):
                 LOG.debug("update_port_postcommit: Port Profile %s for "
-                          "vlan_id %d already exists. Nothing to do.",
-                          profile_name, vlan_id)
+                          "vlan_id %d already exists on UCSM %s. ",
+                          profile_name, vlan_id, ucsm_ip)
                 return
 
-            # Ask the UCS Manager driver to create the above Port Profile.
-            # Connection to the UCS Manager is managed from within the driver.
+            # All checks are done. Ask the UCS Manager driver to create the
+            # above Port Profile.
             if self.driver.create_portprofile(profile_name, vlan_id,
-                                              vnic_type):
+                                              vnic_type, host_id):
                 # Port profile created on UCS, record that in the DB.
-                self.ucsm_db.set_port_profile_created(vlan_id, profile_name)
+                self.ucsm_db.set_port_profile_created(vlan_id, profile_name,
+                    ucsm_ip)
             return
 
         else:
             # Enable vlan-id for this regular Neutron virtual port.
-            host_id = context.current.get(portbindings.HOST_ID)
             LOG.debug("update_port_postcommit: Host_id is %s", host_id)
             self.driver.update_serviceprofile(host_id, vlan_id)
 

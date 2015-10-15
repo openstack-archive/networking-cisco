@@ -13,17 +13,22 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import mock
+from oslo_config import cfg
+
 from neutron.common import config as neutron_config
 from neutron.plugins.ml2 import config as ml2_config
 from neutron.tests import base
 
-from networking_cisco.plugins.ml2.drivers.cisco.ucsm import config
+UCSM_IP_ADDRESS_1 = '1.1.1.1'
+UCSM_USERNAME_1 = 'username1'
+UCSM_PASSWORD_1 = 'password1'
 
-UCSM_IP_ADDRESS = '1.1.1.1'
-UCSM_USERNAME = 'username'
-UCSM_PASSWORD = 'password'
+UCSM_IP_ADDRESS_2 = '2.2.2.2'
+UCSM_USERNAME_2 = 'username2'
+UCSM_PASSWORD_2 = 'password2'
+
 UCSM_PHY_NETS = ['test_physnet']
-HOST_CONFIG1 = ['Hostname1:Service_profile1']
 
 
 class ConfigMixin(object):
@@ -48,10 +53,16 @@ class ConfigMixin(object):
 
         # Configure the Cisco UCS Manager mechanism driver
         ucsm_test_config = {
-            'ucsm_ip': UCSM_IP_ADDRESS,
-            'ucsm_username': UCSM_USERNAME,
-            'ucsm_password': UCSM_PASSWORD,
+            'ml2_cisco_ucsm_ip: 1.1.1.1': {
+                'ucsm_username': UCSM_USERNAME_1,
+                'ucsm_password': UCSM_PASSWORD_1,
+            },
+            'ml2_cisco_ucsm_ip: 2.2.2.2': {
+                'ucsm_username': UCSM_USERNAME_2,
+                'ucsm_password': UCSM_PASSWORD_2,
+            },
         }
-
-        for opt, val in ucsm_test_config.items():
-            config.cfg.CONF.set_override(opt, val, 'ml2_cisco_ucsm')
+        self.mocked_parser = mock.patch.object(cfg,
+            'MultiConfigParser').start()
+        self.mocked_parser.return_value.read.return_value = [ucsm_test_config]
+        self.mocked_parser.return_value.parsed = [ucsm_test_config]
