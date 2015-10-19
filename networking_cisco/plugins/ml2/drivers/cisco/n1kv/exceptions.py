@@ -62,7 +62,7 @@ class NetworkProfileInUse(exceptions.InUse):
                 "profile %(profile)s is in use.")
 
 
-class ProfileDeletionNotSupported(exceptions.NotSupported):
+class ProfileDeletionNotSupported(exceptions.NeutronException):
     """Deletion of default network profile is not supported."""
     message = _("Deletion of default network profile %(profile)s "
                 "is not supported.")
