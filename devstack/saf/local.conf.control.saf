@@ -1,0 +1,146 @@
+# This file contains setting for installing Cisco Standalone OpenStack
+# fabric enabler using devstack.
+#
+# This local.conf file contains setting that is required on a OpenStack
+# controller node.
+#
+# NOTE: Modify the required parameters based on your setting in below,
+# and then copy this file to the root DevStack directory as local.conf.
+#
+#
+
+[[local|localrc]]
+
+OFFLINE=False
+RECLONE=yes
+IP_VERSION=4
+
+#----------------------------------------------------
+#
+# Modify the following parameters based on your setup
+#
+HOST_IP=<ip address of the server>
+RABBIT_PASSWORD=<rabbitmq passsword>
+RABBIT_USERID=<rabbitmq userid>
+SERVICE_TOKEN=<token, usually password or uuid>
+SERVICE_PASSWORD=<services password>
+ADMIN_PASSWORD=<admin password>
+MYSQL_PASSWORD=<mysql password>
+
+#
+#eanbler_conf.ini settings
+#
+# The following parameters can be used as default. The default values can be
+# changed if they are not desirable.
+#
+# DCNM credentials:
+#     ENABLER_DCNM_USER     : DCNM user id, default is root
+#     ENABLER_DCNM_AMQP_USER: DCNM rabbitmq user id, defualt is admin
+# Segmentation ID range:
+#     ENABLER_SEG_ID_MIN    : segmentation ID minimum value, default is 10000
+#     ENABLER_SEG_ID_MAX    : segmentation ID maximum value, default is 20000
+# Debug settings:
+#     ENABLER_LOG_LEVEL     : debug level for enabler process, default is WARNING
+#     ENABLER_LOG_DIR       : debug log directory, default is ~/Logs
+#     ENABLER_LOG_FILE      : debug log file name, default is fabric_enabler.log
+# Database settings:
+#     ENABLER_DB_NAME       : Enabler database name, default is cisco_dfa
+#     ENABLER_MYSQL_USER    : Enabler database user name, default is dfa
+#     ENABLER_DB_PASSWORD   : Enabler database password, default is MYSQL_PASSWORD
+
+ENABLER_LOG_LEVEL=<debug level>
+ENABLER_DCNM_IP_ADDR=<DCNM IP address>
+ENABLER_DCNM_PASSWORD=<DCNM password>
+
+#----------------------------------------------------
+DATABASE_TYPE=mysql
+SERVICE_HOST=$HOST_IP
+MYSQL_HOST=$SERVICE_HOST
+
+# Enable/Disable services
+enable_service n-sch
+disable_service n-net
+enable_service q-svc
+enable_service q-agt
+enable_service neutron
+disable_service q-dhcp
+disable_service q-l3
+
+# Add networking-cisco Repository
+enable_plugin networking-cisco https://github.com/openstack/networking-cisco.git master
+enable_service net-cisco
+
+# Enable Cisco SAF
+enable_service cisco-saf
+
+# Log
+VERBOSE=True
+DEBUG=True
+USE_SCREEN=True
+SCREEN_LOGDIR=/opt/stack/logs
+LOGFILE=${SCREEN_LOGDIR}/stack.sh.log
+
+# VNC
+VNCSERVER_PROXYCLIENT_ADDRESS=$HOST_IP
+VNCSERVER_LISTEN=0.0.0.0
+
+# Github base url
+GIT_BASE=https://github.com
+
+# Installation path
+DEST=/opt/stack
+DATA_DIR=$DEST/stack/data
+
+# ML2 plugin and agent settings
+Q_PLUGIN=ml2
+Q_ML2_PLUGIN_MECHANISM_DRIVERS=openvswitch
+ENABLE_TENANT_TUNNELS=False
+Q_ML2_TENANT_NETWORK_TYPE=local
+Q_ML2_PLUGIN_TYPE_DRIVERS=local
+OVS_ENABLE_TUNNELING=False
+PHYSICAL_NETWORK=ethd
+OVS_PHYSICAL_BRIDGE=br-ethd
+ENABLE_TENANT_VLANS=False
+
+
+#----------------------------------------------------
+# Post Config parameters
+#
+# neutron.conf
+[[post-config|$NEUTRON_CONF]]
+[DEFAULT]
+notification_driver=messaging
+notification_topics=cisco_dfa_neutron_notify
+rpc_backend=rabbit
+
+[keystone_authtoken]
+auth_host=$SERVICE_HOST
+admin_tenant_name=service
+admin_user=neutron
+admin_password=$ADMIN_PASSWORD
+
+
+# ml2_config.ini
+[[post-config|/$Q_PLUGIN_CONF_FILE]]
+[agent]
+arp_responder = False
+prevent_arp_spoofing = False
+
+
+# nova.conf
+[[post-config|$NOVA_CONF]]
+[keystone_authtoken]
+auth_host=$SERVICE_HOST
+admin_tenant_name=service
+admin_user=nova
+admin_password=$ADMIN_PASSWORD
+
+
+# keystone.conf
+[[post-config|$KEYSTONE_CONF]]
+[DEFAULT]
+notification_driver=messaging
+notification_topics=cisco_dfa_keystone_notify
+rpc_backend=rabbit
+admin_endpoint=http://$SERVICE_HOST:%(admin_port)s/
+#----------------------------------------------------
