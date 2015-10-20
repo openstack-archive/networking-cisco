@@ -12,9 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from novaclient import client
 from novaclient import exceptions as nova_exc
 from novaclient import utils as n_utils
-from novaclient.v2 import client
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import uuidutils
@@ -46,10 +46,10 @@ class ServiceVMManager(object):
                  l3_admin_tenant=None, auth_url='', keystone_session=None):
 
         if is_auth_v3:
-            self._nclient = client.Client(session=keystone_session,
+            self._nclient = client.Client('2', session=keystone_session,
                                           service_type="compute")
         else:
-            self._nclient = client.Client(user, passwd, l3_admin_tenant,
+            self._nclient = client.Client('2', user, passwd, l3_admin_tenant,
                                           auth_url, service_type="compute")
 
     @property

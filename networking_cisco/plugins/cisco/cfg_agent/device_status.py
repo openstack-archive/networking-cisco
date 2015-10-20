@@ -136,7 +136,7 @@ class DeviceStatus(object):
         response_dict = {'reachable': [], 'dead': []}
         LOG.debug("Current Backlogged hosting devices: %s",
                   self.backlog_hosting_devices.keys())
-        for hd_id in self.backlog_hosting_devices.keys():
+        for hd_id in list(self.backlog_hosting_devices.keys()):
             hd = self.backlog_hosting_devices[hd_id]['hd']
             if not timeutils.is_older_than(hd['created_at'],
                                            hd['booting_time']):

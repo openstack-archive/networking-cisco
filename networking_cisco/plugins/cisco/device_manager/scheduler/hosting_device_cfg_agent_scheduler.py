@@ -63,7 +63,7 @@ class HostingDeviceCfgAgentScheduler(object):
             # announces itself any "dangling" hosting devices
             # will be scheduled to it.
             return
-        return random.choice(active_cfg_agents)
+        return random.choice(list(active_cfg_agents))
 
 
 class StingyHostingDeviceCfgAgentScheduler(HostingDeviceCfgAgentScheduler):

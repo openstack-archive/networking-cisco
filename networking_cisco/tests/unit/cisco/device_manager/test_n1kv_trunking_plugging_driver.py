@@ -367,7 +367,7 @@ class TestN1kvTrunkingPluggingDriver(
             res[pr_net.NETWORK_TYPE] = pv_info['nw_type']
             res[pr_net.SEGMENTATION_ID] = pv_info['tag']
             if fields is not None:
-                for attr in res.keys():
+                for attr in list(res.keys()):
                     if attr not in fields:
                         del res[attr]
 

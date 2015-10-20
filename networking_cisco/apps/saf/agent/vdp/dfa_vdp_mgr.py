@@ -15,7 +15,7 @@
 #
 
 
-import Queue
+from six.moves import queue
 import time
 
 from neutron.i18n import _LE
@@ -37,7 +37,7 @@ class VdpMsgPriQue(object):
     '''VDP MEssage Queue'''
 
     def __init__(self):
-        self._queue = Queue.PriorityQueue()
+        self._queue = queue.PriorityQueue()
 
     def enqueue(self, priority, msg):
         msg_tupl = (priority, msg)

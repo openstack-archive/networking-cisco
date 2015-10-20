@@ -18,6 +18,7 @@ Implements a Nexus-OS NETCONF over SSHv2 API Client
 """
 
 import re
+import six
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -148,7 +149,7 @@ class CiscoNexusDriver(object):
                 break
             except Exception as e:
                 for exc_str in allowed_exc_strs:
-                    if exc_str in unicode(e):
+                    if exc_str in six.u(str(e)):
                         return
                 try:
                     self._close_session(mgr, nexus_host)

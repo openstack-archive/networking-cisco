@@ -13,10 +13,11 @@
 #    under the License.
 
 import abc
-import Queue
 import six
 
 from oslo_log import log as logging
+
+from six.moves import queue as Queue
 
 LOG = logging.getLogger(__name__)
 
