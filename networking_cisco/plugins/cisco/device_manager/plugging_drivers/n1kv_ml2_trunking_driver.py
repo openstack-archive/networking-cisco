@@ -34,6 +34,7 @@ from networking_cisco.plugins.cisco.device_manager.plugging_drivers import (
     n1kv_plugging_constants as n1kv_const)
 from networking_cisco.plugins.cisco.device_manager.plugging_drivers import (
     utils)
+from networking_cisco.plugins.ml2.drivers.cisco.n1kv import constants
 
 LOG = logging.getLogger(__name__)
 
@@ -99,14 +100,17 @@ class N1kvML2TrunkingPlugDriver(plug.PluginSidePluggingDriver,
             return
         if tenant_id is None:
             return
-        core_plugin = manager.NeutronManager.get_plugin()
         if p_type == 'net_profile':
-            profiles = core_plugin.get_network_profiles(
+            plugin = manager.NeutronManager.\
+                get_service_plugins().get(constants.CISCO_N1KV_NET_PROFILE)
+            profiles = plugin.get_network_profiles(
                 n_context.get_admin_context(),
                 {'tenant_id': [tenant_id], 'name': [name]},
                 ['id'])
         else:
-            profiles = core_plugin.get_policy_profiles(
+            plugin = manager.NeutronManager.get_service_plugins().get(
+                constants.CISCO_N1KV)
+            profiles = plugin.get_policy_profiles(
                 n_context.get_admin_context(),
                 {'tenant_id': [tenant_id], 'name': [name]},
                 ['id'])
@@ -176,7 +180,7 @@ class N1kvML2TrunkingPlugDriver(plug.PluginSidePluggingDriver,
                 'network_id': mgmt_context['mgmt_nw_id'],
                 'mac_address': attributes.ATTR_NOT_SPECIFIED,
                 'fixed_ips': self._mgmt_subnet_spec(context, mgmt_context),
-                'n1kv:profile_id': self.mgmt_port_profile_id(),
+                'n1kv:profile': self.mgmt_port_profile_id(),
                 'device_id': "",
                 # Use device_owner attribute to ensure we can query for these
                 # ports even before Nova has set device_id attribute.
@@ -194,7 +198,7 @@ class N1kvML2TrunkingPlugDriver(plug.PluginSidePluggingDriver,
                          'network_id': t1_net_id,
                          'fixed_ips': attributes.ATTR_NOT_SPECIFIED,
                          'mac_address': attributes.ATTR_NOT_SPECIFIED,
-                         'n1kv:profile_id': self.t1_port_profile_id()})
+                         'n1kv:profile': self.t1_port_profile_id()})
                     t_p.append(self._core_plugin.create_port(context, p_spec))
                     # Create trunk port T2 for VLAN
                     p_spec['port'].update(
@@ -202,7 +206,7 @@ class N1kvML2TrunkingPlugDriver(plug.PluginSidePluggingDriver,
                          'network_id': t2_net_id,
                          'fixed_ips': attributes.ATTR_NOT_SPECIFIED,
                          'mac_address': attributes.ATTR_NOT_SPECIFIED,
-                         'n1kv:profile_id': self.t2_port_profile_id()})
+                         'n1kv:profile': self.t2_port_profile_id()})
                     t_p.append(self._core_plugin.create_port(context, p_spec))
             except n_exc.NeutronException as e:
                 LOG.error(_LE('Error %s when creating service VM resources. '

@@ -38,7 +38,7 @@ class TestCSR1kvHotplug(test_csr1kv_routing_driver.TestCSR1kvRouting):
 
         device_params = {'management_ip_address': 'fake_ip',
                          'protocol_port': 22,
-                         'credentials': {"username": "stack",
+                         'credentials': {"user_name": "stack",
                                          "password": "cisco"},
                          'timeout': None
                          }

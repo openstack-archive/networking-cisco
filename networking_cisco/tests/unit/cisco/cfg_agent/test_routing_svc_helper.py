@@ -60,7 +60,7 @@ def prepare_router_data(enable_snat=None, num_internal_ports=1):
                       'management_ip_address': '20.0.0.5',
                       'protocol_port': 22,
                       "credentials": {
-                          "username": "user",
+                          "user_name": "user",
                           "password": "4getme"},
                       }
     router = {
@@ -134,7 +134,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
                                'host_category': "VM",
                                'management_ip_address': '20.0.0.5',
                                'protocol_port': 22,
-                               'credentials': {'username': 'user',
+                               'credentials': {'user_name': 'user',
                                                "password": '4getme'},
                                }
         self.router = {

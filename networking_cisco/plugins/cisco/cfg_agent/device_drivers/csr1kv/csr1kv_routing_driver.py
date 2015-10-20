@@ -64,7 +64,7 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
             self._csr_ssh_port = device_params['protocol_port']
             credentials = device_params['credentials']
             if credentials:
-                self._csr_user = credentials['username']
+                self._csr_user = credentials['user_name']
                 self._csr_password = credentials['password']
             self._timeout = (device_params['timeout'] or
                              cfg.CONF.cfg_agent.device_connection_timeout)

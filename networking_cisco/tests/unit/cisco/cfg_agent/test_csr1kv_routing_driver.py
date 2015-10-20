@@ -42,7 +42,7 @@ class TestCSR1kvRouting(base.BaseTestCase):
 
         device_params = {'management_ip_address': 'fake_ip',
                          'protocol_port': 22,
-                         'credentials': {"username": "stack",
+                         'credentials': {"user_name": "stack",
                                          "password": "cisco"},
                          'timeout': None
                          }
