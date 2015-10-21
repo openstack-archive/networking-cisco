@@ -43,6 +43,44 @@ def get_nexusvlan_binding(vlan_id, switch_ip):
     return _lookup_all_nexus_bindings(vlan_id=vlan_id, switch_ip=switch_ip)
 
 
+def get_reserved_bindings(vlan_id, instance_id, switch_ip=None):
+    """Lists reserved bindings."""
+    LOG.debug("get_reserved_bindings() called")
+    if switch_ip:
+        return _lookup_all_nexus_bindings(vlan_id=vlan_id,
+                                          switch_ip=switch_ip,
+                                          instance_id=instance_id)
+    else:
+        return _lookup_all_nexus_bindings(vlan_id=vlan_id,
+                                          instance_id=instance_id)
+
+
+def update_reserved_binding(vlan_id, switch_ip, instance_id, port_id):
+    """Updates reserved binding.
+    This overloads port bindings to support reserved Switch binding
+    used to maintain the state of a switch so it can be viewed by
+    all other neutron processes.  The values of these arguments
+    is as follows:
+    :param vlan_id: 0
+    :param switch_ip: ip address of the switch
+    :param instance_id: fixed string RESERVED_NEXUS_SWITCH_DEVICE_ID_R1
+    :param port_id: is state of ACTIVE, RESTORE_S1, RESTORE_S2, INACTIVE
+    """
+    if not port_id:
+        LOG.warning(_LW("update_reserved_binding called with no state"))
+        return
+    LOG.debug("update_reserved_binding called")
+    session = db.get_session()
+    binding = _lookup_one_nexus_binding(session=session,
+                                        vlan_id=vlan_id,
+                                        switch_ip=switch_ip,
+                                        instance_id=instance_id)
+    binding.port_id = port_id
+    session.merge(binding)
+    session.flush()
+    return binding
+
+
 def get_nexusport_switch_bindings(switch_ip):
     """Lists all Nexus port switch bindings."""
     LOG.debug("get_nexusport_switch_bindings() called")
