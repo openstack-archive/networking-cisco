@@ -131,7 +131,7 @@ class L3RouterApplianceTestCaseBase(
     mock_cfg_agent_notifiers = True
 
     def setUp(self, core_plugin=None, l3_plugin=None, dm_plugin=None,
-              ext_mgr=None, create_mgmt_nw=True):
+              ext_mgr=None, create_mgmt_nw=True, service_plugins=None):
         # Save the global RESOURCE_ATTRIBUTE_MAP
         self.saved_attr_map = {}
         for resource, attrs in six.iteritems(
@@ -141,7 +141,8 @@ class L3RouterApplianceTestCaseBase(
             core_plugin = CORE_PLUGIN_KLASS
         if l3_plugin is None:
             l3_plugin = L3_PLUGIN_KLASS
-        service_plugins = {'l3_plugin_name': l3_plugin}
+        if not service_plugins:
+            service_plugins = {'l3_plugin_name': l3_plugin}
         cfg.CONF.set_override('api_extensions_path',
                               l3_router_test_support.extensions_path)
 

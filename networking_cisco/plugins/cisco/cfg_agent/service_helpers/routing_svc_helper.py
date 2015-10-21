@@ -209,7 +209,8 @@ class RoutingServiceHelper(object):
                 self.sync_devices.clear()
                 routers = self._fetch_router_info(all_routers=True)
                 LOG.debug("All routers: %s" % (pp.pformat(routers)))
-                self._cleanup_invalid_cfg(routers)
+                if routers:
+                    self._cleanup_invalid_cfg(routers)
             else:
                 if self.updated_routers:
                     router_ids = list(self.updated_routers)
