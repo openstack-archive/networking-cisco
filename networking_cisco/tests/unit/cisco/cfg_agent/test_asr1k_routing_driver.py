@@ -34,6 +34,7 @@ from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
 from networking_cisco.plugins.cisco.cfg_agent.service_helpers import (
     routing_svc_helper)
 from networking_cisco.plugins.cisco.common import cisco_constants
+from networking_cisco.plugins.cisco.extensions import ha
 from networking_cisco.plugins.cisco.extensions import routerrole
 
 sys.modules['ncclient'] = mock.MagicMock()
@@ -42,6 +43,9 @@ sys.modules['ciscoconfparse'] = mock.MagicMock()
 _uuid = uuidutils.generate_uuid
 FAKE_ID = _uuid()
 PORT_ID = _uuid()
+HA_INFO = 'ha_info'
+ROUTER_ROLE_ATTR = routerrole.ROUTER_ROLE_ATTR
+ROUTER_ROLE_HA_REDUNDANCY = cisco_constants.ROUTER_ROLE_HA_REDUNDANCY
 
 
 class ASR1kRoutingDriver(base.BaseTestCase):
@@ -63,38 +67,22 @@ class ASR1kRoutingDriver(base.BaseTestCase):
         self.vrf = ('nrouter-' + FAKE_ID)[:iosxe_driver.IosXeRoutingDriver.
                                           DEV_NAME_LEN]
         self.driver._get_vrfs = mock.Mock(return_value=[self.vrf])
-        self.ex_gw_ip_vip = '20.0.0.31'
-        self.ex_gw_ip = '20.0.0.33'
+        self.ex_gw_ip = '20.0.0.31'
+        # VIP is same as gw_ip for user visible router
+        self.ex_gw_ip_vip = self.ex_gw_ip
         self.ex_gw_prefixlen = 24
         self.ex_gw_cidr = '20.0.0.30/24'
         self.ex_gw_ip_mask = '255.255.255.0'
-        self.ex_gw_vlan = 1000
+        self.ex_gw_ha_group = 1500
+        self.ex_gw_ha_info = {'group': self.ex_gw_ha_group,
+                              'ha_port': {
+                                  'fixed_ips': [{
+                                      'ip_address': self.ex_gw_ip_vip,
+                                      'prefixlen': self.ex_gw_prefixlen}]}}
         self.ex_gw_gateway_ip = '20.0.0.1'
-        self.phy_infc = 'GigabitEthernet0/0/0'
         self.vlan_ext = 317
-        self.vlan_int = 314
-        self.hosting_info = {'physical_interface': self.phy_infc,
-                             'segmentation_id': 317}
-        self.gw_ip_cidr = '10.0.3.0/24'
-        self.gw_ip = '10.0.3.3'
-        self.gw_ip_vip = '10.0.3.1'
-        self.gw_ip_mask = '255.255.255.0'
-        self.ha_group = 1621
-        self.ha_info = {'group': self.ha_group,
-                        'ha_port':
-                            {'fixed_ips': [{'ip_address': self.gw_ip_vip}]}
-                        }
-        self.port = {'id': PORT_ID,
-                     'ip_cidr': self.gw_ip_cidr,
-                     'fixed_ips': [{'ip_address': self.gw_ip}],
-                     'subnets': [{'cidr': self.gw_ip_cidr,
-                                  'gateway_ip': self.gw_ip}],
-                     'hosting_info': {
-                         'physical_interface': self.phy_infc,
-                         'segmentation_id': self.vlan_int},
-                     'ha_info': self.ha_info
-                     }
-        int_ports = [self.port]
+        self.phy_infc = 'GigabitEthernet0/0/0'
+
         self.ex_gw_port = {'id': _uuid(),
                            'network_id': _uuid(),
                            'fixed_ips': [{'ip_address': self.ex_gw_ip,
@@ -107,7 +95,33 @@ class ASR1kRoutingDriver(base.BaseTestCase):
                            'hosting_info':
                                {'physical_interface': self.phy_infc,
                                 'segmentation_id': self.vlan_ext},
-                           'ha_info': self.ha_info}
+                           HA_INFO: self.ex_gw_ha_info}
+
+        self.vlan_int = 314
+        self.hosting_info = {'physical_interface': self.phy_infc,
+                             'segmentation_id': self.vlan_ext}
+        self.gw_ip_cidr = '10.0.3.0/24'
+        self.gw_prefixlen = 24
+        self.gw_ip = '10.0.3.3'
+        self.gw_ip_vip = '10.0.3.1'
+        self.gw_ip_mask = '255.255.255.0'
+        self.gw_ha_group = 1621
+        self.gw_ha_info = {'group': self.gw_ha_group,
+                           'ha_port': {
+                               'fixed_ips': [{
+                                   'ip_address': self.gw_ip_vip,
+                                   'prefixlen': self.gw_prefixlen}]}}
+        self.port = {'id': PORT_ID,
+                     'ip_cidr': self.gw_ip_cidr,
+                     'fixed_ips': [{'ip_address': self.gw_ip}],
+                     'subnets': [{'cidr': self.gw_ip_cidr,
+                                  'gateway_ip': self.gw_ip}],
+                     'hosting_info': {
+                         'physical_interface': self.phy_infc,
+                         'segmentation_id': self.vlan_int},
+                     HA_INFO: self.gw_ha_info
+                     }
+        int_ports = [self.port]
         self.floating_ip = '20.0.0.35'
         self.fixed_ip = '10.0.3.5'
         self.ha_priority = 10
@@ -125,7 +139,8 @@ class ASR1kRoutingDriver(base.BaseTestCase):
             'enable_snat': True,
             'routes': [],
             routerrole.ROUTER_ROLE_ATTR: 'Logical',
-            'cisco_ha:details': self.cisco_ha_details,
+            ha.ENABLED: True,
+            ha.DETAILS: self.cisco_ha_details,
             'gw_port': self.ex_gw_port}
 
         self.ri = routing_svc_helper.RouterInfo(FAKE_ID, self.router)
@@ -134,7 +149,7 @@ class ASR1kRoutingDriver(base.BaseTestCase):
         self.global_router = copy.deepcopy(self.router)
         self.global_router[routerrole.ROUTER_ROLE_ATTR] = (
             cisco_constants.ROUTER_ROLE_GLOBAL)
-        self.global_router['gw_port']['ha_info']['ha_port']['fixed_ips'][0][
+        self.global_router['gw_port'][HA_INFO]['ha_port']['fixed_ips'][0][
             'ip_address'] = self.ex_gw_ip_vip
         self.ri_global = routing_svc_helper.RouterInfo(
             FAKE_ID, self.global_router)
@@ -173,7 +188,7 @@ class ASR1kRoutingDriver(base.BaseTestCase):
             snippets.CREATE_SUBINTERFACE_WITH_ID, cfg_args_sub)
 
         cfg_args_hsrp = self._generate_hsrp_cfg_args(
-            sub_interface, self.ha_group, self.ha_priority, self.gw_ip_vip,
+            sub_interface, self.gw_ha_group, self.ha_priority, self.gw_ip_vip,
             self.vlan_int)
         self.assert_edit_run_cfg(
             snippets.SET_INTC_ASR_HSRP_EXTERNAL, cfg_args_hsrp)
@@ -196,7 +211,7 @@ class ASR1kRoutingDriver(base.BaseTestCase):
             snippets.CREATE_SUBINTERFACE_REGION_ID_WITH_ID, cfg_args_sub)
 
         cfg_args_hsrp = self._generate_hsrp_cfg_args(
-            sub_interface, self.ha_group, self.ha_priority, self.gw_ip_vip,
+            sub_interface, self.gw_ha_group, self.ha_priority, self.gw_ip_vip,
             self.vlan_int)
         self.assert_edit_run_cfg(
             snippets.SET_INTC_ASR_HSRP_EXTERNAL, cfg_args_hsrp)
@@ -212,7 +227,7 @@ class ASR1kRoutingDriver(base.BaseTestCase):
             snippets.CREATE_SUBINTERFACE_EXTERNAL_WITH_ID, cfg_args_sub)
 
         cfg_args_hsrp = self._generate_hsrp_cfg_args(
-            sub_interface, self.ha_group, self.ha_priority, self.gw_ip_vip,
+            sub_interface, self.gw_ha_group, self.ha_priority, self.gw_ip_vip,
             self.vlan_int)
         self.assert_edit_run_cfg(
             snippets.SET_INTC_ASR_HSRP_EXTERNAL, cfg_args_hsrp)
@@ -231,13 +246,45 @@ class ASR1kRoutingDriver(base.BaseTestCase):
             snippets.CREATE_SUBINTERFACE_EXT_REGION_ID_WITH_ID, cfg_args_sub)
 
         cfg_args_hsrp = self._generate_hsrp_cfg_args(
-            sub_interface, self.ha_group, self.ha_priority, self.gw_ip_vip,
+            sub_interface, self.gw_ha_group, self.ha_priority, self.gw_ip_vip,
             self.vlan_int)
         self.assert_edit_run_cfg(
             snippets.SET_INTC_ASR_HSRP_EXTERNAL, cfg_args_hsrp)
         cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
 
-    def test_external_network_added(self):
+    def _make_test_router_non_ha(self):
+        self.ri.router[ha.ENABLED] = False
+        del self.ri.router[ha.DETAILS]
+        del self.ex_gw_port[HA_INFO]
+        del self.port[HA_INFO]
+
+    def _make_test_router_redundancy_router(self):
+        self.ri.router[ROUTER_ROLE_ATTR] = ROUTER_ROLE_HA_REDUNDANCY
+        self.ex_gw_port['fixed_ips'][0]['ip_address'] = '20.0.0.33'
+
+    def test_external_network_added_non_ha(self):
+        self._make_test_router_non_ha()
+        self.driver.external_gateway_added(self.ri, self.ex_gw_port)
+
+        sub_interface = self.phy_infc + '.' + str(self.vlan_ext)
+        self.assert_edit_run_cfg(csr_snippets.ENABLE_INTF, sub_interface)
+
+        cfg_params_nat = (self.vrf + '_nat_pool', self.ex_gw_ip,
+                          self.ex_gw_ip, self.ex_gw_ip_mask)
+        self.assert_edit_run_cfg(snippets.CREATE_NAT_POOL, cfg_params_nat)
+
+    def test_external_network_added_user_visible_router(self):
+        self.driver.external_gateway_added(self.ri, self.ex_gw_port)
+
+        sub_interface = self.phy_infc + '.' + str(self.vlan_ext)
+        self.assert_edit_run_cfg(csr_snippets.ENABLE_INTF, sub_interface)
+
+        cfg_params_nat = (self.vrf + '_nat_pool', self.ex_gw_ip,
+                          self.ex_gw_ip, self.ex_gw_ip_mask)
+        self.assert_edit_run_cfg(snippets.CREATE_NAT_POOL, cfg_params_nat)
+
+    def test_external_network_added_redundancy_router(self):
+        self._make_test_router_redundancy_router()
         self.driver.external_gateway_added(self.ri, self.ex_gw_port)
 
         sub_interface = self.phy_infc + '.' + str(self.vlan_ext)
@@ -264,7 +311,35 @@ class ASR1kRoutingDriver(base.BaseTestCase):
         self.assert_edit_run_cfg(snippets.CREATE_NAT_POOL, cfg_params_nat)
         cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
 
-    def test_external_gateway_removed(self):
+    def test_external_gateway_removed_non_ha(self):
+        self._make_test_router_non_ha()
+        self.driver.external_gateway_removed(self.ri, self.ex_gw_port)
+
+        cfg_params_nat = (self.vrf + '_nat_pool', self.ex_gw_ip,
+                          self.ex_gw_ip, self.ex_gw_ip_mask)
+        self.assert_edit_run_cfg(snippets.DELETE_NAT_POOL, cfg_params_nat)
+
+        sub_interface = self.phy_infc + '.' + str(self.vlan_ext)
+        cfg_params_remove_route = (self.vrf,
+                                   sub_interface, self.ex_gw_gateway_ip)
+        self.assert_edit_run_cfg(snippets.REMOVE_DEFAULT_ROUTE_WITH_INTF,
+                                 cfg_params_remove_route)
+
+    def test_external_gateway_removed_user_visible_router(self):
+        self.driver.external_gateway_removed(self.ri, self.ex_gw_port)
+
+        cfg_params_nat = (self.vrf + '_nat_pool', self.ex_gw_ip,
+                          self.ex_gw_ip, self.ex_gw_ip_mask)
+        self.assert_edit_run_cfg(snippets.DELETE_NAT_POOL, cfg_params_nat)
+
+        sub_interface = self.phy_infc + '.' + str(self.vlan_ext)
+        cfg_params_remove_route = (self.vrf,
+                                   sub_interface, self.ex_gw_gateway_ip)
+        self.assert_edit_run_cfg(snippets.REMOVE_DEFAULT_ROUTE_WITH_INTF,
+                                 cfg_params_remove_route)
+
+    def test_external_gateway_removed_redundancy_router(self):
+        self._make_test_router_redundancy_router()
         self.driver.external_gateway_removed(self.ri, self.ex_gw_port)
 
         cfg_params_nat = (self.vrf + '_nat_pool', self.ex_gw_ip,
@@ -312,7 +387,7 @@ class ASR1kRoutingDriver(base.BaseTestCase):
 
         self._assert_number_of_edit_run_cfg_calls(1)
         cfg_params_floating = (self.fixed_ip, self.floating_ip, self.vrf,
-                               self.ha_group, self.vlan_ext)
+                               self.ex_gw_ha_group, self.vlan_ext)
         self.assert_edit_run_cfg(snippets.SET_STATIC_SRC_TRL_NO_VRF_MATCH,
                                  cfg_params_floating)
 
@@ -328,7 +403,7 @@ class ASR1kRoutingDriver(base.BaseTestCase):
 
         self._assert_number_of_edit_run_cfg_calls(1)
         cfg_params_floating = (self.fixed_ip, self.floating_ip, vrf,
-                               self.ha_group, self.vlan_ext)
+                               self.ex_gw_ha_group, self.vlan_ext)
         self.assert_edit_run_cfg(snippets.SET_STATIC_SRC_TRL_NO_VRF_MATCH,
                                  cfg_params_floating)
         cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
@@ -339,7 +414,7 @@ class ASR1kRoutingDriver(base.BaseTestCase):
 
         self._assert_number_of_edit_run_cfg_calls(1)
         cfg_params_floating = (self.fixed_ip, self.floating_ip, self.vrf,
-                               self.ha_group, self.vlan_ext)
+                               self.ex_gw_ha_group, self.vlan_ext)
         self.assert_edit_run_cfg(snippets.REMOVE_STATIC_SRC_TRL_NO_VRF_MATCH,
                                  cfg_params_floating)
 
@@ -355,7 +430,7 @@ class ASR1kRoutingDriver(base.BaseTestCase):
 
         self._assert_number_of_edit_run_cfg_calls(1)
         cfg_params_floating = (self.fixed_ip, self.floating_ip, vrf,
-                               self.ha_group, self.vlan_ext)
+                               self.ex_gw_ha_group, self.vlan_ext)
         self.assert_edit_run_cfg(snippets.REMOVE_STATIC_SRC_TRL_NO_VRF_MATCH,
                                  cfg_params_floating)
         cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
