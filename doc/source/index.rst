@@ -15,6 +15,7 @@ Contents:
    installation
    usage
    contributing
+   apps/index
 
 Indices and tables
 ==================

@@ -1,0 +1,93 @@
+# This file contains setting for installing Cisco Standalone OpenStack
+# fabric enabler using devstack.
+#
+# This local.conf file contains setting that is required on OpenStack
+# compute nodes.
+#
+# NOTE: Modify the required parameters based on your setting in below,
+# and then copy this file to the root DevStack directory as local.conf.
+#
+
+[[local|localrc]]
+
+OFFLINE=False
+RECLONE=yes
+IP_VERSION=4
+
+#
+# Modify the following parameters based on your setup
+#
+HOST_IP=<ip address of the server>
+SERVICE_HOST=<ip address of openstack controller node>
+RABBIT_PASSWORD=<rabbitmq password>
+RABBIT_USERID=<rabbitmq user id>
+SERVICE_TOKEN=<token, usually password or uuid>
+SERVICE_PASSWORD=<service password>
+ADMIN_PASSWORD=<admin password>
+#----------------------------------------------------
+RABBIT_HOST=$SERVICE_HOST
+
+
+# eanbler_conf.ini settings
+#----------------------------------------------------
+# ENABLER_LOG_LEVEL : debug level for enabler process, default is WARNING
+# Example:
+#     ENABLER_LOG_LEVEL=DEBUG
+#
+# ENABLER_LOG_LEVEL=<debug level>
+
+
+# Enable/Disable services
+disable_all_services
+enable_service q-agt
+enable_service neutron
+enable_service n-novnc
+enable_service n-cpu
+
+
+# Add networking-cisco Repository
+enable_plugin networking-cisco https://github.com/openstack/networking-cisco.git master
+enable_service net-cisco
+
+# Enable Cisco SAF
+enable_service cisco-saf
+
+# Log
+VERBOSE=True
+DEBUG=True
+USE_SCREEN=True
+SCREEN_LOGDIR=/opt/stack/logs
+LOGFILE=${SCREEN_LOGDIR}/stack.sh.log
+
+
+# VNC
+NOVA_VNC_ENABLED=True
+VNCSERVER_PROXYCLIENT_ADDRESS=$HOST_IP
+VNCSERVER_LISTEN=0.0.0.0
+
+# Github base url
+GIT_BASE=https://github.com
+
+# Installation path
+DEST=/opt/stack
+DATA_DIR=$DEST/stack/data
+
+# ML2 plugin and agent settings
+Q_PLUGIN=ml2
+Q_ML2_PLUGIN_MECHANISM_DRIVERS=openvswitch
+ENABLE_TENANT_TUNNELS=False
+Q_ML2_TENANT_NETWORK_TYPE=local
+Q_ML2_PLUGIN_TYPE_DRIVERS=local
+OVS_ENABLE_TUNNELING=False
+PHYSICAL_NETWORK=ethd
+OVS_PHYSICAL_BRIDGE=br-ethd
+ENABLE_TENANT_VLANS=False
+
+
+# Post Config parameters
+#
+# ml2_conf.ini
+[[post-config|/$Q_PLUGIN_CONF_FILE]]
+[agent]
+arp_responder = False
+prevent_arp_spoofing = False

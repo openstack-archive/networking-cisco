@@ -1,0 +1,213 @@
+#!/bin/bash
+#
+# cisco-saf
+#
+# This file contains functions that is used by devstack plugins.sh when
+# cisco-saf is enabled.
+#
+
+# Save trace setting
+SAF_XTRACE=$(set +o | grep xtrace)
+set +o xtrace
+
+#
+# Default settings
+#
+ENABLER_DCNM_USER=${ENABLER_DCNM_USER:-root}
+ENABLER_DCNM_AMQP_USER=${ENABLER_DCNM_AMQP_USER:-admin}
+ENABLER_SEG_ID_MIN=${ENABLER_SEG_ID_MIN:-10000}
+ENABLER_SEG_ID_MAX=${ENABLER_SEG_ID_MAX:-20000}
+ENABLER_LOG_LEVEL=${ENABLER_LOG_LEVEL:-WARNING}
+ENABLER_LOG_DIR=${ENABLER_LOG_DIR:-~/Logs}
+ENABLER_LOG_FILE=${ENABLER_LOG_FILE:-fabric_enabler.log}
+ENABLER_DB_NAME=${ENABLER_DB_NAME:-cisco_dfa}
+ENABLER_MYSQL_USER=${ENABLER_MYSQL_USER:-dfa}
+ENABLER_MYSQL_HOST=${MYSQL_HOST}
+ENABLER_DB_PASSWORD=${MYSQL_PASSWORD}
+NETWORKING_CISCO_ETC_SAF_DIR="etc/saf"
+
+
+# Setup configuration parameters in enabler_conf.ini
+function setup_saf_config {
+    CFG_DIR=$1/${NETWORKING_CISCO_ETC_SAF_DIR}
+    local cfgfile=${CFG_DIR}/enabler_conf.ini
+
+    # DCNM settings
+    iniset $cfgfile dcnm dcnm_ip $ENABLER_DCNM_IP_ADDR
+    iniset $cfgfile dcnm dcnm_user $ENABLER_DCNM_USER
+    iniset $cfgfile dcnm dcnm_amqp_user $ENABLER_DCNM_AMQP_USER
+    iniset $cfgfile dcnm dcnm_password $ENABLER_DCNM_PASSWORD
+    iniset $cfgfile dcnm segmentation_id_min $ENABLER_SEG_ID_MIN
+    iniset $cfgfile dcnm segmentation_id_max $ENABLER_SEG_ID_MAX
+
+    # RPC setting
+    iniset $cfgfile dfa_rpc transport_url "rabbit://${RABBIT_USERID}:${RABBIT_PASSWORD}@${SERVICE_HOST}:5672//"
+
+    # MySQL setting
+    iniset $cfgfile dfa_mysql connection mysql://$ENABLER_MYSQL_USER:$ENABLER_DB_PASSWORD@$ENABLER_MYSQL_HOST/$ENABLER_DB_NAME?charset=utf8
+
+    # Log setting
+    iniset $cfgfile dfa_log log_dir $ENABLER_LOG_DIR
+    iniset $cfgfile dfa_log log_file $ENABLER_LOG_FILE
+    iniset $cfgfile dfa_log log_level $ENABLER_LOG_LEVEL
+}
+
+
+# Install packages in the saf/requirements.txt
+function install_saf_requirements {
+    SAF_DIR=$1/networking_cisco/apps/saf
+
+    if [[ -e $SAF_DIR/requirements.txt ]]; then
+        echo "Installing packages from ${SAF_DIR}/requirements.txt"
+        sudo -E pip install -r $SAF_DIR/requirements.txt
+    else
+        echo "Requirement file ${SAF_DIR}/requirements.txt does not exist."
+        exit 1
+    fi
+}
+
+
+# Create database for cisco-saf
+function _config_database {
+
+    mysqluser=$(mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -h$MYSQL_HOST -e "SELECT EXISTS(SELECT DISTINCT user FROM mysql.user WHERE user='$ENABLER_MYSQL_USER' AND host='$ENABLER_MYSQL_HOST')as user;")
+
+    echo "Create ${ENABLER_DB_NAME} database."
+    mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -h$MYSQL_HOST -e "CREATE DATABASE IF NOT EXISTS ${ENABLER_DB_NAME} CHARACTER SET utf8;"
+
+    val=(`echo $mysqluser | tr -d 'user '`)
+    if [[ $val == 0 ]]; then
+        # Mysql user does not exist. Create new one and set permission.
+        echo "Creating user ${ENABLER_MYSQL_USER} for ${ENABLER_DB_NAME}."
+        mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -h$MYSQL_HOST -e "CREATE USER '$ENABLER_MYSQL_USER'@'$ENABLER_MYSQL_HOST' IDENTIFIED BY '$ENABLER_DB_PASSWORD';"
+        mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -h127.0.0.1 -e "GRANT ALL PRIVILEGES ON *.* TO '$ENABLER_MYSQL_USER'@'$ENABLER_MYSQL_HOST';"
+    fi
+}
+
+# Copy the enabler ini file
+function _copy_fabric_enabler_config_file {
+    sudo mkdir -p /etc/saf
+    sudo cp $1/enabler_conf.ini /etc/saf
+}
+
+
+# Copy the upstart files
+function _copy_fabric_enabler_upstart_files {
+    if is_ubuntu; then
+        if is_service_enabled q-svc; then
+            sudo cp $1/fabric-enabler-server.conf /etc/init/
+        fi
+        if is_service_enabled q-agt; then
+            sudo cp $1/fabric-enabler-agent.conf /etc/init/
+        fi
+    elif is_fedora; then
+        if is_service_enabled q-svc; then
+            sudo cp $1/fabric-enabler-server.service /usr/lib/systemd/system/
+            sudo systemctl enable fabric-enabler-server.service
+        fi
+        if is_service_enabled q-agt; then
+            sudo cp $1/fabric-enabler-agent.service /usr/lib/systemd/system/
+            sudo systemctl enable fabric-enabler-agent.service
+        fi
+    else
+        exit_distro_not_supported "list of packages"
+    fi
+}
+
+
+# Restart keystone process
+function _restart_keystone_process {
+    # Restart keystone server. This is because of change in config file
+    stop_keystone
+    start_keystone
+}
+
+
+# Start fabric enabler processes
+function _start_fabric_enabler_processes {
+    if is_ubuntu; then
+        if is_service_enabled q-svc; then
+            _restart_keystone_process
+            sudo start fabric-enabler-server
+        fi
+        if is_service_enabled q-agt; then
+            sudo start fabric-enabler-agent
+        fi
+    elif is_fedora; then
+        if is_service_enabled q-svc; then
+            _restart_keystone_process
+            sudo systemctl start fabric-enabler-server.service
+        fi
+        if is_service_enabled q-agt; then
+            sudo systemctl start fabric-enabler-agent.service
+        fi
+    else
+        exit_distro_not_supported "list of packages"
+    fi
+}
+
+# Stop fabric enabler processes
+function _stop_fabric_enabler_processes {
+    if is_ubuntu; then
+        if is_service_enabled q-svc; then
+            sudo stop fabric-enabler-server
+        fi
+        if is_service_enabled q-agt; then
+            sudo stop fabric-enabler-agent
+        fi
+    elif is_fedora; then
+        if is_service_enabled q-svc; then
+            sudo systemctl stop fabric-enabler-server.service
+        fi
+        if is_service_enabled q-agt; then
+            sudo systemctl stop fabric-enabler-agent.service
+        fi
+    else
+        exit_distro_not_supported "list of packages"
+    fi
+}
+
+
+# Set the configuration parameters in neutron, nova and keystone that
+# are needed for cisco-saf service.
+function configure_cisco_saf {
+    SAF_INIT_DIR=$1/${NETWORKING_CISCO_ETC_SAF_DIR}/init
+    ETC_SAF_DIR=$1/${NETWORKING_CISCO_ETC_SAF_DIR}
+
+    # Create database for cisco-saf
+    if is_service_enabled mysql; then
+        _config_database
+    fi
+
+    # Copy the upstart files
+    _copy_fabric_enabler_upstart_files ${SAF_INIT_DIR}
+
+    # Copy config file
+    _copy_fabric_enabler_config_file ${ETC_SAF_DIR}
+}
+
+
+# Start fabric enabler processes.
+function start_cisco_saf_processes {
+    _start_fabric_enabler_processes
+}
+
+
+# Stop fabric enabler processes.
+function stop_cisco_saf_processes {
+    _stop_fabric_enabler_processes
+}
+
+
+# Clean up cisco-saf service
+function cleanup_cisco_saf_service {
+    # Stop processes
+    stop_cisco_saf_processes
+
+    # Remove configurations
+
+    # Clean up installation
+}
+
+# Restore trace setting
+$SAF_XTRACE
