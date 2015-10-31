@@ -64,7 +64,7 @@ def prepare_router_data(enable_snat=None, num_internal_ports=1):
     return router, int_ports
 
 
-class TestCiscoCfgAgentWIthStateReporting(base.BaseTestCase):
+class TestCiscoCfgAgentWithStateReporting(base.BaseTestCase):
 
     def setUp(self):
         self.conf = cfg.ConfigOpts()
@@ -72,7 +72,7 @@ class TestCiscoCfgAgentWIthStateReporting(base.BaseTestCase):
         self.conf.register_opts(base_config.core_opts)
         self.conf.register_opts(cfg_agent.CiscoCfgAgent.OPTS, "cfg_agent")
         cfg.CONF.set_override('report_interval', 0, 'AGENT')
-        super(TestCiscoCfgAgentWIthStateReporting, self).setUp()
+        super(TestCiscoCfgAgentWithStateReporting, self).setUp()
         self.devmgr_plugin_api_cls_p = mock.patch(
             'networking_cisco.plugins.cisco.cfg_agent.cfg_agent.'
             'CiscoDeviceManagementApi')
@@ -136,3 +136,51 @@ class TestCiscoCfgAgentWIthStateReporting(base.BaseTestCase):
         agent.heartbeat = mock.Mock()
         agent.send_agent_report(None, None)
         self.assertTrue(agent.heartbeat.stop.called)
+
+    def test_get_hosting_device_configuration(self):
+        routing_service_helper_mock = mock.MagicMock()
+        routing_service_helper_mock.driver_manager = mock.MagicMock()
+        drv_mgr = routing_service_helper_mock.driver_manager
+        drv = drv_mgr.get_driver_for_hosting_device.return_value
+        fake_running_config = 'a fake running config'
+        drv.get_configuration = mock.MagicMock(
+            return_value=fake_running_config)
+        hd_id = 'a_hd_id'
+        payload = {'hosting_device_id': hd_id}
+        agent = cfg_agent.CiscoCfgAgentWithStateReport(HOSTNAME, self.conf)
+        agent.routing_service_helper = routing_service_helper_mock
+        res = agent.get_hosting_device_configuration(mock.MagicMock(), payload)
+        self.assertEqual(res, fake_running_config)
+        drv.get_configuration.assert_called_once_with()
+
+    def test_get_hosting_device_configuration_no_hosting_device(self):
+        routing_service_helper_mock = mock.MagicMock()
+        routing_service_helper_mock.driver_manager = mock.MagicMock()
+        drv_mgr = routing_service_helper_mock.driver_manager
+        drv = drv_mgr.get_driver_for_hosting_device.return_value
+        fake_running_config = 'a fake running config'
+        drv.get_configuration = mock.MagicMock(
+            return_value=fake_running_config)
+        hd_id = None
+        payload = {'hosting_device_id': hd_id}
+        agent = cfg_agent.CiscoCfgAgentWithStateReport(HOSTNAME, self.conf)
+        agent.routing_service_helper = routing_service_helper_mock
+        res = agent.get_hosting_device_configuration(mock.MagicMock(), payload)
+        self.assertIsNone(res)
+        drv.get_configuration.assert_not_called()
+
+    def test_get_hosting_device_configuration_no_svc_helper(self):
+        routing_service_helper_mock = mock.MagicMock()
+        routing_service_helper_mock.driver_manager = mock.MagicMock()
+        drv_mgr = routing_service_helper_mock.driver_manager
+        drv = drv_mgr.get_driver_for_hosting_device.return_value
+        fake_running_config = 'a fake running config'
+        drv.get_configuration = mock.MagicMock(
+            return_value=fake_running_config)
+        hd_id = 'a_hd_id'
+        payload = {'hosting_device_id': hd_id}
+        agent = cfg_agent.CiscoCfgAgentWithStateReport(HOSTNAME, self.conf)
+        agent.routing_service_helper = None
+        res = agent.get_hosting_device_configuration(mock.MagicMock(), payload)
+        self.assertIsNone(res)
+        drv.get_configuration.assert_not_called()

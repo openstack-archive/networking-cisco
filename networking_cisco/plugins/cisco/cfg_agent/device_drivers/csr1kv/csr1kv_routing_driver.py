@@ -139,6 +139,9 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
     def cleanup_invalid_cfg(self, hosting_device, routers):
         pass
 
+    def get_configuration(self):
+        return self._get_running_config(split=False)
+
     ##### Internal Functions  ####
 
     def _csr_create_subinterface(self, ri, port):

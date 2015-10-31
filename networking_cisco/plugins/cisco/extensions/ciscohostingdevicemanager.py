@@ -92,14 +92,14 @@ AUTO_DELETE_DEFAULT = False
 RESOURCE_ATTRIBUTE_MAP = {
     DEVICES: {
         'tenant_id': {'allow_post': True, 'allow_put': False,
-                      'is_visible': True},
+                      'required_by_policy': True, 'is_visible': True},
         'id': {'allow_post': True, 'allow_put': False,
                'validate': {'type:uuid_or_none': None},
                'default': None, 'is_visible': True,
                'primary_key': True},
         'template_id': {'allow_post': True, 'allow_put': False,
                         'validate': {'type:uuid': None},
-                        'is_visible': True},
+                        'required_by_policy': True, 'is_visible': True},
         'credentials_id': {'allow_post': True, 'allow_put': True,
                            'default': None,
                            'validate': {'type:uuid_or_none': None},
@@ -120,7 +120,6 @@ RESOURCE_ATTRIBUTE_MAP = {
                                   'validate': {'type:ip_address': None},
                                   'is_visible': True},
         'management_port_id': {'allow_post': True, 'allow_put': False,
-                               'required_by_policy': False,
                                'validate': {'type:uuid_or_none': None},
                                'default': None, 'is_visible': True},
         'protocol_port': {'allow_post': True, 'allow_put': False,
@@ -143,7 +142,7 @@ RESOURCE_ATTRIBUTE_MAP = {
     },
     DEVICE_TEMPLATES: {
         'tenant_id': {'allow_post': True, 'allow_put': False,
-                      'is_visible': True},
+                      'required_by_policy': True, 'is_visible': True},
         'id': {'allow_post': True, 'allow_put': False,
                'validate': {'type:uuid_or_none': None}, 'default': None,
                'is_visible': True, 'primary_key': True},
@@ -157,7 +156,7 @@ RESOURCE_ATTRIBUTE_MAP = {
                           'validate': {'type:values': [VM_CATEGORY,
                                                        HARDWARE_CATEGORY,
                                                        NETWORK_NODE_CATEGORY]},
-                          'is_visible': True},
+                          'required_by_policy': True, 'is_visible': True},
         #TODO(bobmel): validate service_types
         'service_types': {'allow_post': True, 'allow_put': True,
                           'default': None, 'is_visible': True},
@@ -232,9 +231,11 @@ class Ciscohostingdevicemanager(extensions.ExtensionDescriptor):
         plural_mappings = resource_helper.build_plural_mappings(
             {}, RESOURCE_ATTRIBUTE_MAP)
         attr.PLURALS.update(plural_mappings)
+        action_map = {DEVICE: {'get_hosting_device_config': 'GET'}}
         return resource_helper.build_resource_info(plural_mappings,
                                                    RESOURCE_ATTRIBUTE_MAP,
-                                                   constants.DEVICE_MANAGER)
+                                                   constants.DEVICE_MANAGER,
+                                                   action_map=action_map)
 
     def get_extended_resources(self, version):
         if version == "2.0":
@@ -276,6 +277,10 @@ class CiscoHostingDevicePluginBase(ServicePluginBase):
     def get_hosting_devices(self, context, filters=None, fields=None,
                             sorts=None, limit=None, marker=None,
                             page_reverse=False):
+        pass
+
+    @abc.abstractmethod
+    def get_hosting_device_config(self, context, id):
         pass
 
     @abc.abstractmethod

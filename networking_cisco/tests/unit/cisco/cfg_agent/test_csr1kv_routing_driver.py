@@ -282,3 +282,8 @@ class TestCSR1kvRouting(base.BaseTestCase):
             snippets.REMOVE_DYN_SRC_TRL_INTFC, (acl_no, ext_interface,
                                                 self.vrf))
         self.assert_edit_running_config(snippets.REMOVE_ACL, acl_no)
+
+    def test_get_configuration(self):
+        self.driver._get_running_config = mock.MagicMock()
+        self.driver.get_configuration()
+        self.driver._get_running_config.assert_called_once_with(split=False)

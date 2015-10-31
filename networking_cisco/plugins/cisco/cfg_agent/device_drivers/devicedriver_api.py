@@ -167,3 +167,11 @@ class RoutingDriverBase(object):
         :return None
         """
         pass
+
+    @abc.abstractmethod
+    def get_configuration(self):
+        """Return configuration of hosting_device for driver instance
+
+        :return configuration as a text string
+        """
+        pass

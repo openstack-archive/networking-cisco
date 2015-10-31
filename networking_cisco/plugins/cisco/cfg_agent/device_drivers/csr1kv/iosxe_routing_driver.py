@@ -119,6 +119,9 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         # at this point nothing to be done for CSR
         return
 
+    def get_configuration(self):
+        return self._get_running_config(split=False)
+
     ##### Internal Functions  ####
 
     def _create_sub_interface(self, ri, port):

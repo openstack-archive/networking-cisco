@@ -272,6 +272,12 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
                               'network. Please create one.'))
         return cls._mgmt_sec_grp_id
 
+    def get_hosting_device_config(self, context, id):
+        # ask config agent for the running config of the hosting device
+        cfg_notifier = self.agent_notifiers.get(c_constants.AGENT_TYPE_CFG)
+        if cfg_notifier:
+            return cfg_notifier.get_hosting_device_configuration(context, id)
+
     def get_hosting_device_driver(self, context, id):
         """Returns device driver for hosting device template with <id>."""
         if id is None:

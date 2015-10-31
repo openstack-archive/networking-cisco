@@ -46,7 +46,7 @@ class CiscoDeviceManagerPlugin(dev_mgr_db.HostingDeviceManagerMixin,
     supported_extension_aliases = [
         ciscohostingdevicemanager.HOSTING_DEVICE_MANAGER_ALIAS,
         ciscocfgagentscheduler.CFG_AGENT_SCHEDULER_ALIAS]
-    path_prefix = "/dev_mgr"
+    path_prefix = ciscocfgagentscheduler.PATH_PREFIX
 
     def __init__(self):
         self.setup_rpc()

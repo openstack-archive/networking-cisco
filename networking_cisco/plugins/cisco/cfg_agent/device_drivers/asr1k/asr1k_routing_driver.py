@@ -113,6 +113,9 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         cfg_syncer = asr1k_cfg_syncer.ConfigSyncer(routers, self, hd)
         cfg_syncer.delete_invalid_cfg()
 
+    def get_configuration(self):
+        return self._get_running_config(split=False)
+
     # ============== Internal "preparation" functions  ==============
 
     def _get_acl_name_from_vlan(self, vlan):

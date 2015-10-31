@@ -220,6 +220,8 @@
     "update_hosting_device": "rule:admin_only",
     "delete_hosting_device": "rule:admin_only",
 
+    "get_hosting_device_config": "rule:admin_or_owner",
+
     "create_hosting_device_template": "rule:admin_only",
     "get_hosting_device_template": "rule:admin_only",
     "get_hosting_device_templates": "rule:admin_only",
@@ -228,11 +230,14 @@
 
     "create_routertype": "rule:admin_only",
     "get_routertype": "rule:admin_or_owner or rule:shared_routertypes",
-    "get_routertype:cfg_agent_driver": "rule:admin_only",
-    "get_routertype:scheduler": "rule:admin_only",
+    "get_routertype:template_id": "rule:admin_only",
     "get_routertype:shared": "rule:admin_only",
     "get_routertype:slot_need": "rule:admin_only",
-    "get_routertype:template_id": "rule:admin_only",
+    "get_routertype:scheduler": "rule:admin_only",
+    "get_routertype:driver": "rule:admin_only",
+    "get_routertype:cfg_agent_service_helper": "rule:admin_only",
+    "get_routertype:cfg_agent_driver": "rule:admin_only",
+
     "update_routertype": "rule:admin_only",
     "delete_routertype": "rule:admin_only",
 

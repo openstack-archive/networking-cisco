@@ -63,7 +63,7 @@ class HostingDeviceCfgAgentSchedulerTestMixIn(
     def _list_cfg_agents_handling_hosting_device(
             self, hosting_device_id, expected_code=exc.HTTPOk.code,
             admin_context=True):
-        path = "/hosting_devices/%s/%s.%s" % (
+        path = "/dev_mgr/hosting_devices/%s/%s.%s" % (
             hosting_device_id,
             ciscocfgagentscheduler.HOSTING_DEVICE_CFG_AGENTS, self.fmt)
         return self._request_list(path, expected_code=expected_code,

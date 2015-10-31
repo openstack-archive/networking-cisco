@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
+
 import contextlib
 
 from oslo_config import cfg
@@ -19,8 +21,12 @@ import six
 import webob.exc
 
 from neutron.common import constants as n_const
+from neutron import context as n_context
+from neutron import manager
+from neutron.plugins.common import constants
 from neutron.tests.unit.db import test_db_base_plugin_v2
 
+import networking_cisco
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
 from networking_cisco.plugins.cisco.db.device_manager import (
@@ -28,12 +34,16 @@ from networking_cisco.plugins.cisco.db.device_manager import (
 from networking_cisco.plugins.cisco.extensions import (
     ciscohostingdevicemanager as ciscodevmgr)
 from networking_cisco.plugins.cisco.extensions import ha
+from networking_cisco.plugins.cisco.extensions import routertype
 from networking_cisco.tests.unit.cisco.device_manager import (
     device_manager_test_support)
 from networking_cisco.tests.unit.cisco.device_manager.test_db_device_manager \
     import DeviceManagerTestCaseMixin
 from networking_cisco.tests.unit.cisco.l3 import l3_router_test_support
 
+
+policy_path = (os.path.abspath(networking_cisco.__path__[0]) +
+               '/../etc/policy.json')
 
 CORE_PLUGIN_KLASS = device_manager_test_support.CORE_PLUGIN_KLASS
 L3_PLUGIN_KLASS = l3_router_test_support.L3_PLUGIN_KLASS
@@ -85,8 +95,12 @@ class RoutertypeTestCaseMixin(object):
                                               **kwargs)
         data.update({'tenant_id': kwargs.get('tenant_id', self._tenant_id)})
         data = {'routertype': data}
-        hd_req = self.new_create_request('routertypes', data, fmt)
-        hd_res = hd_req.get_response(self.ext_api)
+        rt_req = self.new_create_request('routertypes', data, fmt)
+        if kwargs.get('set_context') and 'tenant_id' in kwargs:
+            # create a specific auth context for this request
+            rt_req.environ['neutron.context'] = n_context.Context(
+                '', kwargs['tenant_id'])
+        hd_res = rt_req.get_response(self.ext_api)
         if expected_res_status:
             self.assertEqual(hd_res.status_int, expected_res_status)
         return hd_res
@@ -112,15 +126,23 @@ class RoutertypeTestCaseMixin(object):
             'name': name,
             'description': kwargs.get('description'),
             'template_id': template_id,
-            'slot_need': slot_need,
-            'shared': kwargs.get('shared', True),
             'ha_enabled_by_default': kwargs.get('ha_enabled_by_default',
                                                 False),
+            'shared': kwargs.get('shared', True),
+            'slot_need': slot_need,
             'scheduler': kwargs.get('scheduler', NOOP_SCHEDULER),
             'driver': NOOP_RT_DRIVER,
             'cfg_agent_service_helper': NOOP_AGT_SVC_HELPER,
             'cfg_agent_driver': kwargs.get('cfg_agent_driver', NOOP_AGT_DRV)}
         return data
+
+    def _get_non_admin_routertype_attr(self, template_id, name='router type 1',
+                                       slot_need=TEST_SLOT_NEED, **kwargs):
+        subset = {'id', 'name', 'description', 'tenant_id',
+                  'ha_enabled_by_default'}
+        attr_dict = self._get_test_routertype_attr(template_id, name,
+                                                   slot_need, **kwargs)
+        return {kv[0]: kv[1] for kv in attr_dict.items() if kv[0] in subset}
 
     def _test_list_resources(self, resource, items,
                              neutron_context=None,
@@ -229,31 +251,105 @@ class TestRoutertypeDBPlugin(test_db_base_plugin_v2.NeutronDbPluginV2TestCase,
         super(TestRoutertypeDBPlugin, self).setUp(
             plugin=core_plugin, service_plugins=service_plugins,
             ext_mgr=ext_mgr)
+        self.l3_plugin = manager.NeutronManager.get_service_plugins()[
+            constants.L3_ROUTER_NAT]
+        # Ensure we use policy definitions from our repo
+        cfg.CONF.set_override('policy_file', policy_path, 'oslo_policy')
 
     def test_create_routertype(self):
         with self.hosting_device_template() as hdt:
-            attrs = self._get_test_routertype_attr(
-                hdt['hosting_device_template']['id'])
-            with self.routertype(hdt['hosting_device_template']['id']) as rt:
+            hdt_id = hdt['hosting_device_template']['id']
+            attrs = self._get_test_routertype_attr(hdt_id)
+            with self.routertype(hdt_id) as rt:
                 for k, v in six.iteritems(attrs):
                     self.assertEqual(rt['routertype'][k], v)
 
-    def _test_show_routertype(self):
-        #TODO(bobmel): Implement this unit test
-        pass
+    def test_show_routertype(self):
+        with self.hosting_device_template() as hdt:
+            hdt_id = hdt['hosting_device_template']['id']
+            attrs = self._get_test_routertype_attr(hdt_id)
+            with self.routertype(hdt_id) as rt:
+                req = self.new_show_request('routertypes',
+                                            rt['routertype']['id'],
+                                            fmt=self.fmt)
+                res = self.deserialize(self.fmt,
+                                       req.get_response(self.ext_api))
+                for k, v in six.iteritems(attrs):
+                    self.assertEqual(res['routertype'][k], v)
 
-    def _test_list_routertypes(self):
-        #TODO(bobmel): Implement this unit test
-        pass
+    def test_show_routertype_non_admin(self):
+        with self.hosting_device_template() as hdt:
+            hdt_id = hdt['hosting_device_template']['id']
+            tenant_id = hdt['hosting_device_template']['tenant_id']
+            with self.routertype(hdt_id) as rt:
+                rt_id = rt['routertype']['id']
+                non_admin_ctx = n_context.Context('', tenant_id)
+                req = self._req('GET', 'routertypes', None, self.fmt, id=rt_id,
+                                context=non_admin_ctx)
+                res = self.deserialize(self.fmt,
+                                       req.get_response(self.ext_api))
+                attrs = self._get_non_admin_routertype_attr(hdt_id)
+                attrs['id'] = rt_id
+                attrs['tenant_id'] = tenant_id
+                self.assertEqual(len(res['routertype']), len(attrs))
+                for k, v in six.iteritems(attrs):
+                    self.assertEqual(res['routertype'][k], v)
 
-    def _test_update_routertype(self):
-        #TODO(bobmel): Implement this unit test
-        pass
+    def test_list_routertypes(self):
+        with self.hosting_device_template() as hdt:
+            hdt_id = hdt['hosting_device_template']['id']
+            with self.routertype(hdt_id, 'rt1') as rt1,\
+                    self.routertype(hdt_id, 'rt2') as rt2,\
+                    self.routertype(hdt_id, 'rt3') as rt3:
+                self._test_list_resources('routertype', [rt1, rt2, rt3],
+                                          query_params='template_id=' + hdt_id)
 
-    def _test_delete_routertype(self):
-        #TODO(bobmel): Implement this unit test
-        pass
+    def test_update_routertype(self):
+        with self.hosting_device_template() as hdt:
+            hdt_id = hdt['hosting_device_template']['id']
+            new_name = 'new_name_1'
+            attrs = self._get_test_routertype_attr(hdt_id)
+            attrs['name'] = new_name
+            with self.routertype(hdt_id) as rt:
+                rt_id = rt['routertype']['id']
+                data = {'routertype': {'name': new_name}}
+                req = self.new_update_request('routertypes', data, rt_id)
+                res = self.deserialize(self.fmt,
+                                       req.get_response(self.ext_api))
+                for k, v in six.iteritems(attrs):
+                    self.assertEqual(res['routertype'][k], v)
 
-    def _test_delete_routertype_in_use(self):
-        #TODO(bobmel): Implement this unit test
-        pass
+    def test_delete_routertype(self):
+        with self.hosting_device_template() as hdt:
+            hdt_id = hdt['hosting_device_template']['id']
+            with self.routertype(hdt_id, no_delete=True) as rt:
+                rt_id = rt['routertype']['id']
+                req = self.new_delete_request('routertypes', rt_id)
+                res = req.get_response(self.ext_api)
+                self.assertEqual(res.status_int, 204)
+                ctx = n_context.get_admin_context()
+                self.assertRaises(routertype.RouterTypeNotFound,
+                                  self.l3_plugin.get_routertype, ctx, rt_id)
+
+    def test_routertype_policy(self):
+        with self.hosting_device_template() as hdt:
+            hdt_id = hdt['hosting_device_template']['id']
+            tenant_id = hdt['hosting_device_template']['tenant_id']
+            with self.routertype(hdt_id) as rt:
+                rt_id = rt['routertype']['id']
+                non_admin_ctx = n_context.Context('', tenant_id)
+                # create fails
+                self._create_routertype(
+                    self.fmt, hdt_id, 'fast_routers', 10,
+                    webob.exc.HTTPForbidden.code, tenant_id=tenant_id,
+                    set_context=True)
+                # show succeeds
+                self._show('routertypes', rt_id,
+                           webob.exc.HTTPOk.code, non_admin_ctx)
+                # update fails
+                self._update('routertypes', rt_id,
+                             {'routertype': {'name': 'new_name'}},
+                             webob.exc.HTTPForbidden.code, non_admin_ctx)
+                # delete fails
+                self._delete('routertypes', rt_id,
+                             webob.exc.HTTPNotFound.code, non_admin_ctx)

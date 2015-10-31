@@ -282,3 +282,8 @@ class ASR1kRoutingDriver(base.BaseTestCase):
             snippets.REMOVE_DYN_SRC_TRL_POOL, cfg_params_dyn_trans)
 
         self.assert_edit_run_cfg(csr_snippets.REMOVE_ACL, acl_name)
+
+    def test_get_configuration(self):
+        self.driver._get_running_config = mock.MagicMock()
+        self.driver.get_configuration()
+        self.driver._get_running_config.assert_called_once_with(split=False)

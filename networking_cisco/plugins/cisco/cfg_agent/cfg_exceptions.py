@@ -65,7 +65,7 @@ class DriverNotExist(DriverException):
 
 
 class DriverNotFound(DriverException):
-    message = _("Driver not found for resource id:%(id)s.")
+    message = _("Driver not found for %(resource)s id:%(id)s.")
 
 
 class DriverNotSetForMissingParameter(DriverException):

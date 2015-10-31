@@ -98,7 +98,7 @@ class RouterInfo(object):
 
 
 class CiscoRoutingPluginApi(object):
-    """RoutingServiceHelper(Agent) side of the  routing RPC API."""
+    """RoutingServiceHelper(Agent) side of the routing RPC API."""
 
     def __init__(self, topic, host):
         self.host = host
@@ -130,11 +130,22 @@ class CiscoRoutingPluginApi(object):
 
         @param context: contains user information
         @param router_id: id of router associated with the floatingips
-        @param router_id: dict with floatingip_id as key and status as value
+        @param fip_statuses: dict with floatingip_id as key and status as value
         """
         cctxt = self.client.prepare(version='1.1')
         return cctxt.call(context, 'update_floatingip_statuses_cfg',
                           router_id=router_id, fip_statuses=fip_statuses)
+
+    def send_update_port_statuses(self, context, port_ids, status):
+        """Call the pluging to update the port status which updates the DB.
+
+        :param context: contains user information
+        :param port_ids: list of ids of the ports associated with the status
+        :param status: value of the status for the given port list (port_ids)
+        """
+        cctxt = self.client.prepare(version='1.1')
+        return cctxt.call(context, 'update_port_statuses_cfg',
+                          port_ids=port_ids, status=status)
 
 
 class RoutingServiceHelper(object):
@@ -190,6 +201,10 @@ class RoutingServiceHelper(object):
         self.routers_updated(context, routers)
 
     # Routing service helper public methods
+
+    @property
+    def driver_manager(self):
+        return self._drivermgr
 
     def process_service(self, device_ids=None, removed_devices_info=None):
         try:
@@ -313,7 +328,7 @@ class RoutingServiceHelper(object):
             temp_res = {"id": hd_id,
                         "hosting_device": routers[0]['hosting_device'],
                         "router_type": routers[0]['router_type']}
-            driver = self._drivermgr.set_driver(temp_res)
+            driver = self.driver_manager.set_driver(temp_res)
 
             driver.cleanup_invalid_cfg(
                 routers[0]['hosting_device'], routers)
@@ -480,6 +495,26 @@ class RoutingServiceHelper(object):
                           device_id)
             self.sync_devices.add(device_id)
 
+    def _send_update_port_statuses(self, port_ids, status):
+        """Sends update notifications to set the operational status of the
+        list of router ports provided. To make each notification doesn't exceed
+        the RPC length, each message contains a maximum of MAX_PORTS_IN_BATCH
+        port ids.
+
+        :param port_ids: List of ports to update the status
+        :param status: operational status to update
+                       (ex: l3_constants.PORT_STATUS_ACTIVE)
+        """
+        if not port_ids:
+            return
+
+        MAX_PORTS_IN_BATCH = 50
+        list_chunks_ports = [port_ids[i:i + MAX_PORTS_IN_BATCH]
+            for i in six.moves.range(0, len(port_ids), MAX_PORTS_IN_BATCH)]
+        for chunk_ports in list_chunks_ports:
+            self.plugin_rpc.send_update_port_statuses(self.context,
+                                                      chunk_ports, status)
+
     def _process_router(self, ri):
         """Process a router, apply latest configuration and update router_info.
 
@@ -497,14 +532,10 @@ class RoutingServiceHelper(object):
         DriverException if the configuration operation fails.
         """
         try:
-            #ToDo(Hareesh): Check if we need these 1C debugs
-            # LOG.debug("++++ ri = %s " % (pp.pformat(ri)))
             ex_gw_port = ri.router.get('gw_port')
-            # LOG.debug("++++ ex_gw_port = %s " % (pp.pformat(ex_gw_port)))
             ri.ha_info = ri.router.get('ha_info', None)
             internal_ports = ri.router.get(l3_constants.INTERFACE_KEY, [])
 
-            # LOG.debug("++internal ports:%s" %(pp.pformat(internal_ports)))
             existing_port_ids = set([p['id'] for p in ri.internal_ports])
             current_port_ids = set([p['id'] for p in internal_ports
                                     if p['admin_state_up']])
@@ -516,6 +547,7 @@ class RoutingServiceHelper(object):
 
             new_port_ids = [p['id'] for p in new_ports]
             old_port_ids = [p['id'] for p in old_ports]
+            list_port_ids_up = []
             LOG.debug("++ new_port_ids = %s" % (pp.pformat(new_port_ids)))
             LOG.debug("++ old_port_ids = %s" % (pp.pformat(old_port_ids)))
 
@@ -523,6 +555,7 @@ class RoutingServiceHelper(object):
                 self._set_subnet_info(p)
                 self._internal_network_added(ri, p, ex_gw_port)
                 ri.internal_ports.append(p)
+                list_port_ids_up.append(p['id'])
 
             for p in old_ports:
                 self._internal_network_removed(ri, p, ri.ex_gw_port)
@@ -531,9 +564,12 @@ class RoutingServiceHelper(object):
             if ex_gw_port and not ri.ex_gw_port:
                 self._set_subnet_info(ex_gw_port)
                 self._external_gateway_added(ri, ex_gw_port)
+                list_port_ids_up.append(ex_gw_port['id'])
             elif not ex_gw_port and ri.ex_gw_port:
                 self._external_gateway_removed(ri, ri.ex_gw_port)
 
+            self._send_update_port_statuses(list_port_ids_up,
+                l3_constants.PORT_STATUS_ACTIVE)
             if ex_gw_port:
                 self._process_router_floating_ips(ri, ex_gw_port)
 
@@ -654,7 +690,7 @@ class RoutingServiceHelper(object):
         :return: None
         """
         ri = RouterInfo(router_id, router)
-        driver = self._drivermgr.set_driver(router)
+        driver = self.driver_manager.set_driver(router)
         if router[ROUTER_ROLE_ATTR] in [
             c_constants.ROUTER_ROLE_GLOBAL,
             c_constants.ROUTER_ROLE_LOGICAL_GLOBAL]:
@@ -688,9 +724,9 @@ class RoutingServiceHelper(object):
         try:
             if deconfigure:
                 self._process_router(ri)
-                driver = self._drivermgr.get_driver(router_id)
+                driver = self.driver_manager.get_driver(router_id)
                 driver.router_removed(ri)
-                self._drivermgr.remove_driver(router_id)
+                self.driver_manager.remove_driver(router_id)
             del self.router_info[router_id]
             self.removed_routers.discard(router_id)
         except cfg_exceptions.DriverException:
@@ -704,13 +740,13 @@ class RoutingServiceHelper(object):
             self.updated_routers.discard(router_id)
 
     def _internal_network_added(self, ri, port, ex_gw_port):
-        driver = self._drivermgr.get_driver(ri.id)
+        driver = self.driver_manager.get_driver(ri.id)
         driver.internal_network_added(ri, port)
         if ri.snat_enabled and ex_gw_port:
             driver.enable_internal_network_NAT(ri, port, ex_gw_port)
 
     def _internal_network_removed(self, ri, port, ex_gw_port):
-        driver = self._drivermgr.get_driver(ri.id)
+        driver = self.driver_manager.get_driver(ri.id)
         driver.internal_network_removed(ri, port)
         if ri.snat_enabled and ex_gw_port:
             #ToDo(Hareesh): Check if the intfc_deleted attribute is needed
@@ -718,25 +754,25 @@ class RoutingServiceHelper(object):
                                                 itfc_deleted=True)
 
     def _external_gateway_added(self, ri, ex_gw_port):
-        driver = self._drivermgr.get_driver(ri.id)
+        driver = self.driver_manager.get_driver(ri.id)
         driver.external_gateway_added(ri, ex_gw_port)
         if ri.snat_enabled and ri.internal_ports:
             for port in ri.internal_ports:
                 driver.enable_internal_network_NAT(ri, port, ex_gw_port)
 
     def _external_gateway_removed(self, ri, ex_gw_port):
-        driver = self._drivermgr.get_driver(ri.id)
+        driver = self.driver_manager.get_driver(ri.id)
         if ri.snat_enabled and ri.internal_ports:
             for port in ri.internal_ports:
                 driver.disable_internal_network_NAT(ri, port, ex_gw_port)
         driver.external_gateway_removed(ri, ex_gw_port)
 
     def _floating_ip_added(self, ri, ex_gw_port, floating_ip, fixed_ip):
-        driver = self._drivermgr.get_driver(ri.id)
+        driver = self.driver_manager.get_driver(ri.id)
         driver.floating_ip_added(ri, ex_gw_port, floating_ip, fixed_ip)
 
     def _floating_ip_removed(self, ri, ex_gw_port, floating_ip, fixed_ip):
-        driver = self._drivermgr.get_driver(ri.id)
+        driver = self.driver_manager.get_driver(ri.id)
         driver.floating_ip_removed(ri, ex_gw_port, floating_ip, fixed_ip)
 
     def _routes_updated(self, ri):
@@ -760,12 +796,12 @@ class RoutingServiceHelper(object):
             for del_route in removes:
                 if route['destination'] == del_route['destination']:
                     removes.remove(del_route)
-            driver = self._drivermgr.get_driver(ri.id)
+            driver = self.driver_manager.get_driver(ri.id)
             driver.routes_updated(ri, 'replace', route)
 
         for route in removes:
             LOG.debug("Removed route entry is '%s'", route)
-            driver = self._drivermgr.get_driver(ri.id)
+            driver = self.driver_manager.get_driver(ri.id)
             driver.routes_updated(ri, 'delete', route)
         ri.routes = new_routes
 

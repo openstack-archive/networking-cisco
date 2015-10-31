@@ -121,7 +121,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         super(TestBasicRoutingOperations, self).setUp()
         self.conf = cfg.ConfigOpts()
         self.conf.register_opts(base_config.core_opts)
-        self.conf.register_opts(cfg_agent.CiscoCfgAgent.OPTS)
+        self.conf.register_opts(cfg_agent.CiscoCfgAgent.OPTS, "cfg_agent")
         self.ex_gw_port = {'id': _uuid(),
                            'network_id': _uuid(),
                            'fixed_ips': [{'ip_address': '19.4.4.4',

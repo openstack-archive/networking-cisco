@@ -245,7 +245,7 @@ class CiscoCfgAgent(manager.Manager):
 
     def hosting_devices_assigned_to_cfg_agent(self, context, payload):
         """Deal with hosting devices assigned to this config agent."""
-        LOG.debug("ZZZZZ Got hosting device assigned, payload: %s" % payload)
+        LOG.debug("Got hosting device assigned, payload: %s" % payload)
         try:
             if payload['hosting_device_ids']:
                 #TODO(hareeshp): implement assignment of hosting devices
@@ -284,6 +284,22 @@ class CiscoCfgAgent(manager.Manager):
         context = n_context.get_admin_context_without_session()
         res = self.devmgr_rpc.get_hosting_devices_for_agent(context)
         return res
+
+    def get_hosting_device_configuration(self, context, payload):
+        LOG.debug('Processing request to fetching running config')
+        hd_id = payload['hosting_device_id']
+        svc_helper = self.routing_service_helper
+        if hd_id and svc_helper:
+            LOG.debug('Fetching running config for %s' % hd_id)
+            drv = svc_helper.driver_manager.get_driver_for_hosting_device(
+                hd_id)
+            rc = drv.get_configuration()
+            if rc:
+                LOG.debug('Fetched %(chars)d characters long running config '
+                          'for %(hd_id)s' % {'chars': len(rc), 'hd_id': hd_id})
+                return rc
+        LOG.debug('Unable to get running config')
+        return
 
 
 class CiscoCfgAgentWithStateReport(CiscoCfgAgent):
@@ -383,8 +399,57 @@ class CiscoCfgAgentWithStateReport(CiscoCfgAgent):
             LOG.exception(_LE("Failed sending agent report!"))
 
 
+def _mock_stuff():
+    import mock
+
+    targets = ['networking_cisco.plugins.cisco.cfg_agent.device_drivers.'
+               'csr1kv.csr1kv_routing_driver.manager',
+               'networking_cisco.plugins.cisco.cfg_agent.device_drivers.'
+               'csr1kv.iosxe_routing_driver.manager']
+    ncc_patchers = []
+    ncclient_mock = mock.MagicMock()
+    ok_xml_obj = mock.MagicMock()
+    ok_xml_obj.xml = "<ok />"
+    ncclient_mock.connect.return_value.edit_config.return_value = ok_xml_obj
+    for target in targets:
+        patcher = mock.patch(target, ncclient_mock)
+        patcher.start()
+        ncc_patchers.append(patcher)
+
+    targets = ['networking_cisco.plugins.cisco.cfg_agent.device_drivers'
+               '.csr1kv.csr1kv_routing_driver.CSR1kvRoutingDriver.'
+               '_get_running_config',
+               'networking_cisco.plugins.cisco.cfg_agent.device_drivers.'
+               'csr1kv.iosxe_routing_driver.IosXeRoutingDriver.'
+               '_get_running_config',
+               'networking_cisco.plugins.cisco.cfg_agent.device_drivers.'
+               'asr1k.asr1k_cfg_syncer.ConfigSyncer.get_running_config',
+               'networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k.'
+               'asr1k_cfg_syncer.ConfigSyncer.get_running_config']
+    fake_running_config = ("interface GigabitEthernet1\n"
+                           "ip address 10.0.0.10 255.255.255.255\n"
+                           "ip route 0.0.0.0 0.0.0.0 GigabitEthernet1 "
+                           "10.0.0.1")
+    g_r_c_patchers = []
+    g_r_c_mock = mock.MagicMock(return_value=fake_running_config)
+    for target in targets:
+        patcher = mock.patch(target, g_r_c_mock)
+        patcher.start()
+        g_r_c_patchers.append(patcher)
+
+    is_pingable_mock = mock.MagicMock(return_value=True)
+    pingable_patcher = mock.patch(
+        'networking_cisco.plugins.cisco.cfg_agent.device_status._is_pingable',
+        is_pingable_mock)
+    pingable_patcher.start()
+
+
 def main(manager='networking_cisco.plugins.cisco.cfg_agent.'
                  'cfg_agent.CiscoCfgAgentWithStateReport'):
+    # NOTE(bobmel): call _mock_stuff() to run config agent with fake ncclient
+    # This mocked mode of running the config agent is useful for end-2-end-like
+    # debugging without actual backend hosting devices.
+    #_mock_stuff()
     conf = cfg.CONF
     conf.register_opts(CiscoCfgAgent.OPTS, "cfg_agent")
     config.register_agent_state_opts_helper(conf)

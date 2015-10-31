@@ -33,7 +33,7 @@ class DeviceMgrCfgAgentNotifyAPI(object):
 
     def __init__(self, devmgr_plugin, topic=c_constants.CFG_AGENT):
         self._dmplugin = devmgr_plugin
-        target = oslo_messaging.Target(topic=topic, version='1.0')
+        target = oslo_messaging.Target(topic=topic, version='1.1')
         self.client = n_rpc.get_client(target)
 
     def _host_notification(self, context, method, payload, host):
@@ -108,3 +108,18 @@ class DeviceMgrCfgAgentNotifyAPI(object):
             self._host_notification(context, 'hosting_devices_removed',
                                     {'hosting_data': hosting_data,
                                      'deconfigure': deconfigure}, host)
+
+    # version 1,1
+    def get_hosting_device_configuration(self, context, id):
+        """Fetch configuration of hosting device with id.
+
+        The configuration agent should respond with the running config of
+        the hosting device.
+        """
+        admin_context = context.is_admin and context or context.elevated()
+        agents = self._dmplugin.get_cfg_agents_for_hosting_devices(
+            admin_context, [id], admin_state_up=True, schedule=True)
+        if agents:
+            cctxt = self.client.prepare(server=agents[0].host)
+            return cctxt.call(context, 'get_hosting_device_configuration',
+                              payload={'hosting_device_id': id})
