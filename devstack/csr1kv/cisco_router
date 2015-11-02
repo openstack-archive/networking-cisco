@@ -42,6 +42,8 @@ function neutron_cisco_router_configure_common() {
 
     _inject_deployer_config
 
+    _patch_neutron_legacy
+
     iniset $Q_CISCO_ROUTER_PLUGIN_CONF_FILE routing default_router_type $Q_CISCO_DEFAULT_ROUTER_TYPE
 
  }
@@ -71,12 +73,42 @@ function _inject_deployer_config() {
 
 
 function _clear_L3_plugin() {
-  if [[  ,${Q_SERVICE_PLUGIN_CLASSES}, =~ ,${ML2_L3_PLUGIN}, ]]; then
-  echo "Found L3 plugin configured..Proceeding to delete it"
+    if [[  ,${Q_SERVICE_PLUGIN_CLASSES}, =~ ,${ML2_L3_PLUGIN}, ]]; then
+        echo "Found L3 plugin configured..Proceeding to delete it"
 
-  Q_SERVICE_PLUGIN_CLASSES=${Q_SERVICE_PLUGIN_CLASSES##$ML2_L3_PLUGIN}
-  echo "service plugins="$Q_SERVICE_PLUGIN_CLASSES
-fi
+        Q_SERVICE_PLUGIN_CLASSES=${Q_SERVICE_PLUGIN_CLASSES##$ML2_L3_PLUGIN}
+        echo "service plugins="$Q_SERVICE_PLUGIN_CLASSES
+    fi
+}
+
+
+# lines in neutron-legacy that need to be changed to be compatible with cisco router plugin
+TO_REPLACE[0]=$(cat <<'EOF'
+ROUTER_GW_IP=`neutron port-list -c fixed_ips -c device_owner | grep router_gateway | awk -F '"' -v subnet_id=$PUB_SUBNET_ID '$4 == subnet_id { print $8; }'`;
+EOF
+)
+TO_REPLACE[1]=$(cat <<'EOF'
+IPV6_ROUTER_GW_IP=`neutron port-list -c fixed_ips | grep $ipv6_pub_subnet_id | awk -F '"' -v subnet_id=$ipv6_pub_subnet_id '$4 == subnet_id { print $8; }'`;
+EOF
+)
+
+REPLACE_WITH[0]=$(cat <<'EOF'
+ROUTER_GW_IP=`neutron port-list -c fixed_ips -c device_owner -c device_id | awk -F '|' -v router_id=$ROUTER_ID -v subnet_id=$PUB_SUBNET_ID '/gateway/ { gsub(" ", "", $4); if ($4 == router_id) { split($2, res, "\\\""); if (res[4] == subnet_id) print res[8]; } }'`;
+EOF
+)
+REPLACE_WITH[1]=$(cat <<'EOF'
+IPV6_ROUTER_GW_IP=`neutron port-list -c fixed_ips -c device_id | awk -F '|' -v router_id=$ROUTER_ID -v subnet_id=$ipv6_pub_subnet_id '{ gsub(" ", "", $3); if ($3 == router_id) { split($2, res, "\\\""); if (res[4] == subnet_id) print res[8]; } }'`;
+EOF
+)
+
+function _patch_neutron_legacy() {
+    # Redefine functions in neutron-legacy that configure v4 and v6 routers so gateway ip is determined in a way compatible with our plugin
+    original_definition=$(declare -f _neutron_configure_router_v4)
+    new_definition=$(echo "$original_definition" | awk -v to_replace="${TO_REPLACE[0]}" -v replace_with="${REPLACE_WITH[0]}" '{ match($0, /^ */); if (substr($0, RLENGTH+1) == to_replace) print substr($0, 1, RLENGTH)replace_with; else print $0; }')
+    eval "$new_definition"
+    original_definition=$(declare -f _neutron_configure_router_v6)
+    new_definition=$(echo "$original_definition" | awk -v to_replace="${TO_REPLACE[1]}" -v replace_with="${REPLACE_WITH[1]}" '{ match($0, /^ */); if (substr($0, RLENGTH+1) == to_replace) print substr($0, 1, RLENGTH)replace_with; else print $0; }')
+    eval "$new_definition"
 }
 
 # Restore xtrace
