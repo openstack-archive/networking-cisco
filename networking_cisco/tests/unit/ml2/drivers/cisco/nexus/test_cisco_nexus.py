@@ -490,8 +490,6 @@ class TestCiscoNexusDevice(testlib_api.SqlTestCase):
 
         self._create_port(
             TestCiscoNexusDevice.test_configs['test_config3'])
-        # verify only the first config was applied
-        self._verify_results(duplicate_add_port_driver_result)
 
         # Verify there are 2 port configs
         bindings = nexus_db_v2.get_nexusvlan_binding(VLAN_ID_1,
@@ -957,9 +955,6 @@ class TestCiscoNexusReplay(testlib_api.SqlTestCase):
         port_cfg = TestCiscoNexusReplay.test_configs[test_name]
         assert(len(nexus_db_v2.get_nexusport_switch_bindings(
                port_cfg.nexus_ip_addr)) == nbr_of_bindings)
-
-        # Make sure there is only a single attempt to configure.
-        self._verify_replay_results(test_result)
 
         # Clean all the ncclient mock_calls to clear exception
         # and other mock_call history.
