@@ -448,12 +448,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             all_bindings = nxos_db.get_nexusvlan_binding(vlan_id, switch_ip)
             previous_bindings = [row for row in all_bindings
                     if row.instance_id != device_id]
-            duplicate_port = [row for row in all_bindings
-                    if row.instance_id != device_id and
-                    row.port_id == intf_type + ':' + nexus_port]
-            if duplicate_port:
-                duplicate_type = const.DUPLICATE_PORT
-            elif previous_bindings and (switch_ip in vlan_already_created):
+            if previous_bindings and (switch_ip in vlan_already_created):
                 duplicate_type = const.DUPLICATE_VLAN
             else:
                 vlan_already_created.append(switch_ip)
