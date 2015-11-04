@@ -23,9 +23,9 @@ from neutron.common import topics
 from neutron.db import common_db_mixin
 #from neutron.db import l3_gwmode_db
 from neutron import manager
-import neutron.plugins
 from neutron.plugins.common import constants
 
+import networking_cisco.plugins
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.l3 import ha_db
 from networking_cisco.plugins.cisco.db.l3 import l3_router_appliance_db
@@ -68,7 +68,7 @@ class CiscoRouterPlugin(common_db_mixin.CommonDbMixin,
 
     def __init__(self):
         self.setup_rpc()
-        basepath = neutron.plugins.__path__[0]
+        basepath = networking_cisco.plugins.__path__[0]
         ext_paths = [basepath + '/cisco/extensions']
         cp = cfg.CONF.api_extensions_path
         to_add = ""

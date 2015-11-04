@@ -18,8 +18,8 @@ from oslo_utils import importutils
 
 from neutron.common import rpc as n_rpc
 from neutron import manager
-import neutron.plugins
 
+import networking_cisco.plugins
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
 from networking_cisco.plugins.cisco.db.device_manager import (
@@ -50,7 +50,7 @@ class CiscoDeviceManagerPlugin(dev_mgr_db.HostingDeviceManagerMixin,
 
     def __init__(self):
         self.setup_rpc()
-        basepath = neutron.plugins.__path__[0]
+        basepath = networking_cisco.plugins.__path__[0]
         ext_paths = [basepath + '/cisco/extensions']
         cp = cfg.CONF.api_extensions_path
         to_add = ""
