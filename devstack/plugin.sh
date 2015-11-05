@@ -18,7 +18,7 @@ if is_service_enabled net-cisco; then
     elif [[ "$1" == "stack" && "$2" == "install" ]]; then
         cd $DIR_CISCO
         echo "Installing Networking-Cisco"
-        sudo python setup.py install
+        setup_develop $DIR_CISCO
 
         if is_service_enabled cisco-fwaas; then
             echo "Installing neutron-fwaas"
