@@ -32,7 +32,7 @@ from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
 from networking_cisco.plugins.cisco.extensions import ha
 
 ciscoconfparse = importutils.try_import('ciscoconfparse')
-ncclient = importutils.try_import('ncclient')
+manager = importutils.try_import('ncclient.manager')
 
 LOG = logging.getLogger(__name__)
 
@@ -274,7 +274,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
             if self._ncc_connection and self._ncc_connection.connected:
                 return self._ncc_connection
             else:
-                self._ncc_connection = ncclient.manager.connect(
+                self._ncc_connection = manager.connect(
                     host=self._host_ip, port=self._host_ssh_port,
                     username=self._username, password=self._password,
                     device_params={'name': "csr"}, timeout=self._timeout)
