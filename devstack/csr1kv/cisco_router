@@ -34,6 +34,10 @@ function neutron_cisco_router_configure_common() {
     Q_PLUGIN_EXTRA_CONF_FILES=(${Q_PLUGIN_EXTRA_CONF_FILES[@]} $Q_CISCO_ROUTER_PLUGIN_CONF_FILE)
     Q_PLUGIN_EXTRA_CONF_FILES=(${Q_PLUGIN_EXTRA_CONF_FILES[@]} $Q_CISCO_DEVMGR_PLUGIN_CONF_FILE)
 
+    # Copy policy.json from networking-cisco/etc to the neutron/etc folder
+    echo "Copying policy.json from ${DIR_CISCO}/etc/ to ${NEUTRON_CONF_DIR}"
+    cp $DIR_CISCO/etc/policy.json $Q_POLICY_FILE
+
     _inject_deployer_config
 
  }
