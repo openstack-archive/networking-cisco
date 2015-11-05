@@ -143,6 +143,20 @@ class L3RouterCfgRpcCallback(object):
                 self._l3plugin.update_floatingip_status(
                     context, fip_id, constants.FLOATINGIP_STATUS_DOWN)
 
+    def update_port_statuses_cfg(self, context, port_ids, status):
+        """Update the operational statuses of a list of router ports.
+
+           This is called by the Cisco cfg agent to update the status of a list
+           of ports.
+
+           @param context: contains user information
+           @param port_ids: list of ids of all the ports for the given status
+           @param status: PORT_STATUS_ACTIVE/PORT_STATUS_DOWN.
+        """
+        with context.session.begin(subtransactions=True):
+            self._l3plugin.update_router_port_statuses(context, port_ids,
+                                                       status)
+
     def _ensure_host_set_on_ports(self, context, host, routers):
         for router in routers:
             LOG.debug("Checking router: %(id)s for host: %(host)s",
