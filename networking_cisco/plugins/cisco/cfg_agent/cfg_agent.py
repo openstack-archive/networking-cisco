@@ -117,11 +117,20 @@ class CiscoCfgAgent(manager.Manager):
                            'service_helpers.routing_svc_helper.'
                            'RoutingServiceHelper',
                    help=_("Path of the routing service helper class.")),
+        cfg.BoolOpt('enable_heartbeat',
+                    default=False,
+                    help=_("If enabled, the agent will maintain a heartbeat "
+                           "against its hosting-devices. If a device dies "
+                           "and recovers, the agent will then trigger a "
+                           "configuration resync.")),
+
     ]
 
     def __init__(self, host, conf=None):
         self.conf = conf or cfg.CONF
         self._dev_status = device_status.DeviceStatus()
+        self._dev_status.enable_heartbeat = (
+            self.conf.cfg_agent.enable_heartbeat)
         self.context = n_context.get_admin_context_without_session()
 
         self._initialize_rpc(host)
@@ -221,12 +230,29 @@ class CiscoCfgAgent(manager.Manager):
         `process_services()` passing the now reachable device's id.
         For devices which have passed the `hosting_device_dead_timeout` and
         hence presumed dead, execute a RPC to the plugin informing that.
+
+        heartbeat revision
+        res['reachable'] - hosting device went from Unknown to Active state
+                           process_services(...)
+        res['revived']   - hosting device went from Dead to Active
+                           inform device manager that the hosting
+                           device is now responsive
+        res['dead']      - hosting device went from Unknown to Dead
+                           inform device manager that the hosting
+                           device is non-responding
+
         :param context: RPC context
         :return: None
         """
         res = self._dev_status.check_backlogged_hosting_devices()
         if res['reachable']:
             self.process_services(device_ids=res['reachable'])
+        if res['revived']:
+            LOG.debug("Reporting revived hosting devices: %s " %
+                      res['revived'])
+            # trigger a sync only on the revived hosting-devices
+            if (self.conf.cfg_agent.enable_heartbeat is True):
+                self.process_services(device_ids=res['revived'])
         if res['dead']:
             LOG.debug("Reporting dead hosting devices: %s", res['dead'])
             self.devmgr_rpc.report_dead_hosting_devices(context,
@@ -374,7 +400,10 @@ class CiscoCfgAgentWithStateReport(CiscoCfgAgent):
             configurations = self.routing_service_helper.collect_state(
                 self.agent_state['configurations'])
         non_responding = self._dev_status.get_backlogged_hosting_devices_info()
+        monitored_hosting_devices = \
+            self._dev_status.get_monitored_hosting_devices_info()
         configurations['non_responding_hosting_devices'] = non_responding
+        configurations['monitored_hosting_devices'] = monitored_hosting_devices
         configurations['service_agents'] = service_agents
         self.agent_state['configurations'] = configurations
         self.agent_state['local_time'] = datetime.utcnow().strftime(

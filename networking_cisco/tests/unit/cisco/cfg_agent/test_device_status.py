@@ -56,6 +56,9 @@ class TestHostingDevice(base.BaseTestCase):
         self.created_at_str = datetime.datetime.utcnow().strftime(
             "%Y-%m-%d %H:%M:%S")
         self.hosting_device['created_at'] = self.created_at_str
+
+        # if is_pingable, then hd_state is 'Active'
+        self.hosting_device['hd_state'] = 'Active'
         self.router_id = _uuid()
         self.router = {id: self.router_id,
                        'hosting_device': self.hosting_device}
@@ -67,13 +70,49 @@ class TestHostingDevice(base.BaseTestCase):
         self.assertTrue(self.status.is_hosting_device_reachable(
             self.hosting_device))
 
+    def test_is_hosting_device_reachable_positive_heartbeat_disabled(self):
+        self.status.enable_heartbeat = False
+        self.assertTrue(self.status.is_hosting_device_reachable(
+            self.hosting_device))
+        self.assertEqual(0, len(self.status.get_backlogged_hosting_devices()))
+
+    def test_is_hosting_device_reachable_positive_heartbeat_enabled(self):
+        self.status.enable_heartbeat = True
+        self.assertTrue(self.status.is_hosting_device_reachable(
+            self.hosting_device))
+        self.assertEqual(1, len(self.status.get_backlogged_hosting_devices()))
+        self.assertTrue(123 in self.status.get_backlogged_hosting_devices())
+        self.assertEqual(self.status.backlog_hosting_devices[123]['hd'],
+                         self.hosting_device)
+
     def test_is_hosting_device_reachable_negative(self):
         self.assertEqual(0, len(self.status.backlog_hosting_devices))
         self.hosting_device['created_at'] = self.created_at_str  # Back to str
         device_status._is_pingable.return_value = False
+        self.hosting_device['hd_state'] = 'Unknown'
 
         self.assertFalse(device_status._is_pingable('1.2.3.4'))
-        self.assertIsNone(self.status.is_hosting_device_reachable(
+        self.assertFalse(self.status.is_hosting_device_reachable(
+            self.hosting_device))
+        self.assertEqual(1, len(self.status.get_backlogged_hosting_devices()))
+        self.assertTrue(123 in self.status.get_backlogged_hosting_devices())
+        self.assertEqual(self.status.backlog_hosting_devices[123]['hd'],
+                         self.hosting_device)
+
+    def test_is_hosting_device_reachable_negative_heartbeat_disabled(self):
+        """
+        Even if heartbeat is disabled, unreachable hosting device should
+        still be backlogged
+        """
+        self.status.enable_heartbeat = False
+
+        self.assertEqual(0, len(self.status.backlog_hosting_devices))
+        self.hosting_device['created_at'] = self.created_at_str  # Back to str
+        device_status._is_pingable.return_value = False
+        self.hosting_device['hd_state'] = 'Unknown'
+
+        self.assertFalse(device_status._is_pingable('1.2.3.4'))
+        self.assertFalse(self.status.is_hosting_device_reachable(
             self.hosting_device))
         self.assertEqual(1, len(self.status.get_backlogged_hosting_devices()))
         self.assertTrue(123 in self.status.get_backlogged_hosting_devices())
@@ -85,7 +124,7 @@ class TestHostingDevice(base.BaseTestCase):
         self.status.backlog_hosting_devices[123] = {'hd': self.hosting_device}
 
         self.assertEqual(1, len(self.status.backlog_hosting_devices))
-        self.assertIsNone(self.status.is_hosting_device_reachable(
+        self.assertEqual(True, self.status.is_hosting_device_reachable(
             self.hosting_device))
         self.assertEqual(1, len(self.status.get_backlogged_hosting_devices()))
         self.assertTrue(123 in self.status.backlog_hosting_devices.keys())
@@ -95,6 +134,7 @@ class TestHostingDevice(base.BaseTestCase):
     def test_check_backlog_empty(self):
 
         expected = {'reachable': [],
+                    'revived': [],
                     'dead': []}
 
         self.assertEqual(expected,
@@ -102,11 +142,13 @@ class TestHostingDevice(base.BaseTestCase):
 
     def test_check_backlog_below_booting_time(self):
         expected = {'reachable': [],
+                    'revived': [],
                     'dead': []}
 
         self.hosting_device['created_at'] = create_timestamp(NOW)
         hd = self.hosting_device
         hd_id = hd['id']
+        hd['hd_state'] = 'Unknown'
         self.status.backlog_hosting_devices[hd_id] = {'hd': hd,
                                                       'routers': [
                                                           self.router_id]
@@ -135,10 +177,14 @@ class TestHostingDevice(base.BaseTestCase):
         hd = self.hosting_device
         hd_id = hd['id']
         device_status._is_pingable.return_value = True
+        # assumption in this scenario was that reachability to the
+        # hosting-device was unknown
+        hd['hd_state'] = 'Unknown'
         self.status.backlog_hosting_devices[hd_id] = {'hd': hd,
                                                       'routers': [
                                                           self.router_id]}
         expected = {'reachable': [hd_id],
+                    'revived': [hd_id],
                     'dead': []}
         self.assertEqual(expected,
                          self.status.check_backlogged_hosting_devices())
@@ -156,10 +202,12 @@ class TestHostingDevice(base.BaseTestCase):
         hd['backlog_insertion_ts'] = create_timestamp(NOW, type=TYPE_DATETIME)
         hd_id = hd['id']
         device_status._is_pingable.return_value = False
+        hd['hd_state'] = 'Unknown'
         self.status.backlog_hosting_devices[hd_id] = {'hd': hd,
                                                       'routers': [
                                                           self.router_id]}
         expected = {'reachable': [],
+                    'revived': [],
                     'dead': []}
         self.assertEqual(expected,
                          self.status.check_backlogged_hosting_devices())
@@ -179,10 +227,59 @@ class TestHostingDevice(base.BaseTestCase):
 
         hd_id = hd['id']
         device_status._is_pingable.return_value = False
+        hd['hd_state'] = 'Unknown'
         self.status.backlog_hosting_devices[hd_id] = {'hd': hd,
                                                       'routers': [
                                                           self.router_id]}
         expected = {'reachable': [],
+                    'revived': [],
                     'dead': [hd_id]}
         self.assertEqual(expected,
                          self.status.check_backlogged_hosting_devices())
+        post_hd_state = \
+            self.status.backlog_hosting_devices[hd_id]['hd']['hd_state']
+        self.assertEqual('Dead', post_hd_state)
+
+    def test_check_backlog_above_BT_resurrected_hosting_device(self):
+        """
+        Test reviving a hosting device after it's been deemed dead
+
+        This test simulates a hosting device which has died is now
+        reachable again.
+        """
+        hd = self.hosting_device
+        hd['created_at'] = create_timestamp(BOOT_TIME + DEAD_TIME + 10)
+        hd['backlog_insertion_ts'] = create_timestamp(BOOT_TIME + 5,
+                                                      type=TYPE_DATETIME)
+        hd_id = hd['id']
+        device_status._is_pingable.return_value = False
+        hd['hd_state'] = 'Unknown'
+        self.status.backlog_hosting_devices[hd_id] = {'hd': hd,
+                                                      'routers': [
+                                                          self.router_id]}
+        expected = {'reachable': [],
+                    'revived': [],
+                    'dead': [hd_id]}
+        self.assertEqual(expected,
+                         self.status.check_backlogged_hosting_devices())
+
+        post_hd_state = \
+            self.status.backlog_hosting_devices[hd_id]['hd']['hd_state']
+        self.assertEqual('Dead',
+                         post_hd_state)
+
+        # now simulate that the hosting device is resurrected
+        self.assertEqual(1, len(self.status.get_backlogged_hosting_devices()))
+        device_status._is_pingable.return_value = True
+
+        expected = {'reachable': [],
+                    'revived': [hd_id],
+                    'dead': []}
+
+        self.assertEqual(expected,
+                         self.status.check_backlogged_hosting_devices())
+
+        post_hd_state = \
+            self.status.backlog_hosting_devices[hd_id]['hd']['hd_state']
+        self.assertEqual('Active',
+                         post_hd_state)
