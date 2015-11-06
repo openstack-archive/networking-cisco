@@ -2,7 +2,7 @@
 networking-cisco
 ===============================
 
-Networking Cisco contains the Cisco vendor code for Openstack Neutron
+Networking Cisco contains the Cisco vendor code for OpenStack Neutron
 
 * Free software: Apache license
 * Documentation: http://docs.openstack.org/developer/networking-cisco

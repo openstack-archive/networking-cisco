@@ -151,7 +151,7 @@ class DFARESTClient(object):
         payload = {
             "organizationName": name,
             "description": name if len(desc) == 0 else desc,
-            "orchestrationSource": "Openstack Controller"}
+            "orchestrationSource": "OpenStack Controller"}
 
         return self._send_request('POST', url, payload, 'organization')
 

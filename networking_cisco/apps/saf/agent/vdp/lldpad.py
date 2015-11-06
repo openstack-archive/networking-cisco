@@ -15,7 +15,7 @@
 #
 
 
-"""This file contains the implementation of Openstack component of VDP.
+"""This file contains the implementation of OpenStack component of VDP.
 VDP is a part of LLDP Agent Daemon (lldpad). For more information on VDP,
 pls visit http://www.ieee802.org/1/pages/802.1bg.html
 """
@@ -140,7 +140,7 @@ class LldpadDriver(object):
         '''Periodic refresh of vNIC events to VDP
 
         VDP daemon itself has keepalives. This is needed on top of it
-        to keep Orchestrator like Openstack, VDP daemon and the physical
+        to keep Orchestrator like OpenStack, VDP daemon and the physical
         switch in sync.
         '''
         LOG.debug("Refresh handler")

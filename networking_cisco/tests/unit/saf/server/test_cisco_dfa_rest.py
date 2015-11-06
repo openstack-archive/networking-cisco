@@ -78,7 +78,7 @@ class TestCiscoDFAClient(base.BaseTestCase):
         org_pyld = {
             'organizationName': org_name,
             'description': org_name,
-            'orchestrationSource': "Openstack Controller"}
+            'orchestrationSource': "OpenStack Controller"}
         part_pyld = {
             'partitionName': part_name,
             'organizationName': org_name,
