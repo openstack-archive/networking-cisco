@@ -156,6 +156,8 @@ class RoutingServiceHelper(object):
         self.context = n_context.get_admin_context_without_session()
         self.plugin_rpc = CiscoRoutingPluginApi(topics.L3PLUGIN, host)
         self._dev_status = device_status.DeviceStatus()
+        self._dev_status.enable_heartbeat = (
+            self.conf.cfg_agent.enable_heartbeat)
         self._drivermgr = driver_mgr.DeviceDriverManager()
 
         self.router_info = {}
