@@ -272,7 +272,7 @@ class RoutingServiceHelper(object):
             pool.waitall()
             if removed_devices_info:
                 for hd_id in removed_devices_info['hosting_data']:
-                    self._drivermgr.remove_driver_for_hosting_device(hd_id)
+                    self.driver_manager.remove_driver_for_hosting_device(hd_id)
             LOG.debug("Routing service processing successfully completed")
         except Exception:
             LOG.exception(_LE("Failed processing routers"))
