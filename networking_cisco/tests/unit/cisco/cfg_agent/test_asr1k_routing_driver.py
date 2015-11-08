@@ -17,6 +17,7 @@ import sys
 
 import mock
 import netaddr
+from oslo_config import cfg
 from oslo_utils import uuidutils
 
 from neutron.common import constants as l3_constants
@@ -177,6 +178,31 @@ class ASR1kRoutingDriver(base.BaseTestCase):
         self.assert_edit_run_cfg(
             snippets.SET_INTC_ASR_HSRP_EXTERNAL, cfg_args_hsrp)
 
+    def test_internal_network_added_with_multi_region(self):
+        cfg.CONF.set_override('enable_multi_region', True, 'multi_region')
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+        self.assertEqual(True, is_multi_region_enabled)
+
+        region_id = cfg.CONF.multi_region.region_id
+
+        vrf = self.vrf + "-" + region_id
+
+        self.driver.internal_network_added(self.ri, self.port)
+
+        sub_interface = self.phy_infc + '.' + str(self.vlan_int)
+        cfg_args_sub = (sub_interface, region_id, self.vlan_int, vrf,
+                        self.gw_ip, self.gw_ip_mask)
+        self.assert_edit_run_cfg(
+            snippets.CREATE_SUBINTERFACE_REGION_ID_WITH_ID, cfg_args_sub)
+
+        cfg_args_hsrp = self._generate_hsrp_cfg_args(
+            sub_interface, self.ha_group, self.ha_priority, self.gw_ip_vip,
+            self.vlan_int)
+        self.assert_edit_run_cfg(
+            snippets.SET_INTC_ASR_HSRP_EXTERNAL, cfg_args_hsrp)
+
+        cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
+
     def test_internal_network_added_global_router(self):
         self.driver.internal_network_added(self.ri_global, self.port)
         sub_interface = self.phy_infc + '.' + str(self.vlan_int)
@@ -191,6 +217,26 @@ class ASR1kRoutingDriver(base.BaseTestCase):
         self.assert_edit_run_cfg(
             snippets.SET_INTC_ASR_HSRP_EXTERNAL, cfg_args_hsrp)
 
+    def test_internal_network_added_global_router_with_multi_region(self):
+        cfg.CONF.set_override('enable_multi_region', True, 'multi_region')
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+        self.assertEqual(True, is_multi_region_enabled)
+        region_id = cfg.CONF.multi_region.region_id
+
+        self.driver.internal_network_added(self.ri_global, self.port)
+        sub_interface = self.phy_infc + '.' + str(self.vlan_int)
+        cfg_args_sub = (sub_interface, region_id, self.vlan_int,
+                        self.gw_ip, self.gw_ip_mask)
+        self.assert_edit_run_cfg(
+            snippets.CREATE_SUBINTERFACE_EXT_REGION_ID_WITH_ID, cfg_args_sub)
+
+        cfg_args_hsrp = self._generate_hsrp_cfg_args(
+            sub_interface, self.ha_group, self.ha_priority, self.gw_ip_vip,
+            self.vlan_int)
+        self.assert_edit_run_cfg(
+            snippets.SET_INTC_ASR_HSRP_EXTERNAL, cfg_args_hsrp)
+        cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
+
     def test_external_network_added(self):
         self.driver.external_gateway_added(self.ri, self.ex_gw_port)
 
@@ -200,6 +246,23 @@ class ASR1kRoutingDriver(base.BaseTestCase):
         cfg_params_nat = (self.vrf + '_nat_pool', self.ex_gw_ip,
                           self.ex_gw_ip, self.ex_gw_ip_mask)
         self.assert_edit_run_cfg(snippets.CREATE_NAT_POOL, cfg_params_nat)
+
+    def test_external_network_added_with_multi_region(self):
+        cfg.CONF.set_override('enable_multi_region', True, 'multi_region')
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+        self.assertEqual(True, is_multi_region_enabled)
+        region_id = cfg.CONF.multi_region.region_id
+        vrf = self.vrf + "-" + region_id
+
+        self.driver.external_gateway_added(self.ri, self.ex_gw_port)
+
+        sub_interface = self.phy_infc + '.' + str(self.vlan_ext)
+        self.assert_edit_run_cfg(csr_snippets.ENABLE_INTF, sub_interface)
+
+        cfg_params_nat = (vrf + '_nat_pool', self.ex_gw_ip,
+                          self.ex_gw_ip, self.ex_gw_ip_mask)
+        self.assert_edit_run_cfg(snippets.CREATE_NAT_POOL, cfg_params_nat)
+        cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
 
     def test_external_gateway_removed(self):
         self.driver.external_gateway_removed(self.ri, self.ex_gw_port)
@@ -213,6 +276,26 @@ class ASR1kRoutingDriver(base.BaseTestCase):
                                    sub_interface, self.ex_gw_gateway_ip)
         self.assert_edit_run_cfg(snippets.REMOVE_DEFAULT_ROUTE_WITH_INTF,
                                  cfg_params_remove_route)
+
+    def test_external_gateway_removed_with_multi_region(self):
+        cfg.CONF.set_override('enable_multi_region', True, 'multi_region')
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+        self.assertEqual(True, is_multi_region_enabled)
+        region_id = cfg.CONF.multi_region.region_id
+        vrf = self.vrf + "-" + region_id
+
+        self.driver.external_gateway_removed(self.ri, self.ex_gw_port)
+
+        cfg_params_nat = (vrf + '_nat_pool', self.ex_gw_ip,
+                          self.ex_gw_ip, self.ex_gw_ip_mask)
+        self.assert_edit_run_cfg(snippets.DELETE_NAT_POOL, cfg_params_nat)
+
+        sub_interface = self.phy_infc + '.' + str(self.vlan_ext)
+        cfg_params_remove_route = (vrf,
+                                   sub_interface, self.ex_gw_gateway_ip)
+        self.assert_edit_run_cfg(snippets.REMOVE_DEFAULT_ROUTE_WITH_INTF,
+                                 cfg_params_remove_route)
+        cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
 
     def test_external_gateway_removed_global_router(self):
         self.driver._interface_exists = mock.MagicMock(return_value=True)
@@ -233,6 +316,23 @@ class ASR1kRoutingDriver(base.BaseTestCase):
         self.assert_edit_run_cfg(snippets.SET_STATIC_SRC_TRL_NO_VRF_MATCH,
                                  cfg_params_floating)
 
+    def test_floating_ip_added_with_multi_region(self):
+        cfg.CONF.set_override('enable_multi_region', True, 'multi_region')
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+        self.assertEqual(True, is_multi_region_enabled)
+        region_id = cfg.CONF.multi_region.region_id
+        vrf = self.vrf + "-" + region_id
+
+        self.driver.floating_ip_added(self.ri, self.ex_gw_port,
+                                      self.floating_ip, self.fixed_ip)
+
+        self._assert_number_of_edit_run_cfg_calls(1)
+        cfg_params_floating = (self.fixed_ip, self.floating_ip, vrf,
+                               self.ha_group, self.vlan_ext)
+        self.assert_edit_run_cfg(snippets.SET_STATIC_SRC_TRL_NO_VRF_MATCH,
+                                 cfg_params_floating)
+        cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
+
     def test_floating_ip_removed(self):
         self.driver.floating_ip_removed(self.ri, self.ex_gw_port,
                                       self.floating_ip, self.fixed_ip)
@@ -242,6 +342,23 @@ class ASR1kRoutingDriver(base.BaseTestCase):
                                self.ha_group, self.vlan_ext)
         self.assert_edit_run_cfg(snippets.REMOVE_STATIC_SRC_TRL_NO_VRF_MATCH,
                                  cfg_params_floating)
+
+    def test_floating_ip_removed_with_multi_region(self):
+        cfg.CONF.set_override('enable_multi_region', True, 'multi_region')
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+        self.assertEqual(True, is_multi_region_enabled)
+        region_id = cfg.CONF.multi_region.region_id
+        vrf = self.vrf + "-" + region_id
+
+        self.driver.floating_ip_removed(self.ri, self.ex_gw_port,
+                                      self.floating_ip, self.fixed_ip)
+
+        self._assert_number_of_edit_run_cfg_calls(1)
+        cfg_params_floating = (self.fixed_ip, self.floating_ip, vrf,
+                               self.ha_group, self.vlan_ext)
+        self.assert_edit_run_cfg(snippets.REMOVE_STATIC_SRC_TRL_NO_VRF_MATCH,
+                                 cfg_params_floating)
+        cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
 
     def test_driver_enable_internal_network_NAT(self):
         self.driver.enable_internal_network_NAT(self.ri,
@@ -268,6 +385,38 @@ class ASR1kRoutingDriver(base.BaseTestCase):
         self.assert_edit_run_cfg(csr_snippets.SET_NAT,
                                  (sub_interface_ext, 'outside'))
 
+    def test_driver_enable_internal_network_NAT_with_multi_region(self):
+        cfg.CONF.set_override('enable_multi_region', True, 'multi_region')
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+        self.assertEqual(True, is_multi_region_enabled)
+        region_id = cfg.CONF.multi_region.region_id
+        vrf = self.vrf + "-" + region_id
+
+        self.driver.enable_internal_network_NAT(self.ri,
+                                                self.port, self.ex_gw_port)
+
+        self._assert_number_of_edit_run_cfg_calls(4)
+
+        acl_name = '%s_%s_%s' % ('neutron_acl', region_id, str(self.vlan_int))
+        net = netaddr.IPNetwork(self.gw_ip_cidr).network
+        net_mask = netaddr.IPNetwork(self.gw_ip_cidr).hostmask
+        cfg_params_create_acl = (acl_name, net, net_mask)
+        self.assert_edit_run_cfg(
+            csr_snippets.CREATE_ACL, cfg_params_create_acl)
+
+        pool_name = "%s_nat_pool" % vrf
+        cfg_params_dyn_trans = (acl_name, pool_name, vrf)
+        self.assert_edit_run_cfg(
+            snippets.SET_DYN_SRC_TRL_POOL, cfg_params_dyn_trans)
+
+        sub_interface_int = self.phy_infc + '.' + str(self.vlan_int)
+        sub_interface_ext = self.phy_infc + '.' + str(self.vlan_ext)
+        self.assert_edit_run_cfg(csr_snippets.SET_NAT,
+                                 (sub_interface_int, 'inside'))
+        self.assert_edit_run_cfg(csr_snippets.SET_NAT,
+                                 (sub_interface_ext, 'outside'))
+        cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
+
     def test_driver_disable_internal_network_NAT(self):
         self.driver.disable_internal_network_NAT(self.ri,
                                                  self.port, self.ex_gw_port)
@@ -282,6 +431,28 @@ class ASR1kRoutingDriver(base.BaseTestCase):
             snippets.REMOVE_DYN_SRC_TRL_POOL, cfg_params_dyn_trans)
 
         self.assert_edit_run_cfg(csr_snippets.REMOVE_ACL, acl_name)
+
+    def test_driver_disable_internal_network_NAT_with_multi_region(self):
+        cfg.CONF.set_override('enable_multi_region', True, 'multi_region')
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+        self.assertEqual(True, is_multi_region_enabled)
+        region_id = cfg.CONF.multi_region.region_id
+        vrf = self.vrf + "-" + region_id
+
+        self.driver.disable_internal_network_NAT(self.ri,
+                                                 self.port, self.ex_gw_port)
+
+        self._assert_number_of_edit_run_cfg_calls(3)
+
+        acl_name = '%s_%s_%s' % ('neutron_acl', region_id, str(self.vlan_int))
+        pool_name = "%s_nat_pool" % vrf
+
+        cfg_params_dyn_trans = (acl_name, pool_name, vrf)
+        self.assert_edit_run_cfg(
+            snippets.REMOVE_DYN_SRC_TRL_POOL, cfg_params_dyn_trans)
+
+        self.assert_edit_run_cfg(csr_snippets.REMOVE_ACL, acl_name)
+        cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
 
     def test_get_configuration(self):
         self.driver._get_running_config = mock.MagicMock()

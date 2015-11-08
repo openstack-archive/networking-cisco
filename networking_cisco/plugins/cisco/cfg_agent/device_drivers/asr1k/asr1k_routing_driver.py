@@ -15,14 +15,17 @@
 import logging
 import netaddr
 
-from neutron.i18n import _LE, _LI
+from oslo_config import cfg
+
 from neutron.common import constants
+from neutron.i18n import _LE
+from neutron.i18n import _LI
 
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions as cfg_exc
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
+    asr1k_cfg_syncer)
+from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
     asr1k_snippets)
-from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k \
-    import asr1k_cfg_syncer
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
     cisco_csr1kv_snippets as snippets)
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
@@ -37,6 +40,23 @@ LOG = logging.getLogger(__name__)
 DEVICE_OWNER_ROUTER_GW = constants.DEVICE_OWNER_ROUTER_GW
 HA_INFO = 'ha_info'
 ROUTER_ROLE_ATTR = routerrole.ROUTER_ROLE_ATTR
+
+ASR1K_DRIVER_OPTS = [
+    cfg.BoolOpt('enable_multi_region',
+                default=False,
+                help=_("If enabled, the agent will maintain "
+                       "a heartbeat against its hosting-devices.  If  "
+                       "a device dies and recovers, the agent will then "
+                       "trigger a configuration resync.")),
+    cfg.StrOpt('region_id',
+               default='L3FR001',
+               help=_("Label to use for this deployments region-id")),
+    cfg.ListOpt('other_region_ids',
+                default=['L3FR002', 'L3FR003'],
+                help=_("Label for other region-ids")),
+]
+
+cfg.CONF.register_opts(ASR1K_DRIVER_OPTS, "multi_region")
 
 
 class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
@@ -110,16 +130,39 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
 
     def cleanup_invalid_cfg(self, hd, routers):
 
-        cfg_syncer = asr1k_cfg_syncer.ConfigSyncer(routers, self, hd)
+        cfg_syncer = asr1k_cfg_syncer.ConfigSyncer(routers,
+                                                   self,
+                                                   hd)
         cfg_syncer.delete_invalid_cfg()
 
     def get_configuration(self):
         return self._get_running_config(split=False)
 
     # ============== Internal "preparation" functions  ==============
+    def _get_vrf_name(self, ri):
+        """
+        overloaded method for generating a vrf_name that supports
+        region_id
+        """
+        router_id = ri.router_name()[:self.DEV_NAME_LEN]
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+
+        if is_multi_region_enabled:
+            region_id = cfg.CONF.multi_region.region_id
+            vrf_name = "%s-%s" % (router_id, region_id)
+        else:
+            vrf_name = router_id
+        return vrf_name
 
     def _get_acl_name_from_vlan(self, vlan):
-        return "neutron_acl_%s" % vlan
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+
+        if is_multi_region_enabled:
+            region_id = cfg.CONF.multi_region.region_id
+            acl_name = "neutron_acl_%s_%s" % (region_id, vlan)
+        else:
+            acl_name = "neutron_acl_%s" % vlan
+        return acl_name
 
     def _get_interface_name_from_hosting_port(self, port):
         """
@@ -196,14 +239,35 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
 
     def _do_create_sub_interface(self, sub_interface, vlan_id, vrf_name, ip,
                                  mask, is_external=False):
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+
         if is_external is True:
-            conf_str = asr1k_snippets.CREATE_SUBINTERFACE_EXTERNAL_WITH_ID % (
-                sub_interface, vlan_id, ip,
-                mask)
+            if (is_multi_region_enabled):
+                region_id = cfg.CONF.multi_region.region_id
+                conf_str = (
+                    asr1k_snippets.CREATE_SUBINTERFACE_EXT_REGION_ID_WITH_ID
+                    % (sub_interface, region_id, vlan_id, ip, mask))
+            else:
+                conf_str = (
+                    asr1k_snippets.CREATE_SUBINTERFACE_EXTERNAL_WITH_ID % (
+                        sub_interface, vlan_id, ip, mask))
         else:
-            conf_str = asr1k_snippets.CREATE_SUBINTERFACE_WITH_ID % (
-                sub_interface, vlan_id,
-                vrf_name, ip, mask)
+            if (is_multi_region_enabled):
+                region_id = cfg.CONF.multi_region.region_id
+                conf_str = (
+                    asr1k_snippets.CREATE_SUBINTERFACE_REGION_ID_WITH_ID % (
+                        sub_interface,
+                        region_id,
+                        vlan_id,
+                        vrf_name,
+                        ip, mask))
+            else:
+                conf_str = (
+                    asr1k_snippets.CREATE_SUBINTERFACE_WITH_ID % (
+                        sub_interface,
+                        vlan_id,
+                        vrf_name,
+                        ip, mask))
         self._edit_running_config(conf_str, 'CREATE_SUBINTERFACE_WITH_ID')
 
     def _create_ext_sub_interface_enable_only(self, sub_interface):
@@ -292,26 +356,6 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         conf_str = asr1k_snippets.SET_INTC_ASR_HSRP_EXTERNAL % (sub_interface,
              group, priority, group, ip, group, group, group, vlan)
         self._edit_running_config(conf_str, 'SET_INTC_ASR_HSRP_EXTERNAL')
-
-    # ToDo(Hareesh):This function doesn't seem to be used. Delete in next sweep
-    # def _do_set_ha_hsrp2(self, subinterface, vrf_name, priority, group, vlan,
-    #                      ip, is_external=False):
-    #     try:
-    #         confstr = asr1k_snippets.REMOVE_INTC_ASR_HSRP_PREEMPT % (
-    #             subinterface, group)
-    #         self._edit_running_config(confstr, "REMOVE_HSRP_PREEMPT")
-    #     except Exception:
-    #         pass
-    #     if is_external is True:
-    #         conf_str = asr1k_snippets.SET_INTC_ASR_HSRP_EXTERNAL % (
-    #             subinterface, group, priority, group, ip, group, group,
-    #             group, vlan)
-    #     else:
-    #         conf_str = asr1k_snippets.SET_INTC_ASR_HSRP % (
-    #             subinterface, vrf_name, group, priority, group, ip, group)
-    #     action = "%s SET_INTC_HSRP (Group: %s, Priority: % s)" % (
-    #         self.hosting_device['name'], group, priority)
-    #     self._edit_running_config(conf_str, action)
 
     def _create_sub_interface_v6(self, ri, port, is_external=False, gw_ip=""):
         if self._v6_port_needs_config(port) is not True:
@@ -491,8 +535,8 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
     def _remove_dyn_nat_rule(self, acl_no, outer_itfc_name, vrf_name):
         try:
             pool_name = "%s_nat_pool" % (vrf_name)
-            confstr = asr1k_snippets.REMOVE_DYN_SRC_TRL_POOL % \
-                (acl_no, pool_name, vrf_name)
+            confstr = (asr1k_snippets.REMOVE_DYN_SRC_TRL_POOL %
+                (acl_no, pool_name, vrf_name))
             self._edit_running_config(confstr, 'REMOVE_DYN_SRC_TRL_POOL')
         except cfg_exc.CSR1kvConfigException as cse:
             LOG.error(_LE("temporary disable REMOVE_DYN_SRC_TRL_POOL"
@@ -521,8 +565,8 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                   {'fip': floating_ip, 'fixed_ip': fixed_ip, 'vrf': vrf,
                    'port': ex_gw_port})
 
-        confstr = asr1k_snippets.SET_STATIC_SRC_TRL_NO_VRF_MATCH % \
-            (fixed_ip, floating_ip, vrf, hsrp_grp, vlan)
+        confstr = (asr1k_snippets.SET_STATIC_SRC_TRL_NO_VRF_MATCH %
+            (fixed_ip, floating_ip, vrf, hsrp_grp, vlan))
         self._edit_running_config(confstr, 'SET_STATIC_SRC_TRL_NO_VRF_MATCH')
 
     def _remove_floating_ip(self, ri, ext_gw_port, floating_ip, fixed_ip):
@@ -537,7 +581,7 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         vlan = ex_gw_port['hosting_info']['segmentation_id']
         hsrp_grp = ex_gw_port['ha_info']['group']
 
-        confstr = asr1k_snippets.REMOVE_STATIC_SRC_TRL_NO_VRF_MATCH % \
-            (fixed_ip, floating_ip, vrf, hsrp_grp, vlan)
+        confstr = (asr1k_snippets.REMOVE_STATIC_SRC_TRL_NO_VRF_MATCH %
+            (fixed_ip, floating_ip, vrf, hsrp_grp, vlan))
         self._edit_running_config(confstr,
                                   'REMOVE_STATIC_SRC_TRL_NO_VRF_MATCH')
