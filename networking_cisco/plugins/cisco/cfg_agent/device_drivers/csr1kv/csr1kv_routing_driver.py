@@ -31,7 +31,7 @@ from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
     cisco_csr1kv_snippets as snippets)
 
 ciscoconfparse = importutils.try_import('ciscoconfparse')
-ncclient = importutils.try_import('ncclient')
+manager = importutils.try_import('ncclient.manager')
 
 LOG = logging.getLogger(__name__)
 
@@ -283,7 +283,7 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
             if self._csr_conn and self._csr_conn.connected:
                 return self._csr_conn
             else:
-                self._csr_conn = ncclient.manager.connect(
+                self._csr_conn = manager.connect(
                     host=self._csr_host,
                     port=self._csr_ssh_port,
                     username=self._csr_user,

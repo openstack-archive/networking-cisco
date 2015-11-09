@@ -15,9 +15,9 @@
 import pprint
 import sys
 
-from ncclient import manager
 from oslo_config import cfg
 import oslo_messaging
+from oslo_utils import importutils
 
 from neutron.common import config as common_config
 from neutron.common import rpc as n_rpc
@@ -30,6 +30,7 @@ from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
     asr1k_cfg_validator)
 from networking_cisco.plugins.cisco.common import cisco_constants
 
+manager = importutils.try_import('ncclient.manager')
 # USAGE:
 # python asr1k_auto_config_check.py --config-file /etc/neutron/neutron.conf
 
