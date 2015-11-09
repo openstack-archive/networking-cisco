@@ -17,6 +17,7 @@ import re
 import six
 import xml.etree.ElementTree as ET
 
+from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -37,43 +38,118 @@ LOG = logging.getLogger(__name__)
 ROUTER_ROLE_ATTR = routerrole.ROUTER_ROLE_ATTR
 
 NROUTER_REGEX = "nrouter-(\w{6,6})"
+NROUTER_MULTI_REGION_REGEX = "nrouter-(\w{6,6})-(\w{1,7})"
 
 VRF_REGEX = "ip vrf " + NROUTER_REGEX
 VRF_REGEX_NEW = "vrf definition " + NROUTER_REGEX
+
+VRF_MULTI_REGION_REGEX = "ip vrf " + NROUTER_MULTI_REGION_REGEX
+VRF_MULTI_REGION_REGEX_NEW = "vrf definition " + NROUTER_MULTI_REGION_REGEX
 
 #INTF_NAME_REGEX = "(PortChannel\d+|\d+Ethernet\d+\/d+\/d+)"
 
 INTF_REGEX = "interface \S+\.(\d+)"
 INTF_DESC_REGEX = "\s*description OPENSTACK_NEUTRON_INTF"
+INTF_DESC_MULTI_REGION_REGEX = ("\s*description"
+    " OPENSTACK_NEUTRON_(\w{1,7})_INTF")
 VRF_EXT_INTF_REGEX = "\s*ip vrf forwarding .*"
 VRF_INTF_REGEX = "\s*ip vrf forwarding " + NROUTER_REGEX
+VRF_INTF_MULTI_REGION_REGEX = ("\s*ip vrf forwarding " +
+    NROUTER_MULTI_REGION_REGEX)
 VRF_EXT_INTF_REGEX_NEW = "\s*vrf forwarding .*"
 VRF_INTF_REGEX_NEW = "\s*vrf forwarding " + NROUTER_REGEX
+VRF_INTF_MULTI_REGION_REGEX_NEW = ("\s*vrf forwarding " +
+    NROUTER_MULTI_REGION_REGEX)
 DOT1Q_REGEX = "\s*encapsulation dot1Q (\d+)"
 INTF_NAT_REGEX = "\s*ip nat (inside|outside)"
 HSRP_REGEX = "\s*standby (\d+) .*"
 
-INTF_V4_ADDR_REGEX = "\s*ip address (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})" \
-    " (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+INTF_V4_ADDR_REGEX = ("\s*ip address (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+    " (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})")
 HSRP_V4_VIP_REGEX = "\s*standby (\d+) ip (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
 
-SNAT_REGEX = "ip nat inside source static (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) vrf " + NROUTER_REGEX + " redundancy neutron-hsrp-(\d+)-(\d+)"  # NOQA
+SNAT_REGEX = ("ip nat inside source static"
+    " (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+    " (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) vrf " +
+    NROUTER_REGEX +
+    " redundancy neutron-hsrp-(\d+)-(\d+)")
 
-SNAT_REGEX_OLD = "ip nat inside source static (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) vrf " + NROUTER_REGEX + " redundancy neutron-hsrp-grp-(\d+)-(\d+)"  # NOQA
+SNAT_MULTI_REGION_REGEX = ("ip nat inside source static"
+    " (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+    " (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+    " vrf " + NROUTER_MULTI_REGION_REGEX +
+    " redundancy neutron-hsrp-(\d+)-(\d+)")
 
-NAT_POOL_REGEX = "ip nat pool " + NROUTER_REGEX + "_nat_pool (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) netmask (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"  # NOQA
+SNAT_REGEX_OLD = ("ip nat inside source static"
+    " (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+    " (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) vrf " +
+    NROUTER_REGEX +
+    " redundancy neutron-hsrp-grp-(\d+)-(\d+)")
 
-NAT_OVERLOAD_REGEX = "ip nat inside source list neutron_acl_(\d+) interface \S+\.(\d+) vrf " + NROUTER_REGEX + " overload"  # NOQA
-NAT_POOL_OVERLOAD_REGEX = "ip nat inside source list neutron_acl_(\d+) pool " + NROUTER_REGEX + "_nat_pool vrf " + NROUTER_REGEX + " overload"  # NOQA
+SNAT_MULTI_REGION_REGEX_OLD = ("ip nat inside source static"
+    " (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+    " (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) vrf " +
+    NROUTER_MULTI_REGION_REGEX +
+    " redundancy neutron-hsrp-grp-(\d+)-(\d+)")
+
+NAT_POOL_REGEX = ("ip nat pool " +
+    NROUTER_REGEX +
+    "_nat_pool (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+    " (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) netmask"
+    " (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})")
+NAT_POOL_MULTI_REGION_REGEX = ("ip nat pool " + NROUTER_MULTI_REGION_REGEX +
+    "_nat_pool (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+    " (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) netmask"
+    " (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})")
+
+NAT_OVERLOAD_REGEX = ("ip nat inside source list neutron_acl_(\d+)"
+    " interface \S+\.(\d+) vrf " +
+    NROUTER_REGEX +
+    " overload")
+NAT_OVERLOAD_MULTI_REGION_REGEX = ("ip nat inside source list"
+    " neutron_acl_(\d+) interface \S+\.(\d+) vrf " +
+    NROUTER_MULTI_REGION_REGEX + " overload")
+
+NAT_POOL_OVERLOAD_REGEX = ("ip nat inside source list"
+    " neutron_acl_(\d+) pool " +
+    NROUTER_REGEX +
+    "_nat_pool vrf " +
+    NROUTER_REGEX +
+    " overload")
+NAT_POOL_OVERLOAD_MULTI_REGION_REGEX = ("ip nat inside source"
+    " list neutron_acl_(\d+) pool " +
+    NROUTER_MULTI_REGION_REGEX +
+    "_nat_pool vrf " +
+    NROUTER_MULTI_REGION_REGEX +
+    " overload")
 
 ACL_REGEX = "ip access-list standard neutron_acl_(\d+)"
-ACL_CHILD_REGEX = "\s*permit (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"  # NOQA
+ACL_MULTI_REGION_REGEX = "ip access-list standard neutron_acl_(\w{1,7})_(\d+)"
+ACL_CHILD_REGEX = ("\s*permit (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+    " (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})")
 
-DEFAULT_ROUTE_REGEX = "ip route vrf " + NROUTER_REGEX + " 0\.0\.0\.0 0\.0\.0\.0 \S+\.(\d+) (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"  # NOQA
+DEFAULT_ROUTE_REGEX = ("ip route vrf " +
+    NROUTER_REGEX + " 0\.0\.0\.0 0\.0\.0\.0 \S+\.(\d+)"
+    " (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})")
+DEFAULT_ROUTE_MULTI_REGION_REGEX = ("ip route vrf " +
+    NROUTER_MULTI_REGION_REGEX +
+    " 0\.0\.0\.0 0\.0\.0\.0 \S+\.(\d+)"
+    " (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})")
 
-DEFAULT_ROUTE_V6_REGEX_BASE = "ipv6 route vrf " + NROUTER_REGEX + " ::/0 %s\.(\d+) ([0-9A-Fa-f:]+) nexthop-vrf default"  # NOQA
+DEFAULT_ROUTE_V6_REGEX_BASE = ("ipv6 route vrf " +
+    NROUTER_REGEX +
+    " ::/0 %s\.(\d+) ([0-9A-Fa-f:]+) nexthop-vrf default")
+DEFAULT_ROUTE_V6_MULTI_REGION_REGEX_BASE = ("ipv6 route vrf " +
+    NROUTER_MULTI_REGION_REGEX +
+    " ::/0 %s\.(\d+) ([0-9A-Fa-f:]+) nexthop-vrf default")
 
-TENANT_ROUTE_V6_REGEX_BASE = "ipv6 route ([0-9A-Fa-f:/]+) %s.(\d+) nexthop-vrf " + NROUTER_REGEX  # NOQA
+TENANT_ROUTE_V6_REGEX_BASE = ("ipv6 route ([0-9A-Fa-f:/]+)"
+    " %s.(\d+) nexthop-vrf " +
+    NROUTER_REGEX)
+TENANT_ROUTE_V6_MULTI_REGION_REGEX_BASE = ("ipv6 route ([0-9A-Fa-f:/]+)"
+    " %s.(\d+) nexthop-vrf " +
+    NROUTER_MULTI_REGION_REGEX)
+
 INTF_V6_ADDR_REGEX = "\s*ipv6 address ([0-9A-Fa-f:]+)\/(\d+)"
 
 
@@ -158,11 +234,7 @@ class ConfigSyncer(object):
                                     intf['hosting_info']['segmentation_id']
                                 segment_nat_dict[gw_segment_id] = True
                                 segment_nat_dict[intf_segment_id] = True
-                                # LOG.info("SET SEGMENT_NAT_DICT, gwid: %s,"
-                                #          " intfid: %s" %
-                                #          (gw_segment_id, intf_segment_id))
 
-        # LOG.info("segment_nat_dict: %s" % segment_nat_dict)
         return router_id_dict, interface_segment_dict, segment_nat_dict
 
     def delete_invalid_cfg(self, conn=None):
@@ -214,17 +286,17 @@ class ConfigSyncer(object):
                                            segment_nat_dict,
                                            parsed_cfg)
 
+        if (cfg.CONF.multi_region.enable_multi_region):
+            default_route_regex = DEFAULT_ROUTE_MULTI_REGION_REGEX
+        else:
+            default_route_regex = DEFAULT_ROUTE_REGEX
+
         invalid_cfg += self.clean_default_route(conn,
                                                 router_id_dict,
                                                 intf_segment_dict,
                                                 segment_nat_dict,
                                                 parsed_cfg,
-                                                DEFAULT_ROUTE_REGEX)
-        #self.clean_default_route(conn,
-        #                         router_id_dict,
-        #                         intf_segment_dict,
-        #                         segment_nat_dict,
-        #                         parsed_cfg, self.DEFAULT_ROUTE_V6_REGEX)
+                                                default_route_regex)
         invalid_cfg += self.clean_acls(conn,
                                        intf_segment_dict,
                                        segment_nat_dict,
@@ -259,14 +331,28 @@ class ConfigSyncer(object):
 
     def get_running_config_router_ids(self, parsed_cfg):
         rconf_ids = []
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
 
-        for parsed_obj in parsed_cfg.find_objects(VRF_REGEX_NEW):
-            LOG.info(_LI("VRF object: %s"), (parsed_obj))
-            match_obj = re.match(VRF_REGEX_NEW, parsed_obj.text)
+        if (is_multi_region_enabled):
+            vrf_regex_new = VRF_MULTI_REGION_REGEX_NEW
+        else:
+            vrf_regex_new = VRF_REGEX_NEW
+
+        for parsed_obj in parsed_cfg.find_objects(vrf_regex_new):
+            LOG.info(_LI("VRF object: %s"), (str(parsed_obj)))
+            match_obj = re.match(vrf_regex_new, parsed_obj.text)
             router_id = match_obj.group(1)
             LOG.info(_LI("    First 6 digits of router ID: %s\n"),
                         (router_id))
-            rconf_ids.append(router_id)
+            if (is_multi_region_enabled):
+                region_id = match_obj.group(2)
+                LOG.info(_LI("    region ID: %s\n"),
+                            (region_id))
+                my_region_id = cfg.CONF.multi_region.region_id
+                if (my_region_id == region_id):
+                    rconf_ids.append(router_id)
+            else:
+                rconf_ids.append(router_id)
 
         return rconf_ids
 
@@ -284,9 +370,15 @@ class ConfigSyncer(object):
         LOG.info(_LI("VRFs to delete: %s"), (del_set))
         # LOG.info("VRFs to add: %s" % (add_set))
 
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
         invalid_vrfs = []
         for router_id in del_set:
-            invalid_vrfs.append("nrouter-%s" % (router_id))
+            if (is_multi_region_enabled):
+                my_region_id = cfg.CONF.multi_region.region_id
+                invalid_vrfs.append("nrouter-%s-%s" % (router_id,
+                                                       my_region_id))
+            else:
+                invalid_vrfs.append("nrouter-%s" % (router_id))
 
         if not self.test_mode:
             for vrf_name in invalid_vrfs:
@@ -308,12 +400,32 @@ class ConfigSyncer(object):
                        segment_nat_dict,
                        parsed_cfg):
         delete_pool_list = []
-        pools = parsed_cfg.find_objects(NAT_POOL_REGEX)
+
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+        if (is_multi_region_enabled):
+            nat_pool_regex = NAT_POOL_MULTI_REGION_REGEX
+        else:
+            nat_pool_regex = NAT_POOL_REGEX
+
+        pools = parsed_cfg.find_objects(nat_pool_regex)
         for pool in pools:
             LOG.info(_LI("\nNAT pool: %s"), (pool))
-            match_obj = re.match(NAT_POOL_REGEX, pool.text)
-            router_id, start_ip, end_ip, netmask = \
-                match_obj.group(1, 2, 3, 4)
+            match_obj = re.match(nat_pool_regex, pool.text)
+            if (is_multi_region_enabled):
+                router_id, region_id, start_ip, end_ip, netmask = \
+                    match_obj.group(1, 2, 3, 4, 5)
+                my_region_id = cfg.CONF.multi_region.region_id
+                other_region_ids = cfg.CONF.multi_region.other_region_ids
+                if region_id != my_region_id:
+                    if region_id not in other_region_ids:
+                        delete_pool_list.append(pool.text)
+                    else:
+                        # skip because some other deployment owns
+                        # this configuration
+                        continue
+            else:
+                router_id, start_ip, end_ip, netmask = \
+                    match_obj.group(1, 2, 3, 4)
 
             # Check that VRF exists in openstack DB info
             if router_id not in router_id_dict:
@@ -381,15 +493,35 @@ class ConfigSyncer(object):
         for route in default_routes:
             LOG.info(_LI("\ndefault route: %s"), (route))
             match_obj = re.match(route_regex, route.text)
-            router_id, segment_id, next_hop = \
-                match_obj.group(1, 2, 3)
-            segment_id = int(segment_id)
+            is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+            if (is_multi_region_enabled):
+                router_id, region_id, segment_id, next_hop = \
+                    match_obj.group(1, 2, 3, 4)
+                LOG.info(_LI("    router_id: %(router_id)s,"
+                             ", region_id: %(region_id)s, segment_id:"
+                             " %(segment_id)s, next_hop: %(next_hop)s") %
+                         {'router_id': router_id,
+                          'region_id': region_id,
+                          'segment_id': segment_id,
+                          'next_hop': next_hop})
+                my_region_id = cfg.CONF.multi_region.region_id
+                other_region_ids = cfg.CONF.multi_region.other_region_ids
+                if region_id != my_region_id:
+                    if region_id not in other_region_ids:
+                        delete_route_list.append(route.text)
+                    else:
+                        # skip because some other deployment owns
+                        # this configuration
+                        continue
+            else:
+                router_id, segment_id, next_hop = \
+                    match_obj.group(1, 2, 3)
 
-            LOG.info(_LI("    router_id: %(router_id)s, segment_id:"
-                         " %(segment_id)s, next_hop: %(next_hop)s") %
-                     {'router_id': router_id,
-                      'segment_id': segment_id,
-                      'next_hop': next_hop})
+                LOG.info(_LI("    router_id: %(router_id)s, segment_id:"
+                             " %(segment_id)s, next_hop: %(next_hop)s") %
+                         {'router_id': router_id,
+                          'segment_id': segment_id,
+                          'next_hop': next_hop})
 
             # Check that VRF exists in openstack DB info
             if router_id not in router_id_dict:
@@ -435,22 +567,42 @@ class ConfigSyncer(object):
     def clean_snat(self, conn, router_id_dict,
                    intf_segment_dict, segment_nat_dict, parsed_cfg):
         delete_fip_list = []
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+        if (is_multi_region_enabled):
+            snat_regex_old = SNAT_MULTI_REGION_REGEX_OLD
+            snat_regex = SNAT_MULTI_REGION_REGEX
+        else:
+            snat_regex_old = SNAT_REGEX_OLD
+            snat_regex = SNAT_REGEX
 
         # Delete any entries with old style 'hsrp-grp-x-y' grp name
-        floating_ip_old_rules = parsed_cfg.find_objects(SNAT_REGEX_OLD)
+        floating_ip_old_rules = parsed_cfg.find_objects(snat_regex_old)
         for snat_rule in floating_ip_old_rules:
             LOG.info(_LI("\n Rule is old format, deleting: %(snat_rule)s") %
                      {'snat_rule': snat_rule.text})
 
             delete_fip_list.append(snat_rule.text)
 
-        floating_ip_nats = parsed_cfg.find_objects(SNAT_REGEX)
+        floating_ip_nats = parsed_cfg.find_objects(snat_regex)
         for snat_rule in floating_ip_nats:
             LOG.info(_LI("\nstatic nat rule: %(snat_rule)s") %
                      {'snat_rule': snat_rule})
-            match_obj = re.match(SNAT_REGEX, snat_rule.text)
-            inner_ip, outer_ip, router_id, hsrp_num, segment_id = \
-                match_obj.group(1, 2, 3, 4, 5)
+            match_obj = re.match(snat_regex, snat_rule.text)
+            if (is_multi_region_enabled):
+                inner_ip, outer_ip, router_id, region_id, \
+                    hsrp_num, segment_id = match_obj.group(1, 2, 3, 4, 5, 6)
+                my_region_id = cfg.CONF.multi_region.region_id
+                other_region_ids = cfg.CONF.multi_region.other_region_ids
+                if region_id != my_region_id:
+                    if region_id not in other_region_ids:
+                        delete_fip_list.append(snat_rule.text)
+                    else:
+                        # skip because some other deployment owns
+                        # this configuration
+                        continue
+            else:
+                inner_ip, outer_ip, router_id, hsrp_num, segment_id = \
+                    match_obj.group(1, 2, 3, 4, 5)
 
             segment_id = int(segment_id)
             hsrp_num = int(hsrp_num)
@@ -534,12 +686,33 @@ class ConfigSyncer(object):
                                 segment_nat_dict,
                                 parsed_cfg):
         delete_nat_list = []
-        nat_overloads = parsed_cfg.find_objects(NAT_POOL_OVERLOAD_REGEX)
+
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+        if (is_multi_region_enabled):
+            nat_pool_overload_regex = NAT_POOL_OVERLOAD_MULTI_REGION_REGEX
+        else:
+            nat_pool_overload_regex = NAT_POOL_OVERLOAD_REGEX
+
+        nat_overloads = parsed_cfg.find_objects(nat_pool_overload_regex)
         for nat_rule in nat_overloads:
             LOG.info(_LI("\nnat overload rule: %(nat_rule)s") %
                      {'nat_rule': nat_rule})
-            match_obj = re.match(NAT_POOL_OVERLOAD_REGEX, nat_rule.text)
-            segment_id, pool_router_id, router_id = match_obj.group(1, 2, 3)
+            match_obj = re.match(nat_pool_overload_regex, nat_rule.text)
+            if (is_multi_region_enabled):
+                segment_id, pool_router_id, region_id, router_id = \
+                    match_obj.group(1, 2, 3, 4)
+                my_region_id = cfg.CONF.multi_region.region_id
+                other_region_ids = cfg.CONF.multi_region.other_region_ids
+                if region_id != my_region_id:
+                    if region_id not in other_region_ids:
+                        delete_nat_list.append(nat_rule.text)
+                    else:
+                        # skip because some other deployment owns
+                        # this configuration
+                        continue
+            else:
+                segment_id, pool_router_id, router_id = \
+                    match_obj.group(1, 2, 3)
 
             segment_id = int(segment_id)
 
@@ -636,11 +809,29 @@ class ConfigSyncer(object):
                    segment_nat_dict, parsed_cfg):
 
         delete_acl_list = []
-        acls = parsed_cfg.find_objects(ACL_REGEX)
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+        if (is_multi_region_enabled):
+            acl_regex = ACL_MULTI_REGION_REGEX
+        else:
+            acl_regex = ACL_REGEX
+
+        acls = parsed_cfg.find_objects(acl_regex)
         for acl in acls:
             LOG.info(_LI("\nacl: %(acl)s") % {'acl': acl})
-            match_obj = re.match(ACL_REGEX, acl.text)
-            segment_id = match_obj.group(1)
+            match_obj = re.match(acl_regex, acl.text)
+
+            if (is_multi_region_enabled):
+                region_id = match_obj.group(1)
+                segment_id = match_obj.group(2)
+                if region_id != cfg.CONF.multi_region.region_id:
+                    if region_id not in cfg.CONF.multi_region.other_region_ids:
+                        delete_acl_list.append(acl.text)
+                    else:
+                        # skip because some other deployment owns
+                        # this configuration
+                        continue
+            else:
+                segment_id = match_obj.group(1)
             segment_id = int(segment_id)
             LOG.info(_LI("   segment_id: %(seg_id)s") % {'seg_id': segment_id})
 
@@ -833,10 +1024,16 @@ class ConfigSyncer(object):
 
     def clean_interfaces(self, conn, intf_segment_dict,
                          segment_nat_dict, parsed_cfg):
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+        if (is_multi_region_enabled):
+            intf_desc_regex = INTF_DESC_MULTI_REGION_REGEX
+            vrf_intf_regex_new = VRF_INTF_MULTI_REGION_REGEX_NEW
+        else:
+            intf_desc_regex = INTF_DESC_REGEX
+            vrf_intf_regex_new = VRF_INTF_REGEX_NEW
         runcfg_intfs = [obj for obj in parsed_cfg.find_objects("^interf")
-                        if obj.re_search_children(INTF_DESC_REGEX)]
+                        if obj.re_search_children(intf_desc_regex)]
 
-        #LOG.info("intf_segment_dict: %s" % (intf_segment_dict))
         pending_delete_list = []
 
         # TODO(split this big function into smaller functions)
@@ -889,7 +1086,7 @@ class ConfigSyncer(object):
                     pending_delete_list.append(intf)
                     continue
             else:
-                vrf_cfg = intf.re_search_children(VRF_INTF_REGEX_NEW)
+                vrf_cfg = intf.re_search_children(vrf_intf_regex_new)
                 vrf_cfg = self.get_single_cfg(vrf_cfg)
                 LOG.info(_LI("VRF: %s"), (vrf_cfg))
                 if not vrf_cfg:
@@ -899,8 +1096,20 @@ class ConfigSyncer(object):
                     continue
 
                 # check for VRF mismatch
-                match_obj = re.match(VRF_INTF_REGEX_NEW, vrf_cfg.text)
+                match_obj = re.match(vrf_intf_regex_new, vrf_cfg.text)
                 router_id = match_obj.group(1)
+                if (is_multi_region_enabled):
+                    region_id = match_obj.group(2)
+                    my_region_id = cfg.CONF.multi_region.region_id
+                    other_region_ids = cfg.CONF.multi_region.other_region_ids
+                    if region_id != my_region_id:
+                        if (region_id not in other_region_ids):
+                            pending_delete_list.append(intf)
+                        else:
+                            # skip because some other deployment owns
+                            # this configuration
+                            continue
+
                 if router_id != db_intf["device_id"][0:6]:
                     LOG.info(_LI("Internal network VRF mismatch,"
                                  " deleting intf,"
