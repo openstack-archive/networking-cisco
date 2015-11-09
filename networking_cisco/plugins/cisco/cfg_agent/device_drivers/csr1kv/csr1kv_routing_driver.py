@@ -74,7 +74,7 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
         except KeyError as e:
             LOG.error(_LE("Missing device parameter:%s. Aborting "
                         "CSR1kvRoutingDriver initialization"), e)
-            raise cfg_exc.CSR1kvInitializationException()
+            raise cfg_exc.InitializationException()
 
     ###### Public Functions ########
 
@@ -297,7 +297,7 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
             conn_params = {'host': self._csr_host, 'port': self._csr_ssh_port,
                            'user': self._csr_user,
                            'timeout': self._timeout, 'reason': e.message}
-            raise cfg_exc.CSR1kvConnectionException(**conn_params)
+            raise cfg_exc.ConnectionException(**conn_params)
 
     def _get_interface_name_from_hosting_port(self, port):
         vlan = self._get_interface_vlan_from_hosting_port(port)

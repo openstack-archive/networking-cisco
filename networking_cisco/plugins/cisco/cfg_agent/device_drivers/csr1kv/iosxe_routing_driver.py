@@ -69,7 +69,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         except KeyError as e:
             LOG.error(_LE("Missing device parameter:%s. Aborting "
                           "IosXeRoutingDriver initialization"), e)
-            raise cfg_exc.CSR1kvInitializationException()
+            raise cfg_exc.InitializationException()
 
     ###### Public Functions ########
     def router_added(self, ri):
@@ -286,7 +286,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
             conn_params = {'host': self._host_ip, 'port': self._host_ssh_port,
                            'user': self._username,
                            'timeout': self._timeout, 'reason': e.message}
-            raise cfg_exc.CSR1kvConnectionException(**conn_params)
+            raise cfg_exc.ConnectionException(**conn_params)
 
     def _get_interface_name_from_hosting_port(self, port):
         vlan = self._get_interface_vlan_from_hosting_port(port)
