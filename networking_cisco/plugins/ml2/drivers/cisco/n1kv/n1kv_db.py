@@ -296,6 +296,16 @@ def add_profile_tenant_binding(profile_type, profile_id, tenant_id,
         return binding
 
 
+def remove_profile_tenant_binding(profile_type, profile_id, tenant_id,
+                                  db_session):
+    db_session = db_session or db.get_session()
+    with db_session.begin(subtransactions=True):
+        binding = get_profile_binding(tenant_id=tenant_id,
+                                      profile_id=profile_id,
+                                      db_session=db_session)
+        db_session.delete(binding)
+
+
 def get_policy_binding(port_id, db_session=None):
     """
     Retrieve port to policy profile binding.

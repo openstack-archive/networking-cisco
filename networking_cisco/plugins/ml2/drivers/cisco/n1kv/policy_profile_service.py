@@ -214,6 +214,29 @@ class PolicyProfile_db_mixin(policy_profile.PolicyProfilePluginBase,
                 pass
         return pp_list
 
+    def update_policy_profile(self, context, prof_id, policy_profile):
+        """Update policy profile by adding/removing tenants.
+
+        :param context: neutron api request context
+        :param prof_id: ID of the policy profile to be updated
+        :param policy_profile: dictionary with added/removed tenant IDs
+        """
+        pp = policy_profile['policy_profile']
+        with context.session.begin(subtransactions=True):
+            if pp.get('add_tenant'):
+                for tenant in pp.get('add_tenant'):
+                    self._create_profile_binding(context.session,
+                                                 tenant,
+                                                 prof_id)
+            if pp.get('remove_tenant'):
+                for tenant in pp['remove_tenant']:
+                    n1kv_db.remove_profile_tenant_binding(
+                        profile_type='policy',
+                        profile_id=prof_id,
+                        tenant_id=tenant,
+                        db_session=context.session)
+        return policy_profile
+
     def _check_policy_profile_on_any_vsm(self, pprofile_id, db_session=None):
         """Checks if policy profile is present on any VSM"""
         db_session = db_session or db.get_session()
@@ -337,3 +360,12 @@ class PolicyProfilePlugin(PolicyProfile_db_mixin):
                 else:
                     LOG.warning(_LW('Cannot delete policy profile %s '
                                     'as it is in use.'), pprofile['id'])
+
+    def update_policy_profile(self, context, prof_id, policy_profile):
+        session = context.session
+        with session.begin(subtransactions=True):
+            policy_p = (super(PolicyProfilePlugin, self).
+                        update_policy_profile(context,
+                                              prof_id,
+                                              policy_profile))
+        return policy_p
