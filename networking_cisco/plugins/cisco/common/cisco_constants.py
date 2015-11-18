@@ -53,6 +53,10 @@ NAMESPACE_ROUTER_TYPE = 'Namespace_Neutron_router'
 # as VRFs inside a CSR1kv VM instance.
 CSR1KV_ROUTER_TYPE = 'CSR1kv_router'
 
+# Default name of router type for Neutron routers implemented
+# as VRFs inside a ASR1k physical device.
+ASR1K_ROUTER_TYPE = 'ASR1k_router'
+
 # Router roles
 ROUTER_ROLE_GLOBAL = 'Global'
 ROUTER_ROLE_LOGICAL_GLOBAL = 'Logical-Global'

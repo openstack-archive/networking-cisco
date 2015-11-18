@@ -5,6 +5,8 @@
 MY_XTRACE=$(set +o | grep xtrace)
 set +o xtrace
 
+Q_CISCO_DEFAULT_ROUTER_TYPE=${Q_CISCO_DEFAULT_ROUTER_TYPE:-ASR1k_router}
+
 CISCO_ROUTER_PLUGIN=networking_cisco.plugins.cisco.service_plugins.cisco_router_plugin.CiscoRouterPlugin
 CISCO_DEVMGR_PLUGIN=networking_cisco.plugins.cisco.service_plugins.cisco_device_manager_plugin.CiscoDeviceManagerPlugin
 
@@ -39,6 +41,8 @@ function neutron_cisco_router_configure_common() {
     cp $DIR_CISCO/etc/policy.json $Q_POLICY_FILE
 
     _inject_deployer_config
+
+    iniset $Q_CISCO_ROUTER_PLUGIN_CONF_FILE routing default_router_type $Q_CISCO_DEFAULT_ROUTER_TYPE
 
  }
 

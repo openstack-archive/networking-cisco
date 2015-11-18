@@ -61,6 +61,9 @@ enable_service net-cisco
 # Enable CSR
 enable_service cisco-csr
 
+# Default routertype for Neutron routers
+Q_CISCO_DEFAULT_ROUTER_TYPE=CSR1kv_router
+
 # Destination path for installation of the OpenStack components.
 # There is no need to specify it unless you want the code in
 # some particular location (like in a directory shared by all VMs).
