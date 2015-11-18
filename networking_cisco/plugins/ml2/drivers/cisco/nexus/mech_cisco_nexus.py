@@ -464,7 +464,34 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 intf_type, port = 'ethernet', port_id
             host_list.append((switch_ip, intf_type, port))
 
-    def _get_switch_info(self, host_id):
+    def _get_host_switches(self, host_id):
+
+        all_switches = set()
+        active_switches = set()
+        for switch_ip, attr in self._nexus_switches:
+            if str(attr) == str(host_id):
+                all_switches.add(switch_ip)
+                if self.is_switch_active(switch_ip):
+                    active_switches.add(switch_ip)
+
+        return list(all_switches), list(active_switches)
+
+    def _get_active_host_connections(self, host_id):
+        host_found = False
+        host_connections = []
+        for switch_ip, attr in self._nexus_switches:
+            if str(attr) == str(host_id):
+                host_found = True
+                if self.is_switch_active(switch_ip):
+                    self._gather_configured_ports(
+                        switch_ip, attr, host_connections)
+
+        if not host_found:
+            LOG.warn(HOST_NOT_FOUND, host_id)
+
+        return host_connections
+
+    def _get_host_connections(self, host_id):
         host_connections = []
         for switch_ip, attr in self._nexus_switches:
             if str(attr) == str(host_id):
@@ -531,12 +558,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         for switch_ip in host_nve_connections:
 
-            if not self.is_switch_active(switch_ip):
-                raise excep.NexusConfigFailed(
-                    nexus_host=switch_ip, config="None",
-                    exc="Update nve member Failed: Nexus Switch "
-                    "is down or replay in progress")
-
             # If configured to set global VXLAN values then
             #   If this is the first database entry for this switch_ip
             #   then configure the "interface nve" entry on the switch.
@@ -575,12 +596,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         host_nve_connections = self._get_switch_nve_info(host_id)
         for switch_ip in host_nve_connections:
 
-            if not self.is_switch_active(switch_ip):
-                raise excep.NexusConfigFailed(
-                    nexus_host=switch_ip, config="None",
-                    exc="Update nve member Failed: Nexus Switch "
-                    "is down or replay in progress")
-
             if not nxos_db.get_nve_vni_switch_bindings(vni, switch_ip):
                 self.driver.delete_nve_member(switch_ip,
                     const.NVE_INT_NUM, vni)
@@ -594,7 +609,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         Called during update precommit port event.
         """
-        host_connections = self._get_switch_info(host_id)
+        host_connections = self._get_host_connections(host_id)
         for switch_ip, intf_type, nexus_port in host_connections:
             port_id = '%s:%s' % (intf_type, nexus_port)
             try:
@@ -772,20 +787,15 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         Called during update postcommit port event.
         """
-        host_connections = self._get_switch_info(host_id)
+        host_connections = self._get_active_host_connections(host_id)
 
         # (nexus_port,switch_ip) will be unique in each iteration.
         # But switch_ip will repeat if host has >1 connection to same switch.
         # So track which switch_ips already have vlan created in this loop.
         vlan_already_created = []
         starttime = time.time()
-        for switch_ip, intf_type, nexus_port in host_connections:
 
-            if not self.is_switch_active(switch_ip):
-                raise excep.NexusConfigFailed(
-                    nexus_host=switch_ip, config="None",
-                    exc="Update Failed: Nexus Switch is down or "
-                    "replay in progress")
+        for switch_ip, intf_type, nexus_port in host_connections:
 
             all_bindings = nxos_db.get_nexusvlan_binding(vlan_id, switch_ip)
             previous_bindings = [row for row in all_bindings
@@ -970,7 +980,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         Called during delete postcommit port event.
         """
-        host_connections = self._get_switch_info(host_id)
+        host_connections = self._get_host_connections(host_id)
 
         # (nexus_port,switch_ip) will be unique in each iteration.
         # But switch_ip will repeat if host has >1 connection to same switch.
@@ -1114,24 +1124,41 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
     def create_port_postcommit(self, context):
         """Create port non-database commit event."""
 
-        port = context.current
-        host_id = port.get(portbindings.HOST_ID)
-        host_connections = self._get_switch_info(host_id)
-        if self._is_supported_deviceowner(port):
-            # For each unique switch, verify you can talk
-            # to it; otherwise, let exception bubble
-            # up so other dbs cleaned and no further retries.
-            verified = []
-            for switch_ip, intf_type, nexus_port in host_connections:
-                if not self.is_switch_active(switch_ip):
-                    raise excep.NexusConfigFailed(
-                        nexus_host=switch_ip, config="None",
-                        exc="Create Failed: Port event can not "
-                        "be processed at this time.")
+        # No new events are handled until replay
+        # thread has put the switch in active state.
+        # If a switch is in active state, verify
+        # the switch is still in active state
+        # before accepting this new event.
+        #
+        # If create_port_postcommit fails, it causes
+        # other openstack dbs to be cleared and
+        # retries for new VMs will stop.  Subnet
+        # transactions will continue to be retried.
 
-                if switch_ip not in verified:
+        port = context.current
+        if self._is_supported_deviceowner(port):
+            host_id = port.get(portbindings.HOST_ID)
+
+            all_switches, active_switches = (
+                self._get_host_switches(host_id))
+
+            # Verify switch is still up before replay
+            # thread checks.
+            verified_active_switches = []
+            for switch_ip in active_switches:
+                try:
                     self.driver.get_nexus_type(switch_ip)
-                    verified.append(switch_ip)
+                    verified_active_switches.append(switch_ip)
+                except Exception:
+                    pass
+
+            # if host_id is valid and there is no active
+            # switches remaining
+            if all_switches and not verified_active_switches:
+                raise excep.NexusConnectFailed(
+                    nexus_host=all_switches[0], config="None",
+                    exc="Create Failed: Port event can not "
+                    "be processed at this time.")
 
     @lockutils.synchronized('cisco-nexus-portlock')
     def update_port_precommit(self, context):
@@ -1178,6 +1205,15 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         else:
             if (self._is_supported_deviceowner(context.current) and
                 self._is_status_active(context.current)):
+                host_id = context.current.get(portbindings.HOST_ID)
+                all_switches, active_switches = (
+                    self._get_host_switches(host_id))
+                # if switches not active but host_id is valid
+                if not active_switches and all_switches:
+                    raise excep.NexusConnectFailed(
+                        nexus_host=all_switches[0], config="None",
+                        exc="Update Port Failed: Nexus Switch "
+                        "is down or replay in progress")
                 vni = self._port_action_vxlan(context.current, vxlan_segment,
                             self._configure_nve_member) if vxlan_segment else 0
                 self._port_action_vlan(context.current, vlan_segment,
@@ -1216,7 +1252,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
                 # Find physical network setting for this host.
                 host_id = context.current.get(portbindings.HOST_ID)
-                host_connections = self._get_switch_info(host_id)
+                host_connections = self._get_host_connections(host_id)
                 if not host_connections:
                     return
 
