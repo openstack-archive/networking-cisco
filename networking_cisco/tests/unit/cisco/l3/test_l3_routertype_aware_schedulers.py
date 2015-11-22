@@ -159,7 +159,24 @@ class L3RoutertypeAwareL3AgentSchedulerTestCase(
         self._test_remove_hosting_device_templates()
         super(L3RoutertypeAwareL3AgentSchedulerTestCase, self).tearDown()
 
-    def get_unscheduled_routers_only_returns_namespace_routers(self):
+    def _test_add_router_to_l3_agent(self,
+                                     distributed=False,
+                                     already_scheduled=False,
+                                     external_gw=None):
+        # Parent test class run tests that use this function with L3 agent
+        # notifier set to None so we do the same.
+        self.l3_plugin.agent_notifiers[constants.AGENT_TYPE_L3] = None
+        super(L3RoutertypeAwareL3AgentSchedulerTestCase,
+              self)._test_add_router_to_l3_agent()
+
+    def test_add_router_to_l3_agent_dvr_to_snat(self):
+        # Parent test class run tests that use this function with L3 agent
+        # notifier set to None so we do the same.
+        self.l3_plugin.agent_notifiers[constants.AGENT_TYPE_L3] = None
+        super(L3RoutertypeAwareL3AgentSchedulerTestCase,
+              self).test_add_router_to_l3_agent_dvr_to_snat()
+
+    def test_get_unscheduled_routers_only_returns_namespace_routers(self):
         self._create_mgmt_nw_for_tests(self.fmt)
         arg_list = (routertype.TYPE_ATTR, )
         kwargs = {routertype.TYPE_ATTR: test_db_routertype.HW_ROUTERTYPE_NAME}
@@ -174,7 +191,7 @@ class L3RoutertypeAwareL3AgentSchedulerTestCase(
             # router 4
             self._make_router(self.fmt, _uuid(), 'router2', arg_list=arg_list,
                               **kwargs)['router']
-            routers = self.l3_plugin.router_scheduler.get_unscheduled_routers(
+            routers = self.l3_plugin.router_scheduler._get_unscheduled_routers(
                 self.adminContext, self.l3_plugin)
             r_ids = set(r['id'] for r in routers)
             self.assertEqual(len(r_ids), 2)
