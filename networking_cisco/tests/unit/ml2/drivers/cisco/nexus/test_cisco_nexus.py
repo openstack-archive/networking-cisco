@@ -63,6 +63,7 @@ NO_VXLAN_ID = 0
 MCAST_GROUP = '255.1.1.1'
 DEVICE_OWNER_COMPUTE = 'compute:test'
 DEVICE_OWNER_DHCP = n_const.DEVICE_OWNER_DHCP
+DEVICE_OWNER_ROUTER_HA_INTF = n_const.DEVICE_OWNER_ROUTER_HA_INTF
 NEXUS_SSH_PORT = '22'
 PORT_STATE = n_const.PORT_STATUS_ACTIVE
 NETWORK_TYPE = 'vlan'
@@ -196,6 +197,15 @@ class TestCiscoNexusDevice(testlib_api.SqlTestCase):
             NO_VXLAN_ID,
             None,
             DEVICE_OWNER_DHCP),
+        'test_config_router_ha_intf': TestConfigObj(
+            NEXUS_IP_ADDRESS,
+            HOST_NAME_1,
+            NEXUS_PORT_1,
+            INSTANCE_1,
+            VLAN_ID_1,
+            NO_VXLAN_ID,
+            None,
+            DEVICE_OWNER_ROUTER_HA_INTF),
         'test_vxlan_config1': TestConfigObj(
             NEXUS_IP_ADDRESS,
             HOST_NAME_1,
@@ -485,6 +495,13 @@ class TestCiscoNexusDevice(testlib_api.SqlTestCase):
         """Tests creation and deletion of ports with device_owner of dhcp."""
         self._create_delete_port(
             TestCiscoNexusDevice.test_configs['test_config_dhcp'])
+
+    def test_create_delete_router_ha_intf(self):
+        """Tests creation and deletion of ports with device_owner
+        of router_ha_interface.
+        """
+        self._create_delete_port(
+            TestCiscoNexusDevice.test_configs['test_config_router_ha_intf'])
 
     def test_connect_failure(self):
         """Verifies exception handling during ncclient connect. """

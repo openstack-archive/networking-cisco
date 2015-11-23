@@ -274,7 +274,8 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
     def _is_supported_deviceowner(self, port):
         return (port['device_owner'].startswith('compute') or
-                port['device_owner'] == n_const.DEVICE_OWNER_DHCP)
+                port['device_owner'] == n_const.DEVICE_OWNER_DHCP or
+                port['device_owner'] == n_const.DEVICE_OWNER_ROUTER_HA_INTF)
 
     def _is_status_active(self, port):
         return port['status'] == n_const.PORT_STATUS_ACTIVE
