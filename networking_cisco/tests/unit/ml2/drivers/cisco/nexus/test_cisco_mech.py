@@ -190,6 +190,11 @@ class CiscoML2MechanismTestCase(test_plugin.Ml2PluginV2TestCase):
             '_is_status_active').start()
         self.mock_status.side_effect = _mock_check_bind_state
 
+        self.mock_switch_status = mock.patch.object(
+            mech_cisco_nexus.CiscoNexusMechanismDriver,
+            'is_switch_active').start()
+        self.mock_switch_status.return_value = True
+
         super(CiscoML2MechanismTestCase, self).setUp()
 
         self.port_create_status = 'DOWN'
