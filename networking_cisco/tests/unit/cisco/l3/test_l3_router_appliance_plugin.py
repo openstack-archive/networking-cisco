@@ -220,6 +220,7 @@ class L3RouterApplianceTestCaseBase(
         device_manager_test_support.TestCorePlugin._hosting_device_drivers = {}
         device_manager_test_support.TestCorePlugin._hosting_device_locks = {}
         device_manager_test_support.TestCorePlugin._cfgagent_scheduler = None
+        device_manager_test_support.TestCorePlugin._cfg_agent_statuses = {}
         device_manager_test_support.TestCorePlugin._svc_vm_mgr_obj = None
         device_manager_test_support.TestCorePlugin._nova_running = False
 
