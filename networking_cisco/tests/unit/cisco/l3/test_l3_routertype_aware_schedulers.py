@@ -1263,16 +1263,16 @@ class L3RouterHostingDeviceBaseSchedulerTestCase(
             credentials = device_manager_test_support._uuid()
             with self.hosting_device(template_id=template_id,
                                      credentials_id=credentials) as hd1,\
-                self.hosting_device(template_id=template_id,
-                                    credentials_id=credentials) as hd2,\
-                self.hosting_device(template_id=template_id,
-                                    credentials_id=credentials) as hd3,\
-                self.hosting_device(template_id=template_id,
-                                    credentials_id=credentials) as hd4,\
-                self.hosting_device(template_id=template_id,
-                                    credentials_id=credentials) as hd5,\
-                self.hosting_device(template_id=template_id,
-                                    credentials_id=credentials) as hd6:
+                    self.hosting_device(template_id=template_id,
+                                        credentials_id=credentials) as hd2,\
+                    self.hosting_device(template_id=template_id,
+                                        credentials_id=credentials) as hd3,\
+                    self.hosting_device(template_id=template_id,
+                                        credentials_id=credentials) as hd4,\
+                    self.hosting_device(template_id=template_id,
+                                        credentials_id=credentials) as hd5,\
+                    self.hosting_device(template_id=template_id,
+                                        credentials_id=credentials) as hd6:
                 self._update_hosting_device_statuses(
                     [hd2, hd4, hd5],
                     [c_const.HD_DEAD, c_const.HD_ERROR,

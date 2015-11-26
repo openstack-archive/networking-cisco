@@ -64,6 +64,8 @@ class HostingDeviceCfgAgentScheduler(object):
             # announces itself any "dangling" hosting devices
             # will be scheduled to it.
             return
+        LOG.debug('Randomly selecting a Cisco cfg agent among %d candidates' %
+                  len(active_cfg_agents))
         return random.choice(active_cfg_agents)
 
 
