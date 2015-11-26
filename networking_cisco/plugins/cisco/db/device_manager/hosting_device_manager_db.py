@@ -63,7 +63,7 @@ HOSTING_DEVICE_MANAGER_OPTS = [
                help=_("Default security group applied on management port. "
                       "Default value is mgmt_sec_grp")),
     cfg.BoolOpt('ensure_nova_running', default=True,
-                help=_("Ensure that Nova is running before attempting to"
+                help=_("Ensure that Nova is running before attempting to "
                        "create any CSR1kv VM.")),
     cfg.StrOpt('domain_name_server_1', default='8.8.8.8',
                help=_("IP address of primary domain name server for hosting "
