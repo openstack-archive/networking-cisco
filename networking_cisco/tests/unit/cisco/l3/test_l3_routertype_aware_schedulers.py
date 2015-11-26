@@ -1006,6 +1006,31 @@ class L3RoutertypeAwareHostingDeviceSchedulerTestCase(
                 self.assertEqual(rs_final[1][HOSTING_DEVICE_ATTR],
                                  hosting_device_id2)
 
+    def test_router_without_auto_schedule_not_unscheduled_from_dead_hd(self):
+        with mock.patch.object(
+                self.plugin, 'unschedule_router_from_hosting_device') as (
+                    mock_unsched):
+            arg_list = (routertypeawarescheduler.AUTO_SCHEDULE_ATTR, )
+            kwargs = {
+                routertypeawarescheduler.AUTO_SCHEDULE_ATTR: False}
+            router = self._make_router(self.fmt, _uuid(), 'router1',
+                                       arg_list=arg_list, **kwargs)
+            r = router['router']
+            r_id = r['id']
+            self.assertIsNone(r[HOSTING_DEVICE_ATTR])
+            hosting_device_id = '00000000-0000-0000-0000-000000000001'
+            self._add_router_to_hosting_device(hosting_device_id, r_id)
+            r_after = self._show('routers', r['id'])['router']
+            self.assertEqual(hosting_device_id, r_after[HOSTING_DEVICE_ATTR])
+            affected_resources = {}
+            # now report hosting device 1 as dead
+            self.plugin.handle_non_responding_hosting_devices(
+                self.adminContext, [{'id': hosting_device_id}],
+                affected_resources)
+            self.assertEqual(0, mock_unsched.call_count)
+            r_final = self._show('routers', r['id'])['router']
+            self.assertEqual(hosting_device_id, r_final[HOSTING_DEVICE_ATTR])
+
 
 class HostingDeviceRouterL3CfgAgentNotifierTestCase(
         L3RoutertypeAwareHostingDeviceSchedulerTestCaseBase):

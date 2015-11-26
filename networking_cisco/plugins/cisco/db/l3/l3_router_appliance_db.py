@@ -532,17 +532,17 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                                                                    hd['id'])
                 router_ids = []
                 for binding_db in hd_bindings_db:
-                    self.unschedule_router_from_hosting_device(context,
-                                                               binding_db)
-                    binding_db.hosting_device_id = None
-                    router_ids.append(binding_db.router_id)
                     if binding_db.auto_schedule is True:
+                        self.unschedule_router_from_hosting_device(context,
+                                                                   binding_db)
+                        binding_db.hosting_device_id = None
+                        router_ids.append(binding_db.router_id)
                         self._backlog_router(context, binding_db)
-                    try:
-                        affected_resources[hd['id']].update(
-                            {'routers': router_ids})
-                    except KeyError:
-                        affected_resources[hd['id']] = {'routers': router_ids}
+                try:
+                    affected_resources[hd['id']].update(
+                        {'routers': router_ids})
+                except KeyError:
+                    affected_resources[hd['id']] = {'routers': router_ids}
         LOG.debug('Finished processing affected routers in dead hosting '
                   'devices')
 
