@@ -13,9 +13,11 @@
 #    under the License.
 
 
+import abc
 from datetime import timedelta
 from operator import itemgetter
 import random
+import six
 
 from oslo_log import log as logging
 from sqlalchemy import func
@@ -32,27 +34,24 @@ ROUTER_ROLE_HA_REDUNDANCY = cisco_constants.ROUTER_ROLE_HA_REDUNDANCY
 EQUIVALENCE_TIME_DIFF = 7
 
 
+@six.add_metaclass(abc.ABCMeta)
 class L3RouterHostingDeviceBaseScheduler(object):
-    """Slot-aware scheduler of Neutron routers on hosting devices."""
+    """Slot-aware base scheduler of Neutron routers to hosting devices."""
 
     def get_candidates(self, plugin, context, r_hd_binding_db):
-        """Schedules a Neutron router on a hosting device.
+        """Selection criteria: Hosting devices that...
+               ... are based on the template required by router's type
+               AND
+               ... are administratively up
+               AND
+               ... are active (i.e., has status HD_ACTIVE)
+               AND
+               ... are bound to tenant owning router OR is unbound
+               AND
+               ... are enough slots available to host the router
 
-        Selection criteria: The longest running hosting device that...
-            ... is based on the template required by router's type
-            AND
-            ... is administratively up
-            AND
-            ... is bound to tenant owning router OR is unbound
-            AND
-            ... has enough slots available to host the router
-
-            Hosting devices with creation date/time less than
-            EQUIVALENCE_TIME_DIFF are considered equally old.
-
-            Among hosting devices meeting these criteria and
-            that are of same age the device with less allocated
-            slots is preferred.
+            Among hosting devices meeting these criteria the device with
+            less allocated slots is preferred.
         """
         # SELECT hosting_device_id, created_at, sum(num_allocated)
         # FROM hostingdevices AS hd
@@ -60,6 +59,7 @@ class L3RouterHostingDeviceBaseScheduler(object):
         # WHERE
         #    hd.template_id='11111111-2222-3333-4444-555555555555' AND
         #    hd.admin_state_up=TRUE AND
+        #    hd.status='ACTIVE' AND
         # <<<sharing case:>>>
         #    (hd.tenant_bound IS NULL OR hd.tenant_bound='t10')
         # <<<non-sharing case:>>>
@@ -86,7 +86,8 @@ class L3RouterHostingDeviceBaseScheduler(object):
             hd_models.SlotAllocation.hosting_device_id)
         query = query.filter(
             hd_models.HostingDevice.template_id == template_id,
-            hd_models.HostingDevice.admin_state_up == expr.true())
+            hd_models.HostingDevice.admin_state_up == expr.true(),
+            hd_models.HostingDevice.status == cisco_constants.HD_ACTIVE)
         if r_hd_binding_db.share_hosting_device:
             query = query.filter(
                 expr.or_(hd_models.HostingDevice.tenant_bound == expr.null(),
@@ -113,16 +114,34 @@ class L3RouterHostingDeviceBaseScheduler(object):
         query = query.order_by(hd_models.HostingDevice.created_at)
         return query.all()
 
+    @abc.abstractmethod
     def schedule_router(self, plugin, context, r_hd_binding_db):
-        return
+        # As this is a base scheduler that is not supposed to be used
+        # directly we make this method abstract
+        pass
 
+    @abc.abstractmethod
     def unschedule_router(self, plugin, context, r_hd_binding_db):
-        return True
+        # As this is a base scheduler that is not supposed to be used
+        # directly we make this method abstract
+        pass
 
 
 class L3RouterHostingDeviceLongestRunningScheduler(
         L3RouterHostingDeviceBaseScheduler):
+    """Schedules a Neutron router on a hosting device.
 
+        Selection criteria:
+            The longest running hosting device that
+            has enough slots available to host the router
+
+            Hosting devices with creation date/time less than
+            EQUIVALENCE_TIME_DIFF are considered equally old.
+
+            Among hosting devices meeting these criteria and
+            that are of same age the device with less allocated
+            slots is preferred.
+    """
     def schedule_router(self, plugin, context, r_hd_binding_db):
         candidates = self._filtered_candidates(plugin, context,
                                                r_hd_binding_db)
@@ -142,11 +161,14 @@ class L3RouterHostingDeviceLongestRunningScheduler(
         sorted_candidates = sorted(oldest_candidates, key=itemgetter(2))
         return sorted_candidates[0]
 
+    def unschedule_router(self, plugin, context, r_hd_binding_db):
+        return True
+
     def _filtered_candidates(self, plugin, context, r_hd_binding_db):
         return self.get_candidates(plugin, context, r_hd_binding_db)
 
 
-class CandidatesHAFilter(object):
+class CandidatesHAFilterMixin(object):
 
     def _filtered_candidates(self, plugin, context, r_hd_binding_db):
         candidates_dict = {c.id: c for c in self.get_candidates(
@@ -179,12 +201,34 @@ class CandidatesHAFilter(object):
 
 
 class L3RouterHostingDeviceHALongestRunningScheduler(
-        CandidatesHAFilter, L3RouterHostingDeviceLongestRunningScheduler):
+        CandidatesHAFilterMixin, L3RouterHostingDeviceLongestRunningScheduler):
+    """Schedules a Neutron router on a hosting device.
+
+        The scheduler is HA aware and will ignore hosting device candidates
+        that are used by other Neutron routers in the same HA group.
+
+        Selection criteria:
+            The longest running hosting device that is not already hosting a
+            router in the HA group and which has enough slots available to
+            host the router.
+
+            Hosting devices with creation date/time less than
+            EQUIVALENCE_TIME_DIFF are considered equally old.
+
+            Among hosting devices meeting these criteria and
+            that are of same age the device with less allocated
+            slots is preferred.
+    """
     pass
 
 
 class L3RouterHostingDeviceRandomScheduler(L3RouterHostingDeviceBaseScheduler):
+    """Schedules a Neutron router on a hosting device.
 
+        Selection criteria:
+            A randomly selected hosting device that has enough slots available
+            to host the router.
+    """
     def schedule_router(self, plugin, context, r_hd_binding_db):
         candidates = self._filtered_candidates(plugin, context,
                                                r_hd_binding_db)
@@ -193,10 +237,23 @@ class L3RouterHostingDeviceRandomScheduler(L3RouterHostingDeviceBaseScheduler):
             return
         return random.choice(list(candidates))
 
+    def unschedule_router(self, plugin, context, r_hd_binding_db):
+        return True
+
     def _filtered_candidates(self, plugin, context, r_hd_binding):
         return self.get_candidates(plugin, context, r_hd_binding)
 
 
 class L3RouterHostingDeviceHARandomScheduler(
-        CandidatesHAFilter, L3RouterHostingDeviceRandomScheduler):
+        CandidatesHAFilterMixin, L3RouterHostingDeviceRandomScheduler):
+    """Schedules a Neutron router on a hosting device.
+
+        The scheduler is HA aware and will ignore hosting device candidates
+        that are used by other Neutron routers in the same HA group.
+
+        Selection criteria:
+            A randomly selected hosting device that is not already hosting a
+            router in the HA group and which has enough slots available to
+            host the router.
+    """
     pass
