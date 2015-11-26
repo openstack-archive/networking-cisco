@@ -151,6 +151,8 @@ class CiscoRoutingPluginApi(object):
 
 class RoutingServiceHelper(object):
 
+    target = oslo_messaging.Target(version='1.1')
+
     def __init__(self, host, conf, cfg_agent):
         self.conf = conf
         self.cfg_agent = cfg_agent
@@ -202,6 +204,11 @@ class RoutingServiceHelper(object):
     def router_added_to_hosting_device(self, context, routers):
         LOG.debug('Got router added to hosting device :%s', routers)
         self.routers_updated(context, routers)
+
+    # version 1.1
+    def routers_removed_from_hosting_device(self, context, router_ids):
+        LOG.debug('Got routers removed from hosting device: %s', router_ids)
+        self.router_deleted(context, router_ids)
 
     # Routing service helper public methods
 
