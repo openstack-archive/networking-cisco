@@ -79,7 +79,7 @@ class HostingDeviceCfgAgentSchedulerTestMixIn(
             path, {'hosting_device_id': hosting_device_id},
             admin_context=admin_context)
         res = req.get_response(self.ext_api)
-        self.assertEqual(res.status_int, expected_code)
+        self.assertEqual(expected_code, res.status_int)
 
     def _unassign_hosting_device_from_cfg_agent(
             self, cfg_agent_id, hosting_device_id,
@@ -89,7 +89,7 @@ class HostingDeviceCfgAgentSchedulerTestMixIn(
             hosting_device_id, self.fmt)
         req = self._path_delete_request(path, admin_context=admin_context)
         res = req.get_response(self.ext_api)
-        self.assertEqual(res.status_int, expected_code)
+        self.assertEqual(expected_code, res.status_int)
 
 
 class HostingDeviceConfigAgentSchedulerTestCaseBase(
@@ -164,11 +164,11 @@ class HostingDeviceConfigAgentSchedulerTestCase(
                                                  cfg_agent_id,
                                                  id_bound_agent=None):
         hd = hosting_device['hosting_device']
-        self.assertEqual(hd['cfg_agent_id'], id_bound_agent)
+        self.assertEqual(id_bound_agent, hd['cfg_agent_id'])
         self._assign_hosting_device_to_cfg_agent(cfg_agent_id, hd['id'])
         hosting_device_after = self._show('hosting_devices', hd['id'])
         hd_after = hosting_device_after['hosting_device']
-        self.assertEqual(hd_after['cfg_agent_id'], cfg_agent_id)
+        self.assertEqual(cfg_agent_id, hd_after['cfg_agent_id'])
         return hosting_device_after
 
     def test_hosting_device_assign_to_cfg_agent(self):
@@ -196,7 +196,7 @@ class HostingDeviceConfigAgentSchedulerTestCase(
                     cfg_agent_id2, hd['id'], exc.HTTPConflict.code)
                 hd_after = self._show('hosting_devices', hd['id'])[
                     'hosting_device']
-                self.assertEqual(hd_after['cfg_agent_id'], cfg_agent_id1)
+                self.assertEqual(cfg_agent_id1, hd_after['cfg_agent_id'])
 
     def test_hosting_device_assign_to_cfg_agent_with_admin_state_down(self):
         self._setup_cfg_agents()
@@ -279,7 +279,7 @@ class HostingDeviceConfigAgentSchedulerTestCase(
                     no_cfg_agent_id, hd['id'], exc.HTTPNotFound.code)
                 hd_after = self._show('hosting_devices',
                                       hd['id'])['hosting_device']
-                self.assertEqual(hd_after['cfg_agent_id'], cfg_agent_id)
+                self.assertEqual(cfg_agent_id, hd_after['cfg_agent_id'])
 
     def test_hosting_device_unassign_from_non_existing_hosting_device(self):
         self._setup_cfg_agents()
@@ -358,15 +358,15 @@ class HostingDeviceConfigAgentSchedulerTestCase(
                                                          hd3['id'])
                 hd_list1 = self._list_hosting_devices_handled_by_cfg_agent(
                     cfg_agent1_id)
-                self.assertEqual(len(hd_list1['hosting_devices']), 2)
+                self.assertEqual(2, len(hd_list1['hosting_devices']))
                 hd1_set = {hd1['id'], hd2['id']}
                 for hd in hd_list1['hosting_devices']:
                     self.assertTrue(hd['id'] in hd1_set)
                 hd_list2 = self._list_hosting_devices_handled_by_cfg_agent(
                     cfg_agent2_id)
-                self.assertEqual(len(hd_list2['hosting_devices']), 1)
-                self.assertEqual(hd_list2['hosting_devices'][0]['id'],
-                                 hd3['id'])
+                self.assertEqual(1, len(hd_list2['hosting_devices']))
+                self.assertEqual(hd3['id'],
+                                 hd_list2['hosting_devices'][0]['id'])
 
     def test_list_hosting_devices_by_cfg_agent_with_non_existing_cfg_agent(
             self):
@@ -382,7 +382,7 @@ class HostingDeviceConfigAgentSchedulerTestCase(
                                                          hd['id'])
                 hd_list = self._list_hosting_devices_handled_by_cfg_agent(
                     missing_cfg_agent_id)
-                self.assertEqual(len(hd_list['hosting_devices']), 0)
+                self.assertEqual(0, len(hd_list['hosting_devices']))
 
     def test_list_cfg_agents_handling_hosting_device(self):
         self._setup_cfg_agents(True, True)
@@ -396,8 +396,8 @@ class HostingDeviceConfigAgentSchedulerTestCase(
                                                          hd['id'])
                 a_list = self._list_cfg_agents_handling_hosting_device(
                     hd['id'])
-                self.assertEqual(len(a_list['agents']), 1)
-                self.assertEqual(a_list['agents'][0]['id'], cfg_agent_id)
+                self.assertEqual(1, len(a_list['agents']))
+                self.assertEqual(cfg_agent_id, a_list['agents'][0]['id'])
 
     def test_list_cfg_agents_handling_unassigned_hosting_device(self):
         self._setup_cfg_agents(True, True)
@@ -408,7 +408,7 @@ class HostingDeviceConfigAgentSchedulerTestCase(
                 hd = hosting_device['hosting_device']
                 a_list = self._list_cfg_agents_handling_hosting_device(
                     hd['id'])
-                self.assertEqual(len(a_list['agents']), 0)
+                self.assertEqual(0, len(a_list['agents']))
 
     def test_list_cfg_agents_handling_non_existent_hosting_device(self):
         self._setup_cfg_agents()
@@ -424,7 +424,7 @@ class HostingDeviceConfigAgentSchedulerTestCase(
     def test_get_cfg_agents(self):
         self._setup_cfg_agents(True, True)
         agents = self.plugin.get_cfg_agents(self.adminContext)
-        self.assertEqual(len(agents), len(self._agent_dict))
+        self.assertEqual(len(self._agent_dict), len(agents))
         for agent in agents:
             self.assertIn(agent.host, self._agent_dict)
         id_cfg_agent_disabled = self._agent_dict[L3_CFG_HOST_A]['id']
@@ -433,8 +433,8 @@ class HostingDeviceConfigAgentSchedulerTestCase(
                      {'agent': {'admin_state_up': False}})
         active_agents = self.plugin.get_cfg_agents(self.adminContext,
                                                    active=True)
-        self.assertEqual(len(active_agents), 1)
-        self.assertEqual(active_agents[0].host, L3_CFG_HOST_B)
+        self.assertEqual(1, len(active_agents))
+        self.assertEqual(L3_CFG_HOST_B, active_agents[0].host)
         self._update('agents', id_cfg_agent_disabled,
                      {'agent': {'admin_state_up': True}})
         # cfg agent with too old time report should not be returned
@@ -445,15 +445,15 @@ class HostingDeviceConfigAgentSchedulerTestCase(
             is_older_mock.side_effect = [False, True]
             alive_agents = self.plugin.get_cfg_agents(self.adminContext,
                                                       active=True)
-            self.assertEqual(len(alive_agents), 1)
-            self.assertEqual(alive_agents[0].host, L3_CFG_HOST_A)
+            self.assertEqual(1, len(alive_agents))
+            self.assertEqual(L3_CFG_HOST_A, alive_agents[0].host)
 
     def test_get_cfg_agents_filtered(self):
         self._setup_cfg_agents(True, True, True)
         hosts = [L3_CFG_HOST_B, L3_CFG_HOST_C]
         agents = self.plugin.get_cfg_agents(self.adminContext,
                                             filters={'host': hosts})
-        self.assertEqual(len(agents), 2)
+        self.assertEqual(2, len(agents))
         for agent in agents:
             self.assertIn(agent.host, hosts)
         id_cfg_agent_disabled = self._agent_dict[L3_CFG_HOST_B]['id']
@@ -462,8 +462,8 @@ class HostingDeviceConfigAgentSchedulerTestCase(
                      {'agent': {'admin_state_up': False}})
         active_agents = self.plugin.get_cfg_agents(
             self.adminContext, active=True, filters={'host': hosts})
-        self.assertEqual(len(active_agents), 1)
-        self.assertEqual(active_agents[0].host, L3_CFG_HOST_C)
+        self.assertEqual(1, len(active_agents))
+        self.assertEqual(L3_CFG_HOST_C, active_agents[0].host)
         self._update('agents', id_cfg_agent_disabled,
                      {'agent': {'admin_state_up': True}})
         # cfg agent with too old time report should not be returned
@@ -474,8 +474,8 @@ class HostingDeviceConfigAgentSchedulerTestCase(
             is_older_mock.side_effect = [False, True]
             alive_agents = self.plugin.get_cfg_agents(
                 self.adminContext, active=True, filters={'host': hosts})
-            self.assertEqual(len(alive_agents), 1)
-            self.assertEqual(alive_agents[0].host, L3_CFG_HOST_B)
+            self.assertEqual(1, len(alive_agents))
+            self.assertEqual(L3_CFG_HOST_B, alive_agents[0].host)
 
     def _test_get_cfg_agents_for_hosting_devices(self, assignable_agents,
                                                  schedule=False,
@@ -513,7 +513,7 @@ class HostingDeviceConfigAgentSchedulerTestCase(
                     random_mock.side_effect = faked_choice
                     agents = self.plugin.get_cfg_agents_for_hosting_devices(
                         self.adminContext, ids_hd_to_assign, schedule=schedule)
-                    self .assertEqual(len(agents), len(assignable_agents))
+                    self .assertEqual(len(assignable_agents), len(agents))
                     for agent in agents:
                         self.assertIn(agent['id'], assignable_agents)
                     hds_after_dict = {hd['id']: hd for hd in self._list(
@@ -584,8 +584,8 @@ class HostingDeviceConfigAgentSchedulerTestCase(
                 # cfg agent with too old time report should not be returned
                 with mock.patch(
                     'networking_cisco.plugins.cisco.db.scheduler.'
-                    'cfg_agentschedulers_db.timeutils.'
-                    'is_older_than') as is_older_mock:
+                    'cfg_agentschedulers_db.timeutils.is_older_than') as (
+                        is_older_mock):
                     # the cfg agents on host_a and host_b are dead and
                     # alive, respectively
                     is_older_mock.side_effect = [True, True, False]
@@ -594,13 +594,138 @@ class HostingDeviceConfigAgentSchedulerTestCase(
                     cfg_agent_id_after = self._agent_dict[L3_CFG_HOST_B]['id']
                     # the hosting device should now be rescheduled and thereby
                     # be bound to the cfg agent on host_b
-                    self.assertEqual(len(agents), 1)
-                    self.assertEqual(agents[0]['id'], cfg_agent_id_after)
+                    self.assertEqual(1, len(agents))
+                    self.assertEqual(cfg_agent_id_after, agents[0]['id'])
                     hosting_device_after = self._show('hosting_devices',
                                                       hd['id'])
                     hd_after = hosting_device_after['hosting_device']
-                    self.assertEqual(hd_after['cfg_agent_id'],
-                                     cfg_agent_id_after)
+                    self.assertEqual(cfg_agent_id_after,
+                                     hd_after['cfg_agent_id'])
+
+    def test__check_config_agents_auto_adds_new_cfg_agents(self):
+        self._setup_cfg_agents()
+        with mock.patch(
+            'networking_cisco.plugins.cisco.db.scheduler.'
+            'cfg_agentschedulers_db.timeutils.'
+            'is_older_than') as is_older_mock:
+            # make the cfg agent appear to have recent timestamps
+            is_older_mock.side_effect = [False, False]
+            self.plugin._check_config_agents()
+            self.assertEqual(len(self._agent_dict),
+                             len(self.plugin._cfg_agent_statuses))
+            agent_ids = {attrs['id'] for attrs in self._agent_dict.values()}
+            for agent_id, info in six.iteritems(
+                    self.plugin._cfg_agent_statuses):
+                self.assertIn(agent_id, agent_ids)
+
+    def test__check_config_agents_stops_monitoring_non_existent_cfg_agents(
+            self):
+        self.plugin._cfg_agent_statuses['non_existent_agent_id'] = {
+            'timestamp': 'faketime'}
+        with mock.patch(
+            'networking_cisco.plugins.cisco.db.scheduler.'
+            'cfg_agentschedulers_db.timeutils.is_older_than') as is_older_mock:
+            # The non-existent cfg agent should have a too old time stamp
+            is_older_mock.side_effect = [True]
+            self.plugin._check_config_agents()
+            # verify that the non-existent cfg agent is no longer monitored
+            self.assertEqual(0, len(self.plugin._cfg_agent_statuses))
+
+    def test__check_config_agents_dead_cfg_agent_triggers_hd_rescheduling(
+            self):
+        self._setup_cfg_agents()
+        with mock.patch(
+            'networking_cisco.plugins.cisco.db.scheduler.'
+            'cfg_agentschedulers_db.timeutils.is_older_than') as is_older_mock:
+            # make the cfg agent appear to have recent timestamps
+            is_older_mock.side_effect = [False, True, True, True]
+            with mock.patch('networking_cisco.plugins.cisco.db.scheduler.'
+                            'cfg_agentschedulers_db.CfgAgentSchedulerDbMixin.'
+                            '_reschedule_hosting_devices') as resched_mock:
+                self.plugin._check_config_agents()
+                self.assertEqual(1, len(self.plugin._cfg_agent_statuses))
+                agent_id = list(self._agent_dict.values())[0]['id']
+                self.assertEqual(
+                    list(self.plugin._cfg_agent_statuses.keys())[0], agent_id)
+                resched_mock.assert_called_once_with(mock.ANY, agent_id)
+
+    def test__reschedule_hosting_devices_no_other_cfg_agent(self):
+        self._setup_cfg_agents(True)
+        with self.hosting_device_template(
+                host_category=self.host_category) as hosting_device_template:
+            hdt = hosting_device_template['hosting_device_template']
+            with self.hosting_device(template_id=hdt['id']) as hosting_device:
+                hd = hosting_device['hosting_device']
+                cfg_agent_id = self._agent_dict[L3_CFG_HOST_A]['id']
+                self._test_assign_hosting_device_to_cfg_agent(hosting_device,
+                                                              cfg_agent_id)
+                hd_after = self._show('hosting_devices',
+                                      hd['id'])['hosting_device']
+                self.assertEqual(cfg_agent_id, hd_after['cfg_agent_id'])
+                notify_mock = mock.MagicMock()
+                self.plugin.agent_notifiers[c_const.AGENT_TYPE_CFG] = (
+                    notify_mock)
+                e_context = n_context.get_admin_context()
+                with mock.patch(
+                        'networking_cisco.plugins.cisco.db.scheduler.'
+                        'cfg_agentschedulers_db.timeutils.is_older_than') as (
+                        is_older_mock):
+                    # make the cfg agent appear to have outdated timestamps
+                    is_older_mock.side_effect = [True]
+                    self.plugin._reschedule_hosting_devices(e_context,
+                                                            cfg_agent_id)
+                    hd_final = self._show('hosting_devices',
+                                          hd['id'])['hosting_device']
+                    self.assertIsNone(hd_final['cfg_agent_id'])
+                    self.assertEqual(0, notify_mock.call_count)
+
+    def test__reschedule_hosting_devices_to_other_cfg_agent(self):
+        random_patch = mock.patch('random.choice')
+        random_mock = random_patch.start()
+
+        def side_effect(seq):
+            return seq[0]
+
+        random_mock.side_effect = side_effect
+        self._setup_cfg_agents(True, True)
+        with self.hosting_device_template(
+                host_category=self.host_category) as hosting_device_template:
+            hdt = hosting_device_template['hosting_device_template']
+            with self.hosting_device(
+                    template_id=hdt['id']) as hosting_device_1,\
+                    self.hosting_device(
+                        template_id=hdt['id']) as hosting_device_2:
+                cfg_agent_id1 = self._agent_dict[L3_CFG_HOST_A]['id']
+                self._test_assign_hosting_device_to_cfg_agent(hosting_device_1,
+                                                              cfg_agent_id1)
+                self._test_assign_hosting_device_to_cfg_agent(hosting_device_2,
+                                                              cfg_agent_id1)
+                hds_after = self._list('hosting_devices')['hosting_devices']
+                for hd_after in hds_after:
+                    self.assertEqual(cfg_agent_id1, hd_after['cfg_agent_id'])
+                notify_mock = mock.MagicMock()
+                self.plugin.agent_notifiers[c_const.AGENT_TYPE_CFG] = (
+                    notify_mock)
+                e_context = n_context.get_admin_context()
+                with mock.patch(
+                        'networking_cisco.plugins.cisco.db.scheduler.'
+                        'cfg_agentschedulers_db.timeutils.is_older_than') as (
+                        is_older_mock):
+                    # make the cfg agent appear to have outdated timestamps
+                    is_older_mock.side_effect = [True, False, True, False]
+                    self.plugin._reschedule_hosting_devices(e_context,
+                                                            cfg_agent_id1)
+                    cfg_agent_id2 = self._agent_dict[L3_CFG_HOST_B]['id']
+                    hds_final = self._list(
+                        'hosting_devices')['hosting_devices']
+                    for hd_final in hds_final:
+                        self.assertEqual(cfg_agent_id2,
+                                         hd_final['cfg_agent_id'])
+        assign_notify_mock = notify_mock.hosting_devices_assigned_to_cfg_agent
+        hd_ids = [hd['id'] for hd in hds_final]
+        assign_notify_mock.assert_called_once_with(
+            mock.ANY, hd_ids, self._agent_dict[L3_CFG_HOST_B]['host'])
+        random_patch.stop()
 
 
 class HostingDeviceConfigAgentNotifierTestCase(
@@ -707,15 +832,14 @@ class HostingDeviceToCfgAgentRandomSchedulerTestCase(
                 hd1 = hosting_device_1['hosting_device']
                 agents = self.plugin.get_cfg_agents_for_hosting_devices(
                     self.adminContext, [hd1['id']], schedule=True)
-                self.assertEqual(len(agents), 1)
-                self.assertEqual(random_mock.call_count, 1)
+                self.assertEqual(1, len(agents))
+                self.assertEqual(1, random_mock.call_count)
                 with self.hosting_device(template_id=hdt['id']) as (
                         hosting_device_2):
                     hd2 = hosting_device_2['hosting_device']
-                    agents = self.plugin.get_cfg_agents_for_hosting_devices(
+                    self.plugin.get_cfg_agents_for_hosting_devices(
                         self.adminContext, [hd2['id']], schedule=True)
-                    self.assertEqual(random_mock.call_count, 2)
-        random_patch.stop()
+                    self.assertEqual(2, random_mock.call_count)
 
 
 class HostingDeviceToCfgAgentStingySchedulerTestCase(
@@ -747,7 +871,7 @@ class HostingDeviceToCfgAgentStingySchedulerTestCase(
                 hd_ids = [hd1['id'], hd2['id'], hd3['id']]
                 agents = self.plugin.get_cfg_agents_for_hosting_devices(
                     self.adminContext, hd_ids, schedule=True)
-                self.assertEqual(len(agents), 3)
+                self.assertEqual(3, len(agents))
                 self.assertNotEqual(agents[0]['id'], agents[1]['id'])
                 self.assertNotEqual(agents[0]['id'], agents[2]['id'])
                 self.assertNotEqual(agents[1]['id'], agents[2]['id'])
