@@ -42,10 +42,11 @@ class RouterType(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
                                           ondelete='CASCADE'))
     template = orm.relationship(hd_models.HostingDeviceTemplate)
     # 'ha_enabled_by_default' is True if routers of this type should have HA on
-    ha_enabled_by_default = sa.Column(sa.Boolean, default=False,
-                                      nullable=False)
+    ha_enabled_by_default = sa.Column(sa.Boolean, nullable=False,
+                                      server_default=sa.sql.false())
     # 'shared' is True if routertype is available to all tenants
-    shared = sa.Column(sa.Boolean, default=True, nullable=False)
+    shared = sa.Column(sa.Boolean, nullable=False,
+                       server_default=sa.sql.true())
     #TODO(bobmel): add HA attribute: One of None, 'GPLB', 'VRRP', or 'HSRP'
     # The number of slots this router type consume in hosting device
     slot_need = sa.Column(sa.Integer, autoincrement=False)
@@ -81,11 +82,13 @@ class RouterHostingDeviceBinding(model_base.BASEV2):
     # 'inflated_slot_need' is the slot need of the router plus the
     # number slots needed by other resources to be associated with the
     # router. It's only considered if > 0.
-    inflated_slot_need = sa.Column(sa.Integer, default=0, autoincrement=False)
+    inflated_slot_need = sa.Column(sa.Integer, autoincrement=False,
+                                   server_default='0')
     # If 'auto_schedule' is True then router is automatically scheduled
     # if it lacks a hosting device or its hosting device fails.
     auto_schedule = sa.Column(sa.Boolean, default=True, nullable=False)
-    share_hosting_device = sa.Column(sa.Boolean, default=True, nullable=False)
+    share_hosting_device = sa.Column(sa.Boolean, nullable=False,
+                                     server_default=sa.sql.true())
     # id of hosting device hosting this router, None/NULL if unscheduled.
     hosting_device_id = sa.Column(sa.String(36),
                                   sa.ForeignKey('cisco_hosting_devices.id',

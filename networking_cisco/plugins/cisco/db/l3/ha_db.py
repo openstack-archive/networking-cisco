@@ -106,7 +106,8 @@ class RouterHASetting(model_base.BASEV2):
     # 'ha_type' can be 'VRRP', 'HSRP', or 'GLBP'
     ha_type = sa.Column(sa.String(255))
     # 'redundancy_level' is number of extra routers for redundancy
-    redundancy_level = sa.Column(sa.Integer, default=ha.MIN_REDUNDANCY_LEVEL)
+    redundancy_level = sa.Column(sa.Integer,
+                                 server_default=str(ha.MIN_REDUNDANCY_LEVEL))
     # 'priority' is the priority used in VRRP, HSRP, and GLBP
     priority = sa.Column(sa.Integer)
     # 'probe_connectivity' is True if ICMP echo pinging is enabled

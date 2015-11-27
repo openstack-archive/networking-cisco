@@ -31,7 +31,8 @@ class HostingDeviceTemplate(model_base.BASEV2, models_v2.HasId,
     # name given to hosting devices created using this template
     name = sa.Column(sa.String(255))
     # template enabled if True
-    enabled = sa.Column(sa.Boolean, nullable=False, default=True)
+    enabled = sa.Column(sa.Boolean, nullable=False,
+                        server_default=sa.sql.false())
     # 'host_category' can be 'VM', 'Hardware', 'NetworkNode'
     host_category = sa.Column(sa.String(255), nullable=False)
     # list of service types hosting devices based on this template support
@@ -50,12 +51,12 @@ class HostingDeviceTemplate(model_base.BASEV2, models_v2.HasId,
     protocol_port = sa.Column(sa.Integer)
     # Typical time (in seconds) needed for hosting device (created
     # from this template) to boot into operational state.
-    booting_time = sa.Column(sa.Integer, default=0)
+    booting_time = sa.Column(sa.Integer, server_default='0')
     # abstract metric specifying capacity to host logical resources
     slot_capacity = sa.Column(sa.Integer, nullable=False, autoincrement=False)
     # desired number of slots to keep available at all times
-    desired_slots_free = sa.Column(sa.Integer, nullable=False, default=0,
-                                   autoincrement=False)
+    desired_slots_free = sa.Column(sa.Integer, nullable=False,
+                                   server_default='0', autoincrement=False)
     # 'tenant_bound' is a (possibly empty) string of ':'-separated tenant UUIDs
     # representing the only tenants allowed to own/place resources on
     # hosting devices created using this template. If string is empty all
@@ -93,7 +94,7 @@ class HostingDevice(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
     device_id = sa.Column(sa.String(255))
     # version 4 or 6 IP address of management interface
     management_ip_address = sa.Column(sa.String(255))
-    admin_state_up = sa.Column(sa.Boolean, nullable=False, default=True)
+    admin_state_up = sa.Column(sa.Boolean, nullable=False)
     # 'management_port_id' is the Neutron Port used for management interface
     management_port_id = sa.Column(sa.String(36),
                                    sa.ForeignKey('ports.id',
@@ -117,7 +118,8 @@ class HostingDevice(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
     # deletion as part of hosting device pool management and in case of VM
     # failures. If 'auto_delete' is set to False, the hosting device must be
     # manually unregistered in the device manager and deleted in Nova.
-    auto_delete = sa.Column(sa.Boolean, default=False, nullable=False)
+    auto_delete = sa.Column(sa.Boolean, nullable=False,
+                            server_default=sa.sql.false())
 
 
 class SlotAllocation(model_base.BASEV2):
