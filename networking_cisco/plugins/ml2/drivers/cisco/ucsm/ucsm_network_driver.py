@@ -16,6 +16,7 @@
 import six
 
 from contextlib import contextmanager
+from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 from neutron.i18n import _LE, _LI, _LW
@@ -41,7 +42,11 @@ class CiscoUcsmDriver(object):
         self.ucsm_conf = config.UcsmConfig()
         self.ucsm_host_dict = {}
         self.ucsm_sp_dict = {}
-        self._create_ucsm_host_to_service_profile_mapping()
+        # Check if Service Profile to Hostname mapping config has been provided
+        if cfg.CONF.ml2_cisco_ucsm.ucsm_host_list:
+            self.ucsm_host_dict = config.parse_ucsm_host_config()
+        else:
+            self._create_ucsm_host_to_service_profile_mapping()
 
     def check_vnic_type_and_vendor_info(self, vnic_type, profile):
         """Checks if this vnic_type and vendor device info are supported.
@@ -200,7 +205,7 @@ class CiscoUcsmDriver(object):
 
                 handle.CompleteTransaction()
                 if vp2:
-                    LOG.debug('UCS Manager network driver created Vlan '
+                    LOG.debug('UCS Manager network driver Created Vlan '
                               'Profile %s at %s', vlan_name, vlan_profile_dest)
                     return True
 

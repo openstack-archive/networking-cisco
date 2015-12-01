@@ -13,29 +13,46 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import debtcollector
+
 from oslo_config import cfg
 from oslo_log import log as logging
 
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import constants as const
 
 LOG = logging.getLogger(__name__)
+DEPRECATION_MESSAGE = "This will be removed in the N cycle."
 
 """ Cisco UCS Manager ML2 Mechanism driver specific configuration.
 
 Following are user configurable options for UCS Manager ML2 Mechanism
 driver. The ucsm_username, ucsm_password, and ucsm_ip are
-required options. Additional configuration knobs are provided to pre-
-create UCS Manager port profiles.
+required options in single UCS Manager mode. A repetitive block starting
+with ml2_cisco_ucsm_ip signals multi-UCSM configuration. When both are
+present, the multi-UCSM config will only take effect.
 """
 
 ml2_cisco_ucsm_opts = [
+    cfg.StrOpt('ucsm_ip',
+               help=_('Cisco UCS Manager IP address. This is a required field '
+                      'to communicate with a Cisco UCS Manager.')),
+    cfg.StrOpt('ucsm_username',
+               help=_('Username for UCS Manager. This is a required field '
+                      'to communicate with a Cisco UCS Manager.')),
+    cfg.StrOpt('ucsm_password',
+               secret=True,  # do not expose value in the logs
+               help=_('Password for UCS Manager. This is a required field '
+                      'to communicate with a Cisco UCS Manager.')),
     cfg.ListOpt('supported_pci_devs',
                 default=[const.PCI_INFO_CISCO_VIC_1240,
                          const.PCI_INFO_INTEL_82599],
                 help=_('List of comma separated vendor_id:product_id of '
                        'SR_IOV capable devices supported by this MD. This MD '
                        'supports both VM-FEX and SR-IOV devices.')),
-
+    cfg.ListOpt('ucsm_host_list',
+                help=_('List of comma separated Host:Service Profile tuples '
+                       'providing the Service Profile associated with each '
+                       'Host to be supported by this MD.')),
 ]
 
 cfg.CONF.register_opts(ml2_cisco_ucsm_opts, "ml2_cisco_ucsm")
@@ -53,15 +70,45 @@ def parse_pci_vendor_config():
     return vendor_list
 
 
+@debtcollector.removals.remove(message=DEPRECATION_MESSAGE)
+def parse_ucsm_host_config():
+    host_dict = {}
+    if cfg.CONF.ml2_cisco_ucsm.ucsm_host_list:
+        host_config_list = cfg.CONF.ml2_cisco_ucsm.ucsm_host_list
+        for host in host_config_list:
+            host_sp = host.split(':')
+            if len(host_sp) != 2:
+                raise cfg.Error(_("UCS Mech Driver: Invalid Host Service "
+                                  "Profile config: %s") % host)
+            key = host_sp[0]
+            host_dict[key] = host_sp[1]
+        return host_dict
+
+
 class UcsmConfig(object):
     """ML2 Cisco UCSM Mechanism Driver Configuration class."""
     ucsm_dict = {}
 
     def __init__(self):
-        self._create_ucsm_dict()
+        """Create a single UCSM or Multi-UCSM dict."""
+        self._create_multi_ucsm_dict()
+        if cfg.CONF.ml2_cisco_ucsm.ucsm_ip and not self.ucsm_dict:
+            self._create_single_ucsm_dict()
 
-    def _create_ucsm_dict(self):
-        """Create a dictionary of all UCS Manager data from the config file."""
+        if not self.ucsm_dict:
+            raise cfg.Error(_('Insufficient UCS Manager configuration has '
+                              'been provided to the plugin'))
+
+    @debtcollector.removals.remove(message=DEPRECATION_MESSAGE)
+    def _create_single_ucsm_dict(self):
+        """Creates a dictionary of UCSM data for 1 UCS Manager."""
+        ucsm_info = []
+        ucsm_info.append(cfg.CONF.ml2_cisco_ucsm.ucsm_password)
+        ucsm_info.append(cfg.CONF.ml2_cisco_ucsm.ucsm_username)
+        self.ucsm_dict[cfg.CONF.ml2_cisco_ucsm.ucsm_ip] = ucsm_info
+
+    def _create_multi_ucsm_dict(self):
+        """Creates a dictionary of all UCS Manager data from config."""
         multi_parser = cfg.MultiConfigParser()
         read_ok = multi_parser.read(cfg.CONF.config_file)
 
