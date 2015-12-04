@@ -130,6 +130,30 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                                            ext_gw_port,
                                            itfc_deleted)
 
+    def enable_router_interface(self, ri, port):
+
+        # Enable the router interface
+        interface = self._get_interface_name_from_hosting_port(port)
+        self._create_sub_interface_enable(interface)
+
+    def disable_router_interface(self, ri, port=None):
+
+        # Disable the router interface
+        if not port:
+            ex_gw_port = ri.router.get('gw_port', None)
+            if ex_gw_port:
+                ext_interface = (self._get_interface_name_from_hosting_port(
+                                 ex_gw_port))
+                self._create_sub_interface_disable(ext_interface)
+            internal_ports = ri.router.get(constants.INTERFACE_KEY, [])
+            for port in internal_ports:
+                internal_interface = (
+                        self._get_interface_name_from_hosting_port(port))
+                self._create_sub_interface_disable(internal_interface)
+        else:
+            interface = self._get_interface_name_from_hosting_port(port)
+            self._create_sub_interface_disable(interface)
+
     def cleanup_invalid_cfg(self, hd, routers):
 
         cfg_syncer = asr1k_cfg_syncer.ConfigSyncer(routers,
@@ -215,7 +239,11 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
             LOG.debug("Adding IPv4 external network port: %(port)s for tenant "
                       "router %(r_id)s", {'port': ext_gw_port['id'],
                                           'r_id': ri.id})
-            self._create_ext_sub_interface_enable_only(sub_interface)
+            if ri.router['admin_state_up'] and ext_gw_port['admin_state_up']:
+                self._create_sub_interface_enable(sub_interface)
+            else:
+                self._create_sub_interface_disable(sub_interface)
+
         if ex_gw_ip:
             # Set default route via this network's gateway ip
             if self._is_port_v6(ext_gw_port):
@@ -272,11 +300,17 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                         ip, mask))
         self._edit_running_config(conf_str, 'CREATE_SUBINTERFACE_WITH_ID')
 
-    def _create_ext_sub_interface_enable_only(self, sub_interface):
-        LOG.debug("Enabling external network sub interface: %s",
+    def _create_sub_interface_enable(self, sub_interface):
+        LOG.debug("Enabling network sub interface: %s",
                   sub_interface)
         conf_str = snippets.ENABLE_INTF % sub_interface
         self._edit_running_config(conf_str, 'ENABLE_INTF')
+
+    def _create_sub_interface_disable(self, sub_interface):
+        LOG.debug("Disabling network sub interface: %s",
+                  sub_interface)
+        conf_str = snippets.DISABLE_INTF % sub_interface
+        self._edit_running_config(conf_str, 'DISABLE_INTF')
 
     def _set_nat_pool(self, ri, gw_port, is_delete):
         vrf_name = self._get_vrf_name(ri)

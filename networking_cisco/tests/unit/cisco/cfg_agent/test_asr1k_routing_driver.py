@@ -91,6 +91,7 @@ class ASR1kRoutingDriver(base.BaseTestCase):
                                         'gateway_ip': self.ex_gw_gateway_ip}],
                            'device_owner': l3_constants.DEVICE_OWNER_ROUTER_GW,
                            'mac_address': 'ca:fe:de:ad:be:ef',
+                           'admin_state_up': True,
                            'hosting_info':
                                {'physical_interface': self.phy_infc,
                                 'segmentation_id': self.vlan_ext},
@@ -136,6 +137,7 @@ class ASR1kRoutingDriver(base.BaseTestCase):
             'id': FAKE_ID,
             l3_constants.INTERFACE_KEY: int_ports,
             'enable_snat': True,
+            'admin_state_up': True,
             'routes': [],
             routerrole.ROUTER_ROLE_ATTR: 'Logical',
             ha.ENABLED: True,
@@ -539,6 +541,36 @@ class ASR1kRoutingDriver(base.BaseTestCase):
 
         self.assert_edit_run_cfg(csr_snippets.REMOVE_ACL, acl_name)
         cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
+
+    def test_enable_interface_user_visible_router(self):
+        cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
+        self.driver.enable_router_interface(self.ri, self.ex_gw_port)
+
+        sub_interface = self.phy_infc + '.' + str(self.vlan_ext)
+        self.assert_edit_run_cfg(csr_snippets.ENABLE_INTF, sub_interface)
+
+    def test_enable_interface_redundancy_router(self):
+        cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
+        self._make_test_router_redundancy_router()
+        self.driver.enable_router_interface(self.ri, self.ex_gw_port)
+
+        sub_interface = self.phy_infc + '.' + str(self.vlan_ext)
+        self.assert_edit_run_cfg(csr_snippets.ENABLE_INTF, sub_interface)
+
+    def test_disable_interface_user_visible_router(self):
+        cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
+        self.driver.disable_router_interface(self.ri, self.ex_gw_port)
+
+        sub_interface = self.phy_infc + '.' + str(self.vlan_ext)
+        self.assert_edit_run_cfg(csr_snippets.DISABLE_INTF, sub_interface)
+
+    def test_disable_interface_redundancy_router(self):
+        cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
+        self._make_test_router_redundancy_router()
+        self.driver.disable_router_interface(self.ri, self.ex_gw_port)
+
+        sub_interface = self.phy_infc + '.' + str(self.vlan_ext)
+        self.assert_edit_run_cfg(csr_snippets.DISABLE_INTF, sub_interface)
 
     def test_get_configuration(self):
         self.driver._get_running_config = mock.MagicMock()

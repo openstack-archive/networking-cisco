@@ -56,6 +56,19 @@ ENABLE_INTF = """
 """
 
 # =================================================
+# Disable an interface
+# $(config)interface GigabitEthernet 1
+# $(config)shutdown
+# =================================================
+DISABLE_INTF = """
+<config>
+        <cli-config-data>
+            <cmd>interface %s</cmd>
+            <cmd>shutdown</cmd>
+        </cli-config-data>
+</config>
+"""
+# =================================================
 # Create VRF
 # $(config)vrf definition nrouter-e7d4y5
 # $(config-vrf)address-family ipv4
