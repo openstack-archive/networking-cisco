@@ -609,6 +609,29 @@ class HA_db_mixin(object):
                 interface_info = {'port_id': redundancy_port['id']}
                 self.add_router_interface(e_context, r_id, interface_info)
 
+    def _update_redundancy_router_interfaces(self, context, router,
+                                             port, modified_port_data,
+                                             redundancy_router_ids=None,
+                                             ha_settings_db=None):
+        """Update router interface when port admin_state_up status changesn"""
+        router_id = router['id']
+        if ha_settings_db is None:
+            ha_settings_db = self._get_ha_settings_by_router_id(context,
+                                                                router_id)
+        if ha_settings_db is None:
+            return
+        e_context = context.elevated()
+
+        rr_ids = self._get_redundancy_router_ids(e_context, router_id)
+        port_info_list = self._core_plugin.get_ports(
+            e_context, filters={'device_id': rr_ids,
+                                'network_id': [port['network_id']]},
+            fields=['device_id', 'id'])
+        for port_info in port_info_list:
+            self._core_plugin.update_port(e_context, port_info['id'],
+                                          modified_port_data)
+        self._update_hidden_port(e_context, port['id'], modified_port_data)
+
     def _create_ha_group(self, context, router, port, ha_settings_db):
         driver = self._get_router_type_driver(context,
                                               router[routertype.TYPE_ATTR])
@@ -700,6 +723,12 @@ class HA_db_mixin(object):
             router_ids.append(r_id)
 
         return router_ids
+
+    def _update_hidden_port(self, context, ha_port_id, modified_port_data):
+        hag = self._get_ha_group_by_ha_port_id(context, ha_port_id)
+        if hag is not None:
+            self._core_plugin.update_port(context, hag.extra_port_id,
+                                          modified_port_data)
 
     def _delete_ha_group(self, context, ha_port_id):
         hag = self._get_ha_group_by_ha_port_id(context, ha_port_id)
