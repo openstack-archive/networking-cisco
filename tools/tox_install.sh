@@ -14,11 +14,12 @@ elif [ -x $ZUUL_CLONER ]; then
     # Use zuul-cloner to clone openstack/neutron, this will ensure the Depends-On
     # references are retrieved from zuul and rebased into the repo, then installed.
     $ZUUL_CLONER --cache-dir /opt/git --workspace /tmp git://git.openstack.org openstack/neutron
+    (cd /tmp/openstack/neutron && git checkout stable/liberty)
     pip install /tmp/openstack/neutron
 else
     # Download or update neutron-master tarball and install
-    ( cd .test-tars && wget -N http://tarballs.openstack.org/neutron/neutron-master.tar.gz )
-    pip install .test-tars/neutron-master.tar.gz
+    ( cd .test-tars && wget -N http://tarballs.openstack.org/neutron/neutron-stable-liberty.tar.gz )
+    pip install .test-tars/neutron-stable-liberty.tar.gz
 fi
 
 # Install the rest of the requirements as normal
