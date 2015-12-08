@@ -18,6 +18,7 @@ import mock
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import uuidutils
+from sqlalchemy.orm import exc
 import webob.exc
 
 from neutron.common import constants as l3_constants
@@ -1704,7 +1705,7 @@ class L3CfgAgentHARouterApplianceTestCase(
         self.assertEqual(len(ports_dict), len(interfaces))
         assemble_groups = len(ha_groups_dict) == 0
         for i in interfaces:
-            ha_info = i[ha_db.HA_INFO]
+            ha_info = i[ha.HA_INFO]
             self.assertIsNotNone(ha_info)
             if assemble_groups:
                 ha_groups_dict[ha_info[ha_db.HA_PORT]['id']] = ha_info[
@@ -1889,3 +1890,55 @@ class L3CfgAgentHARouterApplianceTestCase(
                         self.assertIsNotNone(gw_info)
                         self.assertEqual(cisco_const.ROUTER_INFO_INCOMPLETE,
                             router['status'])
+
+    def test_populate_port_ha_information_retries_succeed(self):
+
+        def fake_one():
+            if m.call_count == 3:
+                return hag
+            elif m.call_count == 4:
+                return extra_port
+            else:
+                raise exc.NoResultFound
+
+        with self.router(arg_list=(ha.ENABLED,)) as router:
+            r = router['router']
+            with self.port() as port:
+                p = port['port']
+                body = self._router_interface_action('add', r['id'], None,
+                                                     p['id'])
+                self.assertIn('port_id', body)
+                self.assertEqual(body['port_id'], p['id'])
+                adm_ctx = context.get_admin_context()
+                hags = {}
+                mod_itfcs = []
+                hag = self.plugin._get_ha_group_for_subnet_id(
+                    adm_ctx, r['id'], p['fixed_ips'][0]['subnet_id'])
+                extra_port = self._show('ports', hag.extra_port_id)['port']
+                with mock.patch('sqlalchemy.orm.query.Query.one') as m:
+                    m.side_effect = fake_one
+                    pop_p = self.plugin._populate_port_ha_information(
+                        adm_ctx, p, r['id'], hags, r['id'], mod_itfcs)
+                    self.assertEqual(m.call_count, 4)
+                    self.assertIn(ha.HA_INFO, pop_p)
+                    self.assertIsNotNone(pop_p[ha.HA_INFO]['group'])
+
+    def test_populate_port_ha_information_all_retries_fail(self):
+        with self.router(arg_list=(ha.ENABLED,)) as router:
+            r = router['router']
+            with self.port() as port:
+                p = port['port']
+                body = self._router_interface_action('add', r['id'], None,
+                                                     p['id'])
+                self.assertIn('port_id', body)
+                self.assertEqual(body['port_id'], p['id'])
+                adm_ctx = context.get_admin_context()
+                hags = {}
+                mod_itfcs = []
+                with mock.patch('sqlalchemy.orm.query.Query.one') as m:
+                    m.side_effect = exc.NoResultFound
+                    pop_p = self.plugin._populate_port_ha_information(
+                        adm_ctx, p, r['id'], hags, r['id'], mod_itfcs)
+                    self.assertIsNone(pop_p)
+                    self.assertEqual(len(mod_itfcs), 0)
+                    self.assertEqual(m.call_count, ha_db.LOOKUP_RETRIES)
