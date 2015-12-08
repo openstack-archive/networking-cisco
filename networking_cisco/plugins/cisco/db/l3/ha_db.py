@@ -36,6 +36,7 @@ from neutron.db import models_v2
 from neutron.extensions import l3
 
 from networking_cisco.plugins.cisco.common import cisco_constants
+from networking_cisco.plugins.cisco.common import utils as cisco_utils
 from networking_cisco.plugins.cisco.extensions import ha
 from networking_cisco.plugins.cisco.extensions import routerrole
 from networking_cisco.plugins.cisco.extensions import routertype
@@ -43,7 +44,6 @@ from networking_cisco.plugins.cisco.extensions import routertype
 LOG = logging.getLogger(__name__)
 
 
-HA_INFO = 'ha_info'
 HA_GROUP = 'group'
 HA_PORT = 'ha_port'
 
@@ -64,6 +64,9 @@ PRIORITY_INCREASE_STEP = -3
 REDUNDANCY_ROUTER_SUFFIX = '_HA_backup_'
 DEFAULT_PING_INTERVAL = 5
 PROBE_TARGET_OPT_NAME = 'default_probe_target'
+
+LOOKUP_RETRIES = 5
+RETRY_INTERVAL = 3
 
 router_appliance_opts = [
     cfg.BoolOpt('ha_support_enabled', default=True,
@@ -831,7 +834,37 @@ class HA_db_mixin(object):
 
     def _populate_port_ha_information(self, context, port, router_id, hags,
                                       user_router_id, modified_interfaces):
-        hag = hags[port['fixed_ips'][0]['subnet_id']]
+        subnet_id = port['fixed_ips'][0]['subnet_id']
+        try:
+            hag = hags[subnet_id]
+        except KeyError:
+            # Oops, the subnet_id was not found. Probably because the DB
+            # insertion of that HA group is still in progress by another
+            # process and has not been committed to the DB yet.
+            # Let's retry a few times to see if the DB entry turns up.
+            LOG.debug('No HA group info for router: %(r_id)s and subnet: '
+                      '%(s_id)s was found when populating HA info for port: '
+                      '%(p_id)s. Will now make additional lookup attempts.',
+                      {'r_id': router_id, 's_id': subnet_id,
+                       'p_id': port['id']})
+            try:
+                hag = self._get_ha_group_for_subnet_id(context, router_id,
+                                                       subnet_id)
+            except exc.NoResultFound:
+                hag = None
+        if hag is None:
+            LOG.debug('Failed to fetch the HA group info for for router: '
+                      '%(r_id)s and subnet: %(s_id)s. Giving up. No HA '
+                      'info will be added to the router\'s port: %s.',
+                      {'r_id': router_id, 's_id': subnet_id,
+                       'p_id': port['id']})
+            # we leave it to the L3 config agent to handle this
+            return
+        else:
+            LOG.debug('Successfully fetched the HA group info for '
+                      'router: %(r_id)s and subnet: %(s_id)s from DB',
+                      {'r_id': router_id, 's_id': subnet_id})
+            hags[subnet_id] = hag
         if router_id == user_router_id:
             # If the router interface need no dedicated IP address we just
             # set the HA (VIP) port to the port itself. The config agent
@@ -840,13 +873,13 @@ class HA_db_mixin(object):
             try:
                 interface_port = self._core_plugin.get_port(context, p_id)
             except n_exc.PortNotFound:
-                LOG.debug('**** NO Port Info for '
-                    'router: %(r_id)s : Port: %(p_id)s from DB',
-                    {'r_id': router_id, 'p_id': port['id']})
-                return None
-            LOG.debug('**** Fetched Port Info for '
-                'router: %(r_id)s : Port: %(p_id)s from DB',
-                {'r_id': router_id, 'p_id': port['id']})
+                LOG.debug('**** NO Port Info for router: %(r_id)s : '
+                          'Port: %(p_id)s from DB',
+                          {'r_id': router_id, 'p_id': port['id']})
+                return
+            LOG.debug('**** Fetched Port Info for router: %(r_id)s : '
+                      'Port: %(p_id)s from DB',
+                      {'r_id': router_id, 'p_id': port['id']})
             self._populate_mtu_and_subnets_for_ports(context, [interface_port])
             modified_interfaces.append(interface_port)
             ha_port = port
@@ -854,17 +887,16 @@ class HA_db_mixin(object):
             try:
                 ha_port = self._core_plugin.get_port(context, hag.ha_port_id)
             except n_exc.PortNotFound:
-                LOG.debug('**** NO Port Info for '
-                    'router(BAK): %(r_id)s : Port: %(p_id)s from DB',
-                    {'r_id': router_id, 'p_id': hag.ha_port_id})
-                return None
-            LOG.debug('**** Fetched Port Info for '
-                'router(BAK): %(r_id)s : Port: %(p_id)s from DB',
-                {'r_id': router_id, 'p_id': hag.ha_port_id})
+                LOG.debug('**** NO Port Info for router(BAK): %(r_id)s : '
+                          'Port: %(p_id)s from DB',
+                          {'r_id': router_id, 'p_id': hag.ha_port_id})
+                return
+            LOG.debug('**** Fetched Port Info for router(BAK): %(r_id)s : '
+                      'Port: %(p_id)s from DB',
+                      {'r_id': router_id, 'p_id': hag.ha_port_id})
             self._populate_mtu_and_subnets_for_ports(context, [ha_port])
             interface_port = port
-
-        interface_port[HA_INFO] = {
+        interface_port[ha.HA_INFO] = {
             ha.TYPE: hag.ha_type,
             HA_GROUP: hag.group_identity,
             'timers_config': hag.timers_config,
@@ -911,7 +943,17 @@ class HA_db_mixin(object):
         query = query.filter(RouterHAGroup.user_router_id == router_id)
         if load_virtual_port:
             query = query.options(joinedload('redundancy_router'))
-        return {hag['subnet_id']: hag for hag in query.all()}
+        return {hag['subnet_id']: hag for hag in query}
+
+    @cisco_utils.retry(exc.NoResultFound, LOOKUP_RETRIES, RETRY_INTERVAL, 1)
+    def _get_ha_group_for_subnet_id(self, context, router_id, subnet_id):
+        query = context.session.query(RouterHAGroup)
+        query = query.filter_by(user_router_id=router_id,
+                                subnet_id=subnet_id)
+        LOG.debug('Trying to fetch HA group info for router: %(r_id)s and '
+                  'subnet: %(s_id)s', {'r_id': router_id,
+                                       's_id': subnet_id})
+        return query.one()
 
     def _get_redundancy_router_bindings(self, context, router_id=None,
                                         redundancy_router_id=None):
@@ -952,19 +994,23 @@ class HA_db_mixin(object):
         """
         subnet_db = self._core_plugin._get_subnet(context,
                                                   internal_subnet_id)
-        if not subnet_db['gateway_ip']:
+        if not subnet_db.gateway_ip:
             msg = (_('Cannot add floating IP to port on subnet %s '
                      'which has no gateway_ip') % internal_subnet_id)
             raise n_exc.BadRequest(resource='floatingip', msg=msg)
 
-        router_intf_ports = self._get_interface_ports_for_network(
-            context, internal_port['network_id'])
-
-        # This joins on port_id so is not a cross-join
-        routerport_qry = router_intf_ports.join(models_v2.IPAllocation)
-        routerport_qry = routerport_qry.filter(
+        gw_port = orm.aliased(models_v2.Port, name="gw_port")
+        routerport_qry = context.session.query(
+            l3_db.RouterPort.router_id,
+            models_v2.IPAllocation.ip_address).join(
+            models_v2.Port, models_v2.IPAllocation).filter(
+            models_v2.Port.network_id == internal_port['network_id'],
+            l3_db.RouterPort.port_type.in_(
+                l3_constants.ROUTER_INTERFACE_OWNERS),
             models_v2.IPAllocation.subnet_id == internal_subnet_id
-        )
+        ).join(gw_port,
+               gw_port.device_id == l3_db.RouterPort.router_id).filter(
+            gw_port.network_id == external_network_id).distinct()
 
         # Ensure that redundancy routers (in a ha group) are not returned,
         # since only the user visible router should have floatingips.
@@ -977,15 +1023,15 @@ class HA_db_mixin(object):
             l3_db.RouterPort.router_id)
         routerport_qry = routerport_qry.filter(
             RouterRedundancyBinding.redundancy_router_id == expr.null())
-        for router_port in routerport_qry:
-            router_id = router_port.router.id
-            router_gw_qry = context.session.query(models_v2.Port)
-            has_gw_port = router_gw_qry.filter_by(
-                network_id=external_network_id,
-                device_id=router_id,
-                device_owner=DEVICE_OWNER_ROUTER_GW).count()
-            if has_gw_port:
+
+        first_router_id = None
+        for router_id, interface_ip in routerport_qry:
+            if interface_ip == subnet_db.gateway_ip:
                 return router_id
+            if not first_router_id:
+                first_router_id = router_id
+        if first_router_id:
+            return first_router_id
 
         raise l3.ExternalGatewayForFloatingIPNotFound(
             subnet_id=internal_subnet_id,

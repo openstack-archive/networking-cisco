@@ -13,19 +13,19 @@
 #    under the License.
 
 from functools import wraps
+import imp
 import time
 
 from oslo_log import log as logging
-from oslo_utils import importutils
-
-from networking_cisco._i18n import _, _LE, _LW
 
 from neutron.common import exceptions as nexception
+
+from networking_cisco._i18n import _, _LE
 
 LOG = logging.getLogger(__name__)
 
 
-class DriverNotFound(nexception.NetworkNotFound):
+class DriverNotFound(nexception.NotFound):
     message = _("Driver %(driver)s does not exist")
 
 
@@ -50,11 +50,14 @@ def retry(ExceptionToCheck, tries=4, delay=3, backoff=2):
                 try:
                     return f(*args, **kwargs)
                 except ExceptionToCheck as e:
-                    LOG.warn(_LW("%(ex)s, Retrying in %(delt)d seconds.."),
-                            {'ex': str(e), 'delt': mdelay})
+                    LOG.debug("%(err_mess)s. Retry calling function "
+                              "'%(f_name)s' in %(delta)d seconds.",
+                              {'err_mess': str(e), 'f_name': f.__name__,
+                               'delta': mdelay})
                     time.sleep(mdelay)
                     mtries -= 1
                     mdelay *= backoff
+            LOG.debug("Last retry calling function '%s'.", f.__name__)
             return f(*args, **kwargs)
 
         return f_retry  # true decorator
@@ -68,10 +71,11 @@ def convert_validate_driver_class(driver_class_name):
         return driver_class_name
     else:
         parts = driver_class_name.split('.')
-        modulepath = '.'.join(parts[:-1])
+        m_pathname = '/'.join(parts[:-1])
         try:
-            module = importutils.try_import(modulepath)
-            if parts[-1] in dir(module):
+            info = imp.find_module(m_pathname)
+            mod = imp.load_module(parts[-2], *info)
+            if parts[-1] in dir(mod):
                 return driver_class_name
         except ImportError as e:
             LOG.error(_LE('Failed to verify driver module %(name)s: %(err)s'),

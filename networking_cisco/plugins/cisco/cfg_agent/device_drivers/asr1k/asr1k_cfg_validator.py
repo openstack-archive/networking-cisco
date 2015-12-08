@@ -26,7 +26,6 @@ import re
 import xml.etree.ElementTree as ET
 
 
-HA_INFO = 'ha_info'
 ROUTER_ROLE_ATTR = routerrole.ROUTER_ROLE_ATTR
 
 """
@@ -314,7 +313,7 @@ class ConfigValidator(object):
                 self.set_ip_cidr(intf)
                 netmask = netaddr.IPNetwork(intf['ip_cidr']).netmask
                 hsrp_vip = intf['fixed_ips'][0]['ip_address']
-                port_ha_info = intf[HA_INFO]
+                port_ha_info = intf[ha.HA_INFO]
                 hsrp_grp = port_ha_info['group']
                 phys_ip = port_ha_info['ha_port']['fixed_ips'][0]['ip_address']
 

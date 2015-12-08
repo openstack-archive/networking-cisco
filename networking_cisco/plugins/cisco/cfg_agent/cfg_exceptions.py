@@ -73,3 +73,9 @@ class DriverNotFound(DriverException):
 
 class DriverNotSetForMissingParameter(DriverException):
     message = _("Driver cannot be set for missing parameter:%(p)s.")
+
+
+class HAParamsMissingException(DriverException):
+    """MissingParams exception thrown when HA params are missing"""
+    message = (_("For router: %(r_id)s and port: %(p_id)s, HA_ENABLED is set, "
+                 "but port ha info is missing. Port details: %(port)s"))
