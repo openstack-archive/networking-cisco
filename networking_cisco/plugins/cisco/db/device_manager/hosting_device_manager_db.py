@@ -106,9 +106,6 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
     # Dictionary with locks for hosting device pool maintenance
     _hosting_device_locks = {}
 
-    # Scheduler of hosting devices to configuration agent
-    _cfgagent_scheduler = None
-
     # Service VM manager object that interacts with Nova
     _svc_vm_mgr_obj = None
 
@@ -325,41 +322,29 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
 
         Returns True if allocation was granted, False otherwise.
         """
-        if ((hosting_device['tenant_bound'] is not None and
-             hosting_device['tenant_bound'] != resource['tenant_id']) or
+        bound = hosting_device['tenant_bound']
+        if ((bound is not None and bound != resource['tenant_id']) or
             (exclusive and not self._exclusively_used(context, hosting_device,
                                                       resource['tenant_id']))):
-            LOG.debug('Rejecting allocation of %(num)d slots in hosting '
-                      'device %(device)s to logical resource %(r_id)s due to '
-                      'conflict of exclusive usage.',
-                      {'num': num, 'device': hosting_device['id'],
-                       'r_id': resource['id']})
+            LOG.debug(
+                'Rejecting allocation of %(num)d slots in tenant %(bound)s '
+                'hosting device %(device)s to logical resource %(r_id)s due '
+                'to exclusive use conflict.',
+                {'num': num,
+                 'bound': 'unbound' if bound is None else bound + ' bound',
+                 'device': hosting_device['id'], 'r_id': resource['id']})
             return False
         with context.session.begin(subtransactions=True):
-            try:
-                slot_info = (context.session.query(hd_models.SlotAllocation).
-                             filter_by(
-                    logical_resource_id=resource['id'],
-                    hosting_device_id=hosting_device['id']).one())
-            except exc.MultipleResultsFound:
-                # this should not happen
-                LOG.error(_LE('DB inconsistency: Multiple slot allocation '
-                              'entries for logical resource %(r_id)s in '
-                              'hosting device %(device)s. Rejecting slot '
-                              'allocation!'),
-                          {'r_id': resource['id'],
-                           'device': hosting_device['id']})
+            res_info = {'resource': resource, 'type': resource_type,
+                        'service': resource_service}
+            slot_info, query = self._get_or_create_slot_allocation(
+                context, hosting_device, res_info)
+            if slot_info is None:
+                LOG.debug('Rejecting allocation of %(num)d slots in hosting '
+                          'device %(device)s to logical resource %(r_id)s',
+                          {'num': num, 'device': hosting_device['id'],
+                           'r_id': resource['id']})
                 return False
-            except exc.NoResultFound:
-                slot_info = hd_models.SlotAllocation(
-                    template_id=hosting_device['template_id'],
-                    hosting_device_id=hosting_device['id'],
-                    logical_resource_type=resource_type,
-                    logical_resource_service=resource_service,
-                    logical_resource_id=resource['id'],
-                    logical_resource_owner=resource['tenant_id'],
-                    num_allocated=0,
-                    tenant_bound=None)
             new_allocation = num + slot_info.num_allocated
             if hosting_device['template']['slot_capacity'] < new_allocation:
                 LOG.debug('Rejecting allocation of %(num)d slots in '
@@ -370,21 +355,25 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
                 self._dispatch_pool_maintenance_job(hosting_device['template'])
                 return False
             # handle any changes to exclusive usage by tenant
-            if exclusive and hosting_device['tenant_bound'] is None:
+            if exclusive and bound is None:
                 self._update_hosting_device_exclusivity(
                     context, hosting_device, resource['tenant_id'])
-            elif not exclusive and hosting_device['tenant_bound'] is not None:
+                bound = resource['tenant_id']
+            elif not exclusive and bound is not None:
                 self._update_hosting_device_exclusivity(context,
                                                         hosting_device, None)
+                bound = None
             slot_info.num_allocated = new_allocation
             context.session.add(slot_info)
         self._dispatch_pool_maintenance_job(hosting_device['template'])
         # report success
-        LOG.info(_LI('Allocated %(num)d additional slots in hosting device '
-                     '%(hd_id)s. In total %(total)d slots are now allocated '
-                     'in that hosting device for logical resource %(r_id)s.'),
-                 {'num': num, 'total': new_allocation,
-                  'hd_id': hosting_device['id'], 'r_id': resource['id']})
+        LOG.info(_LI('Allocated %(num)d additional slots in tenant %(bound)s'
+                     'bound hosting device %(hd_id)s. In total %(total)d '
+                     'slots are now allocated in that hosting device for '
+                     'logical resource %(r_id)s.'),
+                 {'num': num, 'bound': 'un-' if bound is None else bound + ' ',
+                  'total': new_allocation, 'hd_id': hosting_device['id'],
+                  'r_id': resource['id']})
         return True
 
     def release_hosting_device_slots(self, context, hosting_device, resource,
@@ -394,42 +383,38 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
         Returns True if deallocation was successful. False otherwise.
         """
         with context.session.begin(subtransactions=True):
-            try:
-                query = (context.session.query(hd_models.SlotAllocation).
-                         filter_by(
-                    logical_resource_id=resource['id'],
-                    hosting_device_id=hosting_device['id']))
-                slot_info = query.one()
-            except exc.MultipleResultsFound:
-                # this should not happen
-                LOG.error(_LE('DB inconsistency: Multiple slot allocation '
-                              'entries for logical resource %(res)s in '
-                              'hosting device %(dev)s. Rejecting slot '
-                              'deallocation!'),
-                          {'res': resource['id'], 'dev': hosting_device['id']})
+            num_str = str(num) if num >= 0 else "all"
+            res_info = {'resource': resource}
+            slot_info, query = self._get_or_create_slot_allocation(
+                context, hosting_device, res_info, create=False)
+            if slot_info is None:
+                LOG.debug('Rejecting de-allocation of %(num)s slots in '
+                          'hosting device %(device)s for logical resource '
+                          '%(id)s', {'num': num_str,
+                                     'device': hosting_device['id'],
+                                     'id': resource['id']})
                 return False
-            except exc.NoResultFound:
-                LOG.error(_LE('Logical resource %(res)s does not have '
-                              'allocated any slots in hosting device %(dev)s. '
-                              'Rejecting slot deallocation!'),
-                          {'res': resource['id'], 'dev': hosting_device['id']})
-                return False
-            new_allocation = slot_info.num_allocated - num
+            if num >= 0:
+                new_allocation = slot_info.num_allocated - num
+            else:
+                # if a negative num is specified all slot allocations for
+                # the logical resource in the hosting device is removed
+                new_allocation = 0
             if new_allocation < 0:
-                LOG.debug('Rejecting deallocation of %(num)d slots in '
+                LOG.debug('Rejecting de-allocation of %(num)s slots in '
                           'hosting device %(device)s for logical resource '
                           '%(id)s since only %(alloc)d slots are allocated.',
-                          {'num': num, 'device': hosting_device['id'],
+                          {'num': num_str, 'device': hosting_device['id'],
                            'id': resource['id'],
                            'alloc': slot_info.num_allocated})
                 self._dispatch_pool_maintenance_job(hosting_device['template'])
                 return False
             elif new_allocation == 0:
                 result = query.delete()
-                LOG.info(_LI('Deallocated %(num)d slots from hosting device '
-                         '%(hd_id)s. %(total)d slots are now allocated in '
-                         'that hosting device.'),
-                         {'num': num, 'total': new_allocation,
+                LOG.info(_LI('De-allocated %(num)s slots from hosting device '
+                             '%(hd_id)s. %(total)d slots are now allocated in '
+                             'that hosting device.'),
+                         {'num': num_str, 'total': new_allocation,
                           'hd_id': hosting_device['id']})
                 if (hosting_device['tenant_bound'] is not None and
                     context.session.query(hd_models.SlotAllocation).filter_by(
@@ -444,16 +429,52 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
                              {'hd_id': hosting_device['id']})
                 self._dispatch_pool_maintenance_job(hosting_device['template'])
                 return result == 1
-            LOG.info(_LI('Deallocated %(num)d slots from hosting device '
+            LOG.info(_LI('De-allocated %(num)s slots from hosting device '
                          '%(hd_id)s. %(total)d slots are now allocated in '
                          'that hosting device.'),
-                     {'num': num, 'total': new_allocation,
+                     {'num': num_str, 'total': new_allocation,
                       'hd_id': hosting_device['id']})
             slot_info.num_allocated = new_allocation
             context.session.add(slot_info)
         self._dispatch_pool_maintenance_job(hosting_device['template'])
         # report success
         return True
+
+    def _get_or_create_slot_allocation(self, context, hosting_device,
+                                       resource_info, create=True):
+        resource = resource_info['resource']
+        slot_info = None
+        query = context.session.query(hd_models.SlotAllocation).filter_by(
+            logical_resource_id=resource['id'],
+            hosting_device_id=hosting_device['id'])
+        with context.session.begin(subtransactions=True):
+            try:
+                slot_info = query.one()
+            except exc.MultipleResultsFound:
+                # this should not happen
+                LOG.debug('DB inconsistency: Multiple slot allocation entries '
+                          'for logical resource %(r_id)s in hosting device '
+                          '%(device)s.', {'r_id': resource['id'],
+                                          'device': hosting_device['id']})
+            except exc.NoResultFound:
+                LOG.debug('Logical resource %(res)s does not have allocated '
+                          'any slots in hosting device %(dev)s.',
+                          {'res': resource['id'], 'dev': hosting_device['id']})
+                if create is True:
+                    LOG.debug('Creating new slot allocation DB entry for '
+                              'logical resource %(res)s in hosting device '
+                              '%(dev)s.', {'res': resource['id'],
+                                           'dev': hosting_device['id']})
+                    slot_info = hd_models.SlotAllocation(
+                        template_id=hosting_device['template_id'],
+                        hosting_device_id=hosting_device['id'],
+                        logical_resource_type=resource_info['type'],
+                        logical_resource_service=resource_info['service'],
+                        logical_resource_id=resource['id'],
+                        logical_resource_owner=resource['tenant_id'],
+                        num_allocated=0,
+                        tenant_bound=None)
+        return slot_info, query
 
     def get_slot_allocation(self, context, template_id=None,
                             hosting_device_id=None, resource_id=None):

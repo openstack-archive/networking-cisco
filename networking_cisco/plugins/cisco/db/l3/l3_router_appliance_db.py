@@ -23,6 +23,7 @@ from oslo_service import loopingcall
 from oslo_utils import excutils
 from oslo_utils import importutils
 import six
+from sqlalchemy import exc as db_exc
 from sqlalchemy.orm import exc
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import expression as expr
@@ -583,7 +584,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                 context, binding_info_db.router_type_id)
             if scheduler is None:
                 LOG.debug('Aborting scheduling of router %(r_id)s as no '
-                          'scheduler was found for its router type %(type)s.',
+                          'scheduler was found for its router type %(type)s',
                           {'r_id': binding_info_db.router.id,
                            'type': binding_info_db.router_type_id})
                 return False
@@ -595,12 +596,23 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
             return self._handle_failed_scheduling_no_host(
                 context, binding_info_db, synchronized)
         else:
-            # We have a candidate so try to allocate slots in and bind to it
-            return self._try_allocate_slots_and_bind_to_host(
-                context, binding_info_db, result[0], slot_need, synchronized)
+            try:
+                # We have a candidate so try to allocate slots in it
+                # and bind to it
+                return self._try_allocate_slots_and_bind_to_host(
+                    context, binding_info_db, result[0], slot_need,
+                    synchronized)
+            except db_exc.IntegrityError:
+                LOG.debug("Router %(r_id)s was already scheduled to hosting "
+                          "device %(hd_id)s by another process",
+                          {'r_id': binding_info_db.router_id,
+                           'hd_id': binding_info_db.hosting_device_id})
+                return True
 
     def _handle_failed_scheduling_no_host(self, context, binding_info_db,
                                           synchronized):
+        LOG.debug("Unable to schedule router %s to a hosting device",
+                  binding_info_db.router_id)
         if binding_info_db.auto_schedule is True:
             # so backlog it for another scheduling attempt later.
             if synchronized:
@@ -681,9 +693,9 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
             result = scheduler.unschedule_router(self, context,
                                                  binding_info_db)
             if result is True:
-                # must use slot need for effective (i.e., current) router type
-                slot_need = self._get_effective_slot_need(context,
-                                                          binding_info_db)
+                # drop all slot allocations for this router in case some stale
+                # one happened to make its way into the slot allocation DB
+                slot_need = -1
                 self._dev_mgr.release_hosting_device_slots(
                     context, binding_info_db.hosting_device,
                     binding_info_db.router, slot_need)
