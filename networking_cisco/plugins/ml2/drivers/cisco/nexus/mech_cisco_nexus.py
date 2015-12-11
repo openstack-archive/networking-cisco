@@ -58,7 +58,7 @@ DELAY_MONITOR_THREAD = 30
 
 
 class CiscoNexusCfgMonitor(object):
-    """Replay config on communication failure between Openstack to Nexus."""
+    """Replay config on communication failure between OpenStack to Nexus."""
 
     def __init__(self, driver, mdriver):
         self._driver = driver
@@ -166,7 +166,7 @@ class CiscoNexusCfgMonitor(object):
                     'replay switch_entries')
 
     def check_connections(self):
-        """Check connection between Openstack to Nexus device."""
+        """Check connection between OpenStack to Nexus device."""
         switch_connections = self._mdriver.get_all_switch_ips()
 
         for switch_ip in switch_connections:

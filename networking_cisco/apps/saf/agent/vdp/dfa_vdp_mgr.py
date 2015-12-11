@@ -309,7 +309,7 @@ class VdpMgr(object):
         LOG.info(_LI("In Periodic Uplink Task"))
         if not self.is_os_run:
             if not self.is_openstack_running():
-                LOG.info(_LI("Openstack is not running"))
+                LOG.info(_LI("OpenStack is not running"))
                 return
             else:
                 self.is_os_run = True

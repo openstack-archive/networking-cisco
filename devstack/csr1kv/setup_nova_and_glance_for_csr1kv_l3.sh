@@ -2,7 +2,7 @@
 
 # Default values
 # --------------
-# adminUser is same as name of Openstack network service,
+# adminUser is same as name of OpenStack network service,
 # it should be 'neutron'.
 adminUser=${1:-neutron}
 osn=$adminUser

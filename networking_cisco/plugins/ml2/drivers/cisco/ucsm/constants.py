@@ -22,7 +22,7 @@ PCI_INFO_INTEL_82599 = "8086:10c9"
 
 VLAN_PATH = "fabric/lan"
 VLAN_COMPRESSION_TYPE = "included"
-DESCR = "Created by Openstack UCSM Mech Driver"
+DESCR = "Created by OpenStack UCSM Mech Driver"
 PORT_PROFILESETDN = "fabric/lan/profiles"
 
 # High Performance mode to be set within Port profiles for "Direct" mode.

@@ -2,7 +2,7 @@
 
 # Default values
 # --------------
-# osn is the name of Openstack network service, i.e.,
+# osn is the name of OpenStack network service, i.e.,
 # it should be 'neutron'.
 osn=${1:-neutron}
 plugin=${2:-n1kv}

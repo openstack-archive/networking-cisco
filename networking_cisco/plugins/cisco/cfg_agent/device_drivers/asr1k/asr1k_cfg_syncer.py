@@ -1038,7 +1038,7 @@ class ConfigSyncer(object):
 
         # TODO(split this big function into smaller functions)
         for intf in runcfg_intfs:
-            LOG.info(_LI("\nOpenstack interface: %s"), (intf))
+            LOG.info(_LI("\nOpenStack interface: %s"), (intf))
             intf.segment_id = int(intf.re_match(INTF_REGEX, group=1))
             LOG.info(_LI("  segment_id: %s"), (intf.segment_id))
 

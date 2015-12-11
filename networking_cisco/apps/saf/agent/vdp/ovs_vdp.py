@@ -177,11 +177,11 @@ class OVSNeutronVdp(object):
     def setup_lldpad_ports(self):
         '''Setup the flows for passing LLDP/VDP frames in OVS.'''
         # Creating the physical bridge and setting up patch ports is done by
-        # Openstack
+        # OpenStack
         ovs_bridges = ovs_lib.get_bridges(self.root_helper)
         if self.ext_br not in ovs_bridges or self.integ_br not in ovs_bridges:
             LOG.error(_LE("Integ or Physical Bridge not configured by"
-                          "Openstack"))
+                          "OpenStack"))
             raise dfae.DfaAgentFailed(reason="Bridge Unavailable")
         br = ovs_lib.OVSBridge(self.ext_br, root_helper=self.root_helper)
         self.ext_br_obj = br
@@ -191,7 +191,7 @@ class OVSNeutronVdp(object):
         self.phy_peer_port, self.int_peer_port = self.find_interconnect_ports()
         if self.phy_peer_port is None or self.int_peer_port is None:
             LOG.error(_LE("Integ or Physical Patch/Veth Ports not "
-                          "configured by Openstack"))
+                          "configured by OpenStack"))
             raise dfae.DfaAgentFailed(reason="Ports Unconfigured")
 
         lldp_ovs_veth_str = constants.LLDPAD_OVS_VETH_PORT + self.uplink
