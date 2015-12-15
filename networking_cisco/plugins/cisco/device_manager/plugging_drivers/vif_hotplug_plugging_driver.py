@@ -241,8 +241,8 @@ class VIFHotPlugPluggingDriver(plugging_drivers.PluginSidePluggingDriver,
         try:
             hosting_port = self._core_plugin.create_port(context, p_spec)
         except n_exc.NeutronException as e:
-            LOG.error(_('Error %s when creating hosting port'
-                        'Cleaning up.'), e)
+            LOG.error(_LE('Error %(error)s when creating hosting port'
+                          'Cleaning up.'), {'error': e})
             self.delete_hosting_device_resources(
                 context, l3admin_tenant_id, hosting_port)
             hosting_port = None

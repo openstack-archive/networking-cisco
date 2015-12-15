@@ -27,6 +27,7 @@ class CLITestV20NetworkProfile(test_cli20.CLITestV20Base):
 
     def setUp(self):
         self._mock_extension_loading()
+        self.register_non_admin_status_resource('network_profile')
         super(CLITestV20NetworkProfile, self).setUp()
 
     def _create_patch(self, name, func=None):

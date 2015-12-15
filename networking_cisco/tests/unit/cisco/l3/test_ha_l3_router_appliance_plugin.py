@@ -13,6 +13,7 @@
 #    under the License.
 
 import copy
+import mock
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -46,6 +47,8 @@ L3_PLUGIN_KLASS = (
     "networking_cisco.tests.unit.cisco.l3.test_ha_l3_router_appliance_plugin."
     "TestApplianceHAL3RouterServicePlugin")
 extensions_path = networking_cisco.plugins.__path__[0] + '/cisco/extensions'
+
+DEVICE_OWNER_ROUTER_INTF = l3_constants.DEVICE_OWNER_ROUTER_INTF
 
 
 def _sort_routes(routes):
@@ -164,6 +167,44 @@ class HAL3RouterApplianceVMTestCase(
         cfg.CONF.set_override('default_ha_redundancy_level', 2, group='ha')
         super(HAL3RouterApplianceVMTestCase, self).setUp(
             l3_plugin=l3_plugin, ext_mgr=ext_mgr)
+
+    def test_router_add_interface_port(self):
+        orig_update_port = self.core_plugin.update_port
+        with self.router() as router, (
+            self.port()) as port, (
+                mock.patch.object(self.core_plugin,
+                                  'update_port')) as update_port:
+            update_port.side_effect = orig_update_port
+            r = router['router']
+            p = port['port']
+            body = self._router_interface_action('add', r['id'], None, p['id'])
+            self.assertIn('port_id', body)
+            self.assertEqual(p['id'], body['port_id'])
+            r_ids = [rr['id']
+                     for rr in [r] + r[ha.DETAILS][ha.REDUNDANCY_ROUTERS]]
+            # get ports for the user visible router and its two redundancy
+            # routers for which device_id attribute should have been updated
+            params = "&".join(["device_id=%s" % r_id for r_id in r_ids])
+            router_ports = self._list('ports', query_params=params)['ports']
+            self.assertEqual(len(router_ports), 3)
+            expected_calls = []
+            for port in router_ports:
+                expected_port_update = {
+                    'port': {'device_owner': DEVICE_OWNER_ROUTER_INTF,
+                             'device_id': port['device_id']}}
+                expected_calls.append(
+                    mock.call(mock.ANY, port['id'], expected_port_update))
+            update_port.assert_has_calls(expected_calls, any_order=True)
+            r_port_ids = {r_p['id'] for r_p in router_ports}
+            # get the extra port for the user visible router
+            other_router_ports = [r_p for r_p in self._list('ports')['ports']
+                                  if r_p['id'] not in r_port_ids]
+            # should only be one since we've created one router port
+            self.assertEqual(len(other_router_ports), 1)
+            self.assertEqual(other_router_ports[0]['device_owner'],
+                             DEVICE_OWNER_ROUTER_INTF)
+            # clean-up
+            self._router_interface_action('remove', r['id'], None, p['id'])
 
     def _test_create_ha_router(self, router, subnet, ha_settings=None):
         if ha_settings is None:
@@ -1518,12 +1559,15 @@ class L3CfgAgentHARouterApplianceTestCase(
                         self.fmt,
                         s_ext['subnet']['network_id'],
                         port_id=private_p1['port']['id'])
+                    fip1['floatingip']['fixed_ip_address_scope'] = None
                     fip2 = self._make_floatingip(
                         self.fmt,
                         s_ext['subnet']['network_id'],
                         port_id=private_p2['port']['id'])
+                    fip2['floatingip']['fixed_ip_address_scope'] = None
                     fips_dict = {fip1['floatingip']['id']: fip1['floatingip'],
                                  fip2['floatingip']['id']: fip2['floatingip']}
+
                     e_context = context.get_admin_context()
                     query_params = """fixed_ips=ip_address%%3D%s""".strip() % (
                                    '10.0.1.2')
@@ -1539,6 +1583,8 @@ class L3CfgAgentHARouterApplianceTestCase(
                         ha_settings, ha_groups_dict, fips_dict)
                     rr_ids = [rr['id'] for rr in routers[0][ha.DETAILS][
                         ha.REDUNDANCY_ROUTERS]]
+                    del fip1['floatingip']['fixed_ip_address_scope']
+                    del fip2['floatingip']['fixed_ip_address_scope']
                     # redundancy routers should here have same ha settings
                     # as the user visible routers since the l3 cfg agent
                     # needs that information to configure the redundancy

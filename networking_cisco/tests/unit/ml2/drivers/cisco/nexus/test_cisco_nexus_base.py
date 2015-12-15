@@ -130,7 +130,9 @@ class FakePortContext(object):
 
     def __init__(self, device_id, host_name, device_owner,
                  network_context, bottom_segment=None,
-                 profile=[], vnic_type=u'normal'):
+                 profile=None, vnic_type=u'normal'):
+        if profile is None:
+            profile = []
         self._port = {
             'status': PORT_STATE,
             'device_id': device_id,

@@ -17,11 +17,14 @@ import os
 import contextlib
 
 from oslo_config import cfg
+from oslo_log import log as logging
 import six
 import webob.exc
 
 from neutron.common import constants as n_const
+from neutron.common import exceptions as n_exc
 from neutron import context as n_context
+from neutron.i18n import _LE
 from neutron import manager
 from neutron.plugins.common import constants
 from neutron.tests.unit.db import test_db_base_plugin_v2
@@ -40,6 +43,8 @@ from networking_cisco.tests.unit.cisco.device_manager import (
 from networking_cisco.tests.unit.cisco.device_manager.test_db_device_manager \
     import DeviceManagerTestCaseMixin
 from networking_cisco.tests.unit.cisco.l3 import l3_router_test_support
+
+LOG = logging.getLogger(__name__)
 
 
 policy_path = (os.path.abspath(networking_cisco.__path__[0]) +
@@ -193,7 +198,14 @@ class RoutertypeTestCaseMixin(object):
                 for fip in self._list(
                         'floatingips',
                         query_params='router_id=%s' % r['id'])['floatingips']:
-                    self._delete('floatingips', fip['id'])
+                    try:
+                        self._delete('floatingips', fip['id'])
+                    except n_exc.NeutronException as e:
+                        # since this is a cleanup after a UT execution we
+                        # just log it and then ignore it. The subsequent router
+                        # delete should anyway capture more serious errors.
+                        LOG.error(_LE('Encountered error during router clean '
+                                      'up: '), e)
                 # Remove any router interfaces
                 for p in self._list(
                         'ports',
@@ -202,14 +214,25 @@ class RoutertypeTestCaseMixin(object):
                             n_const.DEVICE_OWNER_ROUTER_INTF))['ports']:
                     # get_ports can be mocked in some tests so we need to
                     # ensure we get a port that is indeed a router port.
-                    if (p.get('device_owner') ==
-                            n_const.DEVICE_OWNER_ROUTER_INTF and
-                            'fixed_ips' in p and 'id' in p):
-                        self._router_interface_action('remove', r['id'], None,
-                                                      p['id'])
-                # Remove the router
+                    try:
+                        if (p.get('device_owner') ==
+                                n_const.DEVICE_OWNER_ROUTER_INTF and
+                                'fixed_ips' in p and 'id' in p):
+                            req = self.new_action_request(
+                                'routers', {'port_id': p['id']}, r['id'],
+                                "remove_router_interface")
+                            req.get_response(self.ext_api)
+                    except n_exc.NeutronException as e:
+                        # since this is a cleanup after a UT execution we
+                        # just log it and then ignore it. The subsequent router
+                        # delete should anyway capture more serious errors
+                        LOG.error(_LE('Encountered error during router clean '
+                                      'up: '), e)
+                # Remove the router, we don't capture any exceptions here as
+                # that may hide real bugs
                 self._delete('routers', r['id'])
         for rt in self._list('routertypes')['routertypes']:
+            # we don't capture any exceptions here as that may hide real bugs
             self._delete('routertypes', rt['id'])
 
 

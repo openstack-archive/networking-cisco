@@ -880,21 +880,25 @@ class HA_db_mixin(object):
         user visible router and never its redundancy routers (as they never
         have floatingips associated with them).
         """
-        subnet_db = self._core_plugin._get_subnet(context,
-                                                  internal_subnet_id)
-        if not subnet_db['gateway_ip']:
+        subnet = self._core_plugin._get_subnet(context,
+                                               internal_subnet_id)
+        if not subnet['gateway_ip']:
             msg = (_('Cannot add floating IP to port on subnet %s '
                      'which has no gateway_ip') % internal_subnet_id)
             raise n_exc.BadRequest(resource='floatingip', msg=msg)
 
-        router_intf_ports = self._get_interface_ports_for_network(
-            context, internal_port['network_id'])
-
-        # This joins on port_id so is not a cross-join
-        routerport_qry = router_intf_ports.join(models_v2.IPAllocation)
-        routerport_qry = routerport_qry.filter(
+        gw_port = orm.aliased(models_v2.Port, name="gw_port")
+        routerport_qry = context.session.query(
+            l3_db.RouterPort.router_id,
+            models_v2.IPAllocation.ip_address).join(
+            models_v2.Port, models_v2.IPAllocation).filter(
+            models_v2.Port.network_id == internal_port['network_id'],
+            l3_db.RouterPort.port_type.in_(
+                l3_constants.ROUTER_INTERFACE_OWNERS),
             models_v2.IPAllocation.subnet_id == internal_subnet_id
-        )
+        ).join(gw_port,
+               gw_port.device_id == l3_db.RouterPort.router_id).filter(
+            gw_port.network_id == external_network_id).distinct()
 
         # Ensure that redundancy routers (in a ha group) are not returned,
         # since only the user visible router should have floatingips.
@@ -907,15 +911,15 @@ class HA_db_mixin(object):
             l3_db.RouterPort.router_id)
         routerport_qry = routerport_qry.filter(
             RouterRedundancyBinding.redundancy_router_id == expr.null())
-        for router_port in routerport_qry:
-            router_id = router_port.router.id
-            router_gw_qry = context.session.query(models_v2.Port)
-            has_gw_port = router_gw_qry.filter_by(
-                network_id=external_network_id,
-                device_id=router_id,
-                device_owner=DEVICE_OWNER_ROUTER_GW).count()
-            if has_gw_port:
+
+        first_router_id = None
+        for router_id, interface_ip in routerport_qry:
+            if interface_ip == subnet['gateway_ip']:
                 return router_id
+            if not first_router_id:
+                first_router_id = router_id
+        if first_router_id:
+            return first_router_id
 
         raise l3.ExternalGatewayForFloatingIPNotFound(
             subnet_id=internal_subnet_id,

@@ -33,8 +33,7 @@ class RouterContract(model_base.BASEV2, models_v2.HasTenant):
 
     __tablename__ = 'cisco_ml2_apic_contracts'
 
-    # TODO(HenryG): this must be changed to String(36) for Mitaka
-    router_id = sa.Column(sa.String(64), sa.ForeignKey('routers.id'),
+    router_id = sa.Column(sa.String(36), sa.ForeignKey('routers.id'),
                           primary_key=True)
 
 

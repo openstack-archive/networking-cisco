@@ -328,6 +328,16 @@ class L3RouterApplianceNamespaceTestCase(
         self._test_floatingip_with_assoc_fails(
             'neutron.db.l3_db.L3_NAT_dbonly_mixin._check_and_get_fip_assoc')
 
+    def test_router_add_interface_port(self):
+        # workaround for this particular test, since in our class self.plugin
+        # is the L3 router service plugin and not the core plugin
+        plugin = self.plugin
+        self.plugin = self.core_plugin
+        super(L3RouterApplianceNamespaceTestCase,
+              self).test_router_add_interface_port()
+        # restore the order
+        self.plugin = plugin
+
 
 class L3RouterApplianceVMTestCase(L3RouterApplianceNamespaceTestCase):
 
