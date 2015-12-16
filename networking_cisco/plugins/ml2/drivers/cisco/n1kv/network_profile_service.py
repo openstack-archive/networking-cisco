@@ -19,12 +19,13 @@ from oslo_log import log as logging
 from oslo_utils import excutils
 from sqlalchemy.orm import exc
 
+from neutron._i18n import _LE
+
 from neutron.api import extensions as api_extensions
 from neutron.api.v2 import attributes
 from neutron.common import exceptions as n_exc
 import neutron.db.api as db
 from neutron.db import common_db_mixin as base_db
-from neutron.i18n import _LE
 from neutron.plugins.common import constants as p_const
 
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (

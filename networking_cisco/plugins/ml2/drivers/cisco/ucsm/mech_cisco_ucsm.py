@@ -13,17 +13,21 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from networking_cisco.plugins.ml2.drivers.cisco.ucsm import constants as const
-from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucsm_db
-from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucsm_network_driver
 
 from oslo_log import log as logging
 
+from neutron._i18n import _LE
+from neutron._i18n import _LI
+from neutron._i18n import _LW
+
 from neutron.common import constants
 from neutron.extensions import portbindings
-from neutron.i18n import _LE, _LI, _LW
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import driver_api as api
+
+from networking_cisco.plugins.ml2.drivers.cisco.ucsm import constants as const
+from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucsm_db
+from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucsm_network_driver
 
 LOG = logging.getLogger(__name__)
 

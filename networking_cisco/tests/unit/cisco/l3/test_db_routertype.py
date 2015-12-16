@@ -21,10 +21,11 @@ from oslo_log import log as logging
 import six
 import webob.exc
 
+from neutron._i18n import _LE
+
 from neutron.common import constants as n_const
 from neutron.common import exceptions as n_exc
 from neutron import context as n_context
-from neutron.i18n import _LE
 from neutron import manager
 from neutron.plugins.common import constants
 from neutron.tests.unit.db import test_db_base_plugin_v2

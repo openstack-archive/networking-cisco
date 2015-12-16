@@ -15,6 +15,7 @@
 
 from oslo_config import cfg
 
+from neutron._i18n import _
 
 ml2_cisco_opts = [
     cfg.StrOpt('vlan_name_prefix', default='q-',

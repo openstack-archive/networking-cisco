@@ -22,7 +22,9 @@ import xml.etree.ElementTree as ET
 from oslo_config import cfg
 from oslo_utils import importutils
 
-from neutron.i18n import _LE, _LI, _LW
+from neutron._i18n import _LE
+from neutron._i18n import _LI
+from neutron._i18n import _LW
 
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions as cfg_exc
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers import (

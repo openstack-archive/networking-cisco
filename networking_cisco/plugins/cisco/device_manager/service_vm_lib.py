@@ -19,7 +19,10 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 
-from neutron.i18n import _LE, _LI
+from neutron._i18n import _
+from neutron._i18n import _LE
+from neutron._i18n import _LI
+
 from neutron import manager
 
 from networking_cisco.plugins.cisco.common import (cisco_constants as

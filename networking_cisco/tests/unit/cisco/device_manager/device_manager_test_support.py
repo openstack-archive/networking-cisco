@@ -24,7 +24,19 @@ from oslo_utils import importutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
-import networking_cisco.plugins
+from neutron._i18n import _LE
+
+from neutron.api.v2 import attributes
+from neutron.common import constants as common_constants
+from neutron.common import test_lib
+from neutron import context as n_context
+from neutron.db import agents_db
+from neutron.extensions import agent
+from neutron import manager
+from neutron.tests.unit.extensions import test_l3
+
+import networking_cisco
+from networking_cisco import plugins
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.device_manager import (
     hosting_device_manager_db)
@@ -38,15 +50,6 @@ from networking_cisco.plugins.cisco.extensions import (
 from networking_cisco.plugins.cisco.extensions import (
     ciscohostingdevicemanager as ciscodevmgr)
 
-from neutron.api.v2 import attributes
-from neutron.common import constants as common_constants
-from neutron.common import test_lib
-from neutron import context as n_context
-from neutron.db import agents_db
-from neutron.extensions import agent
-from neutron.i18n import _LE
-from neutron import manager
-from neutron.tests.unit.extensions import test_l3
 
 LOG = logging.getLogger(__name__)
 
@@ -57,8 +60,7 @@ ISO8601_TIME_FORMAT = common_constants.ISO8601_TIME_FORMAT
 CORE_PLUGIN_KLASS = (
     'networking_cisco.tests.unit.cisco.device_manager'
     '.device_manager_test_support.TestCorePlugin')
-extensions_path = (':' + networking_cisco.plugins.__path__[0] +
-                   '/cisco/extensions')
+extensions_path = (':' + plugins.__path__[0] + '/cisco/extensions')
 
 L3_CFG_HOST_A = 'host_a'
 L3_CFG_HOST_B = 'host_b'

@@ -18,8 +18,11 @@ import time
 from oslo_log import log as logging
 from oslo_utils import importutils
 
+from neutron._i18n import _
+from neutron._i18n import _LE
+from neutron._i18n import _LW
+
 from neutron.common import exceptions as nexception
-from neutron.i18n import _LE, _LW
 
 LOG = logging.getLogger(__name__)
 

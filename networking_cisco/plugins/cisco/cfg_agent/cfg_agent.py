@@ -28,6 +28,11 @@ from oslo_service import periodic_task
 from oslo_service import service
 from oslo_utils import importutils
 
+from neutron._i18n import _
+from neutron._i18n import _LE
+from neutron._i18n import _LI
+from neutron._i18n import _LW
+
 from neutron.agent.common import config
 from neutron.agent.linux import external_process
 from neutron.agent.linux import interface
@@ -37,7 +42,6 @@ from neutron.common import constants
 from neutron.common import rpc as n_rpc
 from neutron.common import topics
 from neutron import context as n_context
-from neutron.i18n import _LE, _LI, _LW
 from neutron import manager
 from neutron import service as neutron_service
 

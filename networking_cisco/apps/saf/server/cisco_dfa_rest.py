@@ -20,9 +20,10 @@
 
 import requests
 
-from neutron.i18n import _LE
-from neutron.i18n import _LI
 from oslo_serialization import jsonutils
+
+from neutron._i18n import _LE
+from neutron._i18n import _LI
 
 from networking_cisco.apps.saf.common import dfa_exceptions as dexc
 from networking_cisco.apps.saf.common import dfa_logger as logging

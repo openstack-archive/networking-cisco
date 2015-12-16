@@ -15,6 +15,8 @@
 
 """Exceptions used by Cisco Nexus1000V ML2 mechanism driver."""
 
+from neutron._i18n import _
+
 from neutron.common import exceptions
 
 

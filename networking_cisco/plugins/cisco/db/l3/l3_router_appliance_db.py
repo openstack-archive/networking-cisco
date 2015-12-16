@@ -28,6 +28,10 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import expression as expr
 from sqlalchemy.sql import false as sql_false
 
+from neutron._i18n import _
+from neutron._i18n import _LE
+from neutron._i18n import _LI
+
 from neutron.api.v2 import attributes
 from neutron.callbacks import events
 from neutron.callbacks import registry
@@ -42,7 +46,6 @@ from neutron.db import extraroute_db
 from neutron.db import l3_db
 from neutron.extensions import l3
 from neutron.extensions import providernet as pr_net
-from neutron.i18n import _LE, _LI
 from neutron import manager
 from neutron.plugins.common import constants as svc_constants
 

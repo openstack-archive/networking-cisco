@@ -17,6 +17,9 @@ import abc
 from oslo_log import log as logging
 import webob.exc
 
+from neutron._i18n import _
+from neutron._i18n import _LE
+
 from neutron.api import extensions
 from neutron.api.v2 import attributes as attr
 from neutron.api.v2 import base
@@ -24,7 +27,6 @@ from neutron.api.v2 import resource
 from neutron.common import exceptions
 from neutron.common import rpc as n_rpc
 from neutron.extensions import l3
-from neutron.i18n import _LE
 from neutron import manager
 from neutron.plugins.common import constants as svc_constants
 from neutron import policy

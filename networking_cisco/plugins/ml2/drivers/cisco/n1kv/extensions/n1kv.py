@@ -13,10 +13,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from networking_cisco.plugins.ml2.drivers.cisco.n1kv import constants
+
+from neutron._i18n import _
 
 from neutron.api import extensions
 from neutron.api.v2 import attributes
+
+from networking_cisco.plugins.ml2.drivers.cisco.n1kv import constants
 
 
 PROFILE = constants.N1KV_PROFILE
