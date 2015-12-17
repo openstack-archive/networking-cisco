@@ -135,5 +135,5 @@ class TestVIFHotPlugPluggingDriver(base.BaseTestCase):
             self.assertEqual(1, mocked_plugin.create_port.call_count)
             self.assertEqual(True, mock_delete_resources.called)
             self.assertEqual(1, mock_delete_resources.call_count)
-            self.assertEqual(None, result['mgmt_port'])
+            self.assertIsNone(result['mgmt_port'])
             self.assertEqual([], result['ports'])
