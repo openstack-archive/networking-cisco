@@ -374,7 +374,7 @@ class CiscoNexusDriver(object):
                 LOG.debug("GET call returned Nexus type %d",
                     int(nexus_type[0]))
                 return int(nexus_type[0])
-        LOG.warn(_LW("GET call failed to return Nexus type"))
+        LOG.warning(_LW("GET call failed to return Nexus type"))
         return -1
 
     def _extract_line_item_data(self, obj, which, re_str):

@@ -103,9 +103,9 @@ class CiscoNexusCfgMonitor(object):
             self._driver.initialize_all_switch_interfaces(switch_ifs)
         except Exception:
             with excutils.save_and_reraise_exception():
-                LOG.warn(_LW("Unable to initialize interfaces to "
-                         "switch %(switch_ip)s"),
-                         {'switch_ip': switch_ip})
+                LOG.warning(_LW("Unable to initialize interfaces to "
+                                "switch %(switch_ip)s"),
+                            {'switch_ip': switch_ip})
                 self._mdriver.register_switch_as_inactive(switch_ip,
                     'replay init_interface')
 
@@ -135,9 +135,10 @@ class CiscoNexusCfgMonitor(object):
                 mgr = self._driver.nxos_connect(switch_ip)
                 self._driver._close_session(mgr, switch_ip)
         except Exception:
-                LOG.warn(_LW("Failed to release connection after initialize "
-                         "interfaces for switch %(switch_ip)s"),
-                         {'switch_ip': switch_ip})
+                LOG.warning(_LW("Failed to release connection after "
+                                "initialize interfaces for switch "
+                                "%(switch_ip)s"),
+                            {'switch_ip': switch_ip})
 
     def replay_config(self, switch_ip):
         """Sends pending config data in OpenStack to Nexus."""
@@ -171,9 +172,9 @@ class CiscoNexusCfgMonitor(object):
         try:
             port_bindings = nxos_db.get_nexusport_switch_bindings(switch_ip)
         except excep.NexusPortBindingNotFound:
-            LOG.warn(_LW("No port entries found for switch ip "
-                      "%(switch_ip)s during replay."),
-                      {'switch_ip': switch_ip})
+            LOG.warning(_LW("No port entries found for switch ip "
+                            "%(switch_ip)s during replay."),
+                        {'switch_ip': switch_ip})
             return
 
         try:
@@ -249,9 +250,9 @@ class CiscoNexusCfgMonitor(object):
                         switch_ip) == const.SWITCH_INACTIVE:
                         self._mdriver.incr_switch_replay_failure(
                             const.FAIL_CONFIG, switch_ip)
-                        LOG.warn(_LW("Replay config failed for "
-                            "ip %(switch_ip)s"),
-                            {'switch_ip': switch_ip})
+                        LOG.warning(_LW("Replay config failed for "
+                                        "ip %(switch_ip)s"),
+                                    {'switch_ip': switch_ip})
                     else:
                         self._mdriver.reset_switch_replay_failure(
                             const.FAIL_CONFIG, switch_ip)
@@ -950,7 +951,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                     switch_ip, attr, host_connections)
 
         if not host_found:
-            LOG.warn(HOST_NOT_FOUND, host_id)
+            LOG.warning(HOST_NOT_FOUND, host_id)
 
         return host_connections
 
@@ -1048,7 +1049,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 host_nve_connections.append(switch_ip)
 
         if not host_nve_connections:
-            LOG.warn(HOST_NOT_FOUND, host_id)
+            LOG.warning(HOST_NOT_FOUND, host_id)
 
         return host_nve_connections
 
@@ -1151,8 +1152,8 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 const.NEXUS_MAX_VLAN_NAME_LEN - len(str(vlan_id)))
             if len(vlan_name) > vlan_name_max_len:
                 vlan_name = vlan_name[:vlan_name_max_len]
-                LOG.warn(_LW("Nexus: truncating vlan name to %s"),
-                         vlan_name)
+                LOG.warning(_LW("Nexus: truncating vlan name to %s"),
+                            vlan_name)
             vlan_name = vlan_name + str(vlan_id)
         return vlan_name, auto_create, auto_trunk
 
@@ -1560,19 +1561,19 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                     context.original.get(portbindings.HOST_ID))
 
     def _log_missing_segment(self):
-        LOG.warn(_LW("Nexus: Segment is None, Event not processed."))
+        LOG.warning(_LW("Nexus: Segment is None, Event not processed."))
 
     def _is_valid_segment(self, segment):
         valid_segment = True
         if segment:
             if (segment[api.NETWORK_TYPE] != p_const.TYPE_VLAN or
                 not self._valid_network_segment(segment)):
-                LOG.warn(_LW("Nexus: Segment is an invalid type or not "
-                         "supported by this driver. Network type = "
-                         "%(network_type)s Physical network = "
-                         "%(phy_network)s. Event not processed."),
-                         {'network_type': segment[api.NETWORK_TYPE],
-                          'phy_network': segment[api.PHYSICAL_NETWORK]})
+                LOG.warning(_LW("Nexus: Segment is an invalid type or not "
+                                "supported by this driver. Network type = "
+                                "%(network_type)s Physical network = "
+                                "%(phy_network)s. Event not processed."),
+                            {'network_type': segment[api.NETWORK_TYPE],
+                             'phy_network': segment[api.PHYSICAL_NETWORK]})
                 valid_segment = False
         else:
             self._log_missing_segment()
