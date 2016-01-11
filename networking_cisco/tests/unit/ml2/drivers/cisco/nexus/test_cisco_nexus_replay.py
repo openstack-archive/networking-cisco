@@ -450,9 +450,6 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusBase):
         result_del = (
             [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
                 format('ethernet', '1\/3', 269),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(269),
-            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/2', 269),
             test_cisco_nexus_base.RESULT_DEL_VLAN.format(269)])
         self._basic_delete_verify_port_vlan('test_replay_dual',
             result_del,
@@ -558,7 +555,7 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusBase):
 
         # Clean-up the port entry
         self._basic_delete_verify_port_vlan('test_replay_unique1',
-            self.driver_result_unique_del2, nbr_of_bindings=0)
+            [], nbr_of_bindings=0)
 
     def test_replay_get_nexus_type_failure_two_switches(self):
         """Verifies exception during ncclient get inventory. """
@@ -620,7 +617,7 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusBase):
 
         # Clean-up the port entry
         self._basic_delete_verify_port_vlan('test_replay_unique1',
-            self.driver_result_unique_del2)
+            [])
 
     def test_replay_create_vlan_failure_during_replay(self):
         """Verifies exception during create vlan while replaying. """
@@ -855,7 +852,7 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusBase):
         # Test 3)
         # Verify delete transaction doesn't affect failure stats.
         self._basic_delete_verify_port_vlan('test_replay_unique1',
-            self.driver_result_unique_del2)
+            [])
 
         # Verify failure stats is not reset
         assert(self._cisco_mech_driver.get_switch_replay_failure(
