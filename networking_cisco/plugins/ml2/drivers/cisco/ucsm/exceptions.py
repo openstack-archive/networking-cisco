@@ -35,6 +35,11 @@ class UcsmConfigFailed(exceptions.NeutronException):
                 "Reason: %(exc)s.")
 
 
+class UcsmConfigDeleteFailed(exceptions.NeutronException):
+    message = _("Failed to delete %(config)s on UCS Manager %(ucsm_ip)s. "
+                "Reason: %(exc)s.")
+
+
 class UcsmDisconnectFailed(exceptions.NeutronException):
     message = _("Disconnect to UCS Manager %(ucsm_ip)s failed. "
                 "Reason: %(exc)s.")

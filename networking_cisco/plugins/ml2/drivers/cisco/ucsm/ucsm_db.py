@@ -13,10 +13,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from oslo_log import log as logging
 from sqlalchemy import orm
 
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucsm_model
 from neutron.db import api as db_api
+
+LOG = logging.getLogger(__name__)
 
 
 class UcsmDbModel(object):
@@ -69,5 +72,45 @@ class UcsmDbModel(object):
             try:
                 self.session.query(ucsm_model.PortProfile).filter_by(
                     vlan_id=vlan_id).delete()
+            except orm.exc.NoResultFound:
+                return
+
+    def get_sp_template_vlan_entry(self, vlan_id, sp_template, ucsm_ip):
+        entry = self.session.query(
+            ucsm_model.ServiceProfileTemplate).filter_by(
+                vlan_id=vlan_id,
+                sp_template=sp_template,
+                device_id=ucsm_ip).first()
+        return entry if entry else None
+
+    def add_service_profile_template(self, vlan_id, sp_template, ucsm_ip):
+        """Adds an entry for a vlan_id on a SP template to the table."""
+        if not self.get_sp_template_vlan_entry(vlan_id, sp_template, ucsm_ip):
+            entry = ucsm_model.ServiceProfileTemplate(vlan_id=vlan_id,
+                                                      sp_template=sp_template,
+                                                      device_id=ucsm_ip,
+                                                      updated_on_ucs=False)
+            self.session.add(entry)
+        return True
+
+    def set_sp_template_updated(self, vlan_id, sp_template, device_id):
+        """Sets update_on_ucs flag to True."""
+        entry = self.get_sp_template_vlan_entry(vlan_id,
+                                                sp_template,
+                                                device_id)
+        if entry:
+            entry.updated_on_ucs = True
+            self.session.merge(entry)
+            return entry
+        else:
+            return False
+
+    def delete_sp_template_for_vlan(self, vlan_id):
+        """Deletes SP Template for a vlan_id if it exists."""
+        with self.session.begin(subtransactions=True):
+            try:
+                self.session.query(
+                    ucsm_model.ServiceProfileTemplate).filter_by(
+                        vlan_id=vlan_id).delete()
             except orm.exc.NoResultFound:
                 return

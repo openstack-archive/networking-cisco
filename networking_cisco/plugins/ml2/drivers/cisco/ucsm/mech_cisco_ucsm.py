@@ -23,6 +23,7 @@ from neutron.extensions import portbindings
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import driver_api as api
 
+from networking_cisco.plugins.ml2.drivers.cisco.ucsm import config
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import constants as const
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucsm_db
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucsm_network_driver
@@ -39,6 +40,7 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
         self.vif_details = {portbindings.CAP_PORT_FILTER: False}
         self.ucsm_db = ucsm_db.UcsmDbModel()
         self.driver = ucsm_network_driver.CiscoUcsmDriver()
+        self.ucsm_config = config.UcsmConfig()
 
     def _get_vlanid(self, context):
         """Returns vlan_id associated with a bound VLAN segment."""
@@ -62,30 +64,45 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
         profile = context.current.get(portbindings.PROFILE, {})
         host_id = context.current.get(portbindings.HOST_ID)
 
+        vlan_id = self._get_vlanid(context)
+        if not vlan_id:
+            LOG.warning(_LW('Vlan_id is None. Ignoring this port'))
+            return
+
+        ucsm_ip = self.driver.get_ucsm_ip_for_host(host_id)
+        if not ucsm_ip:
+            LOG.info(_LI('Host %s is not controlled by any known '
+                         'UCS Manager.'), host_id)
+            return
+
+        LOG.debug('UCSM IP: %s', str(ucsm_ip))
         if not self.driver.check_vnic_type_and_vendor_info(vnic_type,
                                                            profile):
-            LOG.debug('update_port_precommit encountered a non-SR-IOV port')
-            return
+            # This is a neutron virtio port.
+            # Check if SP Template config has been provided. If so, find
+            # the UCSM that controls this host and the Service Profile
+            # Template for this host.
+            if self.ucsm_config.is_service_profile_template_configured():
+                sp_template = (
+                    self.ucsm_config.get_sp_template_for_host(host_id))
+                LOG.debug('SP Template: %s, VLAN_id: %d', sp_template,
+                          vlan_id)
+                self.ucsm_db.add_service_profile_template(vlan_id,
+                                                          sp_template,
+                                                          ucsm_ip)
+                return
 
         # If this is an Intel SR-IOV vnic, then no need to create port
         # profile on the UCS manager. So no need to update the DB.
         if not self.driver.is_vmfex_port(profile):
-            LOG.debug('update_port_precommit has nothing to do for this '
-                      'sr-iov port')
+            LOG.debug('This is a SR-IOV port and hence not updating DB.')
             return
 
-        vlan_id = self._get_vlanid(context)
-
-        if not vlan_id:
-            LOG.warning(_LW("update_port_precommit: vlan_id is None."))
-            return
-
+        # This is a Cisco VM-FEX port
         p_profile_name = self.make_profile_name(vlan_id)
-        LOG.debug("update_port_precommit: Profile: %s, VLAN_id: %d",
-                  p_profile_name, vlan_id)
+        LOG.debug('Port Profile: %s for VLAN_id: %d', p_profile_name, vlan_id)
 
         # Create a new port profile entry in the db
-        ucsm_ip = self.driver.get_ucsm_ip_for_host(host_id)
         self.ucsm_db.add_port_profile(p_profile_name, vlan_id, ucsm_ip)
 
     def update_port_postcommit(self, context):
@@ -97,7 +114,7 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
         vlan_id = self._get_vlanid(context)
 
         if not vlan_id:
-            LOG.warning(_LW("update_port_postcommit: vlan_id is None."))
+            LOG.warning(_LW('Vlan_id is None. Ignoring this port.'))
             return
 
         # Checks to perform before UCS Manager can create a Port Profile.
@@ -109,12 +126,12 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                 'Manager'), str(host_id))
             return
 
-        # 2. Make sure this is a vm_fex_port.(Port profiles are created
-        # only for VM-FEX ports.)
         profile = context.current.get(portbindings.PROFILE, {})
         vnic_type = context.current.get(portbindings.VNIC_TYPE,
                                         portbindings.VNIC_NORMAL)
 
+        # 2. Make sure this is a vm_fex_port.(Port profiles are created
+        # only for VM-FEX ports.)
         if (self.driver.check_vnic_type_and_vendor_info(vnic_type, profile) and
             self.driver.is_vmfex_port(profile)):
 
@@ -127,9 +144,8 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
             # on the UCS Manager
             if profile_name and self.ucsm_db.is_port_profile_created(vlan_id,
                 ucsm_ip):
-                LOG.debug("update_port_postcommit: Port Profile %s for "
-                          "vlan_id %d already exists on UCSM %s. ",
-                          profile_name, vlan_id, ucsm_ip)
+                LOG.debug('Port Profile %s for vlan_id %d already exists '
+                          'on UCSM %s.', profile_name, vlan_id, ucsm_ip)
                 return
 
             # All checks are done. Ask the UCS Manager driver to create the
@@ -140,20 +156,30 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                 self.ucsm_db.set_port_profile_created(vlan_id, profile_name,
                     ucsm_ip)
             return
-
         else:
             # Enable vlan-id for this regular Neutron virtual port.
-            LOG.debug("update_port_postcommit: Host_id is %s", host_id)
-            self.driver.update_serviceprofile(host_id, vlan_id)
+            if (self.driver.update_serviceprofile(host_id, vlan_id) and
+                self.ucsm_config.is_service_profile_template_configured()):
+                sp_template = self.ucsm_config.get_sp_template_for_host(
+                    host_id)
+                LOG.debug('Setting ucsm_updated flag for vlan : %(vlan)d, '
+                          'sp_template : %(sp_template)s on ucsm_ip: '
+                          '%(ucsm_ip)s', {'vlan': vlan_id,
+                          'sp_template': sp_template, 'ucsm_ip': ucsm_ip})
+                self.ucsm_db.set_sp_template_updated(vlan_id, sp_template,
+                                                     ucsm_ip)
 
     def delete_network_precommit(self, context):
         """Delete entry corresponding to Network's VLAN in the DB."""
-
         segments = context.network_segments
         vlan_id = segments[0]['segmentation_id']
 
         if vlan_id:
+            # For VM-FEX ports
             self.ucsm_db.delete_vlan_entry(vlan_id)
+            # For Neutron virtio ports
+            if self.ucsm_config.is_service_profile_template_configured():
+                self.ucsm_db.delete_sp_template_for_vlan(vlan_id)
 
     def delete_network_postcommit(self, context):
         """Delete all configuration added to UCS Manager for the vlan_id."""
@@ -176,8 +202,8 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
         vnic_type = context.current.get(portbindings.VNIC_TYPE,
                                         portbindings.VNIC_NORMAL)
 
-        LOG.debug("Attempting to bind port %(port)s with vnic_type "
-                  "%(vnic_type)s on network %(network)s",
+        LOG.debug('Attempting to bind port %(port)s with vnic_type '
+                  '%(vnic_type)s on network %(network)s ',
                   {'port': context.current['id'],
                    'vnic_type': vnic_type,
                    'network': context.network.current['id']})
@@ -193,7 +219,7 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                 vlan_id = segment[api.SEGMENTATION_ID]
 
                 if not vlan_id:
-                    LOG.warning(_LW("Bind port: vlan_id is None."))
+                    LOG.warning(_LW('Cannot bind port: vlan_id is None.'))
                     return
 
                 LOG.debug("Port binding to Vlan_id: %s", str(vlan_id))
@@ -213,8 +239,8 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                                     constants.PORT_STATUS_ACTIVE)
                 return
 
-        LOG.error(_LE("UCS Mech Driver: Failed binding port ID %(id)s "
-                      "on any segment of network %(network)s"),
+        LOG.error(_LE('UCS Mech Driver: Failed binding port ID %(id)s '
+                      'on any segment of network %(network)s'),
                   {'id': context.current['id'],
                    'network': context.network.current['id']})
 
