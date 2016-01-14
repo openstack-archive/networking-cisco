@@ -984,7 +984,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         Called during delete postcommit port event.
         """
-        host_connections = self._get_host_connections(host_id)
+        host_connections = self._get_active_host_connections(host_id)
 
         # (nexus_port,switch_ip) will be unique in each iteration.
         # But switch_ip will repeat if host has >1 connection to same switch.
