@@ -560,6 +560,71 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
             const.SWITCH_ACTIVE)
 
 
+class TestCiscoNexusReplayBase(TestCiscoNexusBase):
+    """Feature Base Test Class for Cisco ML2 Nexus driver."""
+
+    def setUp(self):
+        """Sets up mock ncclient, and switch and credentials dictionaries."""
+
+        cfg.CONF.set_override('switch_heartbeat_time', 30, 'ml2_cisco')
+        super(TestCiscoNexusReplayBase, self).setUp()
+
+    def _process_replay(self, test1, test2,
+                        if_init_result,
+                        add_result1, add_result2,
+                        replay_result,
+                        del_result1, del_result2):
+        """Tests create, replay, delete of two ports."""
+
+        # Set all required connection state to True so
+        # configurations will succeed
+        port_cfg = self.test_configs[test1]
+        self._cisco_mech_driver.set_switch_ip_and_active_state(
+            port_cfg.nexus_ip_addr, const.SWITCH_ACTIVE)
+        port_cfg = self.test_configs[test2]
+        self._cisco_mech_driver.set_switch_ip_and_active_state(
+            port_cfg.nexus_ip_addr, const.SWITCH_ACTIVE)
+
+        self._basic_create_verify_port_vlan(
+            test1, add_result1['driver_results'],
+            add_result1['nbr_db_entries'])
+        self._basic_create_verify_port_vlan(
+            test2, add_result2['driver_results'],
+            add_result2['nbr_db_entries'])
+
+        # Set all connection state to False for
+        # test case HOST_1, NEXUS_IP_ADDRESS_1
+        cfg_type = ['test_replay_unique1',
+                    'test_replay_duplvlan1',
+                    'test_replay_duplport1']
+        for which_cfg in cfg_type:
+            if which_cfg in [test1, test2]:
+                state = const.SWITCH_INACTIVE
+                port_cfg = self.test_configs[which_cfg]
+                self._cisco_mech_driver.set_switch_ip_and_active_state(
+                    port_cfg.nexus_ip_addr, state)
+
+        # Since only this test case connection state is False,
+        # it should be the only one replayed
+        self._cfg_monitor.check_connections()
+        if not replay_result:
+            replay_result = (if_init_result +
+                            add_result1['driver_results'] +
+                            add_result2['driver_results'])
+        self._verify_results(replay_result)
+
+        # Clear mock_call history so we can evaluate
+        # just the result of replay()
+        self.mock_ncclient.reset_mock()
+
+        self._basic_delete_verify_port_vlan(
+                test2, del_result1['driver_results'],
+                del_result1['nbr_db_entries'])
+        self._basic_delete_verify_port_vlan(
+                test1, del_result2['driver_results'],
+                del_result2['nbr_db_entries'])
+
+
 class TestContext(TestCiscoNexusBase):
     """Verify Context Blocks for Cisco ML2 Nexus driver."""
 
