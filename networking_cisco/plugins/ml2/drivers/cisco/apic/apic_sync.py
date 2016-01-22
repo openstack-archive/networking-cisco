@@ -37,18 +37,14 @@ class SynchronizerBase(object):
     def sync(self, f, *args, **kwargs):
         """Fire synchronization based on interval.
 
-        Interval can be 0 for 'sync once' >0 for 'sync periodically' and
-        <0 for 'no sync'
+        Interval can be >0 for 'sync periodically' and
+        <=0 for 'no sync'
         """
-        if self.interval:
-            if self.interval > 0:
-                loop_call = loopingcall.FixedIntervalLoopingCall(f, *args,
-                                                                 **kwargs)
-                loop_call.start(interval=self.interval)
-                return loop_call
-        else:
-            # Fire once
-            f(*args, **kwargs)
+        if self.interval and self.interval > 0:
+            loop_call = loopingcall.FixedIntervalLoopingCall(f, *args,
+                                                             **kwargs)
+            loop_call.start(interval=self.interval)
+            return loop_call
 
 
 class ApicBaseSynchronizer(SynchronizerBase):
