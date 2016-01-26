@@ -20,7 +20,7 @@ VDP is a part of LLDP Agent Daemon (lldpad). For more information on VDP,
 pls visit http://www.ieee802.org/1/pages/802.1bg.html
 """
 
-from neutron._i18n import _LE
+from networking_cisco._i18n import _LE
 
 from networking_cisco.apps.saf.agent.vdp import (
     lldpad_constants as vdp_const)

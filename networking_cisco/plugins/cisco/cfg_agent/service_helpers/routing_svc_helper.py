@@ -22,10 +22,10 @@ import oslo_messaging
 from oslo_utils import excutils
 import six
 
-from neutron._i18n import _
-from neutron._i18n import _LE
-from neutron._i18n import _LI
-from neutron._i18n import _LW
+from networking_cisco._i18n import _
+from networking_cisco._i18n import _LE
+from networking_cisco._i18n import _LI
+from networking_cisco._i18n import _LW
 
 from neutron.common import constants as l3_constants
 from neutron.common import rpc as n_rpc

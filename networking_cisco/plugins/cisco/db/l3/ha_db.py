@@ -24,8 +24,8 @@ from sqlalchemy.orm import exc
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import expression as expr
 
-from neutron._i18n import _
-from neutron._i18n import _LW
+from networking_cisco._i18n import _
+from networking_cisco._i18n import _LW
 
 from neutron.api.v2 import attributes as attrs
 from neutron.common import constants as l3_constants

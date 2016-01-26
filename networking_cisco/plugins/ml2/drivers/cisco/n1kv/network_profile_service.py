@@ -19,7 +19,7 @@ from oslo_log import log as logging
 from oslo_utils import excutils
 from sqlalchemy.orm import exc
 
-from neutron._i18n import _LE
+from networking_cisco._i18n import _LE
 
 from neutron.api import extensions as api_extensions
 from neutron.api.v2 import attributes

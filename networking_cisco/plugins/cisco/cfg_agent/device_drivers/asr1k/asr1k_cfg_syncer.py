@@ -23,7 +23,7 @@ from oslo_utils import importutils
 
 from neutron.common import constants
 
-from neutron._i18n import _LI
+from networking_cisco._i18n import _LI
 
 # from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
 #    cisco_csr1kv_snippets as snippets)

@@ -24,7 +24,7 @@ from oslo_utils import importutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
-from neutron._i18n import _LE
+from networking_cisco._i18n import _LE
 
 from neutron.api.v2 import attributes
 from neutron.common import constants as common_constants

@@ -16,7 +16,7 @@
 from oslo_log import log as logging
 from oslo_service import loopingcall
 
-from neutron._i18n import _LW
+from networking_cisco._i18n import _LW
 
 from neutron.common import constants as n_constants
 from neutron import context

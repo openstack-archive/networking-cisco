@@ -28,9 +28,9 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import expression as expr
 from sqlalchemy.sql import false as sql_false
 
-from neutron._i18n import _
-from neutron._i18n import _LE
-from neutron._i18n import _LI
+from networking_cisco._i18n import _
+from networking_cisco._i18n import _LE
+from networking_cisco._i18n import _LI
 
 from neutron.api.v2 import attributes
 from neutron.callbacks import events

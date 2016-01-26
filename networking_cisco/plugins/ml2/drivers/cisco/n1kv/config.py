@@ -15,7 +15,7 @@
 
 from oslo_config import cfg
 
-from neutron._i18n import _
+from networking_cisco._i18n import _
 
 
 n1kv_opts = [

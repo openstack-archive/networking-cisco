@@ -18,7 +18,7 @@ import debtcollector
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from neutron._i18n import _
+from networking_cisco._i18n import _
 
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import constants as const
 

@@ -30,9 +30,9 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     exceptions as n1kv_exc)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import config  # noqa
 
-from neutron._i18n import _
-from neutron._i18n import _LE
-from neutron._i18n import _LI
+from networking_cisco._i18n import _
+from networking_cisco._i18n import _LE
+from networking_cisco._i18n import _LI
 
 from neutron.common import exceptions as n_exc
 from neutron.extensions import providernet

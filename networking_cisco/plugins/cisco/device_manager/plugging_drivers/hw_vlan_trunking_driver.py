@@ -15,7 +15,7 @@
 from oslo_log import log as logging
 from oslo_utils import excutils
 
-from neutron._i18n import _LE
+from networking_cisco._i18n import _LE
 
 from neutron.common import constants as l3_constants
 from neutron.extensions import providernet as pr_net

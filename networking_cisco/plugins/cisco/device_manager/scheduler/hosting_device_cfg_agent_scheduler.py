@@ -19,7 +19,7 @@ import random
 from oslo_log import log as logging
 from sqlalchemy.orm import exc
 
-from neutron._i18n import _LW
+from networking_cisco._i18n import _LW
 
 from neutron.db import agents_db
 

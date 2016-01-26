@@ -21,7 +21,7 @@ from oslo_log import log as logging
 import six
 import webob.exc
 
-from neutron._i18n import _LE
+from networking_cisco._i18n import _LE
 
 from neutron.common import constants as n_const
 from neutron.common import exceptions as n_exc

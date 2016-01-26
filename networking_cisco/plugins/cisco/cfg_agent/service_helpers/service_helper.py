@@ -17,7 +17,7 @@ import six
 
 from oslo_log import log as logging
 
-from neutron._i18n import _
+from networking_cisco._i18n import _
 
 from six.moves import queue as Queue
 

@@ -17,7 +17,7 @@
 
 import socket
 
-from neutron._i18n import _LE
+from networking_cisco._i18n import _LE
 
 from keystoneclient.v3 import client
 from neutronclient.v2_0 import client as nc

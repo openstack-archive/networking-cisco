@@ -17,7 +17,7 @@
 
 """Exceptions used by DFA enabler"""
 
-from neutron._i18n import _
+from networking_cisco._i18n import _
 
 from neutron.common import exceptions
 from neutronclient.common import exceptions as ncexc

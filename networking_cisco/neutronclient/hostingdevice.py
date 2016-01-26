@@ -19,10 +19,10 @@ from __future__ import print_function
 import argparse
 import six
 
-from neutronclient.common import extension
-from neutronclient.i18n import _
-from neutronclient.neutron import v2_0 as neutronV20
+from networking_cisco._i18n import _
 
+from neutronclient.common import extension
+from neutronclient.neutron import v2_0 as neutronV20
 
 DEVICE = 'hosting_device'
 HOSTING_DEVICE_CONFIG = '/get_hosting_device_config'
@@ -238,13 +238,13 @@ class HostingDeviceGetConfig(extension.ClientExtensionShow, HostingDevice):
     shell_command = 'cisco-hosting-device-get-config'
 
     def run(self, parsed_args):
-        data = self.get_data(parsed_args)
+        data = self.take_action(parsed_args)
         # just do raw text output
         if data:
             self.app.stdout.write(str(data) + '\n')
         return 0
 
-    def get_data(self, parsed_args):
+    def take_action(self, parsed_args):
         self.log.debug('run(%s)' % parsed_args)
         neutron_client = self.get_client()
         neutron_client.format = parsed_args.request_format

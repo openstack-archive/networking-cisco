@@ -20,8 +20,8 @@ from oslo_serialization import jsonutils
 import requests
 from requests import exceptions as r_exc
 
-from neutron._i18n import _LE
-from neutron._i18n import _LW
+from networking_cisco._i18n import _LE
+from networking_cisco._i18n import _LW
 
 
 TIMEOUT = 20.0

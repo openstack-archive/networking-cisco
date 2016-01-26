@@ -17,7 +17,7 @@
 from oslo_log import log as logging
 import sqlalchemy.orm.exc as sa_exc
 
-from neutron._i18n import _LW
+from networking_cisco._i18n import _LW
 
 import neutron.db.api as db
 

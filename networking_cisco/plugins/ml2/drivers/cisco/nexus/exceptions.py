@@ -15,7 +15,7 @@
 
 """Exceptions used by Cisco Nexus ML2 mechanism driver."""
 
-from neutron._i18n import _
+from networking_cisco._i18n import _
 
 from neutron.common import exceptions
 
