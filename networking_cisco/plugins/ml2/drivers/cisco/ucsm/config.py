@@ -55,6 +55,12 @@ ml2_cisco_ucsm_opts = [
                 help=_('List of comma separated Host:Service Profile tuples '
                        'providing the Service Profile associated with each '
                        'Host to be supported by this MD.')),
+    cfg.ListOpt('ucsm_virtio_eth_ports',
+                default=[const.ETH0, const.ETH1],
+                help=_('List of comma separated names of ports that could '
+                       'be used to configure VLANs for Neutron virtio '
+                       'ports. The names should match the names on the '
+                       'UCS Manager.')),
 ]
 
 cfg.CONF.register_opts(ml2_cisco_ucsm_opts, "ml2_cisco_ucsm")
@@ -89,29 +95,49 @@ def parse_ucsm_host_config():
         return sp_dict, host_dict
 
 
+@debtcollector.removals.remove(message=DEPRECATION_MESSAGE)
+def parse_virtio_eth_ports():
+    eth_port_list = []
+    if not cfg.CONF.ml2_cisco_ucsm.ucsm_virtio_eth_ports:
+        raise cfg.Error(_("UCS Mech Driver: Ethernet Port List "
+                          "not provided. Cannot properly support "
+                          "Neutron virtual ports on this setup."))
+
+    for eth_port in cfg.CONF.ml2_cisco_ucsm.ucsm_virtio_eth_ports:
+        eth_port_list.append(const.ETH_PREFIX + str(eth_port))
+
+    return eth_port_list
+
+
 class UcsmConfig(object):
     """ML2 Cisco UCSM Mechanism Driver Configuration class."""
     ucsm_dict = {}
+    ucsm_port_dict = {}
 
     def __init__(self):
         """Create a single UCSM or Multi-UCSM dict."""
-        self._create_multi_ucsm_dict()
+        self._create_multi_ucsm_dicts()
         if cfg.CONF.ml2_cisco_ucsm.ucsm_ip and not self.ucsm_dict:
-            self._create_single_ucsm_dict()
+            self._create_single_ucsm_dicts()
 
         if not self.ucsm_dict:
             raise cfg.Error(_('Insufficient UCS Manager configuration has '
                               'been provided to the plugin'))
 
     @debtcollector.removals.remove(message=DEPRECATION_MESSAGE)
-    def _create_single_ucsm_dict(self):
+    def _create_single_ucsm_dicts(self):
         """Creates a dictionary of UCSM data for 1 UCS Manager."""
         ucsm_info = []
+        eth_port_list = []
         ucsm_info.append(cfg.CONF.ml2_cisco_ucsm.ucsm_password)
         ucsm_info.append(cfg.CONF.ml2_cisco_ucsm.ucsm_username)
         self.ucsm_dict[cfg.CONF.ml2_cisco_ucsm.ucsm_ip] = ucsm_info
+        eth_port_list = self.parse_virtio_eth_ports()
+        if eth_port_list:
+            self.ucsm_port_dict[cfg.CONF.ml2_cisco_ucsm.ucsm_ip] = (
+                eth_port_list)
 
-    def _create_multi_ucsm_dict(self):
+    def _create_multi_ucsm_dicts(self):
         """Creates a dictionary of all UCS Manager data from config."""
         multi_parser = cfg.MultiConfigParser()
         read_ok = multi_parser.read(cfg.CONF.config_file)
@@ -124,9 +150,18 @@ class UcsmConfig(object):
                 dev_id, sep, dev_ip = parsed_item.partition(':')
                 if dev_id.lower() == 'ml2_cisco_ucsm_ip':
                     ucsm_info = []
+                    eth_ports = []
+                    eth_port_list = []
                     for dev_key, value in parsed_file[parsed_item].items():
-                        ucsm_info.append(value[0])
+                        if dev_key != 'ucsm_virtio_eth_ports':
+                            ucsm_info.append(value[0])
+                        else:
+                            eth_ports = value[0].split(',')
+                            for eth_port in eth_ports:
+                                eth_port_list.append(
+                                    const.ETH_PREFIX + str(eth_port))
                     self.ucsm_dict[dev_ip] = ucsm_info
+                    self.ucsm_port_dict[dev_ip] = eth_port_list
 
     def get_credentials_for_ucsm_ip(self, ucsm_ip):
         if ucsm_ip in self.ucsm_dict:
@@ -134,3 +169,7 @@ class UcsmConfig(object):
 
     def get_all_ucsm_ips(self):
         return self.ucsm_dict.keys()
+
+    def get_ucsm_eth_port_list(self, ucsm_ip):
+        if ucsm_ip in self.ucsm_port_dict:
+            return self.ucsm_port_dict[ucsm_ip]

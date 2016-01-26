@@ -167,7 +167,7 @@ class CiscoUcsmDriver(object):
                                     ucsm_ip)
                                 if server_name != "":
                                     key = (ucsm_ip, server_name)
-                                    self.ucsm_sp_dict[key] = sp.Dn
+                                    self.ucsm_sp_dict[key] = str(sp.Dn)
                                     self.ucsm_host_dict[server_name] = ucsm_ip
                 except Exception as e:
                     # Raise a Neutron exception. Include a description of
@@ -355,9 +355,11 @@ class CiscoUcsmDriver(object):
         the UCS Server, is updated with the VLAN profile corresponding
         to the vlan_id passed in.
         """
-        eth0 = str(service_profile) + const.ETH0
-        eth1 = str(service_profile) + const.ETH1
-        eth_port_paths = [eth0, eth1]
+        eth_port_paths = []
+        virtio_port_list = config.get_ucsm_eth_port_list(ucsm_ip)
+        eth_port_paths = ["%s%s" % (service_profile, ep)
+            for ep in virtio_port_list]
+
         vlan_name = self.make_vlan_name(vlan_id)
 
         with self.ucsm_connect_disconnect(ucsm_ip) as handle:
