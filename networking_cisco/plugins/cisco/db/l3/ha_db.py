@@ -24,6 +24,9 @@ from sqlalchemy.orm import exc
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import expression as expr
 
+from networking_cisco._i18n import _
+from networking_cisco._i18n import _LW
+
 from neutron.api.v2 import attributes as attrs
 from neutron.common import constants as l3_constants
 from neutron.common import exceptions as n_exc
@@ -32,7 +35,6 @@ from neutron.db import l3_db
 from neutron.db import model_base
 from neutron.db import models_v2
 from neutron.extensions import l3
-from neutron.i18n import _LW
 
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.extensions import ha

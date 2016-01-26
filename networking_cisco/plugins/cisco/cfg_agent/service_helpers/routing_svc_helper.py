@@ -22,12 +22,16 @@ import oslo_messaging
 from oslo_utils import excutils
 import six
 
+from networking_cisco._i18n import _
+from networking_cisco._i18n import _LE
+from networking_cisco._i18n import _LI
+from networking_cisco._i18n import _LW
+
 from neutron.common import constants as l3_constants
 from neutron.common import rpc as n_rpc
 from neutron.common import topics
 from neutron.common import utils as common_utils
 from neutron import context as n_context
-from neutron.i18n import _LE, _LI, _LW
 
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers import driver_mgr

@@ -24,6 +24,9 @@ import six
 from oslo_config import cfg
 from oslo_log import log
 
+from networking_cisco._i18n import _LE
+from networking_cisco._i18n import _LW
+
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     constants as n1kv_const)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
@@ -34,8 +37,6 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import n1kv_db
 
 import neutron.db.api as db
 from neutron.extensions import providernet
-from neutron.i18n import _LE
-from neutron.i18n import _LW
 from neutron.plugins.common import constants as p_const
 
 LOG = log.getLogger(__name__)

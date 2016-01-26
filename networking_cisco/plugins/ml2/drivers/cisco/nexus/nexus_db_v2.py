@@ -17,8 +17,9 @@
 from oslo_log import log as logging
 import sqlalchemy.orm.exc as sa_exc
 
+from networking_cisco._i18n import _LW
+
 import neutron.db.api as db
-from neutron.i18n import _LW
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     exceptions as c_exc)

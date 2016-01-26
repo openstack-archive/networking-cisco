@@ -30,10 +30,12 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     exceptions as n1kv_exc)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import config  # noqa
 
+from networking_cisco._i18n import _
+from networking_cisco._i18n import _LE
+from networking_cisco._i18n import _LI
+
 from neutron.common import exceptions as n_exc
 from neutron.extensions import providernet
-from neutron.i18n import _LE
-from neutron.i18n import _LI
 from neutron.plugins.common import constants as p_const
 
 LOG = logging.getLogger(__name__)

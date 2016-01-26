@@ -17,9 +17,11 @@ import netaddr
 
 from oslo_config import cfg
 
+from networking_cisco._i18n import _
+from networking_cisco._i18n import _LE
+from networking_cisco._i18n import _LI
+
 from neutron.common import constants
-from neutron.i18n import _LE
-from neutron.i18n import _LI
 
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions as cfg_exc
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (

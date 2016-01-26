@@ -15,6 +15,8 @@
 
 """Exceptions used by Cisco UCSM ML2 mechanism driver."""
 
+from networking_cisco._i18n import _
+
 from neutron.common import exceptions
 
 

@@ -20,6 +20,8 @@ VDP is a part of LLDP Agent Daemon (lldpad). For more information on VDP,
 pls visit http://www.ieee802.org/1/pages/802.1bg.html
 """
 
+from networking_cisco._i18n import _LE
+
 from networking_cisco.apps.saf.agent.vdp import (
     lldpad_constants as vdp_const)
 from networking_cisco.apps.saf.common import config
@@ -27,7 +29,6 @@ from networking_cisco.apps.saf.common import constants
 from networking_cisco.apps.saf.common import dfa_logger as logging
 from networking_cisco.apps.saf.common import dfa_sys_lib as utils
 from networking_cisco.apps.saf.common import utils as sys_utils
-from neutron.i18n import _LE
 
 LOG = logging.getLogger(__name__)
 

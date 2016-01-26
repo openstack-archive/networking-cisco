@@ -16,8 +16,9 @@
 
 from __future__ import print_function
 
+from networking_cisco._i18n import _
+
 from neutronclient.common import extension
-from neutronclient.i18n import _
 from neutronclient.neutron import v2_0 as neutronV20
 from neutronclient.neutron.v2_0 import router
 

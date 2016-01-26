@@ -18,8 +18,11 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import timeutils
 
+from networking_cisco._i18n import _
+from networking_cisco._i18n import _LI
+from networking_cisco._i18n import _LW
+
 from neutron.agent.linux import utils as linux_utils
-from neutron.i18n import _LI, _LW
 import pprint
 
 

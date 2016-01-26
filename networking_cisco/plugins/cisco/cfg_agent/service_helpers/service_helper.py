@@ -17,6 +17,8 @@ import six
 
 from oslo_log import log as logging
 
+from networking_cisco._i18n import _
+
 from six.moves import queue as Queue
 
 LOG = logging.getLogger(__name__)

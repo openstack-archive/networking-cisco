@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from networking_cisco._i18n import _
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import constants
 
 from neutron.api import extensions

@@ -19,6 +19,8 @@ from oslo_config import cfg
 from oslo_log import log as logging
 import six
 
+from networking_cisco._i18n import _
+
 from neutron.api.v2 import attributes
 from neutron import context as q_context
 from neutron.db import agents_db

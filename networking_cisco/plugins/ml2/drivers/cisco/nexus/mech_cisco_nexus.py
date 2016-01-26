@@ -27,6 +27,9 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 
+from networking_cisco._i18n import _LE
+from networking_cisco._i18n import _LI
+from networking_cisco._i18n import _LW
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     config as conf)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -41,7 +44,6 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
 from neutron.common import constants as n_const
 from neutron.db import api as db_api
 from neutron.extensions import portbindings
-from neutron.i18n import _LW, _LE, _LI
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import db as ml2_db
 from neutron.plugins.ml2 import driver_api as api
