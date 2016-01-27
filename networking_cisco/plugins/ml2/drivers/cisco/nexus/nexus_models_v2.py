@@ -32,14 +32,19 @@ class NexusPortBinding(model_base.BASEV2):
     switch_ip = sa.Column(sa.String(255))
     instance_id = sa.Column(sa.String(255))
     is_provider_vlan = sa.Column(sa.Boolean(), nullable=False, default=False,
-                           server_default=sa.sql.false())
+                                 server_default=sa.sql.false())
+    channel_group = sa.Column(sa.Integer, default=0)
+    is_native = sa.Column(sa.Boolean(), nullable=False, default=False,
+                          server_default=sa.sql.false())
 
     def __repr__(self):
         """Just the binding, without the id key."""
-        return ("<NexusPortBinding(%s,%s,%s,%s, %s, %s)>" %
+        return ("<NexusPortBinding(%s,%s,%s,%s,%s,%s,%s,%s)>" %
                 (self.port_id, self.vlan_id, self.vni, self.switch_ip,
                  self.instance_id,
-                 'True' if self.is_provider_vlan else 'False'))
+                 'True' if self.is_provider_vlan else 'False',
+                 self.channel_group,
+                 'True' if self.is_native else 'False'))
 
     def __eq__(self, other):
         """Compare only the binding, without the id key."""
@@ -49,7 +54,9 @@ class NexusPortBinding(model_base.BASEV2):
             self.vni == other.vni and
             self.switch_ip == other.switch_ip and
             self.instance_id == other.instance_id and
-            self.is_provider_vlan == other.is_provider_vlan
+            self.is_provider_vlan == other.is_provider_vlan and
+            self.channel_group == other.channel_group and
+            self.is_native_vlan == other.is_native_vlan
         )
 
 

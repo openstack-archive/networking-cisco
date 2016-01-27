@@ -379,3 +379,216 @@ class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase):
         # loops around to try and reopen and create-vlan should
         # then be successful on the 2nd pass.
         self.assertEqual(self.mock_ncclient.connect.call_count, 2)
+
+
+class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
+
+    """Unit tests for Cisco ML2 Nexus baremetal device driver."""
+
+    baremetal_profile = {
+        "local_link_information": [
+            {
+                "port_id": test_cisco_nexus_base.NEXUS_PORT_1,
+                "switch_info": {
+                    "is_native": False,
+                    "switch_ip": test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
+                },
+            },
+        ]
+    }
+
+    baremetal_profile_is_native = {
+        "local_link_information": [
+            {
+                "port_id": test_cisco_nexus_base.NEXUS_PORT_1,
+                "switch_info": {
+                    "is_native": True,
+                    "switch_ip": test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
+                },
+            },
+        ]
+    }
+
+    # The IP Address and Nexus Port information is duplicated in case
+    # of baremetal.  The core code uses content of baremetal_profile
+    # While test code continues to use values in test_config
+    # for verification. This keeps test code simpler.
+    test_configs = {
+        'test_config1':
+            test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
+                test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
+                test_cisco_nexus_base.HOST_NAME_UNUSED,
+                test_cisco_nexus_base.NEXUS_PORT_1,
+                test_cisco_nexus_base.INSTANCE_1,
+                test_cisco_nexus_base.VLAN_ID_1,
+                test_cisco_nexus_base.NO_VXLAN_ID,
+                None,
+                test_cisco_nexus_base.DEVICE_OWNER_BAREMETAL,
+                baremetal_profile,
+                test_cisco_nexus_base.BAREMETAL_VNIC),
+        'test_config_native':
+            test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
+                test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
+                test_cisco_nexus_base.HOST_NAME_UNUSED,
+                test_cisco_nexus_base.NEXUS_PORT_1,
+                test_cisco_nexus_base.INSTANCE_1,
+                test_cisco_nexus_base.VLAN_ID_2,
+                test_cisco_nexus_base.NO_VXLAN_ID,
+                None,
+                test_cisco_nexus_base.DEVICE_OWNER_BAREMETAL,
+                baremetal_profile_is_native,
+                test_cisco_nexus_base.BAREMETAL_VNIC),
+    }
+
+    simple_add_port_ethernet_driver_result = (
+        [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+        test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+            format('ethernet', '1\/10', 267)])
+
+    simple_delete_port_ethernet_driver_result = (
+        [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+            format('ethernet', '1\/10', 267),
+        test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)])
+
+    simple_add_port_channel_driver_result = (
+        [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+        test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+            format('port-channel', '469', 267)])
+
+    simple_delete_port_channel_driver_result = (
+        [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+            format('port-channel', '469', 267),
+        test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)])
+
+    simple_add_port_ethernet_native_driver_result = (
+        [test_cisco_nexus_base.RESULT_ADD_VLAN.format(265),
+        (test_cisco_nexus_base.RESULT_ADD_NATIVE_INTERFACE.
+            format('ethernet', '1\/10', 265) +
+        '[\x00-\x7f]+' +
+        test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+            format('ethernet', '1\/10', 265))])
+
+    simple_delete_port_ethernet_native_driver_result = (
+        [(test_cisco_nexus_base.RESULT_DEL_NATIVE_INTERFACE.
+            format('ethernet', '1\/10') +
+        '[\x00-\x7f]+' +
+        test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+            format('ethernet', '1\/10', 265)),
+        test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)])
+
+    def test_create_delete_basic_ethernet_port(self):
+        """Basic creation and deletion test of 1 ethernet port."""
+
+        # nbr_of_bindings includes reserved port binding
+        self._basic_create_verify_port_vlan(
+            'test_config1',
+            self.simple_add_port_ethernet_driver_result, 2)
+
+        # Clean all the ncclient mock_calls so we can evaluate
+        # results of delete operations.
+        self.mock_ncclient.reset_mock()
+
+        # nbr_of_bindings includes reserved port binding
+        self._basic_delete_verify_port_vlan(
+            'test_config1',
+            self.simple_delete_port_ethernet_driver_result,
+            nbr_of_bindings=1)
+
+    def test_create_delete_basic_port_channel(self):
+        """Basic creation and deletion test of 1 port-channel."""
+
+        # this is to prevent interface initialization from occurring
+        # which adds unnecessary noise to the results.
+        data_xml = {'connect.return_value.get.return_value.data_xml':
+                    'switchport trunk allowed vlan none\n'
+                    'channel-group 469 mode active'}
+        self.mock_ncclient.configure_mock(**data_xml)
+
+        # nbr_of_bindings includes reserved port binding
+        self._basic_create_verify_port_vlan(
+            'test_config1',
+            self.simple_add_port_channel_driver_result, 2)
+
+        # Clean all the ncclient mock_calls so we can evaluate
+        # results of delete operations.
+        self.mock_ncclient.reset_mock()
+
+        # nbr_of_bindings includes reserved port binding
+        self._basic_delete_verify_port_vlan(
+            'test_config1',
+            self.simple_delete_port_channel_driver_result,
+            nbr_of_bindings=1)
+
+    def test_create_delete_basic_eth_port_is_native(self):
+        """Basic creation and deletion test of 1 ethernet port."""
+
+        # nbr_of_bindings includes reserved port binding
+        self._basic_create_verify_port_vlan(
+            'test_config_native',
+            self.simple_add_port_ethernet_native_driver_result, 2)
+
+        # Clean all the ncclient mock_calls so we can evaluate
+        # results of delete operations.
+        self.mock_ncclient.reset_mock()
+
+        # nbr_of_bindings includes reserved port binding
+        self._basic_delete_verify_port_vlan(
+            'test_config_native',
+            self.simple_delete_port_ethernet_native_driver_result,
+            nbr_of_bindings=1)
+
+    def test_create_delete_switch_ip_not_defined(self):
+        """Create/delete of 1 ethernet port switchinfo is string."""
+
+        baremetal_profile_no_switch_ip = {
+            "local_link_information": [
+                # This IP is configured at init time
+                {
+                    "port_id": test_cisco_nexus_base.NEXUS_PORT_1,
+                    "switch_info": {
+                        "is_native": False,
+                        "switch_ip": "1.1.1.1",
+                    },
+                },
+                # This IP not configured at init time
+                {
+                    "port_id": test_cisco_nexus_base.NEXUS_PORT_1,
+                    "switch_info": {
+                        "is_native": False,
+                        "switch_ip": "6.6.6.6",
+                    },
+                },
+            ]
+        }
+
+        local_test_configs = {
+            'test_config1':
+                test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
+                    test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
+                    test_cisco_nexus_base.HOST_NAME_UNUSED,
+                    test_cisco_nexus_base.NEXUS_PORT_1,
+                    test_cisco_nexus_base.INSTANCE_1,
+                    test_cisco_nexus_base.VLAN_ID_1,
+                    test_cisco_nexus_base.NO_VXLAN_ID,
+                    None,
+                    test_cisco_nexus_base.DEVICE_OWNER_BAREMETAL,
+                    baremetal_profile_no_switch_ip,
+                    test_cisco_nexus_base.BAREMETAL_VNIC),
+        }
+
+        # nbr_of_bindings includes reserved port binding
+        self._basic_create_verify_port_vlan(
+            '',
+            self.simple_add_port_ethernet_driver_result, 2,
+            other_test=local_test_configs['test_config1'])
+
+        # Clean all the ncclient mock_calls so we can evaluate
+        # results of delete operations.
+        self.mock_ncclient.reset_mock()
+
+        # nbr_of_bindings includes reserved port binding
+        self._basic_delete_verify_port_vlan(
+            '',
+            self.simple_delete_port_ethernet_driver_result,
+            nbr_of_bindings=1,
+            other_test=local_test_configs['test_config1'])

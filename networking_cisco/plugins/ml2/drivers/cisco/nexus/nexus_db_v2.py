@@ -38,16 +38,29 @@ def get_nexusport_binding(port_id, vlan_id, switch_ip, instance_id):
                                       instance_id=instance_id)
 
 
+def get_nexus_switchport_binding(port_id, switch_ip):
+    """Lists all bindings for this switch & port."""
+    LOG.debug("get_nexus_switchport_binding() called")
+    return _lookup_all_nexus_bindings(port_id=port_id,
+                                      switch_ip=switch_ip)
+
+
 def get_nexusvlan_binding(vlan_id, switch_ip):
     """Lists a vlan and switch binding."""
     LOG.debug("get_nexusvlan_binding() called")
     return _lookup_all_nexus_bindings(vlan_id=vlan_id, switch_ip=switch_ip)
 
 
-def get_reserved_bindings(vlan_id, instance_id, switch_ip=None):
+def get_reserved_bindings(vlan_id, instance_id, switch_ip=None,
+                          port_id=None):
     """Lists reserved bindings."""
     LOG.debug("get_reserved_bindings() called")
-    if switch_ip:
+    if port_id:
+        return _lookup_all_nexus_bindings(vlan_id=vlan_id,
+                                          switch_ip=switch_ip,
+                                          instance_id=instance_id,
+                                          port_id=port_id)
+    elif switch_ip:
         return _lookup_all_nexus_bindings(vlan_id=vlan_id,
                                           switch_ip=switch_ip,
                                           instance_id=instance_id)
@@ -56,28 +69,81 @@ def get_reserved_bindings(vlan_id, instance_id, switch_ip=None):
                                           instance_id=instance_id)
 
 
-def update_reserved_binding(vlan_id, switch_ip, instance_id, port_id):
+def update_reserved_binding(vlan_id, switch_ip, instance_id,
+                            port_id, is_switch_binding=True,
+                            is_native=False, ch_grp=0):
     """Updates reserved binding.
+
     This overloads port bindings to support reserved Switch binding
     used to maintain the state of a switch so it can be viewed by
-    all other neutron processes.  The values of these arguments
-    is as follows:
+    all other neutron processes. There's also the case of
+    a reserved port binding to keep switch information on a given
+    interface.
+
+    The values of these arguments is as follows:
     :param vlan_id: 0
     :param switch_ip: ip address of the switch
     :param instance_id: fixed string RESERVED_NEXUS_SWITCH_DEVICE_ID_R1
-    :param port_id: is state of ACTIVE, RESTORE_S1, RESTORE_S2, INACTIVE
+    :                   or RESERVED_NEXUS_PORT_DEVICE_ID_R1
+    :param port_id: switch-state of ACTIVE, RESTORE_S1, RESTORE_S2, INACTIVE
+    :               port-expected port_id
+    :param ch_grp:      0 if no port-channel else non-zero integer
     """
     if not port_id:
         LOG.warning(_LW("update_reserved_binding called with no state"))
         return
     LOG.debug("update_reserved_binding called")
     session = db.get_session()
+    if is_switch_binding:
+        # For reserved switch binding
+        binding = _lookup_one_nexus_binding(session=session,
+                                            vlan_id=vlan_id,
+                                            switch_ip=switch_ip,
+                                            instance_id=instance_id)
+        binding.port_id = port_id
+    else:
+        # For reserved port binding
+        binding = _lookup_one_nexus_binding(session=session,
+                                            vlan_id=vlan_id,
+                                            switch_ip=switch_ip,
+                                            instance_id=instance_id,
+                                            port_id=port_id)
+    binding.is_native = is_native
+    binding.channel_group = ch_grp
+    session.merge(binding)
+    session.flush()
+    return binding
+
+
+def remove_reserved_binding(vlan_id, switch_ip, instance_id,
+                            port_id):
+    """Removes reserved binding.
+
+    This overloads port bindings to support reserved Switch binding
+    used to maintain the state of a switch so it can be viewed by
+    all other neutron processes. There's also the case of
+    a reserved port binding to keep switch information on a given
+    interface.
+    The values of these arguments is as follows:
+    :param vlan_id: 0
+    :param switch_ip: ip address of the switch
+    :param instance_id: fixed string RESERVED_NEXUS_SWITCH_DEVICE_ID_R1
+    :                   or RESERVED_NEXUS_PORT_DEVICE_ID_R1
+    :param port_id: switch-state of ACTIVE, RESTORE_S1, RESTORE_S2, INACTIVE
+    :               port-expected port_id
+    """
+    if not port_id:
+        LOG.warning(_LW("remove_reserved_binding called with no state"))
+        return
+    LOG.debug("remove_reserved_binding called")
+    session = db.get_session()
     binding = _lookup_one_nexus_binding(session=session,
                                         vlan_id=vlan_id,
                                         switch_ip=switch_ip,
-                                        instance_id=instance_id)
-    binding.port_id = port_id
-    session.merge(binding)
+                                        instance_id=instance_id,
+                                        port_id=port_id)
+    for bind in binding:
+        session.delete(bind)
     session.flush()
     return binding
 
@@ -89,7 +155,8 @@ def get_nexusport_switch_bindings(switch_ip):
 
 
 def add_nexusport_binding(port_id, vlan_id, vni, switch_ip, instance_id,
-                          is_provider_vlan):
+                          is_provider_vlan=False, is_native=False,
+                          ch_grp=0):
     """Adds a nexusport binding."""
     LOG.debug("add_nexusport_binding() called")
     session = db.get_session()
@@ -98,7 +165,9 @@ def add_nexusport_binding(port_id, vlan_id, vni, switch_ip, instance_id,
                   vni=vni,
                   switch_ip=switch_ip,
                   instance_id=instance_id,
-                  is_provider_vlan=is_provider_vlan)
+                  is_provider_vlan=is_provider_vlan,
+                  is_native=is_native,
+                  channel_group=ch_grp)
     session.add(binding)
     session.flush()
     return binding
@@ -114,8 +183,7 @@ def remove_nexusport_binding(port_id, vlan_id, vni, switch_ip, instance_id,
                                          vni=vni,
                                          switch_ip=switch_ip,
                                          port_id=port_id,
-                                         instance_id=instance_id,
-                                         is_provider_vlan=is_provider_vlan)
+                                         instance_id=instance_id)
     for bind in binding:
         session.delete(bind)
     session.flush()

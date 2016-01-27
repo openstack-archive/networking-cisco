@@ -121,15 +121,31 @@ CMD_NO_VLAN_CONF_SNIPPET = """
           </no>
 """
 
+CMD_INT_VLAN_NATIVE_HEADER = """
+                    <native>
+                      <vlan>"""
+
+CMD_INT_VLAN_NATIVE_TRAILER = """
+                      </vlan>
+                    </native>
+"""
+
+CMD_INT_VLAN_ALLOWED_HEADER = """
+                    <allowed>
+                      <vlan>"""
+
+CMD_INT_VLAN_ALLOWED_TRAILER = """
+                      </vlan>
+                    </allowed>
+"""
+
 CMD_INT_VLAN_HEADER = """
           <interface>
             <%s>
               <interface>%s</interface>
               <__XML__MODE_if-ethernet-switch>
                 <switchport>
-                  <trunk>
-                    <allowed>
-                      <vlan>"""
+                  <trunk>"""
 
 CMD_VLAN_ID = """
                           <vlan_id>%s</vlan_id>"""
@@ -139,8 +155,6 @@ CMD_VLAN_ADD_ID = """
                         </add>""" % CMD_VLAN_ID
 
 CMD_INT_VLAN_TRAILER = """
-                      </vlan>
-                    </allowed>
                   </trunk>
                 </switchport>
               </__XML__MODE_if-ethernet-switch>
@@ -149,12 +163,23 @@ CMD_INT_VLAN_TRAILER = """
 """
 
 CMD_INT_VLAN_SNIPPET = (CMD_INT_VLAN_HEADER +
+                        CMD_INT_VLAN_ALLOWED_HEADER +
                         CMD_VLAN_ID +
+                        CMD_INT_VLAN_ALLOWED_TRAILER +
                         CMD_INT_VLAN_TRAILER)
 
 CMD_INT_VLAN_ADD_SNIPPET = (CMD_INT_VLAN_HEADER +
+                            CMD_INT_VLAN_ALLOWED_HEADER +
                             CMD_VLAN_ADD_ID +
+                            CMD_INT_VLAN_ALLOWED_TRAILER +
                             CMD_INT_VLAN_TRAILER)
+
+CMD_INT_VLAN_NATIVE_SNIPPET = (CMD_INT_VLAN_HEADER +
+                               CMD_INT_VLAN_NATIVE_HEADER +
+                               CMD_VLAN_ID +
+                               CMD_INT_VLAN_NATIVE_TRAILER +
+                               CMD_INT_VLAN_TRAILER)
+
 
 CMD_PORT_TRUNK = """
           <interface>
@@ -209,6 +234,26 @@ CMD_NO_VLAN_INT_SNIPPET = """
           </interface>
 """
 
+CMD_NO_VLAN_INT_NATIVE_SNIPPET = """
+          <interface>
+            <%s>
+              <interface>%s</interface>
+              <__XML__MODE_if-ethernet-switch>
+                <switchport></switchport>
+                <no>
+                  <switchport>
+                    <trunk>
+                      <native>
+                        <vlan>
+                        </vlan>
+                      </native>
+                    </trunk>
+                  </switchport>
+                </no>
+              </__XML__MODE_if-ethernet-switch>
+            </%s>
+          </interface>
+"""
 CMD_VLAN_SVI_SNIPPET = """
 <interface>
     <vlan>

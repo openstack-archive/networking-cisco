@@ -266,11 +266,10 @@ class CiscoNexusDriver(object):
         conf_xml_snippet = snipp.EXEC_CONF_SNIPPET % (customized_config)
         return conf_xml_snippet
 
-    def get_interface_switch_trunk_allowed(self, nexus_host,
-                                           intf_type, interface):
+    def get_interface_switch(self, nexus_host,
+                             intf_type, interface):
         """Given the nexus host and specific interface data, get the
-           interface data from host and determine if
-           'switchport trunk allowed vlan' is configured.
+           interface data from host.
 
            :param nexus_host: IP address of Nexus switch
            :param intf_type:  String which specifies interface type.
@@ -278,8 +277,7 @@ class CiscoNexusDriver(object):
            :param interface:  String indicating which interface.
                               example: 1/19
 
-           :returns False:     On error or when config CLI not present.
-                    True:      When config CLI is present.
+           :returns response:
            """
 
         confstr = snipp.EXEC_GET_INTF_SNIPPET % (intf_type, interface)
@@ -288,29 +286,49 @@ class CiscoNexusDriver(object):
         self.capture_and_print_timeshot(starttime, "getif", switch=nexus_host)
         LOG.debug("GET call returned interface %(if_type)s %(interface)s "
             "config", {'if_type': intf_type, 'interface': interface})
-        if response and re.search("switchport trunk allowed vlan", response):
-            return True
-        return False
+        return response
 
     def initialize_all_switch_interfaces(self, interfaces):
-        """Make sure 'switchport trunk allowed vlan' is configured.
+        """Configure Nexus interface and get port channel number.
 
+           Receive a list of interfaces containing:
            :param nexus_host: IP address of Nexus switch
            :param intf_type:  String which specifies interface type.
                               example: ethernet
            :param interface:  String indicating which interface.
                               example: 1/19
 
-           :returns False:     On error or when config CLI not present.
-                    True:      When config CLI is present.
+           :returns interface: Appends port channel to each entry
+           :                   channel number is 0 if none
            """
+
+        if not interfaces:
+            return
 
         starttime = time.time()
         ifs = []
-        for nexus_host, intf_type, nexus_port in interfaces:
-            if not self.get_interface_switch_trunk_allowed(
-                nexus_host, intf_type, nexus_port):
-                ifs.append(self.build_intf_confstr(snipp.CMD_INT_VLAN_SNIPPET,
+        for i in range(len(interfaces)):
+            nexus_host, intf_type, nexus_port, is_native = interfaces[i]
+            response = self.get_interface_switch(
+                           nexus_host, intf_type, nexus_port)
+            # Collect the port-channel number from response
+            mo = re.search("channel-group\s(\d*)\s", response)
+            try:
+                ch_grp = int(mo.group(1))
+            except Exception:
+                ch_grp = 0
+            if ch_grp is not 0:
+                # if channel-group returned, init port-channel
+                # instead of the provided ethernet interface
+                intf_type = 'port-channel'
+                nexus_port = str(ch_grp)
+            interfaces[i] += (ch_grp,)
+            if (response and
+               "switchport trunk allowed vlan" in response):
+                pass
+            else:
+                ifs.append(self.build_intf_confstr(
+                           snipp.CMD_INT_VLAN_SNIPPET,
                            intf_type, nexus_port, 'None'))
         if ifs:
             confstr = self.create_xml_snippet(''.join(ifs))
@@ -465,7 +483,7 @@ class CiscoNexusDriver(object):
         return confstr
 
     def get_enable_vlan_on_trunk_int(self, nexus_host, vlanid, intf_type,
-                                 interface, confstr=''):
+                                 interface, is_native, confstr=''):
         """Prepares an XML snippet for VLAN on a trunk interface.
 
             :param nexus_host: IP address of Nexus switch
@@ -480,11 +498,18 @@ class CiscoNexusDriver(object):
             """
         starttime = time.time()
 
-        confstr += self.build_intf_confstr(
-            snippet=snipp.CMD_INT_VLAN_ADD_SNIPPET,
-            intf_type=intf_type,
-            interface=interface,
-            vlanid=vlanid)
+        snippets = []
+        if is_native:
+            snippets.append(snipp.CMD_INT_VLAN_NATIVE_SNIPPET)
+
+        snippets.append(snipp.CMD_INT_VLAN_ADD_SNIPPET)
+
+        for snip in snippets:
+            confstr += self.build_intf_confstr(
+                snippet=snip,
+                intf_type=intf_type,
+                interface=interface,
+                vlanid=vlanid)
 
         self.capture_and_print_timeshot(
             starttime, "createif", switch=nexus_host)
@@ -492,11 +517,19 @@ class CiscoNexusDriver(object):
         return confstr
 
     def disable_vlan_on_trunk_int(self, nexus_host, vlanid, intf_type,
-                                  interface):
+                                  interface, is_native):
         """Disable a VLAN on a trunk interface."""
         starttime = time.time()
-        confstr = (snipp.CMD_NO_VLAN_INT_SNIPPET %
+
+        confstr = ''
+        if is_native:
+            snippet = snipp.CMD_NO_VLAN_INT_NATIVE_SNIPPET
+            confstr = (snippet %
+                       (intf_type, interface, intf_type))
+        snippet = snipp.CMD_NO_VLAN_INT_SNIPPET
+        confstr += (snippet %
                    (intf_type, interface, vlanid, intf_type))
+
         confstr = self.create_xml_snippet(confstr)
         self._edit_config(nexus_host, target='running', config=confstr)
         self.capture_and_print_timeshot(starttime, "delif", switch=nexus_host)
@@ -516,22 +549,26 @@ class CiscoNexusDriver(object):
             starttime, "send_edit", switch=nexus_host)
 
     def send_enable_vlan_on_trunk_int(self, nexus_host, vlanid, intf_type,
-                                      interface):
+                                      interface, is_native):
         """Gathers and sends an interface trunk XML snippet."""
         confstr = self.get_enable_vlan_on_trunk_int(
                       nexus_host, vlanid,
-                      intf_type, interface)
+                      intf_type, interface, is_native)
         self.send_edit_string(nexus_host, confstr)
 
-    def create_and_trunk_vlan(self, nexus_host, vlan_id, vlan_name,
-                              intf_type, nexus_port, vni):
+    def create_and_trunk_vlan(self, nexus_host, vlan_id,
+                              vlan_name, intf_type,
+                              nexus_port, vni,
+                              is_native):
         """Create VLAN and trunk it on the specified ports."""
         starttime = time.time()
         self.create_vlan(nexus_host, vlan_id, vlan_name, vni)
         LOG.debug("NexusDriver created VLAN: %s", vlan_id)
         if nexus_port:
-            self.send_enable_vlan_on_trunk_int(nexus_host, vlan_id,
-                                               intf_type, nexus_port)
+            self.send_enable_vlan_on_trunk_int(
+                nexus_host, vlan_id,
+                intf_type, nexus_port,
+                is_native)
         self.capture_and_print_timeshot(
             starttime, "create_all", switch=nexus_host)
 
