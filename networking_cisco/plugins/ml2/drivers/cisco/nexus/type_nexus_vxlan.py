@@ -27,10 +27,7 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_models_v2)
 
-from networking_cisco._i18n import _
-from networking_cisco._i18n import _LE
-from networking_cisco._i18n import _LI
-from networking_cisco._i18n import _LW
+from networking_cisco._i18n import _, _LE, _LI, _LW
 
 from neutron.common import exceptions as exc
 from neutron.db import api as db_api

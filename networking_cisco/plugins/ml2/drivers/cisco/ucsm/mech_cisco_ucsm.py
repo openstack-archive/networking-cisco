@@ -19,9 +19,7 @@ from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucsm_network_driver
 
 from oslo_log import log as logging
 
-from networking_cisco._i18n import _LE
-from networking_cisco._i18n import _LI
-from networking_cisco._i18n import _LW
+from networking_cisco._i18n import _LE, _LI, _LW
 
 from neutron.common import constants
 from neutron.extensions import portbindings

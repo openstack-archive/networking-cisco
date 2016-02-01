@@ -23,9 +23,16 @@ from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import excutils
 
-from networking_cisco._i18n import _LE
-from networking_cisco._i18n import _LI
-from networking_cisco._i18n import _LW
+from networking_cisco._i18n import _LE, _LI, _LW
+
+from neutron.common import constants as n_const
+from neutron.db import db_base_plugin_v2
+from neutron.extensions import portbindings
+from neutron.extensions import providernet
+from neutron.plugins.common import constants as p_const
+from neutron.plugins.ml2.common import exceptions as ml2_exc
+from neutron.plugins.ml2 import driver_api as api
+
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     constants as n1kv_const)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
@@ -36,14 +43,6 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     n1kv_db)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     n1kv_sync)
-
-from neutron.common import constants as n_const
-from neutron.db import db_base_plugin_v2
-from neutron.extensions import portbindings
-from neutron.extensions import providernet
-from neutron.plugins.common import constants as p_const
-from neutron.plugins.ml2.common import exceptions as ml2_exc
-from neutron.plugins.ml2 import driver_api as api
 
 LOG = log.getLogger(__name__)
 

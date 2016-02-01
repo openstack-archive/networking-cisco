@@ -24,8 +24,7 @@ from keystoneclient.v2_0 import client as keyc
 from novaclient import exceptions as nexc
 from novaclient.v2 import client as nova_client
 
-from networking_cisco._i18n import _LE
-from networking_cisco._i18n import _LI
+from networking_cisco._i18n import _LE, _LI
 
 from networking_cisco.apps.saf.common import config
 from networking_cisco.apps.saf.common import dfa_logger as logging

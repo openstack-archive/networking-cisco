@@ -24,8 +24,7 @@ import six
 from oslo_config import cfg
 from oslo_log import log
 
-from networking_cisco._i18n import _LE
-from networking_cisco._i18n import _LW
+from networking_cisco._i18n import _LE, _LW
 
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     constants as n1kv_const)

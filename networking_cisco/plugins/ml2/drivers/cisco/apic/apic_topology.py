@@ -20,8 +20,7 @@ import eventlet
 
 eventlet.monkey_patch()
 
-from networking_cisco._i18n import _LE
-from networking_cisco._i18n import _LI
+from networking_cisco._i18n import _LE, _LI
 
 from neutron.agent.common import config
 from neutron.agent.linux import ip_lib
