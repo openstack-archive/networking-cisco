@@ -28,10 +28,7 @@ from oslo_service import periodic_task
 from oslo_service import service
 from oslo_utils import importutils
 
-from networking_cisco._i18n import _
-from networking_cisco._i18n import _LE
-from networking_cisco._i18n import _LI
-from networking_cisco._i18n import _LW
+from networking_cisco._i18n import _, _LE, _LI, _LW
 
 from neutron.agent.common import config
 from neutron.agent.linux import external_process

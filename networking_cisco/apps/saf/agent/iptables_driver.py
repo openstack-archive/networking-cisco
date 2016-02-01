@@ -18,8 +18,7 @@
 from six.moves import queue
 import time
 
-from networking_cisco._i18n import _LE
-from networking_cisco._i18n import _LI
+from networking_cisco._i18n import _LE, _LI
 
 from networking_cisco.apps.saf.common import dfa_logger as logging
 from networking_cisco.apps.saf.common import dfa_sys_lib as dsl

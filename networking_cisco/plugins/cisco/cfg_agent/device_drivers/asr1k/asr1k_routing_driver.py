@@ -17,9 +17,7 @@ import netaddr
 
 from oslo_config import cfg
 
-from networking_cisco._i18n import _
-from networking_cisco._i18n import _LE
-from networking_cisco._i18n import _LI
+from networking_cisco._i18n import _, _LE, _LI
 
 from neutron.common import constants
 

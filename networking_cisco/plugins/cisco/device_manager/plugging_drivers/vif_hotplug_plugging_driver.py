@@ -19,9 +19,7 @@ from novaclient import exceptions as nova_exc
 from oslo_log import log as logging
 from sqlalchemy.sql import expression as expr
 
-from networking_cisco._i18n import _
-from networking_cisco._i18n import _LE
-from networking_cisco._i18n import _LW
+from networking_cisco._i18n import _, _LE, _LW
 
 from neutron.api.v2 import attributes
 from neutron.common import exceptions as n_exc

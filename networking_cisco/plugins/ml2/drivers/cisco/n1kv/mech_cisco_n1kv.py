@@ -23,9 +23,7 @@ from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import excutils
 
-from networking_cisco._i18n import _LE
-from networking_cisco._i18n import _LI
-from networking_cisco._i18n import _LW
+from networking_cisco._i18n import _LE, _LI, _LW
 
 from neutron.common import constants as n_const
 from neutron.db import db_base_plugin_v2
