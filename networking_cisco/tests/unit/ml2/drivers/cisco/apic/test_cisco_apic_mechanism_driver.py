@@ -68,6 +68,9 @@ class TestCiscoApicMechDriver(base.BaseTestCase,
             name_mapper=mock.Mock(), ext_net_dict=self.external_network_dict)
 
         self.driver.apic_manager.apic.transaction = self.fake_transaction
+        self.synchronizer = mock.Mock()
+        md.APICMechanismDriver.get_base_synchronizer = mock.Mock(
+            return_value=self.synchronizer)
 
     def test_initialize(self):
         self.driver.initialize()
@@ -165,12 +168,30 @@ class TestCiscoApicMechDriver(base.BaseTestCase,
         ctx = self._get_network_context(mocked.APIC_TENANT,
                                         mocked.APIC_NETWORK,
                                         TEST_SEGMENT1)
+        ctx._plugin_context.is_admin = True
+        md.APICMechanismDriver._is_network_context = mock.Mock(
+            return_value=True)
         mgr = self.driver.apic_manager
         self.driver.create_network_postcommit(ctx)
         mgr.ensure_bd_created_on_apic.assert_called_once_with(
             mocked.APIC_TENANT, mocked.APIC_NETWORK, transaction='transaction')
         mgr.ensure_epg_created.assert_called_once_with(
             mocked.APIC_TENANT, mocked.APIC_NETWORK, transaction='transaction')
+        # Sync not called
+        self.assertEqual(0, self.synchronizer._sync_base.call_count)
+
+    def test_create_sync_network(self):
+        ctx = self._get_network_context(mocked.APIC_TENANT,
+                                        mocked.APIC_NETWORK,
+                                        TEST_SEGMENT1,
+                                        name=md.APIC_SYNC_NETWORK)
+        ctx._plugin_context.is_admin = True
+        md.APICMechanismDriver._is_network_context = mock.Mock(
+            return_value=True)
+        self.assertRaises(
+            md.ReservedSynchronizationName,
+            self.driver.create_network_postcommit, ctx)
+        self.assertEqual(1, self.synchronizer._sync_base.call_count)
 
     def test_create_external_network_postcommit(self):
         ctx = self._get_network_context(mocked.APIC_TENANT,
@@ -226,9 +247,9 @@ class TestCiscoApicMechDriver(base.BaseTestCase,
         self.assertFalse(mgr.ensure_subnet_created_on_apic.called)
 
     def _get_network_context(self, tenant_id, net_id, seg_id=None,
-                             seg_type='vlan', external=False):
+                             seg_type='vlan', external=False, name=None):
         network = {'id': net_id,
-                   'name': net_id + '-name',
+                   'name': name or (net_id + '-name'),
                    'tenant_id': tenant_id,
                    'provider:segmentation_id': seg_id}
         if external:
@@ -271,6 +292,7 @@ class FakeNetworkContext(object):
     def __init__(self, network, segments):
         self._network = network
         self._segments = segments
+        self._plugin_context = mock.Mock()
 
     @property
     def current(self):

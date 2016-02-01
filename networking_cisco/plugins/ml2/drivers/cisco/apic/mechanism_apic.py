@@ -17,8 +17,10 @@ from apicapi import apic_manager
 from keystoneclient.v2_0 import client as keyclient
 import netaddr
 from neutron.common import constants as n_constants
+from neutron.common import exceptions as n_exc
 from neutron.plugins.common import constants
 from neutron.plugins.ml2 import driver_api as api
+from neutron.plugins.ml2 import driver_context
 from neutron.plugins.ml2 import models
 from oslo_concurrency import lockutils
 from oslo_config import cfg
@@ -30,6 +32,12 @@ from networking_cisco.plugins.ml2.drivers.cisco.apic import config
 
 
 LOG = logging.getLogger(__name__)
+APIC_SYNC_NETWORK = 'apic-sync-network'
+
+
+class ReservedSynchronizationName(n_exc.BadRequest):
+    message = _("The name used for this network is reserved for on demand "
+                "synchronization.")
 
 
 class APICMechanismDriver(api.MechanismDriver):
@@ -64,6 +72,10 @@ class APICMechanismDriver(api.MechanismDriver):
         return apic_sync.ApicRouterSynchronizer(inst,
                                                 apic_config.apic_sync_interval)
 
+    @staticmethod
+    def _is_network_context(ctx):
+        return isinstance(ctx, driver_context.NetworkContext)
+
     def initialize(self):
         # initialize apic
         self.apic_manager = APICMechanismDriver.get_apic_manager()
@@ -78,7 +90,10 @@ class APICMechanismDriver(api.MechanismDriver):
                 inst.synchronizer = (
                     APICMechanismDriver.get_base_synchronizer(inst))
                 inst.synchronizer.sync_base()
-            # pylint: disable=not-callable
+            if args and APICMechanismDriver._is_network_context(args[0]):
+                if (args[0]._plugin_context.is_admin and
+                        args[0].current['name'] == APIC_SYNC_NETWORK):
+                    inst.synchronizer._sync_base()
             return f(inst, *args, **kwargs)
         return inner
 
@@ -211,6 +226,10 @@ class APICMechanismDriver(api.MechanismDriver):
 
     @sync_init
     def create_network_postcommit(self, context):
+        # The following validation is not happening in the precommit to avoid
+        # database lock timeout
+        if context.current['name'] == APIC_SYNC_NETWORK:
+            raise ReservedSynchronizationName()
         if not context.current.get('router:external'):
             tenant_id = context.current['tenant_id']
             network_id = context.current['id']
