@@ -26,6 +26,7 @@ from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log as logging
 
+from networking_cisco._i18n import _
 from networking_cisco.plugins.ml2.drivers.cisco.apic import apic_model
 from networking_cisco.plugins.ml2.drivers.cisco.apic import apic_sync
 from networking_cisco.plugins.ml2.drivers.cisco.apic import config

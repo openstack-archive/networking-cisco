@@ -169,16 +169,18 @@ class TestCiscoApicMechDriver(base.BaseTestCase,
                                         mocked.APIC_NETWORK,
                                         TEST_SEGMENT1)
         ctx._plugin_context.is_admin = True
-        md.APICMechanismDriver._is_network_context = mock.Mock(
-            return_value=True)
-        mgr = self.driver.apic_manager
-        self.driver.create_network_postcommit(ctx)
-        mgr.ensure_bd_created_on_apic.assert_called_once_with(
-            mocked.APIC_TENANT, mocked.APIC_NETWORK, transaction='transaction')
-        mgr.ensure_epg_created.assert_called_once_with(
-            mocked.APIC_TENANT, mocked.APIC_NETWORK, transaction='transaction')
-        # Sync not called
-        self.assertEqual(0, self.synchronizer._sync_base.call_count)
+        with mock.patch.object(md.APICMechanismDriver, '_is_network_context',
+                               return_value=True):
+            mgr = self.driver.apic_manager
+            self.driver.create_network_postcommit(ctx)
+            mgr.ensure_bd_created_on_apic.assert_called_once_with(
+                mocked.APIC_TENANT, mocked.APIC_NETWORK,
+                transaction='transaction')
+            mgr.ensure_epg_created.assert_called_once_with(
+                mocked.APIC_TENANT, mocked.APIC_NETWORK,
+                transaction='transaction')
+            # Sync not called
+            self.assertEqual(0, self.synchronizer._sync_base.call_count)
 
     def test_create_sync_network(self):
         ctx = self._get_network_context(mocked.APIC_TENANT,
@@ -186,12 +188,12 @@ class TestCiscoApicMechDriver(base.BaseTestCase,
                                         TEST_SEGMENT1,
                                         name=md.APIC_SYNC_NETWORK)
         ctx._plugin_context.is_admin = True
-        md.APICMechanismDriver._is_network_context = mock.Mock(
-            return_value=True)
-        self.assertRaises(
-            md.ReservedSynchronizationName,
-            self.driver.create_network_postcommit, ctx)
-        self.assertEqual(1, self.synchronizer._sync_base.call_count)
+        with mock.patch.object(md.APICMechanismDriver, '_is_network_context',
+                               return_value=True):
+            self.assertRaises(
+                md.ReservedSynchronizationName,
+                self.driver.create_network_postcommit, ctx)
+            self.assertEqual(1, self.synchronizer._sync_base.call_count)
 
     def test_create_external_network_postcommit(self):
         ctx = self._get_network_context(mocked.APIC_TENANT,
@@ -267,6 +269,7 @@ class TestCiscoApicMechDriver(base.BaseTestCase,
         subnet = {'tenant_id': network.current['tenant_id'],
                   'network_id': network.current['id'],
                   'id': '[%s/%s]' % (gateway_ip, cidr),
+                  'name': '[%s/%s]' % (gateway_ip, cidr),
                   'gateway_ip': gateway_ip,
                   'cidr': cidr}
         return FakeSubnetContext(subnet, network)
