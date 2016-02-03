@@ -219,6 +219,15 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
             self.backlog_router(context, r_hd_b_db)
         return router_created
 
+    def update_router(self, context, id, router):
+        router_updated = self._update_router_no_notify(context, id, router)
+        self.add_type_and_hosting_device_info(context.elevated(),
+                                              router_updated)
+        for ni in self.get_notifiers(context, [router_updated]):
+            if ni['notifier']:
+                ni['notifier'].routers_updated(context, ni['routers'])
+        return router_updated
+
     def _update_router_no_notify(self, context, router_id, router):
         r = router['router']
         old_router_db = self._get_router(context, router_id)
@@ -231,37 +240,33 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
             # Ensure update is compliant with any HA
             req_ha_settings = self._ensure_update_ha_compliant(r, old_router,
                                                                r_hd_binding_db)
-        # Check if external gateway has changed so we may have to
-        # update trunking
+        # Check if external gateway has changed so we may
+        # have to update trunking
         old_ext_gw = (old_router_db.gw_port or {}).get('network_id')
         new_ext_gw = r.get(EXTERNAL_GW_INFO, attributes.ATTR_NOT_SPECIFIED)
+        e_context = context.elevated()
         if new_ext_gw != attributes.ATTR_NOT_SPECIFIED:
             gateway_changed = old_ext_gw != (new_ext_gw or {}).get(
                 'network_id')
-        else:
-            gateway_changed = False
-        e_context = context.elevated()
-        if old_ext_gw is not None and gateway_changed:
-            # no need to schedule now since we're only doing this to tear-down
-            # connectivity and there won't be any if not already scheduled
             self.add_type_and_hosting_device_info(
                 e_context, old_router, r_hd_binding_db, schedule=False)
             p_drv = self._dev_mgr.get_hosting_device_plugging_driver(
-                e_context,
-                (old_router['hosting_device'] or {}).get('template_id'))
-            if p_drv is not None:
-                p_drv.teardown_logical_port_connectivity(
-                    e_context, old_router_db.gw_port,
-                    r_hd_binding_db.hosting_device_id)
-            if is_ha:
-                # process any HA
-                self._teardown_redundancy_router_gw_connectivity(
-                    context, old_router, old_router_db, p_drv)
-        router_updated = (
-            super(L3RouterApplianceDBMixin, self).update_router(
-                context, router_id, router))
+                e_context, (old_router['hosting_device'] or
+                            {}).get('template_id'))
+        else:
+            gateway_changed = False
+            p_drv = None
+        teardown_old_connectivity = (old_ext_gw is not None and
+                                     gateway_changed)
+        router_updated = self._update_router_safely(
+            e_context, router, teardown_old_connectivity, p_drv, old_router,
+            old_router_db)
         if is_ha:
             # process any HA
+            if teardown_old_connectivity:
+                # tear-down old connectivity for redundancy routers
+                self._teardown_redundancy_router_gw_connectivity(
+                    context, old_router, old_router_db, p_drv)
             self._update_redundancy_routers(context, router_updated, router,
                                             req_ha_settings, old_router_db,
                                             gateway_changed)
@@ -273,14 +278,25 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
             driver.update_router_postcommit(context, router_ctxt)
         return router_updated
 
-    def update_router(self, context, id, router):
-        router_updated = self._update_router_no_notify(context, id, router)
-        self.add_type_and_hosting_device_info(context.elevated(),
-                                              router_updated)
-        for ni in self.get_notifiers(context, [router_updated]):
-            if ni['notifier']:
-                ni['notifier'].routers_updated(context, ni['routers'])
-        return router_updated
+    def _update_router_safely(self, context, router, teardown, p_drv,
+                              old_router, old_router_db):
+        if teardown and p_drv is not None:
+            # no need to schedule now since we're only doing this to tear-down
+            # connectivity and there won't be any if not already scheduled
+            p_drv.teardown_logical_port_connectivity(
+                context, old_router_db.gw_port,
+                old_router_db.hosting_info.hosting_device_id)
+        try:
+            return super(L3RouterApplianceDBMixin, self).update_router(
+                context, old_router_db.id, router)
+        except n_exc.NeutronException:
+            with excutils.save_and_reraise_exception():
+                if teardown and p_drv is not None:
+                    LOG.debug('Cleanup after failed gateway update for router'
+                              '%s', old_router['id'])
+                    p_drv.setup_logical_port_connectivity(
+                        context, old_router_db.gw_port,
+                        old_router_db.hosting_info.hosting_device_id)
 
     #Todo(bobmel): Move this to l3_routertype_aware_schedulers_db later
     def _check_router_needs_rescheduling(self, context, router_id, gw_info):
