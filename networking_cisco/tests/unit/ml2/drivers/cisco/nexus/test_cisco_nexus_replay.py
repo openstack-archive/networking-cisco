@@ -1027,6 +1027,106 @@ class TestCiscoNexusBaremetalReplay(
             first_del,
             second_del)
 
+    def test_replay_unique_vPC_ports_chg_vPC_nbr(self):
+        """Provides replay data and result data for unique ports. """
+
+        def replay_init():
+            # This is to cause port-channel to get configured to 470
+            data_xml = {'connect.return_value.get.return_value.data_xml':
+                        'switchport trunk allowed vlan none\n'
+                        'channel-group 470 mode active'}
+            self.mock_ncclient.configure_mock(**data_xml)
+
+        driver_result_unique_vPC470_del1 = (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('port-channel', '470', 265),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)])
+
+        driver_result_unique_vPC470_del2 = (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('port-channel', '470', 267),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)])
+
+        first_add = {'driver_results': self.
+                     driver_result_unique_vPC_add1,
+                     'nbr_db_entries': 2}
+        second_add = {'driver_results': self.
+                      driver_result_unique_vPC_add2,
+                      'nbr_db_entries': 3}
+        first_del = {'driver_results':
+                     driver_result_unique_vPC470_del1,
+                     'nbr_db_entries': 2}
+        second_del = {'driver_results':
+                      driver_result_unique_vPC470_del2,
+                      'nbr_db_entries': 1}
+        driver_result_unique_vPC470_2vlan_replay = (
+            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('port-channel', '470', '265,267'),
+            test_cisco_nexus_base.RESULT_ADD_VLAN.format('265,267')])
+
+        # This is to cause port-channel 469 to get configured
+        data_xml = {'connect.return_value.get.return_value.data_xml':
+                    'switchport trunk allowed vlan none\n'
+                    'channel-group 469 mode active'}
+        self.mock_ncclient.configure_mock(**data_xml)
+
+        # Providing replay_init to change channel-group
+        self._process_replay(
+            'test_replay_unique1',
+            'test_replay_unique2',
+            self.driver_result_unique_vPC_init,
+            first_add,
+            second_add,
+            driver_result_unique_vPC470_2vlan_replay,
+            first_del,
+            second_del,
+            replay_init)
+
+    def test_replay_unique_vPC_ports_chg_to_enet(self):
+        """Provides replay data and result data for unique ports. """
+
+        def replay_init():
+            # This is to cause port-channel to get replaced with enet
+            data_xml = {'connect.return_value.get.return_value.data_xml':
+                        'switchport trunk allowed vlan none\n'}
+            self.mock_ncclient.configure_mock(**data_xml)
+
+        first_add = {'driver_results': self.
+                     driver_result_unique_vPC_add1,
+                     'nbr_db_entries': 2}
+        second_add = {'driver_results': self.
+                      driver_result_unique_vPC_add2,
+                      'nbr_db_entries': 3}
+        first_del = {'driver_results': self.
+                     driver_result_unique_eth_del1,
+                     'nbr_db_entries': 2}
+        second_del = {'driver_results': self.
+                      driver_result_unique_eth_del2,
+                      'nbr_db_entries': 1}
+        driver_result_unique_2vlan_replay = (
+            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', '265,267'),
+            test_cisco_nexus_base.RESULT_ADD_VLAN.format('265,267')])
+
+        # this is to prevent interface initialization from occurring
+        # which adds unnecessary noise to the results.
+        data_xml = {'connect.return_value.get.return_value.data_xml':
+                    'switchport trunk allowed vlan none\n'
+                    'channel-group 469 mode active'}
+        self.mock_ncclient.configure_mock(**data_xml)
+
+        # Providing replay_init to remove port-channel
+        self._process_replay(
+            'test_replay_unique1',
+            'test_replay_unique2',
+            self.driver_result_unique_vPC_init,
+            first_add,
+            second_add,
+            driver_result_unique_2vlan_replay,
+            first_del,
+            second_del,
+            replay_init)
+
     def test_replay_unique_native_nonnative_ethernet_ports(self):
         """Test replay with native and nonnative ethernet ports. """
 

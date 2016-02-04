@@ -22,6 +22,8 @@ from networking_cisco._i18n import _LW
 import neutron.db.api as db
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    constants as const)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     exceptions as c_exc)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_models_v2)
@@ -146,6 +148,95 @@ def remove_reserved_binding(vlan_id, switch_ip, instance_id,
         session.delete(bind)
     session.flush()
     return binding
+
+
+def get_reserved_switch_binding(switch_ip=None):
+    """Get a reserved switch binding."""
+
+    return get_reserved_bindings(
+               const.NO_VLAN_OR_VNI_ID,
+               const.RESERVED_NEXUS_SWITCH_DEVICE_ID_R1,
+               switch_ip)
+
+
+def add_reserved_switch_binding(switch_ip, state):
+    """Add a reserved switch binding."""
+
+    # overload port_id to contain switch state
+    add_nexusport_binding(
+        state,
+        const.NO_VLAN_OR_VNI_ID,
+        const.NO_VLAN_OR_VNI_ID,
+        switch_ip,
+        const.RESERVED_NEXUS_SWITCH_DEVICE_ID_R1)
+
+
+def update_reserved_switch_binding(switch_ip, state):
+    """Update a reserved switch binding."""
+
+    # overload port_id to contain switch state
+    update_reserved_binding(
+        const.NO_VLAN_OR_VNI_ID,
+        switch_ip,
+        const.RESERVED_NEXUS_SWITCH_DEVICE_ID_R1,
+        state)
+
+
+def get_reserved_port_binding(switch_ip, port_id=None):
+    """Get a reserved port binding."""
+
+    return get_reserved_bindings(
+               const.NO_VLAN_OR_VNI_ID,
+               const.RESERVED_NEXUS_PORT_DEVICE_ID_R1,
+               switch_ip,
+               port_id)
+
+
+def add_reserved_port_binding(switch_ip, port_id, ch_grp):
+    """Add a reserved port binding."""
+
+    add_nexusport_binding(
+        port_id,
+        const.NO_VLAN_OR_VNI_ID,
+        const.NO_VLAN_OR_VNI_ID,
+        switch_ip,
+        const.RESERVED_NEXUS_PORT_DEVICE_ID_R1,
+        False,
+        const.NOT_NATIVE,
+        ch_grp)
+
+
+def update_reserved_port_binding(switch_ip, port_id, ch_grp):
+    """Update a reserved port binding."""
+
+    update_reserved_binding(
+        const.NO_VLAN_OR_VNI_ID,
+        switch_ip,
+        const.RESERVED_NEXUS_PORT_DEVICE_ID_R1,
+        port_id,
+        False,
+        const.NOT_NATIVE,
+        ch_grp)
+
+
+def is_reserved_binding(binding):
+    """Identifies switch & port operational bindings.
+
+    There are two types of reserved bindings.
+    1) The Switch binding purpose is to keep track
+       of the switch state for when replay is enabled.
+       Keeping it in the db, allows for all processes
+       to determine known state of each switch.
+    2) The reserved port binding is used with baremetal
+       transactions which don't rely on host to interface
+       mapping in the ini file.  It is learned from
+       the transaction and kept in the data base
+       for further reference.
+    """
+
+    return (binding.instance_id in
+           [const.RESERVED_NEXUS_SWITCH_DEVICE_ID_R1,
+            const.RESERVED_NEXUS_PORT_DEVICE_ID_R1])
 
 
 def get_nexusport_switch_bindings(switch_ip):
