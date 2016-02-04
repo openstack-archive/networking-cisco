@@ -384,7 +384,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin):
         # it is created by openstack.
         part_name = self.cfg.dcnm.default_partition_name
         if len(':'.join((proj_name, part_name))) > 32:
-            LOG.error(_LE('Invalid project name length: %s. The lenght of '
+            LOG.error(_LE('Invalid project name length: %s. The length of '
                           'org:part name is greater than 32'),
                       len(':'.join((proj_name, part_name))))
             return
