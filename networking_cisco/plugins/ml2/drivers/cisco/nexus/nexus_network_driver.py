@@ -36,8 +36,6 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_snippets as snipp)
 
-ciscoconfparse = importutils.try_import('ciscoconfparse')
-
 LOG = logging.getLogger(__name__)
 
 
@@ -386,43 +384,6 @@ class CiscoNexusDriver(object):
             data = re.findall(re_str, data[0].text)
 
         return data[0] if len(data) == 1 else None
-
-    def get_current_vlans(self, nexus_host):
-        """Given a set of current vlans from nexus host
-
-        :param nexus_host: IP address of Nexus switch
-
-        :returns set of current vlans
-        """
-
-        confstr = snipp.EXEC_GET_VLAN_SNIPPET
-        starttime = time.time()
-        response = self._get_config(nexus_host, confstr)
-        self.capture_and_print_timeshot(
-            starttime, "getvlan", switch=nexus_host)
-        vlan_list = {}
-        if response:
-            LOG.debug("GET VLAN call returned ")
-            rgx = re.compile("\r*\n+")
-            vlancfg = rgx.split(response)
-            parse = ciscoconfparse.CiscoConfParse(vlancfg)
-            objs = parse.find_objects('ROW_vlanbrief')
-            for obj in objs:
-                if len(obj.children) == 0:
-                    continue
-                vlanid = self._extract_line_item_data(
-                         obj, "vlanid-utf", snipp.RE_GET_VLAN_ID)
-                vlanid = int(vlanid)
-                vlanname = self._extract_line_item_data(
-                           obj, "vlanname", snipp.RE_GET_VLAN_NAME)
-                vlanstate = self._extract_line_item_data(
-                            obj, "vlanstate", snipp.RE_GET_VLAN_STATE)
-                vlanshut = self._extract_line_item_data(
-                           obj, "shutstate", snipp.RE_GET_VLAN_SHUT_STATE)
-                vlan_list[vlanid] = [vlanname, vlanstate, vlanshut]
-            return vlan_list
-        LOG.warn(_LW("GET call failed to response "))
-        return vlan_list
 
     def set_all_vlan_states(self, nexus_host, vlanid_range):
         """Set the VLAN states to active."""
