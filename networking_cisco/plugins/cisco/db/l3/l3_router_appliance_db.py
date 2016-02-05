@@ -725,7 +725,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
             if main_router_id is None:
                 continue
             valid_router_ids.append(main_router_id)
-            r_hd_binding_db = self._get_router_binding_info(context.elevated(),
+            r_hd_binding_db = self._get_router_binding_info(e_context,
                                                             main_router_id)
             is_ha = (ha_supported and r_hd_binding_db.router_type_id !=
                      self.get_namespace_router_type_id(context))

@@ -149,6 +149,18 @@ class ASR1kRoutingDriver(base.BaseTestCase):
         self.global_router = copy.deepcopy(self.router)
         self.global_router[routerrole.ROUTER_ROLE_ATTR] = (
             cisco_constants.ROUTER_ROLE_GLOBAL)
+        self.cisco_ha_details_global = {'priority': self.ha_priority,
+                                        'redundancy_level': 2,
+                                        'redundancy_routers': [
+                                            {'priority': 10,
+                                             'state': 'STANDBY',
+                                             'id': FAKE_ID},
+                                            {'id': _uuid(),
+                                             'priority': 20,
+                                             'state': 'STANDBY'}],
+                                        'state': 'ACTIVE',
+                                        'type': 'HSRP'}
+        self.global_router[ha.DETAILS] = self.cisco_ha_details_global
         self.global_router['gw_port'][HA_INFO]['ha_port']['fixed_ips'][0][
             'ip_address'] = self.ex_gw_ip_vip
         self.ri_global = routing_svc_helper.RouterInfo(
@@ -410,7 +422,7 @@ class ASR1kRoutingDriver(base.BaseTestCase):
 
     def test_floating_ip_removed(self):
         self.driver.floating_ip_removed(self.ri, self.ex_gw_port,
-                                      self.floating_ip, self.fixed_ip)
+                                        self.floating_ip, self.fixed_ip)
 
         self._assert_number_of_edit_run_cfg_calls(1)
         cfg_params_floating = (self.fixed_ip, self.floating_ip, self.vrf,

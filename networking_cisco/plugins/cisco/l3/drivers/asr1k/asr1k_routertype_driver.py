@@ -176,7 +176,7 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
                 # global router (which we treat as a hidden "user visible
                 # router" (how's that for a contradiction! :-) )
                 ha_priority = (
-                    ha_db.DEFAULT_MASTER_PRIORITY +
+                    ha_db.DEFAULT_MASTER_PRIORITY -
                     len(global_routers) * ha_db.PRIORITY_INCREASE_STEP)
                 r_b_b = ha_db.RouterRedundancyBinding(
                     redundancy_router_id=global_router['id'],
