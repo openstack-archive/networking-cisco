@@ -22,8 +22,11 @@ import webob.exc
 
 from neutron.common import constants as l3_constants
 from neutron import context
+from neutron.db import l3_db
 from neutron.extensions import extraroute
 from neutron.extensions import l3
+from neutron import manager
+from neutron.plugins.common import constants as service_constants
 from neutron.tests import fake_notifier
 
 import networking_cisco.plugins
@@ -78,7 +81,7 @@ class TestApplianceHAL3RouterServicePlugin(
                                    ha.HA_ALIAS]
 
 
-#TODO(bobmel): Add tests that ensures that Cisco HA is not applied on
+# TODO(bobmel): Add tests that ensures that Cisco HA is not applied on
 # Namespace-based routers
 class HAL3RouterApplianceNamespaceTestCase(
         test_l3_router_appliance_plugin.L3RouterApplianceNamespaceTestCase):
@@ -118,9 +121,9 @@ class HAL3RouterTestsMixin(object):
         if probing_enabled:
             ha_details.update({
                 ha.PROBE_TARGET: (probe_target or
-                                 cfg.CONF.ha.default_ping_target),
+                                  cfg.CONF.ha.default_ping_target),
                 ha.PROBE_INTERVAL: (probe_interval or
-                                   cfg.CONF.ha.default_ping_interval)})
+                                    cfg.CONF.ha.default_ping_interval)})
         return {ha.ENABLED: ha_enabled, ha.DETAILS: ha_details}
 
     def _verify_ha_settings(self, router, expected_ha):
@@ -297,10 +300,10 @@ class HAL3RouterApplianceVMTestCase(
                       l3.EXTERNAL_GW_INFO: {'network_id':
                                             s['subnet']['network_id']}}
             res = self._create_router(self.fmt, _uuid(), 'ha_router1',
-                                  arg_list=(ha.ENABLED,
-                                            ha.DETAILS,
-                                            l3.EXTERNAL_GW_INFO),
-                                  **kwargs)
+                                      arg_list=(ha.ENABLED,
+                                                ha.DETAILS,
+                                                l3.EXTERNAL_GW_INFO),
+                                      **kwargs)
             self.assertEqual(res.status_int, webob.exc.HTTPBadRequest.code)
 
     def test_create_non_gw_ha_router_with_ha_specification_validation_fails(
@@ -325,10 +328,10 @@ class HAL3RouterApplianceVMTestCase(
                       l3.EXTERNAL_GW_INFO: {'network_id':
                                             s['subnet']['network_id']}}
             res = self._create_router(self.fmt, _uuid(), 'ha_router1',
-                                  arg_list=(ha.ENABLED,
-                                            ha.DETAILS,
-                                            l3.EXTERNAL_GW_INFO),
-                                  **kwargs)
+                                      arg_list=(ha.ENABLED,
+                                                ha.DETAILS,
+                                                l3.EXTERNAL_GW_INFO),
+                                      **kwargs)
             self.assertEqual(res.status_int, webob.exc.HTTPBadRequest.code)
 
     def test_create_non_gw_ha_router_with_ha_spec_invalid_HA_type_fails(self):
@@ -1147,13 +1150,13 @@ class HAL3RouterApplianceVMTestCase(
                     # Need to use 10.0.0.5 instead of 10.0.0.3 as the
                     # latter gets consumed by one of the redundancy routers
                     fp1 = self._make_floatingip(self.fmt, network_ex_id1,
-                                            private_port['port']['id'],
-                                            floating_ip='10.0.0.5')
+                                                private_port['port']['id'],
+                                                floating_ip='10.0.0.5')
                     # Need to use 11.0.0.5 instead of 11.0.0.3 as the
                     # latter gets consumed by one of the redundancy routers
                     fp2 = self._make_floatingip(self.fmt, network_ex_id2,
-                                            private_port['port']['id'],
-                                            floating_ip='11.0.0.5')
+                                                private_port['port']['id'],
+                                                floating_ip='11.0.0.5')
                     self.assertEqual(fp1['floatingip']['router_id'],
                                      r1['router']['id'])
                     self.assertEqual(fp2['floatingip']['router_id'],
@@ -1369,6 +1372,39 @@ class HAL3RouterApplianceVMTestCase(
                              _sort_routes(routes1))
             self._rr_routes_update_cleanup(p2['id'], None, r['id'], rr1_id, [])
             self._routes_update_cleanup(p1['id'], None, r['id'], [])
+
+    def test__notify_subnetpool_address_scope_update(self):
+        l3_plugin = manager.NeutronManager.get_service_plugins()[
+            service_constants.L3_ROUTER_NAT]
+
+        tenant_id = _uuid()
+        with mock.patch.object(
+                l3_plugin, 'notify_routers_updated') as chk_method, \
+                self.subnetpool(prefixes=['10.0.0.0/24'],
+                                admin=True, name='sp',
+                                tenant_id=tenant_id) as subnetpool, \
+                self.router(tenant_id=tenant_id) as router, \
+                self.network(tenant_id=tenant_id) as network:
+            subnetpool_id = subnetpool['subnetpool']['id']
+            data = {'subnet': {
+                    'network_id': network['network']['id'],
+                    'subnetpool_id': subnetpool_id,
+                    'prefixlen': 24,
+                    'ip_version': 4,
+                    'tenant_id': tenant_id}}
+            req = self.new_create_request('subnets', data)
+            subnet = self.deserialize(self.fmt, req.get_response(self.api))
+
+            admin_ctx = context.get_admin_context()
+            l3_plugin.add_router_interface(
+                admin_ctx,
+                router['router']['id'], {'subnet_id': subnet['subnet']['id']})
+            l3_db._notify_subnetpool_address_scope_update(
+                mock.ANY, mock.ANY, mock.ANY,
+                context=admin_ctx, subnetpool_id=subnetpool_id)
+            args, kwargs = chk_method.call_args
+            self.assertEqual(admin_ctx, args[0])
+            self.assertIn(router['router']['id'], args[1])
 
 
 class L3AgentHARouterApplianceTestCase(
