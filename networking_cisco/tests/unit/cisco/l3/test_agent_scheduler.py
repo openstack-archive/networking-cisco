@@ -93,15 +93,7 @@ class L3RouterApplianceL3AgentSchedulerTestCase(
         super(L3RouterApplianceL3AgentSchedulerTestCase, self).tearDown()
 
     @unittest.skip("DVR not supported")
-    def test_router_is_not_rescheduled_from_dvr_agent(self):
-        pass
-
-    @unittest.skip("DVR not supported")
-    def test_dvr_router_scheduling_to_all_needed_agents(self):
-        pass
-
-    @unittest.skip("DVR not supported")
-    def test_dvr_router_snat_scheduling_late_ext_gw_add(self):
+    def test_dvr_router_scheduling_to_only_dvr_snat_agent(self):
         pass
 
     @unittest.skip("DVR not supported")
@@ -109,7 +101,7 @@ class L3RouterApplianceL3AgentSchedulerTestCase(
         pass
 
     @unittest.skip("DVR not supported")
-    def test_dvr_router_csnat_manual_rescheduling(self):
+    def test_dvr_router_manual_rescheduling(self):
         pass
 
 
