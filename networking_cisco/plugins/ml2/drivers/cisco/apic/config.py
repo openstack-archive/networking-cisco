@@ -15,6 +15,7 @@
 
 from oslo_config import cfg
 
+from networking_cisco._i18n import _
 
 # oslo_config limits ${var} expansion to global variables
 # That is why apic_system_id as a global variable

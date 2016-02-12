@@ -24,6 +24,7 @@ from oslo_utils import importutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
+from networking_cisco._i18n import _LE
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.device_manager import (
@@ -44,7 +45,6 @@ from neutron.common import test_lib
 from neutron import context as n_context
 from neutron.db import agents_db
 from neutron.extensions import agent
-from neutron.i18n import _LE
 from neutron import manager
 from neutron.tests.unit.extensions import test_l3
 

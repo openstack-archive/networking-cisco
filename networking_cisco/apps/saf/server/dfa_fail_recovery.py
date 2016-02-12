@@ -16,12 +16,13 @@
 
 import time
 
+from networking_cisco._i18n import _LE
+from networking_cisco._i18n import _LI
+
 from networking_cisco.apps.saf.common import constants
 from networking_cisco.apps.saf.common import dfa_exceptions as dexc
 from networking_cisco.apps.saf.common import dfa_logger as logging
 from networking_cisco.apps.saf.common import utils
-from neutron.i18n import _LE
-from neutron.i18n import _LI
 
 LOG = logging.getLogger(__name__)
 

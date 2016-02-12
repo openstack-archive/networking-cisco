@@ -17,6 +17,8 @@ from oslo_log import log as logging
 from sqlalchemy import sql
 from sqlalchemy.sql import expression as expr
 
+from networking_cisco._i18n import _
+
 from neutron.api.v2 import attributes
 from neutron.common import topics
 from neutron.db import agents_db

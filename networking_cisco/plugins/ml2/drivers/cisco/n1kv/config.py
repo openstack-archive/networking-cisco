@@ -15,6 +15,8 @@
 
 from oslo_config import cfg
 
+from networking_cisco._i18n import _
+
 
 n1kv_opts = [
     cfg.ListOpt('n1kv_vsm_ips',

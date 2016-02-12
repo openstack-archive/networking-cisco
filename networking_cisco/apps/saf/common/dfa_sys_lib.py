@@ -22,8 +22,9 @@ import shlex
 import signal
 import six
 
-from neutron.i18n import _LE
-from neutron.i18n import _LI
+from networking_cisco._i18n import _
+from networking_cisco._i18n import _LE
+from networking_cisco._i18n import _LI
 
 from networking_cisco.apps.saf.common import constants as q_const
 from networking_cisco.apps.saf.common import dfa_exceptions as dfae

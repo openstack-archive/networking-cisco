@@ -20,6 +20,9 @@ import eventlet
 
 eventlet.monkey_patch()
 
+from networking_cisco._i18n import _LE
+from networking_cisco._i18n import _LI
+
 from neutron.agent.common import config
 from neutron.agent.linux import ip_lib
 from neutron.agent.linux import utils
@@ -27,7 +30,6 @@ from neutron.common import config as common_cfg
 from neutron.common import rpc
 from neutron.common import utils as neutron_utils
 from neutron.db import agents_db
-from neutron.i18n import _LE, _LI
 from neutron import manager
 from neutron.plugins.ml2.drivers import type_vlan  # noqa
 from neutron import service

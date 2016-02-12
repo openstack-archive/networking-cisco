@@ -16,7 +16,7 @@ from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
 
-from neutron.i18n import _LE
+from networking_cisco._i18n import _LE
 
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
 

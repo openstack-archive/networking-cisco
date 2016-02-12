@@ -16,6 +16,8 @@
 from apicapi import apic_mapper
 from oslo_utils import excutils
 
+from networking_cisco._i18n import _
+
 from neutron.db import db_base_plugin_v2
 from neutron.db import extraroute_db
 from neutron.db import l3_dvr_db

@@ -18,9 +18,10 @@
 from six.moves import queue
 import time
 
-from neutron.i18n import _LE
-from neutron.i18n import _LI
 from oslo_serialization import jsonutils
+
+from networking_cisco._i18n import _LE
+from networking_cisco._i18n import _LI
 
 from networking_cisco.apps.saf.agent import detect_uplink as uplink_det
 from networking_cisco.apps.saf.agent.vdp import ovs_vdp

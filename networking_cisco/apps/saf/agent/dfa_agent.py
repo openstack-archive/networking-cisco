@@ -24,8 +24,8 @@ import eventlet
 eventlet.monkey_patch()
 from oslo_serialization import jsonutils
 
-from neutron.i18n import _LE
-from neutron.i18n import _LI
+from networking_cisco._i18n import _LE
+from networking_cisco._i18n import _LI
 
 from networking_cisco.apps.saf.agent import iptables_driver as iptd
 from networking_cisco.apps.saf.agent.vdp import dfa_vdp_mgr as vdpm

@@ -20,7 +20,7 @@ from oslo_utils import uuidutils
 from sqlalchemy import exc as sql_exc
 from sqlalchemy.orm import exc
 
-from neutron.i18n import _LE
+from networking_cisco._i18n import _LE
 
 from networking_cisco.plugins.cisco.db.l3 import l3_models
 import networking_cisco.plugins.cisco.extensions.routertype as routertype

@@ -17,6 +17,8 @@ from oslo_log import log as logging
 from oslo_utils import timeutils
 import six
 
+from networking_cisco._i18n import _
+
 from neutron.db import agents_db
 from neutron.db import agentschedulers_db
 

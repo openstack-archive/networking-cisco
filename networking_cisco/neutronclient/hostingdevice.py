@@ -19,10 +19,10 @@ from __future__ import print_function
 import argparse
 import six
 
-from neutronclient.common import extension
-from neutronclient.i18n import _
-from neutronclient.neutron import v2_0 as neutronV20
+from networking_cisco._i18n import _
 
+from neutronclient.common import extension
+from neutronclient.neutron import v2_0 as neutronV20
 
 DEVICE = 'hosting_device'
 HOSTING_DEVICE_CONFIG = '/get_hosting_device_config'
