@@ -20,9 +20,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 
-from networking_cisco._i18n import _LE
-from networking_cisco._i18n import _LI
-from networking_cisco._i18n import _LW
+from networking_cisco._i18n import _LE, _LI, _LW
 
 from neutron.extensions import portbindings
 

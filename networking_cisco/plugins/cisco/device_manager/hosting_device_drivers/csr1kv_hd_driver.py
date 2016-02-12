@@ -16,8 +16,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 
-from networking_cisco._i18n import _
-from networking_cisco._i18n import _LE
+from networking_cisco._i18n import _, _LE
 
 from networking_cisco.plugins.cisco.device_manager import (
     hosting_device_drivers)

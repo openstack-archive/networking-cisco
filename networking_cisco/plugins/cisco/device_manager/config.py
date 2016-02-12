@@ -20,8 +20,7 @@ from oslo_utils import excutils
 from oslo_utils import uuidutils
 import six
 
-from networking_cisco._i18n import _
-from networking_cisco._i18n import _LE
+from networking_cisco._i18n import _, _LE
 
 from neutron.api.v2 import attributes
 
