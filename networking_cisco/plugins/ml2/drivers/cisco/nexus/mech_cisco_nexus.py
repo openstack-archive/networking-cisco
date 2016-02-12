@@ -322,11 +322,15 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         :returns: returns suffix to interface name
         """
 
+        interface = interface.lower()
         if ch_grp != 0:
             intf_type = 'port-channel'
             port = str(ch_grp)
         elif ':' in interface:
             intf_type, port = interface.split(':')
+        elif interface.startswith('ethernet'):
+            interface = interface.replace(" ", "")
+            _, intf_type, port = interface.partition('ethernet')
         else:
             intf_type, port = 'ethernet', interface
 

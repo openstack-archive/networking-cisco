@@ -59,6 +59,7 @@ INSTANCE_2 = 'testvm2'
 INSTANCE_PC = 'testpcvm'
 INSTANCE_DUAL = 'testdualvm'
 
+NEXUS_BAREMETAL_PORT_1 = 'Ethernet 1/10'
 NEXUS_PORT_1 = 'ethernet:1/10'
 NEXUS_PORT_2 = 'ethernet:1/20'
 NEXUS_DUAL1 = 'ethernet:1/3'

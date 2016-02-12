@@ -388,7 +388,7 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
     baremetal_profile = {
         "local_link_information": [
             {
-                "port_id": test_cisco_nexus_base.NEXUS_PORT_1,
+                "port_id": test_cisco_nexus_base.NEXUS_BAREMETAL_PORT_1,
                 "switch_info": {
                     "is_native": False,
                     "switch_ip": test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
@@ -400,7 +400,7 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
     baremetal_profile_is_native = {
         "local_link_information": [
             {
-                "port_id": test_cisco_nexus_base.NEXUS_PORT_1,
+                "port_id": test_cisco_nexus_base.NEXUS_BAREMETAL_PORT_1,
                 "switch_info": {
                     "is_native": True,
                     "switch_ip": test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
@@ -418,7 +418,7 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
             test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
                 test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
                 test_cisco_nexus_base.HOST_NAME_UNUSED,
-                test_cisco_nexus_base.NEXUS_PORT_1,
+                test_cisco_nexus_base.NEXUS_BAREMETAL_PORT_1,
                 test_cisco_nexus_base.INSTANCE_1,
                 test_cisco_nexus_base.VLAN_ID_1,
                 test_cisco_nexus_base.NO_VXLAN_ID,
@@ -430,7 +430,7 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
             test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
                 test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
                 test_cisco_nexus_base.HOST_NAME_UNUSED,
-                test_cisco_nexus_base.NEXUS_PORT_1,
+                test_cisco_nexus_base.NEXUS_BAREMETAL_PORT_1,
                 test_cisco_nexus_base.INSTANCE_1,
                 test_cisco_nexus_base.VLAN_ID_2,
                 test_cisco_nexus_base.NO_VXLAN_ID,
@@ -544,7 +544,7 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
             "local_link_information": [
                 # This IP is configured at init time
                 {
-                    "port_id": test_cisco_nexus_base.NEXUS_PORT_1,
+                    "port_id": test_cisco_nexus_base.NEXUS_BAREMETAL_PORT_1,
                     "switch_info": {
                         "is_native": False,
                         "switch_ip": "1.1.1.1",
@@ -552,7 +552,7 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
                 },
                 # This IP not configured at init time
                 {
-                    "port_id": test_cisco_nexus_base.NEXUS_PORT_1,
+                    "port_id": test_cisco_nexus_base.NEXUS_BAREMETAL_PORT_1,
                     "switch_info": {
                         "is_native": False,
                         "switch_ip": "6.6.6.6",
@@ -566,7 +566,7 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
                 test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
                     test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
                     test_cisco_nexus_base.HOST_NAME_UNUSED,
-                    test_cisco_nexus_base.NEXUS_PORT_1,
+                    test_cisco_nexus_base.NEXUS_BAREMETAL_PORT_1,
                     test_cisco_nexus_base.INSTANCE_1,
                     test_cisco_nexus_base.VLAN_ID_1,
                     test_cisco_nexus_base.NO_VXLAN_ID,
