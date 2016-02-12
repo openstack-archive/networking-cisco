@@ -189,8 +189,8 @@ class CiscoUcsmDriver(object):
                     self.ucsmsdk.FabricLanCloud.ClassId(),
                     {self.ucsmsdk.FabricLanCloud.DN: const.VLAN_PATH})
                 if not vp1:
-                    LOG.warn(_LW('UCS Manager network driver Vlan Profile '
-                                 'path at %s missing'), const.VLAN_PATH)
+                    LOG.warning(_LW('UCS Manager network driver Vlan Profile '
+                                    'path at %s missing'), const.VLAN_PATH)
                     return False
 
                 # Create a vlan profile with the given vlan_id
@@ -272,8 +272,8 @@ class CiscoUcsmDriver(object):
                      self.ucsmsdk.VnicProfile.HOST_NW_IOPERF: port_mode,
                      self.ucsmsdk.VnicProfile.MAX_PORTS: const.MAX_PORTS})
                 if not p_profile:
-                    LOG.warn(_LW('UCS Manager network driver could not '
-                                 'create Port Profile %s.'), profile_name)
+                    LOG.warning(_LW('UCS Manager network driver could not '
+                                    'create Port Profile %s.'), profile_name)
                     return False
 
                 LOG.debug('UCS Manager network driver associating Vlan '
@@ -287,9 +287,9 @@ class CiscoUcsmDriver(object):
                      self.ucsmsdk.VnicEtherIf.NAME: vlan_name,
                      self.ucsmsdk.VnicEtherIf.DEFAULT_NET: "yes"}, True)
                 if not mo:
-                    LOG.warn(_LW('UCS Manager network driver cannot associate '
-                                 'Vlan Profile to Port Profile %s'),
-                        profile_name)
+                    LOG.warning(_LW('UCS Manager network driver cannot '
+                                    'associate Vlan Profile to Port '
+                                    'Profile %s'), profile_name)
                     return False
                 LOG.debug('UCS Manager network driver created Port Profile %s '
                           'at %s', profile_name, port_profile_dest)
@@ -306,8 +306,9 @@ class CiscoUcsmDriver(object):
                 handle.CompleteTransaction()
 
                 if not cl_profile:
-                    LOG.warn(_LW('UCS Manager network driver could not '
-                                 'create Client Profile %s.'), cl_profile_name)
+                    LOG.warning(_LW('UCS Manager network driver could not '
+                                    'create Client Profile %s.'),
+                                cl_profile_name)
                     return False
 
                 LOG.debug('UCS Manager network driver created Client Profile '
@@ -474,8 +475,9 @@ class CiscoUcsmDriver(object):
                     self.ucsmsdk.VnicProfile.DN: port_profile_dest})
 
                 if not p_profile:
-                    LOG.warn(_LW('UCS Manager network driver did not find '
-                                 'Port Profile %s to delete.'), port_profile)
+                    LOG.warning(_LW('UCS Manager network driver did not find '
+                                    'Port Profile %s to delete.'),
+                                port_profile)
                     return
 
                 handle.RemoveManagedObject(p_profile)

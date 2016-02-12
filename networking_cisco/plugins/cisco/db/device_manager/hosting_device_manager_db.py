@@ -656,21 +656,23 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
                 num_created = len(self._create_svc_vm_hosting_devices(
                     context, num_req, template))
                 if num_created < num_req:
-                    LOG.warn(_LW('Requested %(requested)d instances based on '
-                                 'hosting device template %(template)s but '
-                                 'could only create %(created)d instances'),
-                             {'requested': num_req, 'template': template['id'],
-                              'created': num_created})
+                    LOG.warning(_LW('Requested %(requested)d instances based '
+                                    'on hosting device template %(template)s '
+                                    'but could only create %(created)d '
+                                    'instances'),
+                                {'requested': num_req,
+                                 'template': template['id'],
+                                 'created': num_created})
             elif available >= desired + capacity:
                 num_req = int(
                     math.floor((available - desired) / (1.0 * capacity)))
                 num_deleted = self._delete_idle_service_vm_hosting_devices(
                     context, num_req, template)
                 if num_deleted < num_req:
-                    LOG.warn(_LW('Tried to delete %(requested)d instances '
-                                 'based on hosting device template '
-                                 '%(template)s but could only delete '
-                                 '%(deleted)d instances'),
+                    LOG.warning(_LW('Tried to delete %(requested)d instances '
+                                    'based on hosting device template '
+                                    '%(template)s but could only delete '
+                                    '%(deleted)d instances'),
                              {'requested': num_req, 'template': template['id'],
                               'deleted': num_deleted})
         finally:

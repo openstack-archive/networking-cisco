@@ -79,7 +79,7 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
         vlan_id = self._get_vlanid(context)
 
         if not vlan_id:
-            LOG.warn(_LW("update_port_precommit: vlan_id is None."))
+            LOG.warning(_LW("update_port_precommit: vlan_id is None."))
             return
 
         p_profile_name = self.make_profile_name(vlan_id)
@@ -99,7 +99,7 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
         vlan_id = self._get_vlanid(context)
 
         if not vlan_id:
-            LOG.warn(_LW("update_port_postcommit: vlan_id is None."))
+            LOG.warning(_LW("update_port_postcommit: vlan_id is None."))
             return
 
         # Checks to perform before UCS Manager can create a Port Profile.
@@ -195,7 +195,7 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                 vlan_id = segment[api.SEGMENTATION_ID]
 
                 if not vlan_id:
-                    LOG.warn(_LW("Bind port: vlan_id is None."))
+                    LOG.warning(_LW("Bind port: vlan_id is None."))
                     return
 
                 LOG.debug("Port binding to Vlan_id: %s", str(vlan_id))
