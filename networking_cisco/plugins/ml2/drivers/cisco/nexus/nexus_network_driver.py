@@ -112,9 +112,10 @@ class CiscoNexusDriver(object):
 
     def _get_config(self, nexus_host, filter=''):
         """Get Nexus Host Configuration
-        nexus_host: IP address of switch
-        filter:     filter string in XML format
-        returns:    Configuration requested in string format
+
+        :param nexus_host: IP address of switch
+        :param filter: filter string in XML format
+        :returns: Configuration requested in string format
         """
 
         # For loop added to handle stale ncclient handle after switch reboot.
@@ -266,17 +267,15 @@ class CiscoNexusDriver(object):
 
     def get_interface_switch(self, nexus_host,
                              intf_type, interface):
-        """Given the nexus host and specific interface data, get the
-           interface data from host.
+        """Get the interface data from host.
 
-           :param nexus_host: IP address of Nexus switch
-           :param intf_type:  String which specifies interface type.
-                              example: ethernet
-           :param interface:  String indicating which interface.
-                              example: 1/19
-
-           :returns response:
-           """
+        :param nexus_host: IP address of Nexus switch
+        :param intf_type:  String which specifies interface type.
+                           example: ethernet
+        :param interface:  String indicating which interface.
+                           example: 1/19
+        :returns response:
+        """
 
         confstr = snipp.EXEC_GET_INTF_SNIPPET % (intf_type, interface)
         starttime = time.time()
@@ -289,16 +288,15 @@ class CiscoNexusDriver(object):
     def initialize_all_switch_interfaces(self, interfaces):
         """Configure Nexus interface and get port channel number.
 
-           Receive a list of interfaces containing:
-           :param nexus_host: IP address of Nexus switch
-           :param intf_type:  String which specifies interface type.
-                              example: ethernet
-           :param interface:  String indicating which interface.
-                              example: 1/19
-
-           :returns interface: Appends port channel to each entry
-           :                   channel number is 0 if none
-           """
+        Receive a list of interfaces containing:
+        :param nexus_host: IP address of Nexus switch
+        :param intf_type:  String which specifies interface type.
+                           example: ethernet
+        :param interface:  String indicating which interface.
+                           example: 1/19
+        :returns interface: Appends port channel to each entry
+                            channel number is 0 if none
+        """
 
         if not interfaces:
             return
@@ -339,7 +337,6 @@ class CiscoNexusDriver(object):
         """Given the nexus host, get the version data.
 
         :param nexus_host: IP address of Nexus switch
-
         :returns version number
         """
 
@@ -356,7 +353,6 @@ class CiscoNexusDriver(object):
         """Given the nexus host, get the type of Nexus switch.
 
         :param nexus_host: IP address of Nexus switch
-
         :returns Nexus type
         """
 
@@ -447,16 +443,15 @@ class CiscoNexusDriver(object):
                                  interface, is_native, confstr=''):
         """Prepares an XML snippet for VLAN on a trunk interface.
 
-            :param nexus_host: IP address of Nexus switch
-            :param vlanid:     Vlanid(s) to add to interface
-            :param intf_type:  String which specifies interface type.
-                               example: ethernet
-            :param interface:  String indicating which interface.
-                               example: 1/19
-            :param confstr:    last confstr
-
-            :returns           XML snippet
-            """
+        :param nexus_host: IP address of Nexus switch
+        :param vlanid:     Vlanid(s) to add to interface
+        :param intf_type:  String which specifies interface type.
+                           example: ethernet
+        :param interface:  String indicating which interface.
+                           example: 1/19
+        :param confstr:    last confstr
+        :returns           XML snippet
+        """
         starttime = time.time()
 
         snippets = []

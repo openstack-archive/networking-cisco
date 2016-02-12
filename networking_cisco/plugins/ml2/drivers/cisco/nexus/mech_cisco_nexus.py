@@ -90,6 +90,8 @@ class CiscoNexusCfgMonitor(object):
             self._mdriver.set_switch_nexus_type(switch_ip, nexus_type)
 
     def _initialize_trunk_interfaces_to_none(self, switch_ip):
+        """Initialize all nexus interfaces to trunk allowed none."""
+
         try:
             # The following determines if the switch interfaces are
             # in place.  If so, make sure they have a basic trunk
@@ -114,15 +116,14 @@ class CiscoNexusCfgMonitor(object):
         # then change dependent port bindings.
         for switch_ip, intf_type, port, is_native, ch_grp in switch_ifs:
             try:
-                reserved = nxos_db.get_reserved_bindings(
-                           const.NO_VLAN_OR_VNI_ID,
-                           const.RESERVED_NEXUS_PORT_DEVICE_ID_R1,
-                           switch_ip,
-                           intf_type + ':' + port)
+                reserved = nxos_db.get_reserved_port_binding(
+                                switch_ip,
+                                self._mdriver.format_interface_name(
+                                    intf_type, port))
             except excep.NexusPortBindingNotFound:
                 continue
             if reserved[0].channel_group != ch_grp:
-                self._change_baremetal_interfaces(
+                self._mdriver._change_baremetal_interfaces(
                     switch_ip, intf_type, port,
                     reserved[0].channel_group, ch_grp)
 
@@ -290,6 +291,48 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         if self.is_replay_enabled():
             eventlet.spawn_after(DELAY_MONITOR_THREAD, self._monitor_thread)
 
+    def format_interface_name(self, intf_type, port, ch_grp=0):
+        """Method to format interface name given type, port.
+
+        Given interface type, port, and channel-group, this
+        method formats an interface name.  If channel-group is
+        non-zero, then port-channel is configured.
+
+        :param intf_type: Such as 'ethernet' or 'port-channel'
+        :param port: unique identification -- 1/32 or 1
+        :ch_grp: If non-zero, ignore other params and format
+                 port-channel<ch_grp>
+        :returns: the full formatted interface name.
+                  ex: ethernet:1/32, port-channel:1
+        """
+        if ch_grp > 0:
+            return 'port-channel:%s' % str(ch_grp)
+
+        return '%s:%s' % (intf_type, port)
+
+    def split_interface_name(self, interface, ch_grp=0):
+        """Method to split interface type, id from name.
+
+        Takes an interface name or just interface suffix
+        and returns interface type and number separately.
+
+        :param interface: interface name or just suffix
+        :param ch_grp: if non-zero, ignore interface
+                       name and return 'port-channel' grp
+        :returns: interface type like 'ethernet'
+        :returns: returns suffix to interface name
+        """
+
+        if ch_grp != 0:
+            intf_type = 'port-channel'
+            port = str(ch_grp)
+        elif ':' in interface:
+            intf_type, port = interface.split(':')
+        else:
+            intf_type, port = 'ethernet', interface
+
+        return intf_type, port
+
     def is_replay_enabled(self):
         return conf.cfg.CONF.ml2_cisco.switch_heartbeat_time > 0
 
@@ -297,31 +340,21 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         if not self.is_replay_enabled():
             return
         try:
-            nxos_db.get_reserved_bindings(
-                const.NO_VLAN_OR_VNI_ID,
-                const.RESERVED_NEXUS_SWITCH_DEVICE_ID_R1,
+            nxos_db.get_reserved_switch_binding(
                 switch_ip)
         except excep.NexusPortBindingNotFound:
-            # overload port_id to contain switch state
-            nxos_db.add_nexusport_binding(
-                state, const.NO_VLAN_OR_VNI_ID,
-                const.NO_VLAN_OR_VNI_ID,
-                switch_ip,
-                const.RESERVED_NEXUS_SWITCH_DEVICE_ID_R1,
-                False)
+            nxos_db.add_reserved_switch_binding(
+                switch_ip, state)
+
         # overload port_id to contain switch state
-        nxos_db.update_reserved_binding(
-            const.NO_VLAN_OR_VNI_ID,
-            switch_ip,
-            const.RESERVED_NEXUS_SWITCH_DEVICE_ID_R1,
-            state)
+        nxos_db.update_reserved_switch_binding(
+            switch_ip, state)
 
     def get_switch_ip_and_active_state(self, switch_ip):
         if not self.is_replay_enabled():
             return const.SWITCH_ACTIVE
-        binding = nxos_db.get_reserved_bindings(
-                      const.NO_VLAN_OR_VNI_ID,
-                      const.RESERVED_NEXUS_SWITCH_DEVICE_ID_R1,
+
+        binding = nxos_db.get_reserved_switch_binding(
                       switch_ip)
         if len(binding) == 1:
             return binding[0].port_id
@@ -336,23 +369,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             return True
         else:
             return False
-
-    # There are two types of reserved bindings.
-    # 1) The Switch binding purpose is to keep track
-    #    of the switch state for when replay is enabled.
-    #    Keeping it in the db, allows for all processes
-    #    to determine known state of each switch.
-    # 2) The reserved port binding is used with baremetal
-    #    transactions which don't rely on host to interface
-    #    mapping in the ini file.  It is learned from
-    #    the transaction and kept in the data base
-    #    for further reference.
-    def _is_reserved_binding(self, binding):
-        """Identifies switch & port operational bindings."""
-
-        return (binding.instance_id in
-               [const.RESERVED_NEXUS_SWITCH_DEVICE_ID_R1,
-                const.RESERVED_NEXUS_PORT_DEVICE_ID_R1])
 
     def register_switch_as_inactive(self, switch_ip, func_name):
         self.set_switch_ip_and_active_state(switch_ip, const.SWITCH_INACTIVE)
@@ -473,9 +489,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         switch_connections = []
         try:
-            bindings = nxos_db.get_reserved_bindings(
-                           const.NO_VLAN_OR_VNI_ID,
-                           const.RESERVED_NEXUS_SWITCH_DEVICE_ID_R1)
+            bindings = nxos_db.get_reserved_switch_binding()
         except excep.NexusPortBindingNotFound:
             LOG.error(_LE("No switch bindings in the port data base"))
             bindings = []
@@ -498,19 +512,19 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
     def _is_status_active(self, port):
         return port['status'] == n_const.PORT_STATUS_ACTIVE
 
-    # _is_baremetal()
-    # There are two types of transactions.
-    # First is the transaction which is dependent on
-    # host to interface mapping config stored in the
-    # ml2_conf.ini file. The VNIC type for this is
-    # 'normal' which is the assumed condition.
-    # Second there is the baremetal case which comes
-    # about by project ironic where the interfaces
-    # are provided in the host transaction. In this
-    # case the VNIC_TYPE is 'baremetal'.
-    #
     def _is_baremetal(self, port):
-        """Identifies ironic baremetal transactions."""
+        """Identifies ironic baremetal transactions.
+
+        There are two types of transactions.
+        1) A host transaction which is dependent on
+           host to interface mapping config stored in the
+           ml2_conf.ini file. The VNIC type for this is
+           'normal' which is the assumed condition.
+        2) A baremetal transaction which comes from
+           the ironic project where the interfaces
+           are provided in the port transaction. In this
+           case the VNIC_TYPE is 'baremetal'.
+        """
         return (port[portbindings.VNIC_TYPE] ==
                 portbindings.VNIC_BAREMETAL)
 
@@ -521,13 +535,15 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             switch_info = link_info['switch_info']
             if not isinstance(switch_info, dict):
                 switch_info = jsonutils.loads(switch_info)
-        except Exception:
+        except Exception as e:
+            LOG.error(_LE("switch_info can't be decoded: %(exp)s"),
+                      {"exp": e})
             switch_info = {}
 
         return switch_info
 
     def _supported_baremetal_transaction(self, context):
-        """Verify baremetal transaction is complete."""
+        """Verify transaction is complete and for us."""
 
         port = context.current
 
@@ -552,7 +568,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
             switch_info = self._get_baremetal_switch_info(
                               link_info)
-            if switch_info and 'switch_ip' in switch_info:
+            if 'switch_ip' in switch_info:
                 switch_ip = switch_info['switch_ip']
             else:
                 return False
@@ -595,26 +611,23 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         for port_id in (
             self._nexus_switches[switch_ip, attr].split(',')):
-            if ':' in port_id:
-                intf_type, port = port_id.split(':')
-            else:
-                intf_type, port = 'ethernet', port_id
+            intf_type, port = self.split_interface_name(port_id)
 
             # is_native set to const.NOT_NATIVE for
             # VNIC_TYPE of normal
             host_list.append((switch_ip, intf_type, port,
                 const.NOT_NATIVE))
 
-    # _get_baremetal_switches()
-    # This method is used to extract switch information
-    # from transactions where VNIC_TYPE is baremetal.
-    #
-    # Input:   Received port transaction
-    #
-    # Returns: all_switches, active_switches
-    #
     def _get_baremetal_switches(self, port):
-        """Get switch ip addresses from baremetal transaction."""
+        """Get switch ip addresses from baremetal transaction.
+
+        This method is used to extract switch information
+        from the transaction where VNIC_TYPE is baremetal.
+
+        :param port: Received port transaction
+        :returns: list of all switches
+        :returns: list of only switches which are active
+        """
 
         all_switches = set()
         active_switches = set()
@@ -635,36 +648,32 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         return list(all_switches), list(active_switches)
 
-    # _get_baremetal_connections
-    # This method is used to extract switch/interface
-    # information from transactions where VNIC_TYPE is
-    # baremetal.
-    #
-    # Input:   - Received port transaction
-    #          - Indicator for selecting connections with
-    #            switches that are active
-    #          - only return interfaces from the
-    #            segment/transaction as opposed to
-    #            say port channels which are learned.
-    #
-    # Returns: list of switch_ip, intf_type, port_id, is_native
-    #
     def _get_baremetal_connections(self, port,
                                    only_active_switch=False,
                                    from_segment=False):
-        """Get switch ips and interfaces from baremetal transaction."""
+        """Get switch ips and interfaces from baremetal transaction.
+
+        This method is used to extract switch/interface
+        information from transactions where VNIC_TYPE is
+        baremetal.
+
+        :param port: Received port transaction
+        :param only_active_switch: Indicator for selecting
+                     connections with switches that are active
+        :param from_segment: only return interfaces from the
+                   segment/transaction as opposed to
+                   say port channels which are learned.
+        :Returns: list of switch_ip, intf_type, port_id, is_native
+        """
 
         connections = []
 
         all_link_info = port[portbindings.PROFILE]['local_link_information']
         for link_info in all_link_info:
 
-            # Extract and store port info
-            port_id = link_info['port_id']
-            if ':' in port_id:
-                intf_type, port = port_id.split(':')
-            else:
-                intf_type, port = 'ethernet', port_id
+            # Extract port info
+            intf_type, port = self.split_interface_name(
+                                  link_info['port_id'])
 
             # Determine if this switch is to be skipped
             switch_info = self._get_baremetal_switch_info(
@@ -688,14 +697,13 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 is_native = const.NOT_NATIVE
             if not from_segment:
                 try:
-                    reserved = nxos_db.get_reserved_bindings(
-                        const.NO_VLAN_OR_VNI_ID,
-                        const.RESERVED_NEXUS_PORT_DEVICE_ID_R1,
+                    reserved = nxos_db.get_reserved_port_binding(
                         switch_ip,
-                        intf_type + ':' + port)
+                        self.format_interface_name(
+                            intf_type, port))
                     if reserved[0].channel_group > 0:
-                        intf_type = 'port-channel'
-                        port = str(reserved[0].channel_group)
+                        intf_type, port = self.split_interface_name(
+                            '', reserved[0].channel_group)
                 except excep.NexusPortBindingNotFound:
                     pass
 
@@ -703,60 +711,60 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         return connections
 
-    # _change_baremetal_interfaces
-    #
-    # This method is used to extract switch/interface
-    # information from transactions where VNIC_TYPE is
-    # baremetal for only active switches.
-    # When interfaces are initialized during replay restore,
-    # check to verify that ch-grps are the same.
-    # if not, this function is called to handle change for the
-    # following cases.
-    # 1) If RESERVED port is zero and switch returns non-zero, then
-    #    * create port-channel db entry
-    #    * Update RESERVED port with non-zero port channel
-    #    * delete db entry with port_id defined in port_binding.
-    # 2) If RESERVED port is non-zero and switch returns non-zero
-    #    and they don't match, then
-    #    * create port-channel db entry with channel grp from switch,
-    #    * Update RESERVED port with non-zero port channel received
-    #      from switch,
-    #    * delete port-channel db entry with with old-ch-grp from
-    #      RESERVED port.
-    # 3) If RESERVED port is non-zero and switch returns zero, then:
-    #    * create port entry with port_id from RESERVED port
-    #    * Update RESERVED port with zero channel-group
-    #    * Delete port-channel db entry with old-ch-grp from RESERVED port
-    #
     def _change_baremetal_interfaces(self, switch_ip, intf_type,
                                     port, old_ch_grp, ch_grp):
-        """Restart detected port channel change. Update database."""
+        """Restart detected port channel change. Update database.
+
+        This method is used to extract switch/interface
+        information from transactions where VNIC_TYPE is
+        baremetal for only active switches.
+        When interfaces are initialized during replay restore,
+        check to verify that ch-grps are the same.
+        if not, this function is called to handle change for the
+        following cases.
+        1) If RESERVED port is zero and switch returns non-zero, then
+           * Create port-channel db entry
+           * Update RESERVED port with non-zero port channel
+           * Delete db entry with port_id defined in port_binding.
+        2) If RESERVED port is non-zero and switch returns non-zero
+           and they don't match, then
+           * Create port-channel db entry with channel grp from switch,
+           * Update RESERVED port with non-zero port channel received
+             from switch,
+           * Delete port-channel db entry with with old-ch-grp from
+             RESERVED port.
+        3) If RESERVED port is non-zero and switch returns zero, then:
+           * Create port entry with port_id from RESERVED port
+           * Update RESERVED port with zero channel-group
+           * Delete port-channel db entry with old-ch-grp from
+             RESERVED port
+        """
 
         if old_ch_grp == ch_grp:
             return
 
         # Get all bindings to this switch interface
-        reserved_port_id = intf_type + ':' + port
-        if old_ch_grp != 0:
-            old_port_id = 'port-channel' + ':' + str(old_ch_grp)
-        else:
-            old_port_id = intf_type + ':' + port
+        reserved_port_id = self.format_interface_name(
+                               intf_type, port)
+        old_port_id = self.format_interface_name(
+                          intf_type, port, old_ch_grp)
+        new_port_id = self.format_interface_name(
+                          intf_type, port, ch_grp)
 
         # Get all port instances related to this switch interface
         try:
             bindings = nxos_db.get_nexus_switchport_binding(
-                           reserved_port_id, switch_ip)
+                           old_port_id, switch_ip)
         except Exception:
             return
 
         # process all port instances related to this switch interface
         # and change port channel group
+
         for row in bindings:
 
-            if ch_grp != 0:
-                new_port_id = 'port-channel' + ':' + str(ch_grp)
-            else:
-                new_port_id = intf_type + ':' + port
+            if nxos_db.is_reserved_binding(row):
+                continue
 
             # Add port binding with new channel-group
             try:
@@ -777,35 +785,39 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                     switch_ip, row.instance_id,
                     row.is_provider_vlan)
             except Exception:
-                # Something wrong.  Skip this  CB_FINISH
+                LOG.error(_LE("Failed to remove port %(port)s"
+                    "vlan %(vlan)d vni %(vni)d "
+                    "switch_ip %(ip), instance %(id)s"),
+                    {'port': old_port_id,
+                    'vlan': row.vlan_id,
+                    'vni': row.vni,
+                    'ip': switch_ip,
+                    'id': row.instance_id})
                 continue
 
         # Update the reserved port binding with new channel group
-        nxos_db.update_reserved_binding(
-                const.NO_VLAN_OR_VNI_ID,
+        nxos_db.update_reserved_port_binding(
                 switch_ip,
-                const.RESERVED_NEXUS_PORT_DEVICE_ID_R1,
-                intf_type + ':' + port,
-                False,
+                reserved_port_id,
                 ch_grp)
 
-    # _init_baremetal_trunk_interfaces()
-    #
-    # With Baremetal transactions, the interfaces aren't
-    # known during initialization so they must be initialized
-    # when the transactions are received.
-    # * Reserved switch entries are added if needed.
-    # * Reserved port entries are added.
-    # * Port Bindings are added and initialized on the switch.
-    # * We determine if port channel is configured on the
-    #   interface and store it so we know to create a port-channel
-    #   binding instead of that defined in the transaction.
-    #   In this case, the RESERVED binding is the ethernet interface
-    #   with port-channel stored in channel-group field.
-    #   With this channe-group not 0, we know to create a port binding
-    #   as a port-channel instead of interface ethernet.
     def _init_baremetal_trunk_interfaces(self, port_seg, segment, vni):
-        """Initialize baremetal switch interfaces and DB entry."""
+        """Initialize baremetal switch interfaces and DB entry.
+
+        With baremetal transactions, the interfaces are not
+        known during initialization so they must be initialized
+        when the transactions are received.
+        * Reserved switch entries are added if needed.
+        * Reserved port entries are added.
+        * Port Bindings are added and initialized on the switch.
+        * Determine if port channel is configured on the
+          interface and store it so we know to create a port-channel
+          binding instead of that defined in the transaction.
+          In this case, the RESERVED binding is the ethernet interface
+          with port-channel stored in channel-group field.
+          With this channe-group not 0, we know to create a port binding
+          as a port-channel instead of interface ethernet.
+        """
 
         # interfaces list requiring switch initialization and
         # reserved port and port_binding db entry creation
@@ -818,34 +830,14 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         # interfaces list requiring creation of port_binding db entry
         reserved_exists = []
 
-        all_switches, active_switches = (
-            self._get_baremetal_switches(port_seg))
-        if self.is_replay_enabled():
-            for switch_ip in all_switches:
-                # Add reserved switch entry only if it does not exist.
-                try:
-                    nxos_db.get_reserved_bindings(
-                        const.NO_VLAN_OR_VNI_ID,
-                        const.RESERVED_NEXUS_SWITCH_DEVICE_ID_R1,
-                        switch_ip)
-                except excep.NexusPortBindingNotFound:
-                    # overload port_id to contain switch state
-                    nxos_db.add_nexusport_binding(
-                        const.SWITCH_INACTIVE,
-                        const.NO_VLAN_OR_VNI_ID,
-                        const.NO_VLAN_OR_VNI_ID,
-                        switch_ip,
-                        const.RESERVED_NEXUS_SWITCH_DEVICE_ID_R1)
-
         connections = self._get_baremetal_connections(
                           port_seg, False, True)
         for switch_ip, intf_type, port, is_native in connections:
             try:
-                reserved = nxos_db.get_reserved_bindings(
-                           const.NO_VLAN_OR_VNI_ID,
-                           const.RESERVED_NEXUS_PORT_DEVICE_ID_R1,
-                           switch_ip,
-                           intf_type + ':' + port)
+                reserved = nxos_db.get_reserved_port_binding(
+                               switch_ip,
+                               self.format_interface_name(
+                                   intf_type, port))
                 reserved_exists.append(
                     (switch_ip, intf_type, port, is_native,
                     reserved[0].channel_group))
@@ -865,14 +857,9 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         # port data base entries
         list_to_init += inactive_switch
         for switch_ip, intf_type, port, is_native, ch_grp in list_to_init:
-            nxos_db.add_nexusport_binding(
-                intf_type + ':' + port,
-                const.NO_VLAN_OR_VNI_ID,
-                const.NO_VLAN_OR_VNI_ID,
+            nxos_db.add_reserved_port_binding(
                 switch_ip,
-                const.RESERVED_NEXUS_PORT_DEVICE_ID_R1,
-                False,
-                False,   # is_native used in this binding
+                self.format_interface_name(intf_type, port),
                 ch_grp)
 
         device_id = port_seg.get('device_id')
@@ -883,34 +870,30 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         # Add reserved_exists list to list_to_init to create
         # port_binding data base entries
         list_to_init += reserved_exists
-        for switch_ip, intf_type, port, is_native, chgrp in list_to_init:
-            if chgrp is 0:
-                port_id = intf_type + ':' + port
-            else:
-                port_id = 'port-channel' + ':' + str(chgrp)
+        for switch_ip, intf_type, port, is_native, ch_grp in list_to_init:
+            port_id = self.format_interface_name(intf_type, port, ch_grp)
             try:
-                nxos_db.get_nexusport_binding(port_id, vlan_id, switch_ip,
-                                              device_id)
+                nxos_db.get_nexusport_binding(
+                    port_id, vlan_id, switch_ip, device_id)
             except excep.NexusPortBindingNotFound:
                 nxos_db.add_nexusport_binding(
                     port_id, str(vlan_id), str(vni),
                     switch_ip, device_id,
                     is_provider_vlan,
-                    is_native,
-                    chgrp)
+                    is_native)
 
-    # _get_host_switches()
-    # This method is used to extract switch information
-    # from transactions where VNIC_TYPE is normal.
-    # Information is extracted from ini file which
-    # is stored in _nexus_switches.
-    #
-    # Input:   host_name from transaction
-    #
-    # Returns: all_switches, active_switches
-    #
     def _get_host_switches(self, host_id):
-        """Get switch IPs from configured host mapping."""
+        """Get switch IPs from configured host mapping.
+
+        This method is used to extract switch information
+        from transactions where VNIC_TYPE is normal.
+        Information is extracted from ini file which
+        is stored in _nexus_switches.
+
+        :param host_id: host_name from transaction
+        :returns: list of all switches
+        :returns: list of only switches which are active
+        """
 
         all_switches = set()
         active_switches = set()
@@ -922,21 +905,20 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         return list(all_switches), list(active_switches)
 
-    # _get_host_connections()
-    # This method is used to extract switch/interface
-    # information from ini files when VNIC_TYPE is
-    # normal.  The ini files contain host to interface
-    # mappings.
-    #
-    # Input:   - Host name
-    #          - Indicator for selecting connections with
-    #            switches that are active
-    #
-    # Returns: list of switch_ip, intf_type, port_id, is_native
-    #
     def _get_host_connections(self, host_id,
                               only_active_switch=False):
-        """Get switch IPs and interfaces from config host mapping."""
+        """Get switch IPs and interfaces from config host mapping.
+
+        This method is used to extract switch/interface
+        information from ini files when VNIC_TYPE is
+        normal.  The ini files contain host to interface
+        mappings.
+
+        :param host_id: Host name from transaction
+        :param only_active_switch: Indicator for selecting only
+                   connections for switches that are active
+        :returns: list of switch_ip, intf_type, port_id, is_native
+        """
 
         host_found = False
         host_connections = []
@@ -966,44 +948,42 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
     def _get_active_port_connections(self, port, host_id):
         return self._get_port_connections(port, host_id, True)
 
-    #
-    # _get_known_baremetal_interfaces()
-    #
-    # For a given switch, this returns all known RESERVED port
-    # interfaces.  These learned by received baremetal
-    # transactions.
     def _get_known_baremetal_interfaces(self, requested_switch_ip):
-        """Get known baremetal interfaces from reserved DB."""
+        """Get known baremetal interfaces from reserved DB.
+
+        For a given switch, this returns all known RESERVED port
+        interfaces.  These have been learned from received
+        baremetal transactions.
+
+        :param requested_switch_ip: switch_ip
+        :returns: list of switch_ip, intf_type, port_id, is_native
+        """
 
         switch_ifs = []
 
         try:
-            port_info = nxos_db.get_reserved_bindings(
-                            const.NO_VLAN_OR_VNI_ID,
-                            const.RESERVED_NEXUS_PORT_DEVICE_ID_R1,
+            port_info = nxos_db.get_reserved_port_binding(
                             requested_switch_ip)
         except excep.NexusPortBindingNotFound:
             port_info = []
 
         for binding in port_info:
-            port_id = binding.port_id
-            if ':' in port_id:
-                intf_type, port = port_id.split(':')
-            else:
-                intf_type, port = 'ethernet', port_id
+            intf_type, port = self.split_interface_name(
+                                  binding.port_id)
             switch_ifs.append(
                 (requested_switch_ip, intf_type, port,
                 binding.is_native))
         return switch_ifs
 
-    #
-    # _get_config_switch_interfaces()
-    #
-    # For a given switch, this returns all known configured port
-    # interfaces.  These configured in the ml2_conf.ini file.
-    #
     def _get_config_switch_interfaces(self, requested_switch_ip):
-        """Identify host entries to get interfaces."""
+        """Identify host entries to get interfaces.
+
+        For a given switch, this returns all known configured port
+        interfaces.  These configured in the ml2_conf.ini file.
+
+        :param requested_switch_ip: switch_ip
+        :returns: list of switch_ip, intf_type, port_id, is_native
+        """
 
         switch_ifs = []
         defined_attributes = [const.USERNAME, const.PASSWORD, const.SSHPORT,
@@ -1018,14 +998,15 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         return switch_ifs
 
-    #
-    # _get_switch_interfaces()
-    #
-    # For a given switch, return known configured and baremetal
-    # interfaces.
-    #
     def _get_switch_interfaces(self, requested_switch_ip):
-        """Get known baremetal and config interfaces."""
+        """Get known baremetal and config interfaces.
+
+        For a given switch, return known configured and baremetal
+        interfaces.
+
+        :param requested_switch_ip: switch_ip
+        :returns: list of switch_ip, intf_type, port_id, is_native
+        """
 
         all_switch_ifs = self._get_config_switch_interfaces(
                              requested_switch_ip)
@@ -1126,7 +1107,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         """
         host_connections = self._get_port_connections(port, host_id)
         for switch_ip, intf_type, nexus_port, is_native in host_connections:
-            port_id = '%s:%s' % (intf_type, nexus_port)
+            port_id = self.format_interface_name(intf_type, nexus_port)
             try:
                 nxos_db.get_nexusport_binding(port_id, vlan_id, switch_ip,
                                               device_id)
@@ -1242,10 +1223,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                              port, is_native):
         """Restores a set of vlans for a given port."""
 
-        if ':' in port:
-            intf_type, nexus_port = port.split(':')
-        else:
-            intf_type, nexus_port = 'ethernet', port
+        intf_type, nexus_port = self.split_interface_name(port)
 
         concat_vlans = ''
         compressed_vlans = self._get_compressed_vlan_list(pvlan_ids)
@@ -1413,7 +1391,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         duplicate_port = 0
         vlan_count = 0
         for port in port_bindings:
-            if self._is_reserved_binding(port):
+            if nxos_db.is_reserved_binding(port):
                 continue
             vlan_name, auto_create, auto_trunk = self._gather_config_parms(
                 port.is_provider_vlan, port.vlan_id)
@@ -1511,7 +1489,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
             # if there are no remaining db entries using this vlan on this
             # nexus switch port then remove vlan from the switchport trunk.
-            port_id = '%s:%s' % (intf_type, nexus_port)
+            port_id = self.format_interface_name(intf_type, nexus_port)
             auto_create = True
             auto_trunk = True
             if is_provider_vlan:
@@ -1792,7 +1770,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                    'network': context.network.current['id']})
 
         #
-        # if is VNIC_TYPE baremetal and all required config is intact.
+        # if is VNIC_TYPE baremetal and all required config is intact,
         #    accept this transaction
         # otherwise check if vxlan for us
         #

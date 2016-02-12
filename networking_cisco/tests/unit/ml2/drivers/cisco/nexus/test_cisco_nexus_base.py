@@ -642,7 +642,8 @@ class TestCiscoNexusReplayBase(TestCiscoNexusBase):
                         if_init_result,
                         add_result1, add_result2,
                         replay_result,
-                        del_result1, del_result2):
+                        del_result1, del_result2,
+                        replay_init=None):
         """Tests create, replay, delete of two ports."""
 
         # Set all required connection state to True so
@@ -673,6 +674,8 @@ class TestCiscoNexusReplayBase(TestCiscoNexusBase):
                 self._cisco_mech_driver.set_switch_ip_and_active_state(
                     port_cfg.nexus_ip_addr, state)
 
+        if replay_init:
+            replay_init()
         # Since only this test case connection state is False,
         # it should be the only one replayed
         self._cfg_monitor.check_connections()
