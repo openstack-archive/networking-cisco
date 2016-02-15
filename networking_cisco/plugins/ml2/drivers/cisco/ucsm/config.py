@@ -74,17 +74,19 @@ def parse_pci_vendor_config():
 
 @debtcollector.removals.remove(message=DEPRECATION_MESSAGE)
 def parse_ucsm_host_config():
+    sp_dict = {}
     host_dict = {}
     if cfg.CONF.ml2_cisco_ucsm.ucsm_host_list:
         host_config_list = cfg.CONF.ml2_cisco_ucsm.ucsm_host_list
         for host in host_config_list:
-            host_sp = host.split(':')
-            if len(host_sp) != 2:
+            hostname, sep, service_profile = host.partition(':')
+            if not sep or not service_profile:
                 raise cfg.Error(_("UCS Mech Driver: Invalid Host Service "
                                   "Profile config: %s") % host)
-            key = host_sp[0]
-            host_dict[key] = host_sp[1]
-        return host_dict
+            key = (cfg.CONF.ml2_cisco_ucsm.ucsm_ip, hostname)
+            sp_dict[key] = service_profile
+            host_dict[hostname] = cfg.CONF.ml2_cisco_ucsm.ucsm_ip
+        return sp_dict, host_dict
 
 
 class UcsmConfig(object):
