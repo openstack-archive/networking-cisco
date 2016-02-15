@@ -17,7 +17,7 @@ elif [ -x $ZUUL_CLONER ]; then
     pip install /tmp/openstack/python-neutronclient
 else
     # Download or update neutronclient-master tarball and install
-    ( cd .test-tars && wget -N http://tarballs.openstack.org/python-neutronclient/python-neutronclient-master.tar.gz )
+    ( cd .test-tars && curl -R -O http://tarballs.openstack.org/python-neutronclient/python-neutronclient-master.tar.gz )
     pip install .test-tars/python-neutronclient-master.tar.gz
 fi
 
@@ -30,7 +30,7 @@ elif [ -x $ZUUL_CLONER ]; then
     pip install /tmp/openstack/neutron
 else
     # Download or update neutron-master tarball and install
-    ( cd .test-tars && wget -N http://tarballs.openstack.org/neutron/neutron-master.tar.gz )
+    ( cd .test-tars && curl -R -O http://tarballs.openstack.org/neutron/neutron-master.tar.gz )
     pip install .test-tars/neutron-master.tar.gz
 fi
 
