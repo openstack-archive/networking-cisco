@@ -14,6 +14,7 @@
 # under the License.
 
 import mock
+from oslo_config import cfg
 
 from neutron.common import constants as n_const
 from neutron.db import api as db_api
@@ -23,6 +24,7 @@ from neutron.tests.unit import testlib_api
 
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import (
     mech_cisco_ucsm as md)
+from networking_cisco.plugins.ml2.drivers.cisco.ucsm import config as conf
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import constants as const
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import exceptions
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucsm_db
@@ -556,3 +558,37 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         # Results in new_create_ucsm_profile being called with counter=1
         self.assertTrue(self.ucsm_driver.update_serviceprofile(
                         HOST1, VLAN_ID_1))
+
+    def test_parse_ucsm_host_config(self):
+        """Verifies parsing of Hostname:Service Profile config."""
+        ucsm_sp_dict = {}
+        ucsm_host_dict = {}
+        cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = ['Host1:SP1', 'Host2:SP2']
+        cfg.CONF.ml2_cisco_ucsm.ucsm_ip = '1.1.1.1'
+        expected_ip = '1.1.1.1'
+        ucsm_sp_dict, ucsm_host_dict = conf.parse_ucsm_host_config()
+
+        key = (cfg.CONF.ml2_cisco_ucsm.ucsm_ip, 'Host1')
+        self.assertIn(key, ucsm_sp_dict)
+        self.assertEqual('SP1', ucsm_sp_dict[key])
+        self.assertIn('Host1', ucsm_host_dict)
+        self.assertEqual(expected_ip, ucsm_host_dict['Host1'])
+
+        key = (cfg.CONF.ml2_cisco_ucsm.ucsm_ip, 'Host2')
+        self.assertIn(key, ucsm_sp_dict)
+        self.assertEqual('SP2', ucsm_sp_dict.get(key))
+        self.assertEqual(expected_ip, ucsm_host_dict.get('Host2'))
+
+        key = (cfg.CONF.ml2_cisco_ucsm.ucsm_ip, 'Host3')
+        self.assertNotIn(key, ucsm_sp_dict)
+        self.assertIsNone(ucsm_host_dict.get('Host3'))
+
+    def test_bad_ucsm_host_config(self):
+        """Verifies malformed ucsm_host_list raises an error."""
+        cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = ['Host1:', 'Host2:SP2']
+        self.assertRaisesRegexp(cfg.Error, "Host1:",
+            conf.parse_ucsm_host_config)
+
+        cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = ['Host1:SP1', 'Host2']
+        self.assertRaisesRegexp(cfg.Error, "Host2",
+            conf.parse_ucsm_host_config)

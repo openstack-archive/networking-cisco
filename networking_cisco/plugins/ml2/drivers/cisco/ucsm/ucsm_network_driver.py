@@ -44,11 +44,7 @@ class CiscoUcsmDriver(object):
         self.ucsm_conf = config.UcsmConfig()
         self.ucsm_host_dict = {}
         self.ucsm_sp_dict = {}
-        # Check if Service Profile to Hostname mapping config has been provided
-        if cfg.CONF.ml2_cisco_ucsm.ucsm_host_list:
-            self.ucsm_host_dict = config.parse_ucsm_host_config()
-        else:
-            self._create_ucsm_host_to_service_profile_mapping()
+        self._create_host_and_sp_dicts_from_config()
 
     def check_vnic_type_and_vendor_info(self, vnic_type, profile):
         """Checks if this vnic_type and vendor device info are supported.
@@ -104,6 +100,14 @@ class CiscoUcsmDriver(object):
 
         """
         return importutils.import_module('UcsSdk')
+
+    def _create_host_and_sp_dicts_from_config(self):
+        # Check if Service Profile to Hostname mapping config has been provided
+        if cfg.CONF.ml2_cisco_ucsm.ucsm_host_list:
+            self.ucsm_sp_dict, self.ucsm_host_dict = (
+                config.parse_ucsm_host_config())
+        else:
+            self._create_ucsm_host_to_service_profile_mapping()
 
     @contextmanager
     def ucsm_connect_disconnect(self, ucsm_ip):
