@@ -914,6 +914,7 @@ class TestCiscoPortsV2(CiscoML2MechanismTestCase,
 
         Verify the bind_port method allocates the VLAN segment correctly.
         """
+        self.skipTest("Temporary Fix for bug 1546138")
         self.mock_segments_to_bind.return_value = [VXLAN_SEGMENT]
 
         #TODO(rpothier) Add back in provider segment support.
