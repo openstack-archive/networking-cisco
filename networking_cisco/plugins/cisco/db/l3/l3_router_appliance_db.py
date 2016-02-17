@@ -29,7 +29,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import expression as expr
 from sqlalchemy.sql import false as sql_false
 
-from networking_cisco._i18n import _, _LE, _LI
+from networking_cisco._i18n import _, _LE, _LI, _LW
 
 from neutron.api.v2 import attributes
 from neutron.callbacks import events
@@ -68,6 +68,9 @@ AGENT_TYPE_L3 = l3_constants.AGENT_TYPE_L3
 AGENT_TYPE_L3_CFG = cisco_constants.AGENT_TYPE_L3_CFG
 VM_CATEGORY = ciscohostingdevicemanager.VM_CATEGORY
 L3_ROUTER_NAT = svc_constants.L3_ROUTER_NAT
+HOSTING_DEVICE_ATTR = routerhostingdevice.HOSTING_DEVICE_ATTR
+ROUTER_ROLE_GLOBAL = cisco_constants.ROUTER_ROLE_GLOBAL
+ROUTER_ROLE_HA_REDUNDANCY = cisco_constants.ROUTER_ROLE_HA_REDUNDANCY
 
 ROUTER_APPLIANCE_OPTS = [
     cfg.StrOpt('default_router_type',
@@ -864,6 +867,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
 
     @lockutils.synchronized('routerbacklog', 'neutron-')
     def _process_backlogged_routers(self):
+        self.ensure_global_router_cleanup()
         if self._refresh_router_backlog:
             self._sync_router_backlog()
         if not self._backlogged_routers:
@@ -897,6 +901,51 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
             for ni in self.get_notifiers(e_context, scheduled_routers):
                 if ni['notifier']:
                     ni['notifier'].routers_updated(e_context, ni['routers'])
+
+    def ensure_global_router_cleanup(self):
+        """TODO: Function to be moved into router type driver.
+
+        This function should be moved into the router type driver.
+        This will be done when the router type driver api is revised.
+        """
+        e_context = n_context.get_admin_context()
+        l3plugin = manager.NeutronManager.get_service_plugins().get(
+                svc_constants.L3_ROUTER_NAT)
+        filters = {routerrole.ROUTER_ROLE_ATTR: [ROUTER_ROLE_GLOBAL]}
+        global_routers = l3plugin.get_routers(e_context, filters=filters)
+        if not global_routers:
+            LOG.debug("There are no global routers")
+            return
+        for gr in global_routers:
+            filters = {
+                HOSTING_DEVICE_ATTR: [gr[HOSTING_DEVICE_ATTR]],
+                routerrole.ROUTER_ROLE_ATTR: [ROUTER_ROLE_HA_REDUNDANCY, None]
+            }
+            invert_filters = {'gw_port_id': [None]}
+            num_rtrs = l3plugin.get_routers_count_extended(
+                e_context, filters=filters, invert_filters=invert_filters)
+            LOG.debug("Global router %(name)s[%(id)s] with hosting_device "
+                      "%(hd)s has %(num)d routers with gw_port set on that "
+                      "device",
+                      {'name': gr['name'], 'id': gr['id'],
+                       'hd': gr[HOSTING_DEVICE_ATTR], 'num': num_rtrs, })
+            if num_rtrs == 0:
+                LOG.warn(_LW("Global router:%(name)s[id:%(id)s] is present for"
+                             "hosting device:%(hd)s but there are no tenant or"
+                             " redundancy routers with gateway set on that "
+                             "hosting device. Proceeding to delete global "
+                             "router."),
+                         {'name': gr['name'], 'id': gr['id'],
+                          'hd': gr[HOSTING_DEVICE_ATTR]})
+                try:
+                    l3plugin.delete_router(
+                            e_context, gr['id'], unschedule=False)
+                except (exc.ObjectDeletedError, l3.RouterNotFound) as e:
+                    LOG.warn(e)
+                driver = self._get_router_type_driver(
+                        e_context, gr[routertype.TYPE_ATTR])
+                driver._conditionally_remove_logical_global_router(
+                        e_context, gr)
 
     def _setup_backlog_handling(self):
         LOG.debug('Activating periodic backlog processor')
