@@ -16,6 +16,7 @@
 
 
 import datetime
+import os
 import six
 import socket
 import struct
@@ -163,3 +164,18 @@ def make_cidr(gw, mask):
                 '/' + str(mask))
     except (socket.error, struct.error, ValueError, TypeError):
         return
+
+
+def find_agent_host_id(this_host):
+    """Returns the neutron agent host id for RHEL-OSP6 HA setup."""
+
+    host_id = this_host
+    try:
+        for root, dirs, files in os.walk('/run/resource-agents'):
+            for fi in files:
+                if 'neutron-scale-' in fi:
+                    host_id = 'neutron-n-' + fi.split('-')[2]
+                    break
+        return host_id
+    except IndexError:
+        return host_id

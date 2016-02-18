@@ -98,10 +98,6 @@ class OvsVdpTest(base.BaseTestCase):
             mock.call.delete_flows(dl_dst=vconstants.NCB_DMAC,
                                    dl_type=vconstants.LLDP_ETYPE),
             mock.call.delete_flows(dl_dst=vconstants.NCB_DMAC,
-                                   dl_type=vconstants.LLDP_ETYPE),
-            mock.call.delete_flows(dl_dst=vconstants.NCB_DMAC,
-                                   dl_type=vconstants.VDP22_ETYPE),
-            mock.call.delete_flows(dl_dst=vconstants.NCB_DMAC,
                                    dl_type=vconstants.VDP22_ETYPE),
             mock.call.add_flow(priority=vconstants.VDP_FLOW_PRIO,
                                in_port=str(lldp_ovs_portnum),
@@ -212,7 +208,9 @@ class OvsVdpTest(base.BaseTestCase):
                               'send_vdp_vnic_down') as vnic_down:
             self.ovs_vdp.local_vlan_map[net_uuid] = ovs_vdp.LocalVlan(10, (
                 segmentation_id))
-            self.ovs_vdp.local_vlan_map[net_uuid].lvid = 10
+            lvm = self.ovs_vdp.local_vlan_map[net_uuid]
+            lvm.lvid = 10
+            lvm.port_uuid_list[port_uuid] = port_uuid
             self.ovs_vdp.local_vlan_map[net_uuid].late_binding_vlan = 500
             phy_port_num = 5
             int_peer_port_num = 6

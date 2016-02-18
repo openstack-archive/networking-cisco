@@ -174,8 +174,8 @@ class LldpadDriver(object):
                             filter_frmt=lvdp_dict.get('filter_frmt'),
                             gid=lvdp_dict.get('gid'),
                             mac=lvdp_dict.get('mac'),
-                            vlan=lvdp_dict.get('vdp_vlan'),
-                            oui_id=oui_id, oui_data=oui_data, sw_resp=True)
+                            vlan=0, oui_id=oui_id, oui_data=oui_data,
+                            sw_resp=True)
                 # check validity.
                 if not utils.is_valid_vlan_tag(vdp_vlan):
                     LOG.error(_LE("Returned vlan %(vlan)s is invalid."),
@@ -498,6 +498,7 @@ class LldpadDriver(object):
         except Exception:
             LOG.error(_LE("Incorrect Reply,no mode information found: %s"),
                       reply)
+            return constants.INVALID_VLAN
         try:
             f_ind = reply.index("filter = ")
         except Exception:

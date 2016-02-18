@@ -127,10 +127,13 @@ class VdpMgr(object):
 
     '''Responsible for Handling VM/Uplink requests'''
 
-    def __init__(self, br_integ, br_ex, root_helper, rpc_client, host):
-        self.br_integ = br_integ
-        self.br_ex = br_ex
-        self.root_helper = root_helper
+    def __init__(self, config_dict, rpc_client, hostname):
+        self.br_integ = config_dict.get('integration_bridge')
+        self.br_ex = config_dict.get('external_bridge')
+        self.root_helper = config_dict.get('root_helper')
+        self.host_id = config_dict.get('host_id')
+        self.node_list = config_dict['node_list']
+        self.node_uplink_list = config_dict['node_uplink_list']
         # Check for error?? fixme(padkrish)
         self.que = VdpMsgPriQue()
         self.err_que = VdpMsgPriQue()
@@ -139,15 +142,30 @@ class VdpMgr(object):
         self.restart_uplink_called = False
         self.ovs_vdp_obj_dict = {}
         self.rpc_clnt = rpc_client
-        self.host = host
+        self.host_name = hostname
         self.uplink_det_compl = False
         self.process_uplink_ongoing = False
         self.uplink_down_cnt = 0
         self.is_os_run = False
+        self.static_uplink = False
+        self.static_uplink_port = None
+        self.static_uplink_first = True
+        self.read_static_uplink()
         self.start()
 
+    def read_static_uplink(self):
+        """Read the static uplink from file, if given."""
+        if self.node_list is None or self.node_uplink_list is None:
+            return
+        for node, port in zip(self.node_list.split(','),
+                              self.node_uplink_list.split(',')):
+            if node.strip() == self.host_name:
+                self.static_uplink = True
+                self.static_uplink_port = port.strip()
+                return
+
     def update_vm_result(self, port_uuid, result):
-        context = {'agent': self.host}
+        context = {'agent': self.host_id}
         args = jsonutils.dumps(dict(port_uuid=port_uuid, result=result))
         msg = self.rpc_clnt.make_msg('update_vm_result', context, msg=args)
         try:
@@ -163,10 +181,14 @@ class VdpMgr(object):
                  {'status': msg.get_status(), 'mac': msg.get_mac(),
                   'uuid': msg.get_port_uuid(), 'oui': msg.get_oui()})
         time.sleep(10)
+        if msg.get_status() == 'up':
+            res_fail = constants.CREATE_FAIL
+        else:
+            res_fail = constants.DELETE_FAIL
         if (not self.uplink_det_compl or
                 phy_uplink not in self.ovs_vdp_obj_dict):
             LOG.error(_LE("Uplink Port Event not received yet"))
-            self.update_vm_result(msg.get_port_uuid(), constants.CREATE_FAIL)
+            self.update_vm_result(msg.get_port_uuid(), res_fail)
             return
         ovs_vdp_obj = self.ovs_vdp_obj_dict[phy_uplink]
         ret = ovs_vdp_obj.send_vdp_port_event(msg.get_port_uuid(),
@@ -177,7 +199,7 @@ class VdpMgr(object):
                                               msg.get_oui())
         if not ret:
             LOG.error(_LE("Error in VDP port event, Err Queue enq"))
-            self.update_vm_result(msg.get_port_uuid(), constants.CREATE_FAIL)
+            self.update_vm_result(msg.get_port_uuid(), res_fail)
         else:
             self.update_vm_result(msg.get_port_uuid(),
                                   constants.RESULT_SUCCESS)
@@ -285,7 +307,7 @@ class VdpMgr(object):
 
     def save_uplink(self, uplink="", veth_intf=""):
         context = {}
-        args = jsonutils.dumps(dict(agent=self.host, uplink=uplink,
+        args = jsonutils.dumps(dict(agent=self.host_id, uplink=uplink,
                                veth_intf=veth_intf))
         msg = self.rpc_clnt.make_msg('save_uplink', context, msg=args)
         try:
@@ -294,6 +316,29 @@ class VdpMgr(object):
         except rpc.MessagingTimeout:
             LOG.error(_LE("RPC timeout: Failed to save link name on the "
                           "server"))
+
+    def static_uplink_detect(self, veth):
+        """
+        Return the static uplink based on argument passed.
+
+        The very first time, this function is called, it returns the uplink
+        port read from a file.
+        After restart, when this function is called the first time, it
+        returns 'normal' assuming a veth is passed to this function which will
+        be the case if uplink processing is successfully done.
+        If user modified the uplink configuration and restarted, a 'down'
+        will be returned to clear the old uplink.
+        """
+        LOG.info(_LI("In static_uplink_detect %(veth)s"), {'veth': veth})
+        if self.static_uplink_first:
+            self.static_uplink_first = False
+            if self.phy_uplink is not None and (
+               self.phy_uplink != self.static_uplink_port):
+                return 'down'
+        if veth is None:
+            return self.static_uplink_port
+        else:
+            return 'normal'
 
     def vdp_uplink_proc(self):
         '''
@@ -333,14 +378,18 @@ class VdpMgr(object):
                 if self.veth_intf is None:
                     LOG.error(_LE("Incorrect state, Bug"))
                     return
-        ret = uplink_det.detect_uplink(self.veth_intf)
+        if self.static_uplink:
+            ret = self.static_uplink_detect(self.veth_intf)
+        else:
+            ret = uplink_det.detect_uplink(self.veth_intf)
         if ret is 'down':
             if self.phy_uplink is None:
                 LOG.error(_LE("Wrong status down"))
                 return
             # Call API to set the uplink as "" DOWN event
             self.uplink_down_cnt = self.uplink_down_cnt + 1
-            if self.uplink_down_cnt < constants.UPLINK_DOWN_THRES:
+            if not self.static_uplink and (
+               self.uplink_down_cnt < constants.UPLINK_DOWN_THRES):
                 return
             self.process_uplink_ongoing = True
             upl_msg = VdpQueMsg(constants.UPLINK_MSG_TYPE,

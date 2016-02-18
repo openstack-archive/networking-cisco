@@ -45,8 +45,12 @@ class DfaVdpMgrTest(base.BaseTestCase):
         self.br_integ = 'br-int1'
         self.br_ex = 'br-ethd1'
         self.rpc_client = mock.Mock()
-        self.host = None
-        self.uplink = 'eth5'
+        self.host = 'hostabc'
+        self.config_dict = {'integration_bridge': self.br_integ,
+                            'external_bridge': self.br_ex,
+                            'root_helper': self.root_helper,
+                            'node_list': 'hostabc',
+                            'node_uplink_list': self.uplink}
         self.execute = mock.patch.object(
             utils, "execute", spec=utils.execute).start()
         self._test_dfa_mgr_init()
@@ -62,8 +66,7 @@ class DfaVdpMgrTest(base.BaseTestCase):
             parent = mock.MagicMock()
             parent.attach_mock(event_obj.start, 'start')
             parent.attach_mock(period_obj.run, 'run')
-            self.dfa_vdp_mgr = dfa_vdp_mgr.VdpMgr(self.br_integ, self.br_ex,
-                                                  self.root_helper,
+            self.dfa_vdp_mgr = dfa_vdp_mgr.VdpMgr(self.config_dict,
                                                   self.rpc_client,
                                                   self.host)
         event_fn.assert_called_with("VDP_Mgr", self.dfa_vdp_mgr,
@@ -175,3 +178,19 @@ class DfaVdpMgrTest(base.BaseTestCase):
     def test_process_vm_event_fail(self):
         '''Top routine that calls process VM event fail case '''
         self._test_process_vm_event_fail()
+
+    def test_process_static_uplink_new(self):
+        """Test routine for static uplink, first time call."""
+        ret = self.dfa_vdp_mgr.static_uplink_detect(None)
+        self.assertEqual(ret, self.uplink)
+
+    def test_process_static_uplink_normal(self):
+        """Test routine for static uplink, normal case."""
+        ret = self.dfa_vdp_mgr.static_uplink_detect('veth_temp')
+        self.assertEqual(ret, 'normal')
+
+    def test_process_static_uplink_down(self):
+        """Test routine for static uplink, down case."""
+        self.dfa_vdp_mgr.phy_uplink = 'eth3'
+        ret = self.dfa_vdp_mgr.static_uplink_detect(None)
+        self.assertEqual(ret, 'down')
