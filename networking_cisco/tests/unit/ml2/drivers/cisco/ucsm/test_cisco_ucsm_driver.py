@@ -592,3 +592,10 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = ['Host1:SP1', 'Host2']
         self.assertRaisesRegexp(cfg.Error, "Host2",
             conf.parse_ucsm_host_config)
+
+    def test_parse_virtio_eth_ports(self):
+        cfg.CONF.ml2_cisco_ucsm.ucsm_virtio_eth_ports = ['test-eth1',
+                                                         'test-eth2']
+        eth_port_list = conf.parse_virtio_eth_ports()
+        self.assertNotIn('test-eth1', eth_port_list)
+        self.assertIn(const.ETH_PREFIX + 'test-eth1', eth_port_list)

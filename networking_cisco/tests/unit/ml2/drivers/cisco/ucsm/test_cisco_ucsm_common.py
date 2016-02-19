@@ -23,10 +23,12 @@ from neutron.tests import base
 UCSM_IP_ADDRESS_1 = '1.1.1.1'
 UCSM_USERNAME_1 = 'username1'
 UCSM_PASSWORD_1 = 'password1'
+UCSM_VIRTIO_ETH_PORTS_1 = ['eth0', 'eth1']
 
 UCSM_IP_ADDRESS_2 = '2.2.2.2'
 UCSM_USERNAME_2 = 'username2'
 UCSM_PASSWORD_2 = 'password2'
+UCSM_VIRTIO_ETH_PORTS_2 = ['eth2', 'eth3']
 
 UCSM_PHY_NETS = ['test_physnet']
 
@@ -56,10 +58,12 @@ class ConfigMixin(object):
             'ml2_cisco_ucsm_ip: 1.1.1.1': {
                 'ucsm_username': UCSM_USERNAME_1,
                 'ucsm_password': UCSM_PASSWORD_1,
+                'ucsm_virtio_eth_ports': UCSM_VIRTIO_ETH_PORTS_1,
             },
             'ml2_cisco_ucsm_ip: 2.2.2.2': {
                 'ucsm_username': UCSM_USERNAME_2,
                 'ucsm_password': UCSM_PASSWORD_2,
+                'ucsm_virtio_eth_ports': UCSM_VIRTIO_ETH_PORTS_2,
             },
         }
         self.mocked_parser = mock.patch.object(cfg,
