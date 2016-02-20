@@ -86,6 +86,7 @@ default_dcnm_opts = {
         'dcnm_net_ext': '(DCNM)',
         'gateway_mac': '20:20:00:00:00:AA',
         'dcnm_dhcp_leases': '/var/lib/dhcpd/dhcpd.leases',
+        'dcnm_dhcp': 'false',
     },
 }
 

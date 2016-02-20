@@ -24,6 +24,7 @@ ENABLER_DB_NAME=${ENABLER_DB_NAME:-cisco_dfa}
 ENABLER_MYSQL_USER=${ENABLER_MYSQL_USER:-dfa}
 ENABLER_MYSQL_HOST=${MYSQL_HOST}
 ENABLER_DB_PASSWORD=${MYSQL_PASSWORD}
+ENABLER_DCNM_DHCP=${ENABLER_DCNM_DHCP:-False}
 NETWORKING_CISCO_ETC_SAF_DIR="etc/saf"
 
 
@@ -39,6 +40,7 @@ function setup_saf_config {
     iniset $cfgfile dcnm dcnm_password $ENABLER_DCNM_PASSWORD
     iniset $cfgfile dcnm segmentation_id_min $ENABLER_SEG_ID_MIN
     iniset $cfgfile dcnm segmentation_id_max $ENABLER_SEG_ID_MAX
+    iniset $cfgfile dcnm dcnm_dhcp $ENABLER_DCNM_DHCP
 
     # RPC setting
     iniset $cfgfile dfa_rpc transport_url "rabbit://${RABBIT_USERID}:${RABBIT_PASSWORD}@${SERVICE_HOST}:5672//"

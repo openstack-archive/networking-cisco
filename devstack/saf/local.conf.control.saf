@@ -36,6 +36,7 @@ MYSQL_PASSWORD=<mysql password>
 # DCNM credentials:
 #     ENABLER_DCNM_USER     : DCNM user id, default is root
 #     ENABLER_DCNM_AMQP_USER: DCNM rabbitmq user id, defualt is admin
+#     ENABLER_DCNM_DHCP     : Use dcnm dhcp server or not, default is False
 # Segmentation ID range:
 #     ENABLER_SEG_ID_MIN    : segmentation ID minimum value, default is 10000
 #     ENABLER_SEG_ID_MAX    : segmentation ID maximum value, default is 20000
@@ -47,6 +48,7 @@ MYSQL_PASSWORD=<mysql password>
 #     ENABLER_DB_NAME       : Enabler database name, default is cisco_dfa
 #     ENABLER_MYSQL_USER    : Enabler database user name, default is dfa
 #     ENABLER_DB_PASSWORD   : Enabler database password, default is MYSQL_PASSWORD
+
 
 ENABLER_LOG_LEVEL=<debug level>
 ENABLER_DCNM_IP_ADDR=<DCNM IP address>
@@ -63,7 +65,7 @@ disable_service n-net
 enable_service q-svc
 enable_service q-agt
 enable_service neutron
-disable_service q-dhcp
+enable_service q-dhcp
 disable_service q-l3
 
 # Add networking-cisco Repository

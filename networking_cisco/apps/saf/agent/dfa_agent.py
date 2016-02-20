@@ -57,7 +57,7 @@ class RpcCallBacks(object):
 
         # Enqueue the vm info for updating iptables.
         oui = vm_info.get('oui')
-        if oui and oui.get('ip_addr') != '0.0.0.0':
+        if oui and oui.get('ip_addr') != '0.0.0.0' and self._iptd:
             rule_info = dict(mac=vm_info.get('vm_mac'), ip=oui.get('ip_addr'),
                              port=vm_info.get('port_uuid'),
                              status=vm_info.get('status'))
@@ -67,7 +67,8 @@ class RpcCallBacks(object):
         rule_info = eval(msg)
         LOG.debug('RX Info : %s', rule_info)
         # Update the iptables for this rule
-        self._iptd.enqueue_event(rule_info)
+        if self._iptd:
+            self._iptd.enqueue_event(rule_info)
 
     def send_msg_to_agent(self, context, msg):
         msg_type = context.get('type')
@@ -99,7 +100,12 @@ class DfaAgent(object):
 
         # Initialize iptables driver. This will be used to update the ip
         # rules in iptables, after launching an instance.
-        self._iptd = iptd.IptablesDriver(self._cfg)
+
+        if (self._cfg.dcnm.dcnm_dhcp.lower() == 'true'):
+            self._iptd = iptd.IptablesDriver(self._cfg)
+        else:
+            self._iptd = None
+            LOG.debug("Using native dhcp, iptable driver is not needed")
 
         # Setup RPC client for sending heartbeat to controller
         self._url = self._cfg.dfa_rpc.transport_url
@@ -173,9 +179,9 @@ class DfaAgent(object):
     def start_tasks(self):
         rpc_thrd = self.start_rpc_task()
         self.agent_task_list.append(rpc_thrd)
-
-        ipt_thrd = self.start_iptables_task()
-        self.agent_task_list.append(ipt_thrd)
+        if (self._iptd):
+            ipt_thrd = self.start_iptables_task()
+            self.agent_task_list.append(ipt_thrd)
 
 
 def save_my_pid(cfg):

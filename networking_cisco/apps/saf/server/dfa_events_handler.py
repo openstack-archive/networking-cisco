@@ -139,7 +139,7 @@ class EventsHandler(object):
             elif 'update' in event_type:
                 pri = self._update_pri
             else:
-                return
+                pri = self._delete_pri
             self._pq.put((pri, timestamp, data))
 
         except Exception as exc:

@@ -83,25 +83,21 @@ class TestDFAServer(base.BaseTestCase):
         # Mocking some modules
         self.dcnmpatcher = mock.patch(cdr.__name__ + '.DFARESTClient')
         self.mdcnm = self.dcnmpatcher.start()
-        self.addCleanup(self.dcnmpatcher.stop)
 
         self.keys_patcher = mock.patch(deh.__name__ + '.EventsHandler')
         self.mkeys = self.keys_patcher.start()
-        self.addCleanup(self.mkeys.stop)
 
         self.inst_api_patcher = mock.patch(dia.__name__ + '.DFAInstanceAPI')
         self.m_inst_api = self.inst_api_patcher.start()
-        self.addCleanup(self.inst_api_patcher.stop)
 
         self.module_patcher = mock.patch.dict('sys.modules',
                                               {'pika': mock.Mock()})
         self.module_patcher.start()
-        self.addCleanup(self.module_patcher.stop)
+
         from networking_cisco.apps.saf.server import dfa_listen_dcnm as dld
         from networking_cisco.apps.saf.server import dfa_server as ds
         self.dld_patcher = mock.patch(dld.__name__ + '.DCNMListener')
         self.dld = self.dld_patcher.start()
-        self.addCleanup(self.dld_patcher.stop)
 
         ds.DfaServer.__bases__ = (FakeClass.imitate(
             dfr.DfaFailureRecovery, dbm.DfaDBMixin),)
@@ -324,6 +320,7 @@ class TestDFAServer(base.BaseTestCase):
         self._load_network_info()
         self.assertFalse(self.segid in self.dfa_server.segmentation_pool)
         network_info = {'network_id': FAKE_NETWORK_ID}
+        self.dfa_server.get_vms.return_value = []
         self.dfa_server.network_delete_event(network_info)
         self.assertTrue(self.dfa_server.dcnm_client.delete_network.called)
         dcall = self.dfa_server.dcnm_client.delete_network.call_args
@@ -396,6 +393,7 @@ class TestDFAServer(base.BaseTestCase):
         self._load_network_info()
         self.dfa_server._inst_api.get_instance_for_uuid.return_value = (
             FAKE_INSTANCE_NAME)
+        self.dfa_server.dcnm_dhcp = True
         self.dfa_server.port_create_event(port_info)
 
         # Check the output/calls
@@ -467,3 +465,65 @@ class TestDFAServer(base.BaseTestCase):
         self.assertTrue(cargs[0] == FAKE_HOST_ID)
         self.assertTrue(str(vm_info) == cargs[1])
         self.dfa_server.delete_vm_db.assert_called_with(vm.instance_id)
+
+    def test_add_dhcp_port(self):
+        """Test add dhcp port"""
+        self.dfa_server.get_vm.return_value = None
+        port_info = self._get_port_info().get("port")
+        self._load_network_info()
+        self.dfa_server._inst_api.get_instance_for_uuid.return_value = (
+            FAKE_INSTANCE_NAME)
+        self.dfa_server.dcnm_dhcp = False
+        self.dfa_server.add_dhcp_port(port_info)
+
+        # Check the output/calls
+
+        self.assertTrue(self.dfa_server.neutron_event.send_vm_info.called)
+        call_args = self.dfa_server.neutron_event.send_vm_info.call_args
+        cargs, ckwargs = call_args
+        self.assertEqual(FAKE_HOST_ID, cargs[0])
+        self.assertEqual(str(self.dfa_server.port[FAKE_PORT_ID]), cargs[1])
+        self.assertEqual(self.dfa_server.port[FAKE_PORT_ID]["oui"]["vm_name"],
+                         "dhcp-10010-4")
+        self.assertTrue(self.dfa_server.add_vms_db.called)
+        call_args = self.dfa_server.add_vms_db.call_args
+        cargs, ckwargs = call_args
+        self.assertEqual(self.dfa_server.port[FAKE_PORT_ID], cargs[0])
+        self.assertEqual(constants.RESULT_SUCCESS, cargs[1])
+
+    def test_correct_dhcp_ports(self):
+        """Test case for port delete event."""
+        port_info = self._get_port_info().get("port")
+        port_info["device_owner"] = "network:dhcp"
+        ports_list_data = {"ports": [port_info]}
+        self.dfa_server.neutronclient.list_ports.return_value = ports_list_data
+        self.dfa_server.neutron_event._clients.get.return_value = True
+        self.dfa_server.add_dhcp_port = mock.Mock()
+        self.dfa_server.correct_dhcp_ports(FAKE_NETWORK_ID)
+
+        self.assertTrue(self.dfa_server.add_dhcp_port.called)
+        call_args = self.dfa_server.add_dhcp_port.call_args
+        cargs, ckwargs = call_args
+        self.assertEqual(FAKE_PORT_ID, cargs[0].get("id"))
+
+    def test_strip_wait_dhcp(self):
+        vm = mock.Mock
+        vm.mac = FAKE_MAC_ADDR
+        vm.port_id = FAKE_PORT_ID
+        vm.segmentation_id = self.segid
+        vm.network_id = FAKE_NETWORK_ID,
+        vm.port_id = FAKE_PORT_ID
+        vm.ip = "10.10.10.10W"
+        vm.gw_mac = FAKE_GW_ADDR
+        vm.instance_id = FAKE_DEVICE_ID
+        vm.fwd_mod = FAKE_FWD_MODE
+        vm.host = FAKE_HOST_ID
+        vm.name = FAKE_INSTANCE_NAME
+
+        self.dfa_server.strip_wait_dhcp(vm)
+
+        self.assertTrue(self.dfa_server.update_vm_db.called)
+        call_args = self.dfa_server.update_vm_db.call_args
+        cargs, ckwargs = call_args
+        self.assertEqual(FAKE_PORT_ID, cargs[0])
+        self.assertEqual("10.10.10.10", ckwargs.get("columns").get("ip"))
