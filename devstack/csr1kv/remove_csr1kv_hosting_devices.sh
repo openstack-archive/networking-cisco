@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # osn is the name of OpenStack network service, i.e.,
 # it should be 'neutron'.

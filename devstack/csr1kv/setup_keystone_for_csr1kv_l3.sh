@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## Users, roles, tenants ##
 adminUser=${1:-neutron}
