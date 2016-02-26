@@ -58,9 +58,6 @@ def delete_uplink_and_flows(root_helper, br_ex, port_name):
 def glob_delete_vdp_flows(br_ex, root_helper):
     br = ovs_lib.OVSBridge(br_ex, root_helper=root_helper)
     br.delete_flows(dl_dst=constants.NCB_DMAC, dl_type=constants.LLDP_ETYPE)
-    br.delete_flows(dl_dst=constants.NCB_DMAC, dl_type=constants.LLDP_ETYPE)
-    br.delete_flows(dl_dst=constants.NCB_DMAC,
-                    dl_type=constants.VDP22_ETYPE)
     br.delete_flows(dl_dst=constants.NCB_DMAC,
                     dl_type=constants.VDP22_ETYPE)
 
@@ -134,10 +131,6 @@ class OVSNeutronVdp(object):
         br = self.ext_br_obj
         br.delete_flows(dl_dst=constants.NCB_DMAC,
                         dl_type=constants.LLDP_ETYPE)
-        br.delete_flows(dl_dst=constants.NCB_DMAC,
-                        dl_type=constants.LLDP_ETYPE)
-        br.delete_flows(dl_dst=constants.NCB_DMAC,
-                        dl_type=constants.VDP22_ETYPE)
         br.delete_flows(dl_dst=constants.NCB_DMAC,
                         dl_type=constants.VDP22_ETYPE)
 
@@ -217,7 +210,6 @@ class OVSNeutronVdp(object):
             # at the Leaf. Deleting the assoc and creating the assoc for new
             # veth is not optimal. fixme(padkrish)
             # ip_lib.IPDevice(lldp_ovs_veth_str,self.root_helper).link.delete()
-            ovs_lib.execute(['/sbin/udevadm', 'settle', '--timeout=10'])
             lldp_loc_veth = ip_wrapper.device(lldp_loc_veth_str)
             lldp_ovs_veth = ip_wrapper.device(lldp_ovs_veth_str)
         else:
@@ -290,6 +282,10 @@ class OVSNeutronVdp(object):
                                net_uuid, segmentation_id, oui):
         lvm = self.local_vlan_map.get(net_uuid)
         if lvm:
+            if port_uuid not in lvm.port_uuid_list:
+                LOG.error(_LE("port_uuid %s not in cache for port_down"),
+                          port_uuid)
+                return False
             vdp_vlan = lvm.late_binding_vlan
             lldpad_port.send_vdp_vnic_down(port_uuid=port_uuid,
                                            vsiid=port_uuid,
