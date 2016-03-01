@@ -509,7 +509,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         """Identify host entries to get interfaces."""
         switch_ifs = []
         defined_attributes = [const.USERNAME, const.PASSWORD, const.SSHPORT,
-                              'physnet']
+                              'physnet', 'nve_src_intf']
         for switch_ip, attr in self._nexus_switches:
             # if not in clearly defined attribute, it must be a host
             # with it's listed interfaces
