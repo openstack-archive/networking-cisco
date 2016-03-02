@@ -1,4 +1,4 @@
-# Copyright 2015 Cisco Systems, Inc.
+# Copyright 2015-2016 Cisco Systems, Inc.
 # All rights reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -47,4 +47,9 @@ ETH0 = "eth0"
 ETH1 = "eth1"
 ETH_PREFIX = "/ether-"
 DUPLICATE_EXCEPTION = "object already exists"
+
+SP_TEMPLATE_PARENT_DN = "org-root/ls-"
+SP_TEMPLATE_PREFIX = "/ls-"
+VNIC_TEMPLATE_PARENT_DN = "org-root/lan-conn-templ-"
+VNIC_TEMPLATE_PREFIX = "/lan-conn-templ-"
 TRANSPORT = "ethernet"

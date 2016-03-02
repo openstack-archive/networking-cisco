@@ -86,6 +86,11 @@ VLAN_SEGMENTS_GOOD = [{api.ID: 'vlan_segment_id',
 UCSM_HOST_DICT = {HOST1: UCSM_IP_ADDRESS_1,
                   HOST2: UCSM_IP_ADDRESS_2}
 
+vnic_template_dict = {
+    ('1.1.1.1', 'test-physnet'): ('org-root', 'Test-VNIC'),
+    ('2.2.2.2', 'physnet2'): ('org-root/org-Test-Sub', 'Test'),
+}
+
 
 class FakeNetworkContext(api.NetworkContext):
 
@@ -182,6 +187,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         self.vif_type = const.VIF_TYPE_802_QBH
         self.db = ucsm_db.UcsmDbModel()
         self.ucsm_driver = ucsm_network_driver.CiscoUcsmDriver()
+        self.ucsm_config = conf.UcsmConfig()
 
     def _create_network_context(self):
         segment = {api.SEGMENTATION_ID: "",
@@ -390,6 +396,44 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
             UCSM_IP_ADDRESS_1)
         self.assertIsNone(p_profile)
 
+    def test_get_physnet(self):
+        expected_physnet = 'test_physnet'
+        port_context = self._create_port_context_normal()
+        physnet = self.mech_driver._get_physnet(port_context)
+        self.assertEqual(expected_physnet, physnet)
+
+    def test_virtio_update_port_precommit(self):
+        """Verifies MD adds VNIC Template to DB for Neutron virtio ports."""
+        TEST_VNIC_TEMPLATE = 'Test-VNIC'
+        TEST_PHYSNET = 'test_physnet'
+        port_context = self._create_port_context_normal()
+
+        def new_vnic_template_test(object):
+            return True
+
+        mock.patch.object(conf.UcsmConfig,
+                          'is_vnic_template_configured',
+                          new=new_vnic_template_test).start()
+
+        def new_get_vnic_template_for_physnet(object, ucsm_ip, physnet):
+            return ('org-root', 'Test-VNIC')
+
+        mock.patch.object(conf.UcsmConfig,
+                          'get_vnic_template_for_physnet',
+                          new=new_get_vnic_template_for_physnet).start()
+
+        vnic_template_path, vnic_template = (
+            self.ucsm_config.get_vnic_template_for_physnet(
+                UCSM_IP_ADDRESS_1, TEST_PHYSNET))
+        self.assertEqual(TEST_VNIC_TEMPLATE, vnic_template)
+        self.mech_driver.update_port_precommit(port_context)
+        db_entry = self.db.get_vnic_template_vlan_entry(VLAN_ID_1,
+                                                        TEST_VNIC_TEMPLATE,
+                                                        UCSM_IP_ADDRESS_1,
+                                                        TEST_PHYSNET)
+        self.assertIsNotNone(db_entry)
+        self.assertEqual(VLAN_ID_1, db_entry.vlan_id)
+
     def test_update_port_postcommit_success(self):
         """Verifies duplicate Port Profiles are not being created."""
         name = PORT_NAME
@@ -537,6 +581,97 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
                           new=new_update_serviceprofile).start()
 
         self.mech_driver.update_port_postcommit(port_context)
+
+    def test_vnic_template_db_methods(self):
+        """Verifies VNIC Template DB methods."""
+        TEST_VNIC_TEMPLATE_1 = 'Test-VNIC1'
+        TEST_VNIC_TEMPLATE_2 = 'Test-VNIC2'
+        TEST_PHYSNET_1 = 'test_physnet1'
+        TEST_PHYSNET_2 = 'test_physnet2'
+        self.db.add_vnic_template(VLAN_ID_1, UCSM_IP_ADDRESS_1,
+                                  TEST_VNIC_TEMPLATE_1, TEST_PHYSNET_1)
+        self.db.add_vnic_template(VLAN_ID_2, UCSM_IP_ADDRESS_2,
+                                  TEST_VNIC_TEMPLATE_2, TEST_PHYSNET_2)
+
+        db_entry1 = self.db.get_vnic_template_vlan_entry(VLAN_ID_1,
+                                                         TEST_VNIC_TEMPLATE_1,
+                                                         UCSM_IP_ADDRESS_1,
+                                                         TEST_PHYSNET_1)
+        self.assertIsNotNone(db_entry1)
+        self.assertEqual(VLAN_ID_1, db_entry1.vlan_id)
+        self.assertFalse(db_entry1.updated_on_ucs)
+
+        self.db.set_vnic_template_updated(VLAN_ID_2, UCSM_IP_ADDRESS_2,
+            TEST_VNIC_TEMPLATE_2, TEST_PHYSNET_2)
+        db_entry2 = self.db.get_vnic_template_vlan_entry(VLAN_ID_2,
+                                                         TEST_VNIC_TEMPLATE_2,
+                                                         UCSM_IP_ADDRESS_2,
+                                                         TEST_PHYSNET_2)
+        self.assertIsNotNone(db_entry2)
+        self.assertEqual(VLAN_ID_2, db_entry2.vlan_id)
+        self.assertTrue(db_entry2.updated_on_ucs)
+
+        self.db.delete_vnic_template_for_vlan(VLAN_ID_2)
+        db_entry3 = self.db.get_vnic_template_vlan_entry(VLAN_ID_2,
+                                                         TEST_VNIC_TEMPLATE_2,
+                                                         UCSM_IP_ADDRESS_2,
+                                                         TEST_PHYSNET_2)
+        self.assertIsNone(db_entry3)
+
+    def test_update_port_postcommit_vnic_template(self):
+        """Verifies UCSM driver works correcly with VNIC Templates."""
+        TEST_VNIC_TEMPLATE = 'Test-VNIC'
+        TEST_PHYSNET = 'test_physnet'
+        port_context = self._create_port_context_normal()
+        self.ucsm_driver.ucsm_host_dict = UCSM_HOST_DICT
+
+        self.mech_driver.bind_port(port_context)
+
+        def new_vnic_template_test(object):
+            return True
+
+        mock.patch.object(conf.UcsmConfig,
+                          'is_vnic_template_configured',
+                          new=new_vnic_template_test).start()
+
+        physnet = self.mech_driver._get_physnet(port_context)
+        self.assertEqual(TEST_PHYSNET, physnet)
+
+        def new_get_vnic_template_for_physnet(object, ucsm_ip, physnet):
+            return ('org-root', 'Test-VNIC')
+
+        mock.patch.object(conf.UcsmConfig,
+                          'get_vnic_template_for_physnet',
+                          new=new_get_vnic_template_for_physnet).start()
+
+        vnic_template_path, vnic_template = (
+            self.ucsm_config.get_vnic_template_for_physnet(
+                UCSM_IP_ADDRESS_1, TEST_PHYSNET))
+
+        self.assertIsNotNone(vnic_template)
+        self.assertEqual(TEST_VNIC_TEMPLATE, vnic_template)
+
+        self.mech_driver.update_port_precommit(port_context)
+
+        def new_update_vnic_template(mech_context, host_id, vlan_id, physnet,
+            vnic_template_path, vnic_template):
+            return True
+
+        mock.patch.object(ucsm_network_driver.CiscoUcsmDriver,
+                          'update_vnic_template',
+                          new=new_update_vnic_template).start()
+
+        ucsm_ip = self.ucsm_driver.get_ucsm_ip_for_host(HOST1)
+        self.assertEqual(UCSM_IP_ADDRESS_1, ucsm_ip)
+
+        self.mech_driver.update_port_postcommit(port_context)
+
+        db_entry = self.db.get_vnic_template_vlan_entry(VLAN_ID_1,
+                                                        vnic_template,
+                                                        UCSM_IP_ADDRESS_1,
+                                                        TEST_PHYSNET)
+        self.assertIsNotNone(db_entry)
+        self.assertEqual(UCSM_IP_ADDRESS_1, db_entry.device_id)
 
     def test_bind_port_active(self):
         """Verifies bind_port sets the port status as active."""

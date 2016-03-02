@@ -1,4 +1,4 @@
-# Copyright 2015 Cisco Systems, Inc.
+# Copyright 2015-2016 Cisco Systems, Inc.
 # All rights reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -115,8 +115,10 @@ class UcsmConfig(object):
     ucsm_dict = {}
     ucsm_port_dict = {}
     sp_template_dict = {}
+    vnic_template_dict = {}
     multi_ucsm_mode = False
     sp_template_mode = False
+    vnic_template_mode = False
 
     def __init__(self):
         """Create a single UCSM or Multi-UCSM dict."""
@@ -152,20 +154,23 @@ class UcsmConfig(object):
         for parsed_file in multi_parser.parsed:
             for parsed_item in parsed_file.keys():
                 dev_id, sep, dev_ip = parsed_item.partition(':')
+                dev_ip = dev_ip.strip()
                 if dev_id.lower() == 'ml2_cisco_ucsm_ip':
                     ucsm_info = []
-                    eth_ports = []
                     eth_port_list = []
                     for dev_key, value in parsed_file[parsed_item].items():
-                        if dev_key.lower() == 'ucsm_virtio_eth_ports':
-                            eth_ports = value[0].split(',')
-                            for eth_port in eth_ports:
+                        config_item = dev_key.lower()
+                        if config_item == 'ucsm_virtio_eth_ports':
+                            for eth_port in value[0].split(','):
                                 eth_port_list.append(
                                     const.ETH_PREFIX + str(eth_port).strip())
                             self.ucsm_port_dict[dev_ip] = eth_port_list
-                        elif dev_key.lower() == 'sp_template_list':
+                        elif config_item == 'sp_template_list':
                             self._parse_sp_template_list(dev_ip, value)
                             self.sp_template_mode = True
+                        elif config_item == 'vnic_template_list':
+                            self._parse_vnic_template_list(dev_ip, value)
+                            self.vnic_template_mode = True
                         else:
                             ucsm_info.append(value[0])
                     self.ucsm_dict[dev_ip] = ucsm_info
@@ -192,7 +197,7 @@ class UcsmConfig(object):
                 if not sp_template_path or not sep or not template_hosts:
                     raise cfg.Error(_('UCS Mech Driver: Invalid Service '
                                       'Profile Template config %s')
-                        % sp_template_config)
+                                    % sp_template_config)
                 sp_temp, sep, hosts = template_hosts.partition(':')
                 LOG.debug('SP Template Path: %s, SP Template: %s, '
                     'Hosts: %s', sp_template_path, sp_temp, hosts)
@@ -234,3 +239,50 @@ class UcsmConfig(object):
                           value[2], value[0])
                 sp_template_info_list.append(value)
         return sp_template_info_list
+
+    def _parse_vnic_template_list(self, ucsm_ip, vnic_template_config):
+        vnic_template_mapping = []
+        for vnic_template_temp in vnic_template_config:
+            vnic_template_mapping = vnic_template_temp.split()
+            for mapping in vnic_template_mapping:
+                physnet, sep, vnic_template = mapping.partition(':')
+                if not sep or not vnic_template:
+                    raise cfg.Error(_("UCS Mech Driver: Invalid VNIC Template "
+                                      "config: %s") % physnet)
+
+                vnic_template_path, sep, vnic_template_name = (
+                    vnic_template.partition(':'))
+                if not vnic_template_path:
+                    vnic_template_path = const.VNIC_TEMPLATE_PARENT_DN
+                if not vnic_template_name:
+                    raise cfg.Error(_("UCS Mech Driver: Invalid VNIC Template "
+                                      "name for physnet: %s") % physnet)
+
+                key = (ucsm_ip, physnet)
+                value = (vnic_template_path, vnic_template_name)
+                self.vnic_template_dict[key] = value
+                LOG.debug('VNIC Template key: %s, value: %s',
+                    key, value)
+
+    def is_vnic_template_configured(self):
+        return self.vnic_template_mode
+
+    def get_vnic_template_for_physnet(self, ucsm_ip, physnet):
+        key = (ucsm_ip, physnet)
+        if key in self.vnic_template_dict:
+            return self.vnic_template_dict.get(key)
+        else:
+            return (None, None)
+
+    def get_vnic_template_for_ucsm_ip(self, ucsm_ip):
+        vnic_template_info_list = []
+        keys = self.vnic_template_dict.keys()
+        for key in keys:
+            LOG.debug('VNIC template dict key : %s', key)
+            if ucsm_ip in key:
+                value = self.vnic_template_dict.get(key)
+                LOG.debug('Appending VNIC Template %s to the list.',
+                    value[1])
+                vnic_template_info_list.append(
+                    self.vnic_template_dict.get(key))
+        return vnic_template_info_list

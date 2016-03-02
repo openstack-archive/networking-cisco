@@ -1,4 +1,4 @@
-# Copyright 2015 Cisco Systems, Inc.
+# Copyright 2016 Cisco Systems, Inc.
 # All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -76,12 +76,11 @@ class UcsmDbModel(object):
                 return
 
     def get_sp_template_vlan_entry(self, vlan_id, sp_template, ucsm_ip):
-        entry = self.session.query(
+        return self.session.query(
             ucsm_model.ServiceProfileTemplate).filter_by(
                 vlan_id=vlan_id,
                 sp_template=sp_template,
                 device_id=ucsm_ip).first()
-        return entry if entry else None
 
     def add_service_profile_template(self, vlan_id, sp_template, ucsm_ip):
         """Adds an entry for a vlan_id on a SP template to the table."""
@@ -91,7 +90,6 @@ class UcsmDbModel(object):
                                                       device_id=ucsm_ip,
                                                       updated_on_ucs=False)
             self.session.add(entry)
-        return True
 
     def set_sp_template_updated(self, vlan_id, sp_template, device_id):
         """Sets update_on_ucs flag to True."""
@@ -111,6 +109,48 @@ class UcsmDbModel(object):
             try:
                 self.session.query(
                     ucsm_model.ServiceProfileTemplate).filter_by(
-                        vlan_id=vlan_id).delete()
+                    vlan_id=vlan_id).delete()
+            except orm.exc.NoResultFound:
+                return
+
+    def get_vnic_template_vlan_entry(self, vlan_id, vnic_template, ucsm_ip,
+                                     physnet):
+        return self.session.query(
+            ucsm_model.VnicTemplate).filter_by(
+                vlan_id=vlan_id,
+                vnic_template=vnic_template,
+                device_id=ucsm_ip,
+                physnet=physnet).first()
+
+    def add_vnic_template(self, vlan_id, ucsm_ip, vnic_template, physnet):
+        """Adds an entry for a vlan_id on a SP template to the table."""
+        if not self.get_vnic_template_vlan_entry(vlan_id, vnic_template,
+            ucsm_ip, physnet):
+            vnic_t = ucsm_model.VnicTemplate(vlan_id=vlan_id,
+                                             vnic_template=vnic_template,
+                                             device_id=ucsm_ip,
+                                             physnet=physnet,
+                                             updated_on_ucs=False)
+            with self.session.begin(subtransactions=True):
+                self.session.add(vnic_t)
+            return vnic_t
+
+    def set_vnic_template_updated(self, vlan_id, ucsm_ip, vnic_template,
+                                  physnet):
+        """Sets update_on_ucs flag to True for a Vnic Template entry."""
+        with self.session.begin(subtransactions=True):
+            entry = self.get_vnic_template_vlan_entry(vlan_id, vnic_template,
+                        ucsm_ip, physnet)
+            if entry:
+                entry.updated_on_ucs = True
+                self.session.merge(entry)
+                return entry
+
+    def delete_vnic_template_for_vlan(self, vlan_id):
+        """Deletes VNIC Template for a vlan_id and physnet if it exists."""
+        with self.session.begin(subtransactions=True):
+            try:
+                self.session.query(ucsm_model.VnicTemplate).filter_by(
+                    vlan_id=vlan_id).delete()
             except orm.exc.NoResultFound:
                 return
