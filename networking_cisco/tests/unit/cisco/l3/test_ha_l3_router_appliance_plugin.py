@@ -46,6 +46,7 @@ _uuid = uuidutils.generate_uuid
 EXTERNAL_GW_INFO = l3.EXTERNAL_GW_INFO
 
 CORE_PLUGIN_KLASS = device_manager_test_support.CORE_PLUGIN_KLASS
+DEFAULT_PRIORITY = ha_db.DEFAULT_MASTER_PRIORITY
 L3_PLUGIN_KLASS = (
     "networking_cisco.tests.unit.cisco.l3.test_ha_l3_router_appliance_plugin."
     "TestApplianceHAL3RouterServicePlugin")
@@ -101,7 +102,7 @@ class HAL3RouterApplianceNamespaceTestCase(
 class HAL3RouterTestsMixin(object):
 
     def _get_ha_defaults(self, ha_enabled=None, ha_type=None,
-                         redundancy_level=None, priority=10,
+                         redundancy_level=None, priority=DEFAULT_PRIORITY,
                          state=ha.HA_ACTIVE, probing_enabled=None,
                          probe_target=None, probe_interval=None):
 
@@ -272,7 +273,8 @@ class HAL3RouterApplianceVMTestCase(
         with self.subnet() as s:
             self._set_net_external(s['subnet']['network_id'])
             ha_settings = self._get_ha_defaults(
-                ha_type=ha.HA_GLBP, priority=15, probing_enabled=True,
+                ha_type=ha.HA_GLBP, priority=DEFAULT_PRIORITY,
+                probing_enabled=True,
                 probe_interval=3, probe_target='10.5.5.2')
             kwargs = {ha.DETAILS: ha_settings[ha.DETAILS],
                       l3.EXTERNAL_GW_INFO: {'network_id':
@@ -283,7 +285,8 @@ class HAL3RouterApplianceVMTestCase(
 
     def test_create_non_gw_ha_router_with_ha_specification(self):
         ha_settings = self._get_ha_defaults(
-            ha_type=ha.HA_GLBP, priority=15, probing_enabled=True,
+            ha_type=ha.HA_GLBP, priority=DEFAULT_PRIORITY,
+            probing_enabled=True,
             probe_interval=3, probe_target='10.5.5.2')
         kwargs = {ha.DETAILS: ha_settings[ha.DETAILS]}
         with self.router(arg_list=(ha.DETAILS,), **kwargs) as r:
