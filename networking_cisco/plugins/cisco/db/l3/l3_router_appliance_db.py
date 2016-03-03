@@ -1052,9 +1052,10 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         try:
             return query.one()
         except exc.NoResultFound:
-            # This should not happen
-            LOG.error(_LE('DB inconsistency: No type and hosting info '
-                          'associated with router %s'), id)
+            # This should not happen other than transiently because the
+            # requested data is not committed to the DB yet
+            LOG.debug('Transient DB inconsistency: No type and hosting info '
+                      'currently associated with router %s', id)
             raise RouterBindingInfoError(router_id=id)
         except exc.MultipleResultsFound:
             # This should not happen either
@@ -1081,8 +1082,10 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                 binding_info_db = self._get_router_binding_info(context,
                                                                 router['id'])
         except RouterBindingInfoError:
-            LOG.error(_LE('DB inconsistency: No hosting info associated with '
-                          'router %s'), router['id'])
+            # This should not happen other than transiently because the
+            # requested data is not committed to the DB yet
+            LOG.debug('Transient DB inconsistency: No hosting info currently '
+                      'associated with router %s', router['id'])
             router['hosting_device'] = None
             return
         router['router_type'] = {
