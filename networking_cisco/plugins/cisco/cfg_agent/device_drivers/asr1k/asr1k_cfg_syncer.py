@@ -19,20 +19,17 @@ import xml.etree.ElementTree as ET
 
 from oslo_config import cfg
 from oslo_log import log as logging
-from oslo_utils import importutils
 
 from neutron.common import constants
 
 from networking_cisco._i18n import _LI
 
-# from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
-#    cisco_csr1kv_snippets as snippets)
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
     asr1k_snippets as asr_snippets)
 from networking_cisco.plugins.cisco.common import cisco_constants
+from networking_cisco.plugins.cisco.common.htparser import HTParser
 from networking_cisco.plugins.cisco.extensions import routerrole
 
-ciscoconfparse = importutils.try_import('ciscoconfparse')
 
 LOG = logging.getLogger(__name__)
 
@@ -265,7 +262,7 @@ class ConfigSyncer(object):
                 LOG.info(intf_info)
 
         running_cfg = self.get_running_config(conn)
-        parsed_cfg = ciscoconfparse.CiscoConfParse(running_cfg)
+        parsed_cfg = HTParser(running_cfg)
 
         invalid_cfg = []
 

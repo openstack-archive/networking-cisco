@@ -29,9 +29,9 @@ from networking_cisco.plugins.cisco.cfg_agent.device_drivers import (
     devicedriver_api)
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
     cisco_csr1kv_snippets as snippets)
+from networking_cisco.plugins.cisco.common.htparser import HTParser
 from networking_cisco.plugins.cisco.extensions import ha
 
-ciscoconfparse = importutils.try_import('ciscoconfparse')
 ncclient = importutils.try_import('ncclient')
 manager = importutils.try_import('ncclient.manager')
 
@@ -335,7 +335,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         :return: List of the interfaces
         """
         ios_cfg = self._get_running_config()
-        parse = ciscoconfparse.CiscoConfParse(ios_cfg)
+        parse = HTParser(ios_cfg)
         itfcs_raw = parse.find_lines("^interface GigabitEthernet")
         itfcs = [raw_if.strip().split(' ')[1] for raw_if in itfcs_raw]
         LOG.debug("Interfaces on hosting device: %s" % itfcs)
@@ -348,7 +348,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         :return: ip address of interface as a string
         """
         ios_cfg = self._get_running_config()
-        parse = ciscoconfparse.CiscoConfParse(ios_cfg)
+        parse = HTParser(ios_cfg)
         children = parse.find_children("^interface %s" % interface_name)
         for line in children:
             if 'ip address' in line:
@@ -361,7 +361,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
     def _interface_exists(self, interface):
         """Check whether interface exists."""
         ios_cfg = self._get_running_config()
-        parse = ciscoconfparse.CiscoConfParse(ios_cfg)
+        parse = HTParser(ios_cfg)
         itfcs_raw = parse.find_lines("^interface " + interface)
         return len(itfcs_raw) > 0
 
@@ -403,7 +403,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         """
         vrfs = []
         ios_cfg = self._get_running_config()
-        parse = ciscoconfparse.CiscoConfParse(ios_cfg)
+        parse = HTParser(ios_cfg)
         vrfs_raw = parse.find_lines("^vrf definition")
         for line in vrfs_raw:
             #  raw format ['ip vrf <vrf-name>',....]
@@ -452,7 +452,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         exp_cfg_lines = ['ip access-list standard ' + str(acl_no),
                          ' permit ' + str(network) + ' ' + str(netmask)]
         ios_cfg = self._get_running_config()
-        parse = ciscoconfparse.CiscoConfParse(ios_cfg)
+        parse = HTParser(ios_cfg)
         acls_raw = parse.find_children(exp_cfg_lines[0])
         if acls_raw:
             if exp_cfg_lines[1] in acls_raw:
@@ -469,7 +469,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         :return : True or False
         """
         ios_cfg = self._get_running_config()
-        parse = ciscoconfparse.CiscoConfParse(ios_cfg)
+        parse = HTParser(ios_cfg)
         cfg_raw = parse.find_lines("^" + cfg_str)
         LOG.debug("_cfg_exists(): Found lines %s", cfg_raw)
         return len(cfg_raw) > 0
@@ -517,7 +517,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
 
     def _get_interface_cfg(self, interface):
         ios_cfg = self._get_running_config()
-        parse = ciscoconfparse.CiscoConfParse(ios_cfg)
+        parse = HTParser(ios_cfg)
         return parse.find_children('interface ' + interface)
 
     def _nat_rules_for_internet_access(self, acl_no, network,
@@ -594,7 +594,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
 
     def _get_floating_ip_cfg(self):
         ios_cfg = self._get_running_config()
-        parse = ciscoconfparse.CiscoConfParse(ios_cfg)
+        parse = HTParser(ios_cfg)
         res = parse.find_lines('ip nat inside source static')
         return res
 
@@ -608,7 +608,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
 
     def _get_static_route_cfg(self):
         ios_cfg = self._get_running_config()
-        parse = ciscoconfparse.CiscoConfParse(ios_cfg)
+        parse = HTParser(ios_cfg)
         return parse.find_lines('ip route')
 
     def caller_name(self, skip=2):

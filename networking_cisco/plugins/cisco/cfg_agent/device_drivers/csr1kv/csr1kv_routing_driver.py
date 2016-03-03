@@ -29,8 +29,8 @@ from networking_cisco.plugins.cisco.cfg_agent.device_drivers import (
     devicedriver_api)
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
     cisco_csr1kv_snippets as snippets)
+from networking_cisco.plugins.cisco.common.htparser import HTParser
 
-ciscoconfparse = importutils.try_import('ciscoconfparse')
 manager = importutils.try_import('ncclient.manager')
 
 LOG = logging.getLogger(__name__)
@@ -349,7 +349,7 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
         :return: List of the interfaces
         """
         ioscfg = self._get_running_config()
-        parse = ciscoconfparse.CiscoConfParse(ioscfg)
+        parse = HTParser(ioscfg)
         intfs_raw = parse.find_lines("^interface GigabitEthernet")
         intfs = [raw_if.strip().split(' ')[1] for raw_if in intfs_raw]
         LOG.info(_LI("Interfaces:%s"), intfs)
@@ -362,7 +362,7 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
         :return: ip address of interface as a string
         """
         ioscfg = self._get_running_config()
-        parse = ciscoconfparse.CiscoConfParse(ioscfg)
+        parse = HTParser(ioscfg)
         children = parse.find_children("^interface %s" % interface_name)
         for line in children:
             if 'ip address' in line:
@@ -375,7 +375,7 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
     def _interface_exists(self, interface):
         """Check whether interface exists."""
         ioscfg = self._get_running_config()
-        parse = ciscoconfparse.CiscoConfParse(ioscfg)
+        parse = HTParser(ioscfg)
         intfs_raw = parse.find_lines("^interface " + interface)
         return len(intfs_raw) > 0
 
@@ -417,7 +417,7 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
         """
         vrfs = []
         ioscfg = self._get_running_config()
-        parse = ciscoconfparse.CiscoConfParse(ioscfg)
+        parse = HTParser(ioscfg)
         vrfs_raw = parse.find_lines("^vrf definition")
         for line in vrfs_raw:
             #  raw format ['ip vrf <vrf-name>',....]
@@ -466,7 +466,7 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
         exp_cfg_lines = ['ip access-list standard ' + str(acl_no),
                          ' permit ' + str(network) + ' ' + str(netmask)]
         ioscfg = self._get_running_config()
-        parse = ciscoconfparse.CiscoConfParse(ioscfg)
+        parse = HTParser(ioscfg)
         acls_raw = parse.find_children(exp_cfg_lines[0])
         if acls_raw:
             if exp_cfg_lines[1] in acls_raw:
@@ -483,7 +483,7 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
         :return : True or False
         """
         ioscfg = self._get_running_config()
-        parse = ciscoconfparse.CiscoConfParse(ioscfg)
+        parse = HTParser(ioscfg)
         cfg_raw = parse.find_lines("^" + cfg_str)
         LOG.debug("_cfg_exists(): Found lines %s", cfg_raw)
         return len(cfg_raw) > 0
@@ -543,7 +543,7 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
 
     def _get_interface_cfg(self, interface):
         ioscfg = self._get_running_config()
-        parse = ciscoconfparse.CiscoConfParse(ioscfg)
+        parse = HTParser(ioscfg)
         return parse.find_children('interface ' + interface)
 
     def _nat_rules_for_internet_access(self, acl_no, network,
@@ -641,7 +641,7 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
 
     def _get_floating_ip_cfg(self):
         ioscfg = self._get_running_config()
-        parse = ciscoconfparse.CiscoConfParse(ioscfg)
+        parse = HTParser(ioscfg)
         res = parse.find_lines('ip nat inside source static')
         return res
 
@@ -659,7 +659,7 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
 
     def _get_static_route_cfg(self):
         ioscfg = self._get_running_config()
-        parse = ciscoconfparse.CiscoConfParse(ioscfg)
+        parse = HTParser(ioscfg)
         return parse.find_lines('ip route')
 
     def _add_default_static_route(self, gw_ip, vrf):

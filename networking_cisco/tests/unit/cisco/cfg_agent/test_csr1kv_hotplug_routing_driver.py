@@ -27,7 +27,6 @@ from networking_cisco.tests.unit.cisco.cfg_agent import (
     test_csr1kv_routing_driver)
 
 sys.modules['ncclient'] = mock.MagicMock()
-sys.modules['ciscoconfparse'] = mock.MagicMock()
 
 _uuid = uuidutils.generate_uuid
 FAKE_ID = _uuid()

@@ -38,7 +38,6 @@ from networking_cisco.plugins.cisco.extensions import ha
 from networking_cisco.plugins.cisco.extensions import routerrole
 
 sys.modules['ncclient'] = mock.MagicMock()
-sys.modules['ciscoconfparse'] = mock.MagicMock()
 
 _uuid = uuidutils.generate_uuid
 FAKE_ID = _uuid()
