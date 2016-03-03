@@ -87,17 +87,6 @@ except:
 EOF
 }
 
-function install_ciscoconfparse {
-    sudo -E pip install ciscoconfparse
-}
-
-function is_ciscoconfparse_installed {
-    if [[ $(pip list | grep ciscoconfparse | awk '{ print $1 }')  == "ciscoconfparse" ]]; then
-        return 0
-    fi
-    return 1
-}
-
 # Install the ncclient package
 function install_ncclient {
     sudo -E pip install ncclient
@@ -118,9 +107,6 @@ function is_ncclient_installed {
 }
 
 function _configure_cisco_router_plugin {
-    if ! is_ciscoconfparse_installed; then
-        install_ciscoconfparse
-    fi
     # Install a known compatible ncclient from the Cisco repository if necessary
     if ! is_ncclient_installed; then
         install_ncclient
