@@ -148,9 +148,7 @@ class TestHwVLANTrunkingPlugDriver(
         fake_port_db_obj = mock.MagicMock()
         fake_port_db_obj.hosting_info = mock.MagicMock()
         fake_port_db_obj.hosting_info.segmentation_id = 50
-        fake_port_db_obj.get = mock.MagicMock()
-        fake_port_db_obj.get.return_value = {
-            'port_type': l3_constants.DEVICE_OWNER_ROUTER_INTF}
+        fake_port_db_obj.device_owner = l3_constants.DEVICE_OWNER_ROUTER_INTF
         hosting_device = {'id': '00000000-0000-0000-0000-000000000002'}
         tenant_id = 'tenant_uuid1'
         ctx = context.Context('', tenant_id, is_admin=True)
@@ -166,9 +164,7 @@ class TestHwVLANTrunkingPlugDriver(
         fake_port_db_obj = mock.MagicMock()
         fake_port_db_obj.hosting_info = mock.MagicMock()
         fake_port_db_obj.hosting_info.segmentation_id = 40
-        fake_port_db_obj.router_port = mock.MagicMock()
-        fake_port_db_obj.router_port.return_value = {
-            'port_type': l3_constants.DEVICE_OWNER_ROUTER_GW}
+        fake_port_db_obj.device_owner = l3_constants.DEVICE_OWNER_ROUTER_GW
         hosting_device = {'id': '00000000-0000-0000-0000-000000000002'}
         tenant_id = 'tenant_uuid1'
         ctx = context.Context('', tenant_id, is_admin=True)
@@ -176,7 +172,7 @@ class TestHwVLANTrunkingPlugDriver(
         plugging_driver.extend_hosting_port_info(ctx, fake_port_db_obj,
                                                  hosting_device, hosting_info)
         self.assertEqual(hosting_info['physical_interface'],
-                         'GigabitEthernet/1/0/1')
+                         'GigabitEthernet/2/0/1')
         self.assertEqual(hosting_info['segmentation_id'], 40)
 
     def _update_provider_net_info(self, res_list, fields):
