@@ -788,12 +788,12 @@ class HA_db_mixin(object):
             # driver will know how to handle this "signal".
             p_id = hag.extra_port_id or port['id']
             interface_port = self._core_plugin.get_port(context, p_id)
-            self._populate_subnets_for_ports(context, [interface_port])
+            self._populate_mtu_and_subnets_for_ports(context, [interface_port])
             modified_interfaces.append(interface_port)
             ha_port = port
         else:
             ha_port = self._core_plugin.get_port(context, hag.ha_port_id)
-            self._populate_subnets_for_ports(context, [ha_port])
+            self._populate_mtu_and_subnets_for_ports(context, [ha_port])
             interface_port = port
         interface_port[HA_INFO] = {
             ha.TYPE: hag.ha_type,

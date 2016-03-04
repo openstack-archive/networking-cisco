@@ -27,12 +27,16 @@ from networking_cisco.plugins.cisco.cfg_agent import cfg_agent
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
 from networking_cisco.plugins.cisco.cfg_agent.service_helpers import (
     routing_svc_helper)
+from networking_cisco.plugins.cisco.common import (cisco_constants as
+                                                   c_constants)
 from networking_cisco.plugins.cisco.extensions import routerrole
 
 
 _uuid = uuidutils.generate_uuid
 HOST = 'myhost'
 FAKE_ID = _uuid()
+
+ROUTER_ROLE_ATTR = routerrole.ROUTER_ROLE_ATTR
 
 
 def prepare_router_data(enable_snat=None, num_internal_ports=1):
@@ -635,3 +639,31 @@ class TestBasicRoutingOperations(base.BaseTestCase):
 
     def test_process_routers_floatingips_remap(self):
         self._process_routers_floatingips(action="remap")
+
+    def test_process_routers_rearrange_for_global(self):
+        router1, port1 = prepare_router_data()
+
+        router2 = {'id': _uuid(),
+                   ROUTER_ROLE_ATTR: None}
+        router_G = {'id': _uuid(),
+                   ROUTER_ROLE_ATTR: c_constants.ROUTER_ROLE_GLOBAL}
+        removed_routers = [router_G, router2]
+
+        self.routing_helper._adjust_router_list_for_global_router(
+                removed_routers)
+        #We check if the routers where rearranged
+        self.assertEqual(router2['id'], removed_routers[0]['id'])
+
+        removed_routers = [router_G, router2]
+        driver = self._mock_driver_and_hosting_device(self.routing_helper)
+        self.routing_helper._process_router = mock.Mock()
+        self.routing_helper._router_removed = mock.Mock()
+        self.routing_helper._process_routers(
+                [router1], removed_routers=removed_routers, device_id=None)
+        ri1 = self.routing_helper.router_info[router1['id']]
+        driver.router_added.assert_called_with(ri1)
+        # This check ensures that the tenant router was deleted first, followed
+        # by the global router
+        self.routing_helper._router_removed.assert_called_with(router_G['id'])
+        self.routing_helper._router_removed.assert_any_call(router2['id'])
+        self.routing_helper._process_router.assert_called_with(ri1)
