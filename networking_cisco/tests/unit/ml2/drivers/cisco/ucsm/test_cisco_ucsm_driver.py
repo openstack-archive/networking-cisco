@@ -566,17 +566,19 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = ['Host1:SP1', 'Host2:SP2']
         cfg.CONF.ml2_cisco_ucsm.ucsm_ip = '1.1.1.1'
         expected_ip = '1.1.1.1'
+        expected_sp1 = "org-root/ls-SP1"
+        expected_sp2 = "org-root/ls-SP2"
         ucsm_sp_dict, ucsm_host_dict = conf.parse_ucsm_host_config()
 
         key = (cfg.CONF.ml2_cisco_ucsm.ucsm_ip, 'Host1')
         self.assertIn(key, ucsm_sp_dict)
-        self.assertEqual('SP1', ucsm_sp_dict[key])
+        self.assertEqual(expected_sp1, ucsm_sp_dict[key])
         self.assertIn('Host1', ucsm_host_dict)
         self.assertEqual(expected_ip, ucsm_host_dict['Host1'])
 
         key = (cfg.CONF.ml2_cisco_ucsm.ucsm_ip, 'Host2')
         self.assertIn(key, ucsm_sp_dict)
-        self.assertEqual('SP2', ucsm_sp_dict.get(key))
+        self.assertEqual(expected_sp2, ucsm_sp_dict.get(key))
         self.assertEqual(expected_ip, ucsm_host_dict.get('Host2'))
 
         key = (cfg.CONF.ml2_cisco_ucsm.ucsm_ip, 'Host3')

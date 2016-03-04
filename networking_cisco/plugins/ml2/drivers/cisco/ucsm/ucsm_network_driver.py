@@ -355,8 +355,7 @@ class CiscoUcsmDriver(object):
         the UCS Server, is updated with the VLAN profile corresponding
         to the vlan_id passed in.
         """
-        eth_port_paths = []
-        virtio_port_list = config.get_ucsm_eth_port_list(ucsm_ip)
+        virtio_port_list = self.ucsm_conf.get_ucsm_eth_port_list(ucsm_ip)
         eth_port_paths = ["%s%s" % (service_profile, ep)
             for ep in virtio_port_list]
 
@@ -364,6 +363,7 @@ class CiscoUcsmDriver(object):
 
         with self.ucsm_connect_disconnect(ucsm_ip) as handle:
             try:
+                handle.StartTransaction()
                 obj = handle.GetManagedObject(
                     None,
                     self.ucsmsdk.LsServer.ClassId(),
@@ -371,7 +371,8 @@ class CiscoUcsmDriver(object):
 
                 if not obj:
                     LOG.debug('UCS Manager network driver could not find '
-                              'Service Profile %s at', service_profile)
+                              'Service Profile %s in UCSM %s',
+                              service_profile, ucsm_ip)
                     return False
 
                 for eth_port_path in eth_port_paths:
@@ -414,7 +415,9 @@ class CiscoUcsmDriver(object):
         ethernet ports and the Fabric Interconnect's network ports.
         """
         ucsm_ip = self.ucsm_host_dict.get(host_id)
-        service_profile = self.ucsm_sp_dict.get(ucsm_ip, host_id)
+        key = (ucsm_ip, host_id)
+        service_profile = self.ucsm_sp_dict.get(key)
+
         if service_profile:
             LOG.debug("UCS Manager network driver Service Profile : %s",
                 service_profile)
@@ -494,8 +497,8 @@ class CiscoUcsmDriver(object):
     def _remove_vlan_from_all_service_profiles(self, vlan_id, ucsm_ip):
         """Deletes VLAN Profile config from server's ethernet ports."""
         service_profile_list = []
-        for ucsm, host_id, value in six.iteritems(self.ucsm_sp_dict):
-            if ucsm == ucsm_ip and value:
+        for key, value in six.iteritems(self.ucsm_sp_dict):
+            if (ucsm_ip in key) and value:
                 service_profile_list.append(value)
 
         if not service_profile_list:
@@ -506,9 +509,10 @@ class CiscoUcsmDriver(object):
             try:
                 handle.StartTransaction()
                 for service_profile in service_profile_list:
-                    eth0 = service_profile + const.ETH0
-                    eth1 = service_profile + const.ETH1
-                    eth_port_paths = [eth0, eth1]
+                    virtio_port_list = self.ucsm_conf.get_ucsm_eth_port_list(
+                        ucsm_ip)
+                    eth_port_paths = ["%s%s" % (service_profile, ep)
+                        for ep in virtio_port_list]
 
                     # 1. From the Service Profile config, access the
                     # configuration for its ports.
@@ -548,7 +552,8 @@ class CiscoUcsmDriver(object):
         """Top level method to delete all config for vlan_id."""
         ucsm_ips = self.ucsm_conf.get_all_ucsm_ips()
         for ucsm_ip in ucsm_ips:
-            self._delete_port_profile(port_profile, ucsm_ip)
+            if (port_profile):
+                self._delete_port_profile(port_profile, ucsm_ip)
             self._remove_vlan_from_all_service_profiles(vlan_id, ucsm_ip)
             self._delete_vlan_profile(vlan_id, ucsm_ip)
 
