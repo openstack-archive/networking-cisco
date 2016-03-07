@@ -130,7 +130,19 @@ class CiscoCfgAgent(manager.Manager):
                            "against its hosting-devices. If a device dies "
                            "and recovers, the agent will then trigger a "
                            "configuration resync.")),
-
+        cfg.IntOpt('keepalive_interval', default=10, min=1,
+                   help=_("Interval in seconds when the config agent sents a "
+                          "timestamp to the plugin to say that it is alive."
+                          "This value should be more than 0, otherwise cfg "
+                          "agent will be considered as dead."
+                          "")),
+        cfg.IntOpt('report_iteration', default=6,
+                   help=_("The iteration where the config agent sends a full "
+                          "status report to the plugin. The default is every "
+                          "6th iteration of the keep alive interval. This "
+                          "means with default value of keepalive_interval "
+                          "(10sec), a full report is sent once every "
+                          "6*10 = 60 seconds")),
     ]
 
     def __init__(self, host, conf=None):
@@ -348,16 +360,19 @@ class CiscoCfgAgentWithStateReport(CiscoCfgAgent):
             'configurations': {},
             'start_flag': True,
             'agent_type': c_constants.AGENT_TYPE_CFG}
-        report_interval = cfg.CONF.AGENT.report_interval
         self.use_call = True
         self._initialize_rpc(host)
         self._agent_registration()
         super(CiscoCfgAgentWithStateReport, self).__init__(host=host,
                                                            conf=conf)
-        if report_interval:
+
+        self.report_iteration = self.conf.cfg_agent.report_iteration
+        keepalive_interval = self.conf.cfg_agent.keepalive_interval
+        if keepalive_interval:
             self.heartbeat = loopingcall.FixedIntervalLoopingCall(
                 self._report_state)
-            self.heartbeat.start(interval=report_interval)
+            self.heartbeat.start(interval=keepalive_interval)
+            self.keepalive_iteration = 0
 
     def _agent_registration(self):
         """Register this agent with the server.
@@ -395,30 +410,42 @@ class CiscoCfgAgentWithStateReport(CiscoCfgAgent):
     def _report_state(self):
         """Report state to the plugin.
 
-        This task run every `report_interval` period.
+        This task run every `keepalive_interval` period.
         Collects, creates and sends a summary of the services currently
         managed by this agent. Data is collected from the service helper(s).
         Refer the `configurations` dict for the parameters reported.
         :return: None
         """
         LOG.debug("Report state task started")
+        self.keepalive_iteration += 1
+        if self.keepalive_iteration == self.report_iteration:
+            self._prepare_full_report_data()
+            self.keepalive_iteration = 0
+            LOG.debug("State report: %s", pprint.pformat(self.agent_state))
+        else:
+            self.agent_state.pop('configurations', None)
+            self.agent_state['local_time'] = datetime.now().strftime(
+                constants.ISO8601_TIME_FORMAT)
+            LOG.debug("State report: %s", self.agent_state)
+        self.send_agent_report(self.agent_state, self.context)
+
+    def _prepare_full_report_data(self):
         configurations = {}
         service_agents = []
+        self.agent_state['configurations'] = configurations
         if self.routing_service_helper:
             service_agents.append(c_constants.AGENT_TYPE_L3_CFG)
             configurations = self.routing_service_helper.collect_state(
                 self.agent_state['configurations'])
         non_responding = self._dev_status.get_backlogged_hosting_devices_info()
-        monitored_hosting_devices = \
-            self._dev_status.get_monitored_hosting_devices_info()
+        monitored_hosting_devices = (self._dev_status.
+                                     get_monitored_hosting_devices_info())
         configurations['non_responding_hosting_devices'] = non_responding
         configurations['monitored_hosting_devices'] = monitored_hosting_devices
         configurations['service_agents'] = service_agents
         self.agent_state['configurations'] = configurations
-        self.agent_state['local_time'] = datetime.utcnow().strftime(
+        self.agent_state['local_time'] = datetime.now().strftime(
             constants.ISO8601_TIME_FORMAT)
-        LOG.debug("State report data: %s", pprint.pformat(self.agent_state))
-        self.send_agent_report(self.agent_state, self.context)
 
     def send_agent_report(self, report, context):
         """Send the agent report via RPC."""

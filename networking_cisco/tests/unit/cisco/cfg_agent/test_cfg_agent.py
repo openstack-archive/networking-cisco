@@ -122,10 +122,31 @@ class TestCiscoCfgAgentWithStateReporting(base.BaseTestCase):
 
     def test_report_state(self):
         agent = cfg_agent.CiscoCfgAgentWithStateReport(HOSTNAME, self.conf)
+        # Set keepalive iteration to just before the reporting iteration
+        agent.keepalive_iteration = self.conf.cfg_agent.report_iteration - 1
         agent._report_state()
         self.assertIn('total routers', agent.agent_state['configurations'])
         self.assertEqual(0,
                          agent.agent_state['configurations']['total routers'])
+
+    def test_report_state_report_iteration_check_full_report(self):
+        agent = cfg_agent.CiscoCfgAgentWithStateReport(HOSTNAME, self.conf)
+        # Set keepalive iteration to just before the reporting iteration
+        agent.keepalive_iteration = self.conf.cfg_agent.report_iteration - 1
+        agent._report_state()
+        self.assertIn('total routers', agent.agent_state['configurations'])
+        self.assertEqual(0, agent.agent_state[
+            'configurations']['total routers'])
+        self.assertEqual(0, agent.keepalive_iteration)
+
+    def test_report_state_report_iteration_check_partial_report(self):
+        agent = cfg_agent.CiscoCfgAgentWithStateReport(HOSTNAME, self.conf)
+        # Retain original keepalive iteration
+        agent.keepalive_iteration = self.conf.cfg_agent.report_iteration
+        agent._report_state()
+        self.assertNotIn('configurations', agent.agent_state)
+        self.assertEqual((self.conf.cfg_agent.report_iteration + 1),
+                         agent.keepalive_iteration)
 
     @mock.patch('networking_cisco.plugins.cisco.cfg_agent.'
                 'cfg_agent.CiscoCfgAgentWithStateReport._agent_registration')
