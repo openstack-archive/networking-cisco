@@ -32,7 +32,6 @@ from neutron.tests import fake_notifier
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.db.l3 import ha_db
 from networking_cisco.plugins.cisco.extensions import ha
-from networking_cisco.plugins.cisco.extensions import routertype
 from networking_cisco.tests.unit.cisco.device_manager import (
     device_manager_test_support)
 from networking_cisco.tests.unit.cisco.l3 import (
@@ -77,9 +76,9 @@ class TestApplianceHAL3RouterServicePlugin(
     ha_db.HA_db_mixin,
         test_l3_router_appliance_plugin.TestApplianceL3RouterServicePlugin):
 
-    supported_extension_aliases = ["router", "extraroute",
-                                   routertype.ROUTERTYPE_ALIAS,
-                                   ha.HA_ALIAS]
+        supported_extension_aliases = (
+            test_l3_router_appliance_plugin.TestApplianceL3RouterServicePlugin.
+            supported_extension_aliases + [ha.HA_ALIAS])
 
 
 # TODO(bobmel): Add tests that ensures that Cisco HA is not applied on

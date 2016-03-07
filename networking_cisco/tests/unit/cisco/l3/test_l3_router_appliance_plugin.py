@@ -115,8 +115,9 @@ class TestNoL3NatPlugin(test_l3.TestNoL3NatPlugin,
 class TestApplianceL3RouterServicePlugin(
         l3_router_test_support.TestL3RouterServicePlugin):
 
-    supported_extension_aliases = ["router", "extraroute",
-                                   routertype.ROUTERTYPE_ALIAS]
+    supported_extension_aliases = (
+        l3_router_test_support.TestL3RouterServicePlugin.
+        supported_extension_aliases + ["extraroute"])
 
 
 class L3RouterApplianceTestCaseBase(

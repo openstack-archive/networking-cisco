@@ -28,6 +28,7 @@ from neutron.api.v2 import attributes
 from neutron.common import test_lib
 from neutron.db import common_db_mixin
 from neutron.extensions import l3
+from neutron.extensions import standardattrdescription
 from neutron.plugins.common import constants as service_constants
 
 LOG = logging.getLogger(__name__)
@@ -87,6 +88,11 @@ class TestL3RouterBaseExtensionManager(object):
         # also add routertype attribute to router resource
         l3.RESOURCE_ATTRIBUTE_MAP['routers'].update(
             routertype.EXTENDED_ATTRIBUTES_2_0['routers'])
+        # also add description attribute to router and fip resources
+        l3.RESOURCE_ATTRIBUTE_MAP['routers'].update(
+            standardattrdescription.EXTENDED_ATTRIBUTES_2_0['routers'])
+        l3.RESOURCE_ATTRIBUTE_MAP['floatingips'].update(
+            standardattrdescription.EXTENDED_ATTRIBUTES_2_0['floatingips'])
         # finally, extend the global attribute map
         attributes.RESOURCE_ATTRIBUTE_MAP.update(
             l3.RESOURCE_ATTRIBUTE_MAP)
@@ -115,6 +121,7 @@ class TestL3RouterServicePlugin(
 
     supported_extension_aliases = [
         "router",
+        "standard-attr-description",
         routerhostingdevice.ROUTERHOSTINGDEVICE_ALIAS,
         routerrole.ROUTERROLE_ALIAS,
         routertype.ROUTERTYPE_ALIAS]

@@ -90,10 +90,11 @@ class TestSchedulingCapableL3RouterServicePlugin(
     l3_router_test_support.TestL3RouterServicePlugin,
         router_sch_db.L3RouterTypeAwareSchedulerDbMixin):
 
-    supported_extension_aliases = [
-        "router", routertype.ROUTERTYPE_ALIAS,
-        routertypeawarescheduler.ROUTERTYPE_AWARE_SCHEDULER_ALIAS,
-        constants.L3_AGENT_SCHEDULER_EXT_ALIAS]
+    supported_extension_aliases = (
+        l3_router_test_support.TestL3RouterServicePlugin.
+        supported_extension_aliases +
+        [routertypeawarescheduler.ROUTERTYPE_AWARE_SCHEDULER_ALIAS,
+         constants.L3_AGENT_SCHEDULER_EXT_ALIAS])
 
     def __init__(self):
         self.agent_notifiers.update(
@@ -1134,11 +1135,12 @@ class TestHASchedulingL3RouterApplianceExtensionManager(
 class TestSchedulingHACapableL3RouterServicePlugin(
         ha_db.HA_db_mixin, TestSchedulingCapableL3RouterServicePlugin):
 
-    supported_extension_aliases = [
-        "router", routertype.ROUTERTYPE_ALIAS,
-        routertypeawarescheduler.ROUTERTYPE_AWARE_SCHEDULER_ALIAS,
-        constants.L3_AGENT_SCHEDULER_EXT_ALIAS,
-        ha.HA_ALIAS]
+    supported_extension_aliases = (
+        TestSchedulingCapableL3RouterServicePlugin.
+        supported_extension_aliases +
+        [routertypeawarescheduler.ROUTERTYPE_AWARE_SCHEDULER_ALIAS,
+         constants.L3_AGENT_SCHEDULER_EXT_ALIAS,
+         ha.HA_ALIAS])
 
 
 class L3RouterHostingDeviceHARandomSchedulerTestCase(

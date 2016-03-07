@@ -59,6 +59,7 @@ class CiscoRouterPlugin(common_db_mixin.CommonDbMixin,
     """
     supported_extension_aliases = [
         "router",  # "ext-gw-mode",
+        "standard-attr-description",
         "extraroute", "l3_agent_scheduler",
         routerhostingdevice.ROUTERHOSTINGDEVICE_ALIAS,
         routerrole.ROUTERROLE_ALIAS,
