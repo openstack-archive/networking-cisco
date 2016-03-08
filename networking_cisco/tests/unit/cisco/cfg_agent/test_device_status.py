@@ -131,6 +131,17 @@ class TestHostingDevice(base.BaseTestCase):
         self.assertEqual(self.status.backlog_hosting_devices[123]['hd'],
                          self.hosting_device)
 
+    def test_is_hosting_device_reachable_negative_dead_hd(self):
+        self.status.backlog_hosting_devices.clear()
+        self.hosting_device['hd_state'] = 'Dead'
+        self.status.backlog_hosting_devices = {
+            self.hosting_device['id']: {'hd': self.hosting_device}
+        }
+        self.assertEqual(False, self.status.is_hosting_device_reachable(
+                self.hosting_device))
+        self.hosting_device['hd_state'] = 'Active'
+        self.status.backlog_hosting_devices.clear()
+
     def test_check_backlog_empty(self):
 
         expected = {'reachable': [],
@@ -283,3 +294,14 @@ class TestHostingDevice(base.BaseTestCase):
             self.status.backlog_hosting_devices[hd_id]['hd']['hd_state']
         self.assertEqual('Active',
                          post_hd_state)
+
+    def test_get_dead_hosting_devices_info(self):
+
+        hd1 = {'id': 'fakeid1', 'hd_state': 'Active'}
+        hd2 = {'id': 'fakeid2', 'hd_state': 'Dead'}
+        self.status.backlog_hosting_devices = {
+            hd1['id']: {'hd': hd1},
+            hd2['id']: {'hd': hd2}
+        }
+        self.assertEqual(['fakeid2'],
+                         self.status.get_dead_hosting_devices_info())
