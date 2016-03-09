@@ -238,13 +238,13 @@ class HostingDeviceGetConfig(extension.ClientExtensionShow, HostingDevice):
     shell_command = 'cisco-hosting-device-get-config'
 
     def run(self, parsed_args):
-        data = self.take_action(parsed_args)
+        data = self.execute(parsed_args)
         # just do raw text output
         if data:
             self.app.stdout.write(str(data) + '\n')
         return 0
 
-    def take_action(self, parsed_args):
+    def execute(self, parsed_args):
         self.log.debug('run(%s)' % parsed_args)
         neutron_client = self.get_client()
         neutron_client.format = parsed_args.request_format
