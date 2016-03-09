@@ -51,7 +51,7 @@ class HostingDeviceAssociateWithConfigAgent(extension.ClientExtensionCreate,
             help=_('Name or id of hosting device to associate.'))
         return parser
 
-    def get_data(self, parsed_args):
+    def execute(self, parsed_args):
         self.log.debug('run(%s)' % parsed_args)
         neutron_client = self.get_client()
         neutron_client.format = parsed_args.request_format
@@ -91,7 +91,7 @@ class HostingDeviceDisassociateFromConfigAgent(
             help=_('Name or id of hosting device to disassociate.'))
         return parser
 
-    def get_data(self, parsed_args):
+    def execute(self, parsed_args):
         self.log.debug('run(%s)' % parsed_args)
         neutron_client = self.get_client()
         neutron_client.format = parsed_args.request_format

@@ -54,7 +54,7 @@ class AddRouterToHostingDevice(extension.ClientExtensionCreate,
             help=_('Name or id of router to add.'))
         return parser
 
-    def get_data(self, parsed_args):
+    def execute(self, parsed_args):
         self.log.debug('run(%s)' % parsed_args)
         neutron_client = self.get_client()
         neutron_client.format = parsed_args.request_format
@@ -93,7 +93,7 @@ class RemoveRouterFromHostingDevice(extension.ClientExtensionCreate,
             help=_('Name or id of router to remove.'))
         return parser
 
-    def get_data(self, parsed_args):
+    def execute(self, parsed_args):
         self.log.debug('run(%s)' % parsed_args)
         neutron_client = self.get_client()
         neutron_client.format = parsed_args.request_format
