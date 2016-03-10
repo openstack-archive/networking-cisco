@@ -40,6 +40,7 @@ LOG = logging.getLogger(__name__)
 DEVICE_OWNER_ROUTER_GW = constants.DEVICE_OWNER_ROUTER_GW
 HA_INFO = 'ha_info'
 ROUTER_ROLE_ATTR = routerrole.ROUTER_ROLE_ATTR
+ROUTER_ROLE_HA_REDUNDANCY = cisco_constants.ROUTER_ROLE_HA_REDUNDANCY
 
 ASR1K_DRIVER_OPTS = [
     cfg.BoolOpt('enable_multi_region',
@@ -278,10 +279,14 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
 
     def _set_nat_pool(self, ri, gw_port, is_delete):
         vrf_name = self._get_vrf_name(ri)
+        if ri.router.get(ROUTER_ROLE_ATTR) == ROUTER_ROLE_HA_REDUNDANCY:
+            pool_ip = gw_port[HA_INFO]['ha_port']['fixed_ips'][0]['ip_address']
+            pool_ip_prefix_len = gw_port['fixed_ips'][0]['prefixlen']
+        else:
+            pool_ip = gw_port['fixed_ips'][0]['ip_address']
+            pool_ip_prefix_len = gw_port['fixed_ips'][0]['prefixlen']
         # TODO(sridar) reverting to old model, needs more investigation
         # and cleanup
-        pool_ip = gw_port['fixed_ips'][0]['ip_address']
-        pool_ip_prefix_len = gw_port['fixed_ips'][0]['prefixlen']
         # pool_info = gw_port['nat_pool_info']
         # pool_ip = pool_info['pool_ip']
         pool_name = "%s_nat_pool" % (vrf_name)
@@ -422,8 +427,7 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
 
     @staticmethod
     def _port_is_hsrp(port):
-        hsrp_types = [constants.DEVICE_OWNER_ROUTER_HA_GW,
-                      constants.DEVICE_OWNER_ROUTER_HA_INTF]
+        hsrp_types = [constants.DEVICE_OWNER_ROUTER_HA_INTF]
         return port['device_owner'] in hsrp_types
 
     @staticmethod
