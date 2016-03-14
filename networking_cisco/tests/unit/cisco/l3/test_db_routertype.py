@@ -195,6 +195,10 @@ class RoutertypeTestCaseMixin(object):
             for r in routers:
                 if r['id'] in auto_deleted_router_ids:
                     continue
+                # Remove any static routes
+                if r.get('routes'):
+                    self._update('routers', r['id'],
+                                 {'router': {'routes': None}})
                 # Remove any floatingips using the router
                 for fip in self._list(
                         'floatingips',
