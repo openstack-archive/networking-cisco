@@ -414,6 +414,8 @@ class RoutingServiceHelper(object):
         #ToDo(Hareesh): Simplify if possible
         for r in routers:
             if r[ROUTER_ROLE_ATTR] == c_constants.ROUTER_ROLE_GLOBAL:
+                LOG.debug("Global router:%s found. Moved to the end of list "
+                          "for processing", r['id'])
                 routers.remove(r)
                 routers.append(r)
 
@@ -449,26 +451,27 @@ class RoutingServiceHelper(object):
                 prev_router_ids = set(self.router_info) & set(
                     [router['id'] for router in routers])
             cur_router_ids = set()
-            deleted_id_list = []
+            deleted_routerids_list = []
 
             for r in routers:
                 if not r['admin_state_up']:
                         continue
                 cur_router_ids.add(r['id'])
 
-            # identify and remove routers that no longer exist
+            # identify list of routers(ids) that no longer exist
             for router_id in prev_router_ids - cur_router_ids:
-                self._router_removed(router_id)
-                deleted_id_list.append(router_id)
+                deleted_routerids_list.append(router_id)
             if removed_routers:
                 self._adjust_router_list_for_global_router(removed_routers)
                 for router in removed_routers:
-                    self._router_removed(router['id'])
-                    deleted_id_list.append(router['id'])
+                    deleted_routerids_list.append(router['id'])
 
             self._adjust_router_list_for_global_router(routers)
+            # First process create/updated routers
             for r in routers:
-                if r['id'] in deleted_id_list:
+                LOG.debug("Processing router[id:%(id)s, role:%(role)s]",
+                          {'id': r['id'], 'role': r[ROUTER_ROLE_ATTR]})
+                if r['id'] in deleted_routerids_list:
                     continue
                 try:
                     if not r['admin_state_up']:
@@ -493,6 +496,12 @@ class RoutingServiceHelper(object):
                                     "Error is %(e)s"), {'id': r['id'], 'e': e})
                     self.updated_routers.update([r['id']])
                     continue
+                LOG.debug("Done processing router[id:%(id)s, role:%(role)s]",
+                          {'id': r['id'], 'role': r[ROUTER_ROLE_ATTR]})
+            # Finally process removed routers
+            for router_id in deleted_routerids_list:
+                LOG.debug("Processing deleted router:%s", router_id)
+                self._router_removed(router_id)
         except Exception:
             LOG.exception(_LE("Exception in processing routers on device:%s"),
                           device_id)
