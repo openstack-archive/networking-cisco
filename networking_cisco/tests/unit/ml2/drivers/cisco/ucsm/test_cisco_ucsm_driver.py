@@ -63,15 +63,15 @@ PCI_INFO_INVALID = '1111'
 UCSM_DRIVER = ('neutron.plugins.ml2.drivers.cisco.ucsm.'
                'ucsm_network_driver.CiscoUcsmDriver')
 
-VLAN_SEGMENTS = {api.ID: 'vlan_segment_id',
-                 api.NETWORK_TYPE: 'vlan',
+VLAN_SEGMENT = {api.ID: 'vlan_segment_id',
+                api.NETWORK_TYPE: 'vlan',
+                api.PHYSICAL_NETWORK: 'test_physnet',
+                api.SEGMENTATION_ID: VLAN_ID_1}
+
+VXLAN_SEGMENT = {api.ID: 'vlan_segment_id',
+                 api.NETWORK_TYPE: 'vxlan',
                  api.PHYSICAL_NETWORK: 'test_physnet',
                  api.SEGMENTATION_ID: VLAN_ID_1}
-
-VXLAN_SEGMENTS = {api.ID: 'vlan_segment_id',
-                  api.NETWORK_TYPE: 'vxlan',
-                  api.PHYSICAL_NETWORK: 'test_physnet',
-                  api.SEGMENTATION_ID: VLAN_ID_1}
 
 VLAN_SEGMENTS_BAD = {api.ID: 'vlan_segment_id',
                      api.NETWORK_TYPE: 'vlan',
@@ -118,12 +118,14 @@ class FakePortContext(object):
             'status': None,
             'id': port_id,
             'name': name,
+            # set for _is_supported_deviceowner() to return True
+            'device_owner': n_const.DEVICE_OWNER_DHCP,
             portbindings.HOST_ID: HOST1,
             portbindings.VNIC_TYPE: vnic_type,
             portbindings.PROFILE: profile
         }
         self._network = network_context
-        self._segment = network_context.network_segments
+        self._segment = network_context.network_segments[0]
         self.session = db_api.get_session()
 
     @property
@@ -151,7 +153,7 @@ class FakePortContext(object):
         self._bound_segment_id = segment_id
         self._bound_vif_type = vif_type
         self._bound_vif_details = vif_details
-        self._new_port_status = status
+        self._port['status'] = status
 
 
 class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
@@ -188,7 +190,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         segment[api.SEGMENTATION_ID] = VLAN_ID_1
         segment[api.NETWORK_TYPE] = 'vlan'
 
-        network_context = FakeNetworkContext(VLAN_SEGMENTS)
+        network_context = FakeNetworkContext([VLAN_SEGMENT])
         return network_context
 
     def _create_port_context_vmfex(self):
@@ -197,7 +199,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         port_id = PORT_ID
         vnic_type = VNIC_DIRECT
         profile = {'pci_vendor_info': const.PCI_INFO_CISCO_VIC_1240}
-        network_context = FakeNetworkContext(VLAN_SEGMENTS)
+        network_context = FakeNetworkContext([VLAN_SEGMENT])
         port_context = FakePortContext(name, port_id, vnic_type,
                                        profile, network_context)
         return port_context
@@ -208,7 +210,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         port_id = PORT_ID
         vnic_type = VNIC_DIRECT
         profile = {'pci_vendor_info': PCI_INFO_BAD_NIC}
-        network_context = FakeNetworkContext(VLAN_SEGMENTS)
+        network_context = FakeNetworkContext([VLAN_SEGMENT])
         port_context = FakePortContext(name, port_id, vnic_type,
                                        profile, network_context)
         return port_context
@@ -219,7 +221,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         port_id = PORT_ID
         vnic_type = VNIC_MACVTAP
         profile = {'pci_vendor_info': const.PCI_INFO_INTEL_82599}
-        network_context = FakeNetworkContext(VLAN_SEGMENTS)
+        network_context = FakeNetworkContext([VLAN_SEGMENT])
         port_context = FakePortContext(name, port_id, vnic_type,
                                        profile, network_context)
         return port_context
@@ -230,7 +232,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         port_id = PORT_ID
         vnic_type = VNIC_NORMAL
         profile = {'pci_vendor_info': const.PCI_INFO_CISCO_VIC_1240}
-        network_context = FakeNetworkContext(VLAN_SEGMENTS)
+        network_context = FakeNetworkContext([VLAN_SEGMENT])
         port_context = FakePortContext(name, port_id, vnic_type,
                                        profile, network_context)
         return port_context
@@ -241,6 +243,51 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         vendor2 = const.PCI_INFO_INTEL_82599
         self.assertNotIn(vendor1, self.ucsm_driver.supported_pci_devs)
         self.assertIn(vendor2, self.ucsm_driver.supported_pci_devs)
+
+    def test_port_supported_deviceowner(self):
+        """Verifies detection of supported set of device owners for ports."""
+        port_context = self._create_port_context_normal()
+        port = port_context._port
+        supported_owners = [n_const.DEVICE_OWNER_ROUTER_HA_INTF,
+                            n_const.DEVICE_OWNER_DHCP,
+                            'compute:nova']
+        for owner in supported_owners:
+            port['device_owner'] = owner
+            self.assertTrue(self.mech_driver._is_supported_deviceowner(port))
+
+    def test_port_unsupported_deviceowner(self):
+        """Verifies detection of unsupported device owners for ports."""
+        port_context = self._create_port_context_normal()
+        port = port_context._port
+        unsupported_owners = [n_const.DEVICE_OWNER_ROUTER_INTF,
+                              n_const.DEVICE_OWNER_ROUTER_GW,
+                              n_const.DEVICE_OWNER_FLOATINGIP,
+                              n_const.DEVICE_OWNER_ROUTER_SNAT,
+                              n_const.DEVICE_OWNER_LOADBALANCER,
+                              n_const.DEVICE_OWNER_LOADBALANCERV2,
+                              'controller:foobar']
+        for owner in unsupported_owners:
+            port['device_owner'] = owner
+            self.assertFalse(self.mech_driver._is_supported_deviceowner(port))
+
+    def test_port_supported_status(self):
+        """Verifies detection of supported status values for ports."""
+        port_context = self._create_port_context_normal()
+        port = port_context._port
+        port['status'] = n_const.PORT_STATUS_ACTIVE
+        self.assertTrue(self.mech_driver._is_status_active(port))
+
+    def test_port_unsupported_status(self):
+        """Verifies detection of unsupported status values for ports."""
+        port_context = self._create_port_context_normal()
+        port = port_context._port
+        unsupported_states = [n_const.PORT_STATUS_BUILD,
+                              n_const.PORT_STATUS_DOWN,
+                              n_const.PORT_STATUS_ERROR,
+                              n_const.PORT_STATUS_NOTAPPLICABLE]
+        for state in unsupported_states:
+            port['status'] = state
+            self.assertFalse(self.mech_driver._is_status_active(port))
 
     def test_vmfex_vnic_type_and_vendor_info(self):
         """Verifies VM-FEX port is recognized as a supported vendor."""
@@ -307,11 +354,11 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
 
     def test_check_segment_vlan(self):
         """Verifies VLAN network segments are supported."""
-        self.assertTrue(self.mech_driver.check_segment(VLAN_SEGMENTS))
+        self.assertTrue(self.mech_driver.check_segment(VLAN_SEGMENT))
 
     def test_check_segment_vxlan(self):
         """Verifies VXLAN network segments are not supported."""
-        self.assertFalse(self.mech_driver.check_segment(VXLAN_SEGMENTS))
+        self.assertFalse(self.mech_driver.check_segment(VXLAN_SEGMENT))
 
     def test_vmfex_update_port_precommit(self):
         """Verifies MD saves relevant info for VM-FEX ports into DB."""
@@ -353,6 +400,8 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         network_context = self._create_network_context()
         port_context = FakePortContext(name, port_id, vnic_type,
                                        profile, network_context)
+        self.mech_driver.bind_port(port_context)
+
         # Port Profile is added to DB and created on UCS Manager.
         self.mech_driver.update_port_precommit(port_context)
         self.assertFalse(self.db.is_port_profile_created(VLAN_ID_1,
@@ -383,6 +432,8 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         network_context = self._create_network_context()
         port_context = FakePortContext(name, port_id, vnic_type,
                                        profile, network_context)
+        self.mech_driver.bind_port(port_context)
+
         # Port Profile is added to DB and created on UCS Manager.
         self.mech_driver.update_port_precommit(port_context)
         self.assertFalse(self.db.is_port_profile_created(VLAN_ID_1,
@@ -413,6 +464,8 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         network_context = self._create_network_context()
         port_context = FakePortContext(name, port_id, vnic_direct,
                                        profile, network_context)
+        self.mech_driver.bind_port(port_context)
+
         self.mech_driver.update_port_precommit(port_context)
 
         # Call to UCS Manager driver top level method to create Port Profile
@@ -440,6 +493,8 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         network_context = self._create_network_context()
         port_context = FakePortContext(name, port_id, vnic_macvtap,
                                        profile, network_context)
+        self.mech_driver.bind_port(port_context)
+
         self.mech_driver.update_port_precommit(port_context)
 
         # Call to UCS Manager driver top level method to create Port Profile
@@ -467,6 +522,8 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         network_context = self._create_network_context()
         port_context = FakePortContext(name, port_id, vnic_type,
                                        profile, network_context)
+        self.mech_driver.bind_port(port_context)
+
         self.mech_driver.update_port_precommit(port_context)
 
         # Call to UCS Manager driver top level method to create Port Profile
@@ -492,7 +549,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         port_context = FakePortContext(name, port_id, vnic_type,
                                        profile, network_context)
         self.mech_driver.bind_port(port_context)
-        self.assertEqual(PORT_STATE_ACTIVE, port_context._new_port_status)
+        self.assertEqual(PORT_STATE_ACTIVE, port_context._port['status'])
 
     def test_ucs_manager_disconnect_fail(self):
         """Verifies UCS Manager driver is called with correct parameters."""
