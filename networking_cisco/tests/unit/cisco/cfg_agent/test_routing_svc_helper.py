@@ -190,7 +190,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         e_tag = 'Fake error tag'
         confstr = 'Fake conf str'
         params = {'snippet': snip_name, 'type': e_type, 'tag': e_tag,
-                  'confstr': confstr}
+                  'confstr': confstr, 'dev_id': 'FAKE_ID', 'ip': 'FAKE_IP'}
         self.routing_helper._internal_network_added.side_effect = (
             cfg_exceptions.CSR1kvConfigException(**params))
         router, ports = prepare_router_data()
