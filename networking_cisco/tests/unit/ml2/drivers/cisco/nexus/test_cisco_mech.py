@@ -17,7 +17,6 @@ import contextlib
 import mock
 
 from oslo_config import cfg
-from oslo_log import log as logging
 import webob.exc as wexc
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -43,8 +42,6 @@ from neutron.plugins.ml2 import driver_api as api
 from neutron.plugins.ml2 import driver_context
 from neutron.tests.unit.plugins.ml2 import test_plugin
 
-
-LOG = logging.getLogger(__name__)
 
 PHYS_NET = 'physnet1'
 COMP_HOST_NAME = 'testhost'
@@ -1168,7 +1165,6 @@ class TestCiscoNetworksV2(CiscoML2MechanismTestCase,
                                                   *args, **kwargs)
                 patched_plugin.side_effect = side_effect
                 res = self._create_network_bulk(self.fmt, 2, 'test', True)
-                LOG.debug("response is %s" % res)
                 # We expect an internal server error as we injected a fault
                 self._validate_behavior_on_bulk_failure(
                     res,
