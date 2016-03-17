@@ -69,6 +69,7 @@ HA_L3_PLUGIN_KLASS = ('networking_cisco.tests.unit.cisco.l3.'
 _uuid = uuidutils.generate_uuid
 HOSTING_DEVICE_ATTR = routerhostingdevice.HOSTING_DEVICE_ATTR
 HARDWARE_CATEGORY = ciscohostingdevicemanager.HARDWARE_CATEGORY
+AGENT_TYPE_L3_CFG = c_const.AGENT_TYPE_L3_CFG
 
 
 class TestSchedulingL3RouterApplianceExtensionManager(
@@ -992,12 +993,19 @@ class L3RoutertypeAwareHostingDeviceSchedulerTestCase(
                 hosting_device_1 = self._show(
                     'hosting_devices', hosting_device_id1)['hosting_device']
                 affected_resources = {}
-                # now report hosting device 1 as dead
-                self.plugin.handle_non_responding_hosting_devices(
-                    self.adminContext, [hosting_device_1], affected_resources)
+                notifier_mock = mock.MagicMock()
+                with mock.patch.dict(self.plugin.agent_notifiers,
+                                     {AGENT_TYPE_L3_CFG: notifier_mock}):
+                    # now report hosting device 1 as dead
+                    self.plugin.handle_non_responding_hosting_devices(
+                        self.adminContext, [hosting_device_1],
+                        affected_resources)
                 # only routers 1 and 3 should be affected
                 affected_rs = affected_resources[hosting_device_id1]['routers']
                 self.assertEqual(2, len(affected_rs))
+                ntfy_method = notifier_mock.routers_removed_from_hosting_device
+                ntfy_method.assert_called_with(mock.ANY, affected_rs,
+                                               hosting_device_1)
                 # affected routers should be back-logged
                 for r_id in r_ids:
                     self.assertIn(r_id, affected_rs)

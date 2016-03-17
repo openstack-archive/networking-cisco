@@ -102,7 +102,7 @@ class TestCiscoCfgAgentWithStateReporting(base.BaseTestCase):
             side_effect=[False, False, True])
         cfg_agent.REGISTRATION_RETRY_DELAY = 0.01
         agent = cfg_agent.CiscoCfgAgentWithStateReport(HOSTNAME, self.conf)
-        self.assertEqual(agent.devmgr_rpc.register_for_duty.call_count, 3)
+        self.assertEqual(3, agent.devmgr_rpc.register_for_duty.call_count)
 
     def test_agent_registration_fail_always(self):
         self.devmgr_plugin_api.register_for_duty = mock.Mock(
@@ -124,8 +124,8 @@ class TestCiscoCfgAgentWithStateReporting(base.BaseTestCase):
         agent = cfg_agent.CiscoCfgAgentWithStateReport(HOSTNAME, self.conf)
         agent._report_state()
         self.assertIn('total routers', agent.agent_state['configurations'])
-        self.assertEqual(0, agent.agent_state[
-            'configurations']['total routers'])
+        self.assertEqual(0,
+                         agent.agent_state['configurations']['total routers'])
 
     @mock.patch('networking_cisco.plugins.cisco.cfg_agent.'
                 'cfg_agent.CiscoCfgAgentWithStateReport._agent_registration')
@@ -150,7 +150,7 @@ class TestCiscoCfgAgentWithStateReporting(base.BaseTestCase):
         agent = cfg_agent.CiscoCfgAgentWithStateReport(HOSTNAME, self.conf)
         agent.routing_service_helper = routing_service_helper_mock
         res = agent.get_hosting_device_configuration(mock.MagicMock(), payload)
-        self.assertEqual(res, fake_running_config)
+        self.assertEqual(fake_running_config, res)
         drv.get_configuration.assert_called_once_with()
 
     def test_get_hosting_device_configuration_no_hosting_device(self):
@@ -184,3 +184,35 @@ class TestCiscoCfgAgentWithStateReporting(base.BaseTestCase):
         res = agent.get_hosting_device_configuration(mock.MagicMock(), payload)
         self.assertIsNone(res)
         drv.get_configuration.assert_not_called()
+
+    def test_plugin_notified_about_revived_hosting_devices_heartbeat_on(self):
+        self.conf.set_override('enable_heartbeat', True, 'cfg_agent')
+        agent = cfg_agent.CiscoCfgAgentWithStateReport(HOSTNAME, self.conf)
+        _dev_status_mock = mock.MagicMock()
+        ids_revived_hds = ['fake_hd_id1', 'fake_hd_id2']
+        _dev_status_mock.check_backlogged_hosting_devices.return_value = {
+            'reachable': [], 'dead': [], 'revived': ids_revived_hds}
+        with mock.patch.object(agent, '_dev_status', _dev_status_mock),\
+                mock.patch.object(agent, 'process_services') as p_s_mock,\
+                mock.patch.object(agent, 'devmgr_rpc') as d_r_mock:
+            ctx = mock.MagicMock()
+            agent._process_backlogged_hosting_devices(ctx)
+        p_s_mock.assert_called_with(device_ids=ids_revived_hds)
+        d_r_mock.report_revived_hosting_devices.assert_called_with(
+            ctx, hd_ids=ids_revived_hds)
+
+    def test_plugin_not_notified_about_revived_hosting_devices_heartbeat_off(
+            self):
+        self.conf.set_override('enable_heartbeat', False, 'cfg_agent')
+        agent = cfg_agent.CiscoCfgAgentWithStateReport(HOSTNAME, self.conf)
+        _dev_status_mock = mock.MagicMock()
+        ids_revived_hds = ['fake_hd_id1', 'fake_hd_id2']
+        _dev_status_mock.check_backlogged_hosting_devices.return_value = {
+            'reachable': [], 'dead': [], 'revived': ids_revived_hds}
+        with mock.patch.object(agent, '_dev_status', _dev_status_mock),\
+                mock.patch.object(agent, 'process_services') as p_s_mock,\
+                mock.patch.object(agent, 'devmgr_rpc') as d_r_mock:
+            ctx = mock.MagicMock()
+            agent._process_backlogged_hosting_devices(ctx)
+        self.assertEqual(0, p_s_mock.call_count)
+        self.assertEqual(0, d_r_mock.report_revived_hosting_devices.call_count)

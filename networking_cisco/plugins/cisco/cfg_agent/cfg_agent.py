@@ -72,6 +72,12 @@ class CiscoDeviceManagementApi(object):
         cctxt.cast(context, 'report_non_responding_hosting_devices',
                    host=self.host, hosting_device_ids=hd_ids)
 
+    def report_revived_hosting_devices(self, context, hd_ids=None):
+        cctxt = self.client.prepare(version='1.1')
+        cctxt.cast(context, 'update_hosting_device_status',
+                   host=self.host,
+                   status_info={c_constants.HD_ACTIVE: hd_ids})
+
     def register_for_duty(self, context):
         """Report that a config agent is ready for duty."""
         cctxt = self.client.prepare()
@@ -249,11 +255,13 @@ class CiscoCfgAgent(manager.Manager):
         if res['reachable']:
             self.process_services(device_ids=res['reachable'])
         if res['revived']:
-            LOG.debug("Reporting revived hosting devices: %s " %
-                      res['revived'])
             # trigger a sync only on the revived hosting-devices
-            if (self.conf.cfg_agent.enable_heartbeat is True):
+            if self.conf.cfg_agent.enable_heartbeat is True:
+                LOG.debug("Reporting revived hosting devices: %s " %
+                          res['revived'])
                 self.process_services(device_ids=res['revived'])
+                self.devmgr_rpc.report_revived_hosting_devices(
+                    context, hd_ids=res['revived'])
         if res['dead']:
             LOG.debug("Reporting dead hosting devices: %s", res['dead'])
             self.devmgr_rpc.report_dead_hosting_devices(context,

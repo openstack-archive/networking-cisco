@@ -526,11 +526,11 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
              ...}
         """
         LOG.debug('Processing affected routers in dead hosting devices')
-        with context.session.begin(subtransactions=True):
-            for hd in hosting_devices:
-                hd_bindings_db = self._get_hosting_device_bindings(context,
-                                                                   hd['id'])
-                router_ids = []
+        for hd in hosting_devices:
+            hd_bindings_db = self._get_hosting_device_bindings(context,
+                                                               hd['id'])
+            router_ids = []
+            with context.session.begin(subtransactions=True):
                 for binding_db in hd_bindings_db:
                     if binding_db.auto_schedule is True:
                         self.unschedule_router_from_hosting_device(context,
@@ -538,11 +538,18 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                         binding_db.hosting_device_id = None
                         router_ids.append(binding_db.router_id)
                         self._backlog_router(context, binding_db)
+            if router_ids:
                 try:
                     affected_resources[hd['id']].update(
                         {'routers': router_ids})
                 except KeyError:
                     affected_resources[hd['id']] = {'routers': router_ids}
+                # Notify the l3 config agent about the ids of the routers
+                # that have been removed from the device.
+                notifier = self.agent_notifiers.get(AGENT_TYPE_L3_CFG)
+                if notifier:
+                    notifier.routers_removed_from_hosting_device(
+                        context, router_ids, hd)
         LOG.debug('Finished processing affected routers in dead hosting '
                   'devices')
 
