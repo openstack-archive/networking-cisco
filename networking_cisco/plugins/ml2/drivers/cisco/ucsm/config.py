@@ -90,7 +90,8 @@ def parse_ucsm_host_config():
                 raise cfg.Error(_("UCS Mech Driver: Invalid Host Service "
                                   "Profile config: %s") % host)
             key = (cfg.CONF.ml2_cisco_ucsm.ucsm_ip, hostname)
-            sp_dict[key] = service_profile
+            sp_dict[key] = (const.SERVICE_PROFILE_PATH_PREFIX +
+                service_profile.strip())
             host_dict[hostname] = cfg.CONF.ml2_cisco_ucsm.ucsm_ip
         return sp_dict, host_dict
 
@@ -104,7 +105,7 @@ def parse_virtio_eth_ports():
                           "Neutron virtual ports on this setup."))
 
     for eth_port in cfg.CONF.ml2_cisco_ucsm.ucsm_virtio_eth_ports:
-        eth_port_list.append(const.ETH_PREFIX + str(eth_port))
+        eth_port_list.append(const.ETH_PREFIX + str(eth_port).strip())
 
     return eth_port_list
 
@@ -132,7 +133,7 @@ class UcsmConfig(object):
         ucsm_info.append(cfg.CONF.ml2_cisco_ucsm.ucsm_password)
         ucsm_info.append(cfg.CONF.ml2_cisco_ucsm.ucsm_username)
         self.ucsm_dict[cfg.CONF.ml2_cisco_ucsm.ucsm_ip] = ucsm_info
-        eth_port_list = self.parse_virtio_eth_ports()
+        eth_port_list = parse_virtio_eth_ports()
         if eth_port_list:
             self.ucsm_port_dict[cfg.CONF.ml2_cisco_ucsm.ucsm_ip] = (
                 eth_port_list)
@@ -159,7 +160,7 @@ class UcsmConfig(object):
                             eth_ports = value[0].split(',')
                             for eth_port in eth_ports:
                                 eth_port_list.append(
-                                    const.ETH_PREFIX + str(eth_port))
+                                    const.ETH_PREFIX + str(eth_port).strip())
                     self.ucsm_dict[dev_ip] = ucsm_info
                     self.ucsm_port_dict[dev_ip] = eth_port_list
 
