@@ -22,9 +22,8 @@ from neutron import context as n_context
 from neutron.db import agents_db
 from neutron.db import agentschedulers_db
 from neutron.extensions import agent as ext_agent
-from neutron.i18n import _LI
 
-from networking_cisco._i18n import _
+from networking_cisco._i18n import _, _LI
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
 from networking_cisco.plugins.cisco.db.device_manager.hd_models import (
@@ -35,7 +34,7 @@ LOG = logging.getLogger(__name__)
 
 
 COMPOSITE_AGENTS_SCHEDULER_OPTS = [
-    cfg.IntOpt('cfg_agent_down_time', default=60,
+    cfg.IntOpt('cfg_agent_down_time', default=30,
                help=_('Seconds of no status update until a cfg agent '
                       'is considered down.')),
     cfg.StrOpt('configuration_agent_scheduler_driver',
@@ -197,8 +196,8 @@ class CfgAgentSchedulerDbMixin(
                             context, hosting_device_db, agent_db)
                         agents.append(agent_db)
                         try:
-                            agent_assigned_hd_ids[agent_db.id].append(
-                                hosting_device_db.id)
+                            agent_assigned_hd_ids[agent_db.id][
+                                'hd_ids'].append(hosting_device_db.id)
                         except KeyError:
                             agent_assigned_hd_ids[agent_db.id] = {
                                 'agent_host': agent_db.host,
@@ -286,7 +285,8 @@ class CfgAgentSchedulerDbMixin(
                     self._bind_hosting_device_to_cfg_agent(context, hd_db,
                                                            agent_db)
                     try:
-                        agent_assigned_hd_ids[agent_db.id].append(hd_db.id)
+                        agent_assigned_hd_ids[agent_db.id]['hd_ids'].append(
+                            hd_db.id)
                     except KeyError:
                         agent_assigned_hd_ids[agent_db.id] = {
                             'agent_host': agent_db.host,
