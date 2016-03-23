@@ -633,7 +633,7 @@ class HA_db_mixin(object):
                          if port['fixed_ips'] else None)
             r_ha_g = RouterHAGroup(
                 id=ha_group_uuid,
-                tenant_id=self._get_tenant_id_for_create(context, port),
+                tenant_id=port['tenant_id'],
                 ha_type=ha_settings_db.ha_type,
                 group_identity=group_id,
                 ha_port_id=port['id'],

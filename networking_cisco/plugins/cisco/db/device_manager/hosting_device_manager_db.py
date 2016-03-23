@@ -780,6 +780,7 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
     def _get_resources_properties_for_hd(self, template, credentials_id):
         # These resources are owned by the L3AdminTenant
         dev_data = {'template_id': template['id'],
+                    'tenant_id': template['tenant_id'],
                     'credentials_id': credentials_id,
                     'admin_state_up': True,
                     'protocol_port': template['protocol_port'],
