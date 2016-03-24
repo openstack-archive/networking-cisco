@@ -38,11 +38,10 @@ class RoutertypeDbMixin(routertype.RoutertypePluginBase):
         """
         LOG.debug("create_routertype() called. Contents %s", routertype)
         rt = routertype['routertype']
-        tenant_id = self._get_tenant_id_for_create(context, rt)
         with context.session.begin(subtransactions=True):
             routertype_db = l3_models.RouterType(
                 id=self._get_id(rt),
-                tenant_id=tenant_id,
+                tenant_id=rt['tenant_id'],
                 name=rt['name'],
                 description=rt['description'],
                 template_id=rt['template_id'],

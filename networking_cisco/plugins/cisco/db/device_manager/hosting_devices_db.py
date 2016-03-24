@@ -39,7 +39,6 @@ class HostingDeviceDBMixin(
     def create_hosting_device(self, context, hosting_device):
         LOG.debug("create_hosting_device() called")
         hd = hosting_device['hosting_device']
-        tenant_id = self._get_tenant_id_for_create(context, hd)
         with context.session.begin(subtransactions=True):
             credentials_id = hd.get('credentials_id')
             if credentials_id is None:
@@ -49,7 +48,7 @@ class HostingDeviceDBMixin(
             hd_db = hd_models.HostingDevice(
                 id=self._get_id(hd),
                 complementary_id=hd.get('complementary_id'),
-                tenant_id=tenant_id,
+                tenant_id=hd['tenant_id'],
                 template_id=hd['template_id'],
                 credentials_id=credentials_id,
                 name=hd.get('name'),
@@ -112,12 +111,11 @@ class HostingDeviceDBMixin(
     def create_hosting_device_template(self, context, hosting_device_template):
         LOG.debug("create_hosting_device_template() called")
         hdt = hosting_device_template['hosting_device_template']
-        tenant_id = self._get_tenant_id_for_create(context, hdt)
         #TODO(bobmel): check service types
         with context.session.begin(subtransactions=True):
             hdt_db = hd_models.HostingDeviceTemplate(
                 id=self._get_id(hdt),
-                tenant_id=tenant_id,
+                tenant_id=hdt['tenant_id'],
                 name=hdt.get('name'),
                 enabled=hdt.get('enabled', True),
                 host_category=hdt['host_category'],
