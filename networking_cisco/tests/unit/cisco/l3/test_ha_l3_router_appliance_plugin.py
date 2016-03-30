@@ -662,6 +662,29 @@ class HAL3RouterApplianceVMTestCase(
                     self._verify_router_ports(
                         rr_info['id'], subnet['network_id'], subnet['id'])
 
+    def test_ha_update_admin_state_up(self):
+        with self.router() as r:
+            router = r['router']
+            # verify router visible to user
+            ha_spec = self._get_ha_defaults()
+            self._verify_ha_settings(router, ha_spec)
+            # verify initial state of admin_state_up is True
+            self.assertEqual(True, router['admin_state_up'])
+            for rr_info in router[ha.DETAILS][ha.REDUNDANCY_ROUTERS]:
+                rr = self._show('routers', rr_info['id'])
+                self.assertEqual(True, rr['router']['admin_state_up'])
+
+            # update admin_state_up to False
+            body = {'router': {'admin_state_up': False}}
+            r_after = self._update('routers', router['id'], body)
+
+            # verify update to router visible to user and the backup routers
+            self.assertEqual(False, r_after['router']['admin_state_up'])
+            for rr_info in (
+                r_after['router'][ha.DETAILS][ha.REDUNDANCY_ROUTERS]):
+                rr = self._show('routers', rr_info['id'])
+                self.assertEqual(False, rr['router']['admin_state_up'])
+
     def _test_enable_ha(self, subnet, router, port, set_ha_details=True,
                         neutron_context=None):
         if port['network_id']:
