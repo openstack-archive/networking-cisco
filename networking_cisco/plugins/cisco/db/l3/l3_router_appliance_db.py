@@ -930,11 +930,11 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                       {'name': gr['name'], 'id': gr['id'],
                        'hd': gr[HOSTING_DEVICE_ATTR], 'num': num_rtrs, })
             if num_rtrs == 0:
-                LOG.warn(_LW("Global router:%(name)s[id:%(id)s] is present for"
-                             "hosting device:%(hd)s but there are no tenant or"
-                             " redundancy routers with gateway set on that "
-                             "hosting device. Proceeding to delete global "
-                             "router."),
+                LOG.warn(_LW("Global router:%(name)s[id:%(id)s] is present "
+                             "for hosting device:%(hd)s but there are no "
+                             "tenant or redundancy routers with gateway set "
+                             "on that hosting device. Proceeding to delete "
+                             "global router."),
                          {'name': gr['name'], 'id': gr['id'],
                           'hd': gr[HOSTING_DEVICE_ATTR]})
                 try:
@@ -1189,52 +1189,48 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         """
         # cache of hosting port information: {mac_addr: {'name': port_name}}
         if router['external_gateway_info'] is not None:
-            h_info, new_allocation = self._populate_hosting_info_for_port(
-                context, router['id'], router['gw_port'],
-                router['hosting_device'], plugging_driver)
-            if not h_info:
+            if not self._populate_hosting_info_for_port(
+                    context, router['id'], router['gw_port'],
+                    router['hosting_device'], plugging_driver):
                 router['status'] = cisco_constants.ROUTER_INFO_INCOMPLETE
                 return
         for itfc in router.get(l3_constants.INTERFACE_KEY, []):
-            h_info, new_allocation = self._populate_hosting_info_for_port(
-                context, router['id'], itfc, router['hosting_device'],
-                plugging_driver)
-            if not h_info:
+            if not self._populate_hosting_info_for_port(
+                    context, router['id'], itfc, router['hosting_device'],
+                    plugging_driver):
                 router['status'] = cisco_constants.ROUTER_INFO_INCOMPLETE
                 return
 
     def _populate_hosting_info_for_port(self, context, router_id, port,
                                         hosting_device, plugging_driver):
-
-        try:
-            port_db = self._core_plugin._get_port(context, port['id'])
-        except n_exc.PortNotFound:
-            LOG.debug('**** NO Port Info to populate hosting info for '
-                'router: %(r_id)s : Port: %(p_id)s from DB',
-                {'r_id': router_id, 'p_id': port['id']})
-            return None, False
-        h_info = port_db.hosting_info
-        new_allocation = False
-        if h_info is None:
-            # The port does not yet have a hosting port so allocate one now
-            h_info = self._allocate_hosting_port(
-                context, router_id, port_db, hosting_device['id'],
-                plugging_driver)
-            if h_info is None:
-                # This should not happen but just in case ...
-                port['hosting_info'] = None
-                return None, new_allocation
-            else:
-                new_allocation = True
-        # Including MAC address of hosting port so L3CfgAgent can easily
-        # determine which VM VIF to configure VLAN sub-interface on.
-        port['hosting_info'] = {'hosting_port_id': h_info.hosting_port_id,
-                                'hosting_mac': h_info.hosting_port.mac_address,
-                                'hosting_port_name': h_info.hosting_port.name}
-        # Finally add any driver specific information
-        plugging_driver.extend_hosting_port_info(
-            context, port_db, hosting_device, port['hosting_info'])
-        return h_info, new_allocation
+        with context.session.begin(subtransactions=True):
+            try:
+                port_db = self._core_plugin._get_port(context, port['id'])
+            except n_exc.PortNotFound:
+                LOG.debug('Could not find router port %(p_id)s of router '
+                          '%(r_id)s to populate hosting port info',
+                          {'r_id': router_id, 'p_id': port['id']})
+                return
+            h_info_db = port_db.hosting_info
+            if h_info_db is None:
+                # The port does not yet have a hosting port so allocate one now
+                h_info_db = self._allocate_hosting_port(
+                    context, router_id, port_db, hosting_device['id'],
+                    plugging_driver)
+                if h_info_db is None:
+                    # This should not happen but just in case ...
+                    port['hosting_info'] = None
+                    return
+            # Including MAC address of hosting port so L3CfgAgent can easily
+            # determine which VM VIF to configure VLAN sub-interface on.
+            port['hosting_info'] = {
+                'hosting_port_id': h_info_db.hosting_port_id,
+                'hosting_mac': h_info_db.hosting_port.mac_address,
+                'hosting_port_name': h_info_db.hosting_port.name}
+            # Finally add any driver specific information
+            plugging_driver.extend_hosting_port_info(
+                context, port_db, hosting_device, port['hosting_info'])
+        return True
 
     def _allocate_hosting_port(self, context, router_id, port_db,
                                hosting_device_id, plugging_driver):
@@ -1247,14 +1243,22 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
             LOG.error(_LE('Failed to allocate hosting port for port %s'),
                       port_db['id'])
             return
-        with context.session.begin(subtransactions=True):
-            h_info_db = hd_models.HostedHostingPortBinding(
-                logical_resource_id=router_id,
-                logical_port_id=port_db['id'],
-                network_type=network_type,
-                hosting_port_id=alloc['allocated_port_id'],
-                segmentation_id=alloc['allocated_vlan'])
-            context.session.add(h_info_db)
+        try:
+            with context.session.begin(subtransactions=True):
+                h_info_db = hd_models.HostedHostingPortBinding(
+                    logical_resource_id=router_id,
+                    logical_port_id=port_db.id,
+                    network_type=network_type,
+                    hosting_port_id=alloc['allocated_port_id'],
+                    segmentation_id=alloc['allocated_vlan'])
+                context.session.add(h_info_db)
+        except db_exc.DBReferenceError as e:
+            LOG.debug('Failed to bind port for router %(r_id)s to its hosting '
+                      'port %(h_port)s. Reason is likely that the router port '
+                      'was deleted. DB reported error: %(err)s.',
+                      {'r_id': router_id, 'h_port': alloc['allocated_port_id'],
+                       'err': e})
+            return
         context.session.expire(port_db)
         context.session.expire(h_info_db)
         # allocation succeeded so establish connectivity for logical port
