@@ -402,6 +402,15 @@ class HA_db_mixin(object):
             self._change_ha_for_gateway(e_context, updated_router,
                                         updated_router_db, ha_settings_db,
                                         router_requested)
+
+        # pick up updates to other attributes where it makes sense
+        # and push - right now it is only admin_state_up.
+        if 'admin_state_up' in update_specification['router']:
+            other_updates_spec = {'router': {'admin_state_up':
+                update_specification['router']['admin_state_up']}}
+            self._process_other_router_updates(e_context, updated_router_db,
+                                               other_updates_spec)
+
         # Ensure we get latest state from DB
         context.session.expire(updated_router_db)
         self._extend_router_dict_ha(updated_router, updated_router_db)
