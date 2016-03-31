@@ -114,6 +114,9 @@ class UcsmConfig(object):
     """ML2 Cisco UCSM Mechanism Driver Configuration class."""
     ucsm_dict = {}
     ucsm_port_dict = {}
+    sp_template_dict = {}
+    multi_ucsm_mode = False
+    sp_template_mode = False
 
     def __init__(self):
         """Create a single UCSM or Multi-UCSM dict."""
@@ -154,15 +157,19 @@ class UcsmConfig(object):
                     eth_ports = []
                     eth_port_list = []
                     for dev_key, value in parsed_file[parsed_item].items():
-                        if dev_key != 'ucsm_virtio_eth_ports':
-                            ucsm_info.append(value[0])
-                        else:
+                        if dev_key.lower() == 'ucsm_virtio_eth_ports':
                             eth_ports = value[0].split(',')
                             for eth_port in eth_ports:
                                 eth_port_list.append(
                                     const.ETH_PREFIX + str(eth_port).strip())
+                            self.ucsm_port_dict[dev_ip] = eth_port_list
+                        elif dev_key.lower() == 'sp_template_list':
+                            self._parse_sp_template_list(dev_ip, value)
+                            self.sp_template_mode = True
+                        else:
+                            ucsm_info.append(value[0])
                     self.ucsm_dict[dev_ip] = ucsm_info
-                    self.ucsm_port_dict[dev_ip] = eth_port_list
+                    self.multi_ucsm_mode = True
 
     def get_credentials_for_ucsm_ip(self, ucsm_ip):
         if ucsm_ip in self.ucsm_dict:
@@ -174,3 +181,56 @@ class UcsmConfig(object):
     def get_ucsm_eth_port_list(self, ucsm_ip):
         if ucsm_ip in self.ucsm_port_dict:
             return self.ucsm_port_dict[ucsm_ip]
+
+    def _parse_sp_template_list(self, ucsm_ip, sp_template_config):
+        sp_template_list = []
+        for sp_template_temp in sp_template_config:
+            sp_template_list = sp_template_temp.split()
+            for sp_template in sp_template_list:
+                sp_template_path, sep, template_hosts = (
+                    sp_template.partition(':'))
+                if not sp_template_path or not sep or not template_hosts:
+                    raise cfg.Error(_('UCS Mech Driver: Invalid Service '
+                                      'Profile Template config %s')
+                        % sp_template_config)
+                sp_temp, sep, hosts = template_hosts.partition(':')
+                LOG.debug('SP Template Path: %s, SP Template: %s, '
+                    'Hosts: %s', sp_template_path, sp_temp, hosts)
+                host_list = hosts.split(',')
+                for host in host_list:
+                    value = (ucsm_ip, sp_template_path, sp_temp)
+                    self.sp_template_dict[host] = value
+                    LOG.debug('SP Template Dict key: %s, value: %s',
+                              host, value)
+
+    def is_service_profile_template_configured(self):
+        return self.sp_template_mode
+
+    def get_sp_template_path_for_host(self, host):
+        template_info = self.sp_template_dict.get(host)
+        # template_info should be a tuple containing
+        # (ucsm_ip, sp_template_path, sp_template)
+        return template_info[1] if template_info else None
+
+    def get_sp_template_for_host(self, host):
+        template_info = self.sp_template_dict.get(host)
+        # template_info should be a tuple containing
+        # (ucsm_ip, sp_template_path, sp_template)
+        return template_info[2] if template_info else None
+
+    def get_ucsm_ip_for_sp_template_host(self, host):
+        template_info = self.sp_template_dict.get(host)
+        # template_info should be a tuple containing
+        # (ucsm_ip, sp_template_path, sp_template)
+        return template_info[0] if template_info else None
+
+    def get_sp_template_list_for_ucsm(self, ucsm_ip):
+        sp_template_info_list = []
+        hosts = self.sp_template_dict.keys()
+        for host in hosts:
+            value = self.sp_template_dict.get(host)
+            if ucsm_ip in value:
+                LOG.debug('SP Template: %s in UCSM : %s',
+                          value[2], value[0])
+                sp_template_info_list.append(value)
+        return sp_template_info_list

@@ -517,7 +517,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         name = PORT_NAME
         port_id = PORT_ID
         vnic_type = VNIC_NORMAL
-        profile = None
+        profile = {'pci_vendor_info': const.PCI_INFO_CISCO_VIC_1240}
 
         network_context = self._create_network_context()
         port_context = FakePortContext(name, port_id, vnic_type,
