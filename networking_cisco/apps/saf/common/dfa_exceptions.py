@@ -81,7 +81,7 @@ class DfaAgentFailed(exceptions.ServiceUnavailable):
 
     """Failure in running DfaAgent."""
 
-    message = _("Openstck is not running: %(reason)s.")
+    message = _("OpenStack is not running: %(reason)s.")
 
 
 class InvalidInput(exceptions.InvalidInput):
