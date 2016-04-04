@@ -72,9 +72,9 @@ class EventsHandler(object):
 
     @property
     def nclient(self):
-        user = self._cfg.keystone_authtoken.admin_user
-        tenant = self._cfg.keystone_authtoken.admin_tenant_name
-        passw = self._cfg.keystone_authtoken.admin_password
+        user = self._cfg.keystone_authtoken.username
+        tenant = self._cfg.keystone_authtoken.project_name
+        passw = self._cfg.keystone_authtoken.password
         if self._cfg.keystone_authtoken.auth_url:
             uri = self._cfg.keystone_authtoken.auth_url + '/v2.0'
         else:

@@ -123,7 +123,7 @@ class CiscoDFAConfig(object):
         cfgfile = cfg.find_config_files(service_name)
         for k, v in opts:
             if k == '--config-file':
-                cfgfile.append(v)
+                cfgfile.insert(0, v)
         multi_parser = cfg.MultiConfigParser()
         read_ok = multi_parser.read(cfgfile)
 
