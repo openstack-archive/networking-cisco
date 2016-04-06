@@ -93,6 +93,8 @@ ROUTER_WAITING_HOST = 'AWAITING_HOST'
 ROUTER_ACTIVE = "ACTIVE"
 # Deletion in progress (by cfg agent)
 ROUTER_PENDING_DELETE = "PENDING_DELETE"
+# Some db states in flight so all info is not yet available
+ROUTER_INFO_INCOMPLETE = "INFO_INCOMPLETE"
 # Values for network profile fields
 ADD_TENANTS = 'add_tenants'
 REMOVE_TENANTS = 'remove_tenants'

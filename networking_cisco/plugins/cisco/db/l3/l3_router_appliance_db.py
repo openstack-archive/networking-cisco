@@ -1114,17 +1114,30 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         """
         # cache of hosting port information: {mac_addr: {'name': port_name}}
         if router['external_gateway_info'] is not None:
-            self._populate_hosting_info_for_port(
+            h_info, new_allocation = self._populate_hosting_info_for_port(
                 context, router['id'], router['gw_port'],
                 router['hosting_device'], plugging_driver)
+            if not h_info:
+                router['status'] = cisco_constants.ROUTER_INFO_INCOMPLETE
+                return
         for itfc in router.get(l3_constants.INTERFACE_KEY, []):
-            self._populate_hosting_info_for_port(
+            h_info, new_allocation = self._populate_hosting_info_for_port(
                 context, router['id'], itfc, router['hosting_device'],
                 plugging_driver)
+            if not h_info:
+                router['status'] = cisco_constants.ROUTER_INFO_INCOMPLETE
+                return
 
     def _populate_hosting_info_for_port(self, context, router_id, port,
                                         hosting_device, plugging_driver):
-        port_db = self._core_plugin._get_port(context, port['id'])
+
+        try:
+            port_db = self._core_plugin._get_port(context, port['id'])
+        except n_exc.PortNotFound:
+            LOG.debug('**** NO Port Info to populate hosting info for '
+                'router: %(r_id)s : Port: %(p_id)s from DB',
+                {'r_id': router_id, 'p_id': port['id']})
+            return None, False
         h_info = port_db.hosting_info
         new_allocation = False
         if h_info is None:

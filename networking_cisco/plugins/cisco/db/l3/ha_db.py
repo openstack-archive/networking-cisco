@@ -776,13 +776,25 @@ class HA_db_mixin(object):
             interface_port = self._populate_port_ha_information(
                 e_context, router['gw_port'], router['id'], hags,
                 user_router_id, modified_interfaces)
+            if not interface_port:
+                # The router has a gw_port but cannot find the port info yet
+                # so mark this router to have incomplete info and bail.
+                # The cfg_agent puts this in the updated_routers to ask again.
+                router['status'] = cisco_constants.ROUTER_INFO_INCOMPLETE
+                return
             if modified_interfaces:
                 router['gw_port'] = interface_port
         modified_interfaces = []
         for itfc in router.get(l3_constants.INTERFACE_KEY, []):
-            self._populate_port_ha_information(
+            interface_port = self._populate_port_ha_information(
                 e_context, itfc, router['id'], hags, user_router_id,
                 modified_interfaces)
+            if not interface_port:
+                # the router has interfaces but cannot find the port info yet
+                # so mark this router to have incomplete info and bail
+                # the cfg_agent will put this in the updated_list to ask again
+                router['status'] = cisco_constants.ROUTER_INFO_INCOMPLETE
+                return
         if modified_interfaces:
             router[l3_constants.INTERFACE_KEY] = modified_interfaces
         if fips:
@@ -796,14 +808,33 @@ class HA_db_mixin(object):
             # set the HA (VIP) port to the port itself. The config agent
             # driver will know how to handle this "signal".
             p_id = hag.extra_port_id or port['id']
-            interface_port = self._core_plugin.get_port(context, p_id)
+            try:
+                interface_port = self._core_plugin.get_port(context, p_id)
+            except n_exc.PortNotFound:
+                LOG.debug('**** NO Port Info for '
+                    'router: %(r_id)s : Port: %(p_id)s from DB',
+                    {'r_id': router_id, 'p_id': port['id']})
+                return None
+            LOG.debug('**** Fetched Port Info for '
+                'router: %(r_id)s : Port: %(p_id)s from DB',
+                {'r_id': router_id, 'p_id': port['id']})
             self._populate_mtu_and_subnets_for_ports(context, [interface_port])
             modified_interfaces.append(interface_port)
             ha_port = port
         else:
-            ha_port = self._core_plugin.get_port(context, hag.ha_port_id)
+            try:
+                ha_port = self._core_plugin.get_port(context, hag.ha_port_id)
+            except n_exc.PortNotFound:
+                LOG.debug('**** NO Port Info for '
+                    'router(BAK): %(r_id)s : Port: %(p_id)s from DB',
+                    {'r_id': router_id, 'p_id': hag.ha_port_id})
+                return None
+            LOG.debug('**** Fetched Port Info for '
+                'router(BAK): %(r_id)s : Port: %(p_id)s from DB',
+                {'r_id': router_id, 'p_id': hag.ha_port_id})
             self._populate_mtu_and_subnets_for_ports(context, [ha_port])
             interface_port = port
+
         interface_port[HA_INFO] = {
             ha.TYPE: hag.ha_type,
             HA_GROUP: hag.group_identity,

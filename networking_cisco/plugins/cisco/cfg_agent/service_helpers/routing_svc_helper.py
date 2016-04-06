@@ -480,6 +480,15 @@ class RoutingServiceHelper(object):
                           {'id': r['id'], 'role': r[ROUTER_ROLE_ATTR]})
                 if r['id'] in deleted_routerids_list:
                     continue
+                if r['status'] == c_constants.ROUTER_INFO_INCOMPLETE:
+                    # The plugin could not fill in all the info due to
+                    # timing and db settling down. So put this router
+                    # back in updated_routers, we will pull again on the
+                    # sync time.
+                    LOG.debug("Router: %(id)s INFO_INCOMPLETE",
+                              {'id': r['id']})
+                    self.updated_routers.add(r['id'])
+                    continue
                 try:
                     if not r['admin_state_up']:
                         continue

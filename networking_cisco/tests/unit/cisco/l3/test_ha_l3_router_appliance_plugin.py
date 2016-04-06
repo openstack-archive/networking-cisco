@@ -30,6 +30,8 @@ from neutron.plugins.common import constants as service_constants
 from neutron.tests import fake_notifier
 
 import networking_cisco.plugins
+from networking_cisco.plugins.cisco.common import (
+    cisco_constants as cisco_const)
 from networking_cisco.plugins.cisco.db.l3 import ha_db
 from networking_cisco.plugins.cisco.extensions import ha
 from networking_cisco.tests.unit.cisco.device_manager import (
@@ -1797,3 +1799,93 @@ class L3CfgAgentHARouterApplianceTestCase(
 
     def test_ha_floatingip_update_cfg_agent(self):
         self._test_notify_op_agent(self._test_ha_floatingip_update_cfg_agent)
+
+    def test_populate_port_ha_information_no_port(self):
+
+        with self.router(arg_list=(ha.ENABLED,)) as router:
+            r = router['router']
+            with self.port() as port:
+                p = port['port']
+                body = self._router_interface_action('add', r['id'], None,
+                                                     p['id'])
+                self.assertIn('port_id', body)
+                self.assertEqual(body['port_id'], p['id'])
+                adm_ctx = context.get_admin_context()
+                with mock.patch(
+                    'networking_cisco.plugins.cisco.db.l3.ha_db.HA_db_mixin.'
+                    '_populate_port_ha_information') as mock_port_ha:
+                    mock_port_ha.return_value = None
+                    routers = self.plugin.get_sync_data_ext(adm_ctx, [r['id']])
+                    for router in routers:
+                        self.assertEqual(cisco_const.ROUTER_INFO_INCOMPLETE,
+                            router['status'])
+
+    def test_populate_port_ha_information_red_router_no_port(self):
+
+        with self.router(arg_list=(ha.ENABLED,)) as router:
+            r = router['router']
+            with self.port() as port:
+                p = port['port']
+                body = self._router_interface_action('add', r['id'], None,
+                                                     p['id'])
+                self.assertIn('port_id', body)
+                self.assertEqual(body['port_id'], p['id'])
+                adm_ctx = context.get_admin_context()
+                with mock.patch(
+                    'networking_cisco.plugins.cisco.db.l3.ha_db.HA_db_mixin.'
+                    '_populate_port_ha_information') as mock_port_ha:
+                    mock_port_ha.return_value = None
+                    rr_ids = [rr['id'] for rr in r[ha.DETAILS][
+                        ha.REDUNDANCY_ROUTERS]]
+                    routers = self.plugin.get_sync_data_ext(adm_ctx, rr_ids)
+                    for router in routers:
+                        self.assertEqual(cisco_const.ROUTER_INFO_INCOMPLETE,
+                            router['status'])
+
+    def test_populate_port_ha_information_no_port_gw_port(self):
+
+        with self.router(arg_list=(ha.ENABLED,)) as router:
+            r = router['router']
+            with self.subnet() as s:
+                self._set_net_external(s['subnet']['network_id'])
+                self._add_external_gateway_to_router(
+                    r['id'],
+                    s['subnet']['network_id'])
+                adm_ctx = context.get_admin_context()
+                with mock.patch(
+                    'networking_cisco.plugins.cisco.db.l3.ha_db.HA_db_mixin.'
+                    '_populate_port_ha_information') as mock_port_ha:
+                    mock_port_ha.return_value = None
+                    routers = self.plugin.get_sync_data_ext(adm_ctx, [r['id']])
+                    for router in routers:
+                        body = self._show('routers', r['id'])
+                        r_after = body['router']
+                        gw_info = r_after['external_gateway_info']
+                        self.assertIsNotNone(gw_info)
+                        self.assertEqual(cisco_const.ROUTER_INFO_INCOMPLETE,
+                            router['status'])
+
+    def test_populate_port_ha_information_red_router_no_port_gw_port(self):
+
+        with self.router(arg_list=(ha.ENABLED,)) as router:
+            r = router['router']
+            with self.subnet() as s:
+                self._set_net_external(s['subnet']['network_id'])
+                self._add_external_gateway_to_router(
+                    r['id'],
+                    s['subnet']['network_id'])
+                adm_ctx = context.get_admin_context()
+                with mock.patch(
+                    'networking_cisco.plugins.cisco.db.l3.ha_db.HA_db_mixin.'
+                    '_populate_port_ha_information') as mock_port_ha:
+                    mock_port_ha.return_value = None
+                    rr_ids = [rr['id'] for rr in r[ha.DETAILS][
+                        ha.REDUNDANCY_ROUTERS]]
+                    routers = self.plugin.get_sync_data_ext(adm_ctx, rr_ids)
+                    for router in routers:
+                        body = self._show('routers', router['id'])
+                        r_after = body['router']
+                        gw_info = r_after['external_gateway_info']
+                        self.assertIsNotNone(gw_info)
+                        self.assertEqual(cisco_const.ROUTER_INFO_INCOMPLETE,
+                            router['status'])
