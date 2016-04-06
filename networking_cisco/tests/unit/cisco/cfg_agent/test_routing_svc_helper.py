@@ -69,6 +69,7 @@ def prepare_router_data(enable_snat=None, num_internal_ports=1):
                       }
     router = {
         'id': router_id,
+        'status': 'ACTIVE',
         'admin_state_up': True,
         l3_constants.INTERFACE_KEY: int_ports,
         'routes': [],
