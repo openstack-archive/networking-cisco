@@ -292,6 +292,41 @@ class TestN1KVMechanismDriver(
         # assert that network profile was not created
         self.assertIsNone(net_profile)
 
+    def update_assert_profile(self, profile_type, profile_id,
+                              add_tenants=None, remove_tenants=None,
+                              fmt=None):
+        """
+        Update a network/policy profile by adding new tenant associations
+        and/or removing existing ones. Also, assert that only expected
+        tenant-profile bindings exist after the update is complete.
+
+        """
+        add_tenants = add_tenants or []
+        remove_tenants = remove_tenants or []
+        fmt = fmt or self.fmt
+        profile = profile_type + '_profiles'
+        binding_type = profile_type + '_profile_bindings'
+        data = {
+            profile_type + "_profile": {
+                'add_tenant': add_tenants,
+                'remove_tenant': remove_tenants
+            }
+        }
+        update_req = self.new_update_request(
+            resource=profile,
+            data=data,
+            id=profile_id,
+            fmt=fmt)
+        update_res = update_req.get_response(self.ext_api)
+        self.assertEqual(webob.exc.HTTPOk.code, update_res.status_int)
+
+        for added_tenant in add_tenants:
+            self.assert_profile_binding_exists(binding_type, added_tenant,
+                                               profile_id)
+        for removed_tenant in remove_tenants:
+            self.assert_profile_binding_absent(binding_type, removed_tenant,
+                                               profile_id)
+
 
 class TestN1KVMechDriverBasicGet(test_db_base_plugin_v2.TestBasicGet,
                                  TestN1KVMechanismDriver):

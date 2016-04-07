@@ -36,6 +36,14 @@ RESOURCE_ATTRIBUTE_MAP = {
                'is_visible': True},
         'name': {'allow_post': False, 'allow_put': False,
                  'is_visible': True, 'default': ''},
+        'add_tenant': {
+            'allow_post': True, 'allow_put': True,
+            'is_visible': True, 'default': None,
+            'convert_to': attributes.convert_none_to_empty_list},
+        'remove_tenant': {
+            'allow_post': True, 'allow_put': True,
+            'is_visible': True, 'default': None,
+            'convert_to': attributes.convert_none_to_empty_list},
     },
     'policy_profile_bindings': {
         'profile_id': {'allow_post': False, 'allow_put': False,
@@ -110,4 +118,8 @@ class PolicyProfilePluginBase(sb.ServicePluginBase):
 
     @abc.abstractmethod
     def get_policy_profile(self, context, profile_id, fields=None):
+        pass
+
+    @abc.abstractmethod
+    def update_policy_profile(self, context, profile_id, policyp):
         pass
