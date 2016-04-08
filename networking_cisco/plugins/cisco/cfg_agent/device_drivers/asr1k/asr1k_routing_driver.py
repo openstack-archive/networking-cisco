@@ -483,11 +483,10 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         :raises: networking_cisco.plugins.cisco.cfg_agent.cfg_exceptions.
         CSR1kvConfigException
         """
-        conf_str = snippets.CREATE_ACL % (acl_no, network, netmask)
-        try:
+        acl_present = self._check_acl(acl_no, network, netmask)
+        if not acl_present:
+            conf_str = snippets.CREATE_ACL % (acl_no, network, netmask)
             self._edit_running_config(conf_str, 'CREATE_ACL')
-        except Exception as acl_e:
-            LOG.debug("Ignore exception for CREATE_ACL: %s", acl_e)
 
         pool_name = "%s_nat_pool" % vrf_name
         conf_str = asr1k_snippets.SET_DYN_SRC_TRL_POOL % (acl_no, pool_name,
@@ -495,8 +494,9 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         try:
             self._edit_running_config(conf_str, 'SET_DYN_SRC_TRL_POOL')
         except Exception as dyn_nat_e:
-            LOG.error(_LE("Ignore exception for SET_DYN_SRC_TRL_POOL: %s"),
-                      dyn_nat_e)
+            LOG.info(_LI("Ignore exception for SET_DYN_SRC_TRL_POOL: %s."
+                         "The config seems to be applied properly but netconf "
+                         "seems to report an error."), dyn_nat_e)
 
         conf_str = snippets.SET_NAT % (inner_itfc, 'inside')
         self._edit_running_config(conf_str, 'SET_NAT')
