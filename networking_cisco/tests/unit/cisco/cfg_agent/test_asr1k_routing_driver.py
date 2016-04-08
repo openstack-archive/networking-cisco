@@ -62,6 +62,7 @@ class ASR1kRoutingDriver(base.BaseTestCase):
         self.driver = driver.ASR1kRoutingDriver(**device_params)
         self.driver._ncc_connection = mock.MagicMock()
         self.driver._check_response = mock.MagicMock(return_value=True)
+        self.driver._check_acl = mock.MagicMock(return_value=False)
 
         self.vrf = ('nrouter-' + FAKE_ID)[:iosxe_driver.IosXeRoutingDriver.
                                           DEV_NAME_LEN]
