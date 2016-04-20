@@ -727,3 +727,105 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.routing_helper._router_removed.assert_called_with(router_G['id'])
         self.routing_helper._router_removed.assert_any_call(router2['id'])
         self.routing_helper._process_router.assert_called_with(ri1)
+
+
+class TestDeviceSyncOperations(base.BaseTestCase):
+
+    def setUp(self):
+        super(TestDeviceSyncOperations, self).setUp()
+        self.conf = cfg.ConfigOpts()
+        self.conf.register_opts(base_config.core_opts)
+        self.conf.register_opts(cfg_agent.OPTS, "cfg_agent")
+        self.ex_gw_port = {'id': _uuid(),
+                           'network_id': _uuid(),
+                           'admin_state_up': True,
+                           'fixed_ips': [{'ip_address': '19.4.4.4',
+                                         'subnet_id': _uuid()}],
+                           'subnets': [{'cidr': '19.4.4.0/24',
+                                        'gateway_ip': '19.4.4.1'}]}
+        self.hosting_device = {'id': "100",
+                               'name': "CSR1kv_template",
+                               'booting_time': 300,
+                               'host_category': "VM",
+                               'management_ip_address': '20.0.0.5',
+                               'protocol_port': 22,
+                               'credentials': {'username': 'user',
+                                               'password': '4getme'},
+                               }
+
+        self.fetched_routers = [
+            {
+                'id': _uuid(),
+                'enable_snat': True,
+                'admin_state_up': True,
+                'routes': [],
+                'gw_port': self.ex_gw_port,
+                routerrole.ROUTER_ROLE_ATTR: None,
+                'hosting_device': self.hosting_device
+            },
+            {
+                'id': _uuid(),
+                'enable_snat': True,
+                'admin_state_up': True,
+                'routes': [],
+                'gw_port': self.ex_gw_port,
+                routerrole.ROUTER_ROLE_ATTR: None,
+                'hosting_device': self.hosting_device
+            }
+
+        ]
+
+        #Patches & Mocks
+        self.agent = mock.Mock()
+
+        self.routing_helper = routing_svc_helper.RoutingServiceHelper(
+            HOST, self.conf, self.agent)
+        self.routing_helper._cleanup_invalid_cfg = mock.Mock()
+        self.routing_helper._router_removed = mock.Mock()
+        self.driver = self._mock_driver_and_hosting_device(
+            self.routing_helper)
+
+    def _mock_driver_and_hosting_device(self, svc_helper):
+        svc_helper._dev_status.is_hosting_device_reachable = mock.MagicMock(
+            return_value=True)
+        driver = mock.MagicMock()
+        svc_helper._drivermgr.get_driver = mock.Mock(return_value=driver)
+        svc_helper._drivermgr.set_driver = mock.Mock(return_value=driver)
+        return driver
+
+    def test_handle_sync_devices(self):
+        self.routing_helper._fetch_router_info = (
+            mock.Mock(return_value=self.fetched_routers))
+
+        routers = []
+        self.routing_helper._handle_sync_devices(routers)
+
+        self.routing_helper._fetch_router_info.assert_called_once()
+        self.assertEqual(2, self.routing_helper._router_removed.call_count)
+        self.routing_helper._cleanup_invalid_cfg.assert_called_once()
+        self.assertEqual(2, len(routers))
+
+    def test_handle_sync_devices_retry(self):
+        self.assertEqual(0, self.routing_helper.sync_devices_attempts)
+        self.routing_helper._fetch_router_info = mock.Mock(return_value=None)
+
+        self.routing_helper._handle_sync_devices([])
+
+        self.assertEqual(1, self.routing_helper.sync_devices_attempts)
+
+    def test_handle_sync_devices_exceed_max_retries(self):
+        self.assertEqual(6, cfg.CONF.cfg_agent.max_device_sync_attempts)
+
+        self.assertEqual(0, self.routing_helper.sync_devices_attempts)
+        self.routing_helper._fetch_router_info = mock.Mock(return_value=None)
+
+        for idx in range(1, 6):
+            self.routing_helper._handle_sync_devices([])
+            self.assertEqual(idx,
+                             self.routing_helper.sync_devices_attempts)
+
+        # expect sync_devices to be cleared and sync_devices_attempts == 0
+        self.routing_helper._handle_sync_devices([])
+        self.assertEqual(0,
+                         self.routing_helper.sync_devices_attempts)
+        self.assertEqual(0, len(self.routing_helper.sync_devices))

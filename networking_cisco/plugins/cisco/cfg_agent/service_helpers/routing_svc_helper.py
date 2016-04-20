@@ -17,6 +17,7 @@ import eventlet
 import netaddr
 import pprint as pp
 
+from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging
 from oslo_utils import excutils
@@ -28,7 +29,10 @@ from neutron.common import topics
 from neutron.common import utils as common_utils
 from neutron import context as n_context
 
-from networking_cisco._i18n import _, _LE, _LI, _LW
+from networking_cisco._i18n import _
+from networking_cisco._i18n import _LE
+from networking_cisco._i18n import _LI
+from networking_cisco._i18n import _LW
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers import driver_mgr
 from networking_cisco.plugins.cisco.cfg_agent import device_status
@@ -167,6 +171,7 @@ class RoutingServiceHelper(object):
         self.updated_routers = set()
         self.removed_routers = set()
         self.sync_devices = set()
+        self.sync_devices_attempts = 0
         self.fullsync = True
         self.topic = '%s.%s' % (c_constants.CFG_AGENT_L3_ROUTING, host)
 
@@ -247,11 +252,7 @@ class RoutingServiceHelper(object):
                     LOG.debug("Adding new devices:%s", device_ids)
                     self.sync_devices = set(device_ids) | self.sync_devices
                 if self.sync_devices:
-                    sync_devices_list = list(self.sync_devices)
-                    LOG.debug("Fetching routers on:%s", sync_devices_list)
-                    routers.extend(self._fetch_router_info(
-                        device_ids=sync_devices_list))
-                    self.sync_devices.clear()
+                    self._handle_sync_devices(routers)
                 if removed_devices_info:
                     if removed_devices_info.get('deconfigure'):
                         ids = self._get_router_ids_from_removed_devices_info(
@@ -365,6 +366,73 @@ class RoutingServiceHelper(object):
         except oslo_messaging.MessagingException:
             LOG.exception(_LE("RPC Error in fetching routers from plugin"))
             self.fullsync = True
+
+    def _handle_sync_devices(self, routers):
+        """
+        Handles routers during a device_sync.
+
+        This method performs post-processing on routers fetched from the
+        routing plugin during a device sync.  Routers are first fetched
+        from the plugin based on the list of device_ids.  Since fetched
+        routers take precedence over pending work, matching router-ids
+        buffered in update_routers and removed_routers are discarded.
+        The existing router cache is also cleared in order to properly
+        trigger updates and deletes.  Lastly, invalid configuration in
+        the underlying hosting-device is deleted via _cleanup_invalid_cfg.
+
+        Modifies updated_routers, removed_routers, and sync_devices
+        attributes
+
+        :param routers: working list of routers as populated in
+                        process_services
+        """
+        sync_devices_list = list(self.sync_devices)
+        LOG.debug("Fetching routers on:%s", sync_devices_list)
+        fetched_routers = self._fetch_router_info(device_ids=sync_devices_list)
+
+        if fetched_routers:
+            LOG.debug("[sync_devices] Fetched routers :%s",
+                      pp.pformat(fetched_routers))
+
+            # clear router_config cache
+            for router_dict in fetched_routers:
+                self.updated_routers.discard(router_dict['id'])
+                self.removed_routers.discard(router_dict['id'])
+                LOG.debug("[sync_devices] invoking "
+                          "_router_removed(%s)",
+                          router_dict['id'])
+                self._router_removed(router_dict['id'],
+                                     deconfigure=False)
+
+            self._cleanup_invalid_cfg(fetched_routers)
+            routers.extend(fetched_routers)
+            self.sync_devices.clear()
+            LOG.debug("[sync_devices] %s finished",
+                      sync_devices_list)
+        else:
+            # If the initial attempt to sync a device
+            # failed, retry again (by not clearing sync_devices)
+            # Normal updated_routers processing is still allowed
+            # to happen
+            self.sync_devices_attempts += 1
+
+            if (self.sync_devices_attempts >=
+                cfg.CONF.cfg_agent.max_device_sync_attempts):
+
+                LOG.debug("Max number [%d / %d ] of sync_devices "
+                          "attempted.  No further retries will "
+                          "be attempted." %
+                          (self.sync_devices_attempts,
+                           cfg.CONF.cfg_agent.max_device_sync_attempts))
+                self.sync_devices.clear()
+                self.sync_devices_attempts = 0
+            else:
+                LOG.debug("Fetched routers was blank for sync attempt "
+                          "[%d / %d], will attempt resync of %s devices "
+                          "again in the next iteration" %
+                          (self.sync_devices_attempts,
+                           cfg.CONF.cfg_agent.max_device_sync_attempts,
+                           pp.pformat(self.sync_devices)))
 
     @staticmethod
     def _get_router_ids_from_removed_devices_info(removed_devices_info):
