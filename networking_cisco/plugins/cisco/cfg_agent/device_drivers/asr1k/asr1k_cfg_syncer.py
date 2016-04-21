@@ -1035,9 +1035,44 @@ class ConfigSyncer(object):
 
         pending_delete_list = []
 
-        # TODO(split this big function into smaller functions)
+        # TODO(nh0556) split this big function into smaller functions
         for intf in runcfg_intfs:
-            LOG.info(_LI("\nOpenStack interface: %s"), (intf))
+            LOG.info(_LI("ASR interface: %s"), (intf))
+
+            # check for region-id
+            if is_multi_region_enabled:
+                intf_desc = intf.re_search_children(intf_desc_regex)
+                intf_desc = self.get_single_cfg(intf_desc)
+
+                if not intf_desc:
+                    LOG.info(_LI("Interface doesn't have "
+                                 "a interface description, ignoring %s") % (
+                             intf.text))
+                    continue
+                else:
+                    intf_desc_region_id = (
+                        intf_desc.re_match(INTF_DESC_MULTI_REGION_REGEX,
+                                           group=1))
+                    if intf_desc_region_id is None:
+                        # if no matching description field is found,
+                        # assume that the interface is not owned by Openstack
+                        LOG.info(_LI("Interface description doesn't have"
+                                     "region-id, ignoring %s") % intf.text)
+                        continue
+                    else:
+                        # since region-id was found, check if it's valid
+                        my_region_id = cfg.CONF.multi_region.region_id
+                        other_region_ids = (
+                            cfg.CONF.multi_region.other_region_ids)
+                        if intf_desc_region_id != my_region_id:
+                            if (intf_desc_region_id not in other_region_ids):
+                                pending_delete_list.append(intf)
+                            else:
+                                # skip because some other deployment owns
+                                # this configuration
+                                continue
+
+            # obtain segment_id from interface definition
             intf.segment_id = int(intf.re_match(INTF_REGEX, group=1))
             LOG.info(_LI("  segment_id: %s"), (intf.segment_id))
 
