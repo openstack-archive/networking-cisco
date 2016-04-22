@@ -327,7 +327,11 @@ class Policy(object):
         dns_servers = cls._normalize_dns_nameservers(network, subnet)
         if dns_servers:
             options.append(('domain-name-servers', dns_servers))
-        static_routes = cls._normalize_host_routes(network, subnet)
+        static_routes_str = cls._normalize_host_routes(network, subnet)
+        static_routes = ""
+        if static_routes_str:
+            static_routes = dhcpopts.format_for_options(
+                            'classless-static-routes', static_routes_str)
         if static_routes:
             options.append(('classless-static-routes', static_routes))
         extra_options = {'dhcp-lease-time': str(cfg.CONF.dhcp_lease_duration),

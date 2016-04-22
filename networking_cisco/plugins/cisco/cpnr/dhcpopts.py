@@ -12,11 +12,60 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import binascii
+
 from oslo_log import log as logging
 
 from networking_cisco._i18n import _LW
 
 LOG = logging.getLogger(__name__)
+
+
+def format_for_options(name, value):
+    name = name.strip()
+    if type(value) is str:
+        value = value.strip()
+    LOG.debug('name = %s value %s', name, value)
+    if name not in OPTIONS:
+        LOG.warning(_LW("Unrecognized DHCP options: %s"), name)
+        return
+    code, datatype = OPTIONS[name]
+    try:
+        value = _format_value(datatype, value)
+    except Exception:
+        LOG.warning(_LW("Failed to parse DHCP option: %s"), name)
+        return
+    value = ':'.join(value[i:i + 2] for i in range(0, len(value), 2))
+    LOG.debug('name = %s value %s', name, value)
+    return value
+
+
+def _format_value(datatype, value):
+    datatype = datatype.strip()
+    if ',' in datatype:
+        t1, _, t2 = datatype.partition(',')
+        v1, _, v2 = value.partition(' ')
+        return _format_value(t1, v1) + _format_value(t2, v2)
+    elif datatype.endswith('-list'):
+        t = datatype[:-5]
+        return ''.join([_format_value(t, v) for v in value.split(',')])
+    elif datatype == 'none':
+        return ''
+    elif datatype == 'bool':
+        if value in set([True, 'True', 'yes', 'on', '1']):
+            return '01'
+        else:
+            return '00'
+    elif datatype.startswith('int'):
+        length = int(datatype[3:]) / 4
+        return ('{:0{}x}'.format(int(value), int(length)))
+    elif datatype == 'string':
+        return (binascii.hexlify(value.encode('utf-8'))).decode('utf-8')
+    elif datatype == 'ip':
+        return ''.join(['{:02x}'.format(int(o)) for o in value.split('.')])
+    elif datatype == 'route':
+        dest, _, nexthop = value.partition(' ')
+        return _format_value('ip', dest) + _format_value('ip', nexthop)
 
 
 def format_for_pnr(name, value):
