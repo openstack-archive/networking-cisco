@@ -293,6 +293,148 @@ ASR_BASIC_RUNNING_CFG = [
     ""
 ]
 
+# with intentionally invalid interfaces configuration that mismatches
+# against neutron-db
+ASR_RUNNING_CFG_WITH_INVALID_INTFS = [
+    "interface Port-channel10",
+    " no ip address",
+    "!",
+    "interface Port-channel10.165",
+    " description OPENSTACK_NEUTRON_0000001_INTF",
+    " encapsulation dot1Q 165",
+    " ip address 10.23.229.153 255.255.255.240",
+    " ip nat outside",
+    " standby delay minimum 30 reload 60",
+    " standby version 2",
+    " standby 1064 ip 10.23.229.152",
+    " standby 1064 timers 1 3",
+    " standby 1064 priority 20",
+    " standby 1064 name neutron-hsrp-1064-165",
+    "!",
+    "interface Port-channel10.2005",
+    " description OPENSTACK_NEUTRON_0000001_INTF",
+    " encapsulation dot1Q 2005",
+    " vrf forwarding nrouter-9ad979-0000001",
+    " ip address 192.168.3.15 255.255.255.0",
+    " ip nat inside",
+    " standby delay minimum 30 reload 60",
+    " standby version 2",
+    " standby 1064 ip 192.168.3.1",
+    " standby 1064 timers 1 3",
+    " standby 1064 priority 10",
+    " standby 1064 name neutron-hsrp-1064-2005",
+    "!",
+    "interface Port-channel10.2029",
+    " description OPENSTACK_NEUTRON_0000001_INTF",
+    " encapsulation dot1Q 2029",
+    " vrf forwarding nrouter-9ad979-0000001",
+    " ip address 192.168.2.15 255.255.255.0",
+    " ip nat inside",
+    " standby delay minimum 30 reload 60",
+    " standby version 2",
+    " standby 1064 ip 192.168.2.1",
+    " standby 1064 timers 1 3",
+    " standby 1064 priority 10",
+    " standby 1064 name neutron-hsrp-1064-2029",
+    "!",
+    "interface Port-channel10.2031",
+    " description OPENSTACK_NEUTRON_0000001_INTF",
+    " encapsulation dot1Q 2031",
+    " vrf forwarding nrouter-9ad979-0000001",
+    " ip address 192.168.1.30 255.255.255.0",
+    " ip nat inside",
+    " standby delay minimum 30 reload 60",
+    " standby version 2",
+    " standby 1064 ip 192.168.1.1",
+    " standby 1064 timers 1 3",
+    " standby 1064 priority 10",
+    " standby 1064 name neutron-hsrp-1064-2031",
+    "!",
+    "interface Port-channel10.2044",
+    " description OPENSTACK_NEUTRON_0000001_INTF",
+    " encapsulation dot1Q 2044",
+    " vrf forwarding nrouter-9ad979-0000001",
+    " ip address 192.168.0.4 255.255.255.0",
+    " ip nat inside",
+    " standby delay minimum 30 reload 60",
+    " standby version 2",
+    " standby 1064 ip 192.168.0.1",
+    " standby 1064 timers 1 3",
+    " standby 1064 priority 10",
+    " standby 1064 name neutron-hsrp-1064-2044",
+    "!",
+    "interface Port-channel10.2499",
+    " ip nat outside",
+    "!",
+    "interface Port-channel10.2536",
+    " description OPENSTACK_NEUTRON_0000002_INTF",
+    " encapsulation dot1Q 2535",
+    " vrf forwarding nrouter-92740e-0000002",
+    " ip address 192.168.0.7 255.255.255.0",
+    " ip nat inside",
+    " standby delay minimum 30 reload 60",
+    " standby version 2",
+    " standby 1064 ip 192.168.0.1",
+    " standby 1064 timers 1 3",
+    " standby 1064 name neutron-hsrp-1064-2535",
+    "!",
+    "interface Port-channel10.2564",
+    " description OPENSTACK_NEUTRON_0000002_INTF",
+    " encapsulation dot1Q 2564",
+    " vrf forwarding nrouter-3ea5f9-0000002",
+    " ip address 10.2.0.4 255.255.255.0",
+    " ip nat inside",
+    " standby delay minimum 30 reload 60",
+    " standby version 2",
+    " standby 1064 ip 10.2.0.1",
+    " standby 1064 timers 1 3",
+    " standby 1064 priority 97",
+    " standby 1064 name neutron-hsrp-1064-2564",
+    "!",
+    "interface Port-channel10.2577",
+    " description OPENSTACK_NEUTRON_0000002_INTF",
+    " encapsulation dot1Q 2577",
+    " vrf forwarding nrouter-bdc5b5-0000002",
+    " ip address 20.20.20.3 255.255.255.0",
+    " ip nat inside",
+    " standby delay minimum 30 reload 60",
+    " standby version 2",
+    " standby 1064 ip 20.20.20.1",
+    " standby 1064 timers 1 3",
+    " standby 1064 name neutron-hsrp-1064-2577",
+    "!",
+    "interface Port-channel10.3000",
+    " description OPENSTACK_NEUTRON_0000002_INTF",
+    " encapsulation dot1Q 3000",
+    " ip address 172.16.0.105 255.255.0.0",
+    " ip nat outside",
+    " standby delay minimum 30 reload 60",
+    " standby version 2",
+    " standby 1064 ip 172.16.0.107",
+    " standby 1064 timers 1 3",
+    " standby 1064 priority 97",
+    " standby 1064 name neutron-hsrp-1064-3000",
+    "!",
+    "interface TenGigabitEthernet0/0/0",
+    " no ip address",
+    " cdp enable",
+    " channel-group 10 mode active",
+    "!",
+    "interface TenGigabitEthernet0/1/0",
+    " no ip address",
+    " cdp enable",
+    " channel-group 10 mode active",
+    "!",
+    "interface TenGigabitEthernet0/3/0",
+    " no ip address",
+    " shutdown",
+    "!",
+    "interface GigabitEthernet0",
+    " vrf forwarding Mgmt-intf",
+    " ip address 172.20.231.19 255.255.255.0",
+    " negotiation auto",
+    " no mop enabled",
+]
 
 # simulated neutron-db dictionary
 NEUTRON_DB = [
@@ -1379,3 +1521,57 @@ class ASR1kCfgSyncer(base.BaseTestCase):
                                               segment_nat_dict,
                                               parsed_cfg)
         self.assertEqual([], invalid_cfg)
+
+    def test_clean_interfaces_R2_run_cfg_present_multi_region_enabled(self):
+        """
+        In this test, we are simulating a cfg-sync, clean_interfaces for
+        region 0000002 cfg-agent.  Existing running-cfg exists for region
+        0000001 and 0000002.
+
+        At the end of test, we should expect zero entries in invalid_cfg.
+        """
+        cfg.CONF.set_override('enable_multi_region', True, 'multi_region')
+        cfg.CONF.set_override('region_id', '0000002', 'multi_region')
+        cfg.CONF.set_override('other_region_ids', ['0000001'], 'multi_region')
+
+        intf_segment_dict = self.config_syncer.intf_segment_dict
+        segment_nat_dict = self.config_syncer.segment_nat_dict
+
+        conn = self.driver._get_connection()
+
+        parsed_cfg = HTParser(ASR_BASIC_RUNNING_CFG)
+
+        invalid_cfg = self.config_syncer.clean_interfaces(conn,
+                                              intf_segment_dict,
+                                              segment_nat_dict,
+                                              parsed_cfg)
+        self.assertEqual([], invalid_cfg)
+
+    def test_clean_interfaces_R2_with_invalid_intfs(self):
+        """
+        In this test, we are simulating a cfg-sync, clean_interfaces for
+        region 0000002 cfg-agent.  Existing running-cfg exists for region
+        0000001 and 0000002.
+
+        At the end of test, we should expect two invalid intfs
+        detected.
+
+        invalid tenant router, int Po10.2536 (invalid segment-id)
+        invalid ext-gw-port, int Po10.3000 (invalid HSRP VIP)
+        """
+        cfg.CONF.set_override('enable_multi_region', True, 'multi_region')
+        cfg.CONF.set_override('region_id', '0000002', 'multi_region')
+        cfg.CONF.set_override('other_region_ids', ['0000001'], 'multi_region')
+
+        intf_segment_dict = self.config_syncer.intf_segment_dict
+        segment_nat_dict = self.config_syncer.segment_nat_dict
+
+        conn = self.driver._get_connection()
+        parsed_cfg = HTParser(ASR_RUNNING_CFG_WITH_INVALID_INTFS)
+
+        invalid_cfg = self.config_syncer.clean_interfaces(conn,
+                                              intf_segment_dict,
+                                              segment_nat_dict,
+                                              parsed_cfg)
+
+        self.assertEqual(2, len(invalid_cfg))
