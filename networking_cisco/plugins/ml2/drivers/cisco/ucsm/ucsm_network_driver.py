@@ -121,16 +121,16 @@ class CiscoUcsmDriver(object):
         if not self.ucsmsdk:
             self.ucsmsdk = self._import_ucsmsdk()
 
-        credentials = self.ucsm_conf.get_credentials_for_ucsm_ip(
+        username, password = self.ucsm_conf.get_credentials_for_ucsm_ip(
             ucsm_ip)
-        if not credentials:
+        if not username:
             LOG.error(_LE('UCS Manager network driver failed to get login '
                           'credentials for UCSM %s'), ucsm_ip)
             return None
 
         handle = self.ucsmsdk.UcsHandle()
         try:
-            handle.Login(ucsm_ip, credentials[1], credentials[0])
+            handle.Login(ucsm_ip, username, password)
         except Exception as e:
             # Raise a Neutron exception. Include a description of
             # the original  exception.
@@ -226,7 +226,7 @@ class CiscoUcsmDriver(object):
                                                vlan_name, ucsm_ip)
 
     def _create_port_profile(self, handle, profile_name, vlan_id,
-                             vnic_type, ucsm_ip):
+                             vnic_type, ucsm_ip, trunk_vlans, qos_policy):
         """Creates a Port Profile on the UCS Manager.
 
         Significant parameters set in the port profile are:
@@ -276,7 +276,7 @@ class CiscoUcsmDriver(object):
                  self.ucsmsdk.VnicProfile.PIN_TO_GROUP_NAME: "",
                  self.ucsmsdk.VnicProfile.DN: port_profile_dest,
                  self.ucsmsdk.VnicProfile.DESCR: const.DESCR,
-                 self.ucsmsdk.VnicProfile.QOS_POLICY_NAME: "",
+                 self.ucsmsdk.VnicProfile.QOS_POLICY_NAME: qos_policy,
                  self.ucsmsdk.VnicProfile.HOST_NW_IOPERF: port_mode,
                  self.ucsmsdk.VnicProfile.MAX_PORTS: const.MAX_PORTS})
             if not p_profile:
@@ -301,6 +301,28 @@ class CiscoUcsmDriver(object):
                 return False
             LOG.debug('UCS Manager network driver created Port Profile %s '
                       'at %s', profile_name, port_profile_dest)
+
+            # For Multi VLAN trunk support
+            if trunk_vlans:
+                for vlan in trunk_vlans:
+                    vlan_name = self.make_vlan_name(vlan)
+                    vlan_associate_path = (const.PORT_PROFILESETDN +
+                        const.VNIC_PATH_PREFIX + profile_name +
+                        const.VLAN_PATH_PREFIX + vlan_name)
+                    # Associate port profile with vlan profile
+                    # for the trunk vlans
+                    mo = handle.AddManagedObject(
+                        p_profile,
+                        self.ucsmsdk.VnicEtherIf.ClassId(),
+                        {self.ucsmsdk.VnicEtherIf.DN: vlan_associate_path,
+                        self.ucsmsdk.VnicEtherIf.NAME: vlan_name,
+                        self.ucsmsdk.VnicEtherIf.DEFAULT_NET: "no"}, True)
+                    if not mo:
+                        LOG.warning(_LW('UCS Manager network driver cannot '
+                                        'associate Vlan %(vlan)d to Port '
+                                        'Profile %(profile)s'),
+                                    {'vlan': vlan, 'profile': profile_name})
+
             cl_profile = handle.AddManagedObject(
                 p_profile,
                 self.ucsmsdk.VmVnicProfCl.ClassId(),
@@ -327,7 +349,8 @@ class CiscoUcsmDriver(object):
             return self._handle_ucsm_exception(e, 'Port Profile',
                                                profile_name, ucsm_ip)
 
-    def create_portprofile(self, profile_name, vlan_id, vnic_type, host_id):
+    def create_portprofile(self, profile_name, vlan_id, vnic_type, host_id,
+        trunk_vlans):
         """Top level method to create Port Profiles on the UCS Manager.
 
         Calls all the methods responsible for the individual tasks that
@@ -346,11 +369,26 @@ class CiscoUcsmDriver(object):
                 LOG.error(_LE('UCS Manager network driver failed to create '
                               'Vlan Profile for vlan %s'), str(vlan_id))
                 return False
+            if trunk_vlans:
+                for vlan in trunk_vlans:
+                    if not self._create_vlanprofile(handle, vlan, ucsm_ip):
+                        LOG.error(_LE('UCS Manager network driver failed to '
+                            'create Vlan Profile for vlan %s'), vlan)
+                        return False
+
+            qos_policy = self.ucsm_conf.get_sriov_qos_policy(ucsm_ip)
+            if not qos_policy:
+                qos_policy = ""
+            else:
+                LOG.debug('UCS Manager Network driver applying QoS Policy '
+                          '%(qos)s to Port Profile %(port_profile)s',
+                          {'qos': qos_policy, 'port_profile': profile_name})
 
             # Create Port Profile
             if not self._create_port_profile(handle, profile_name,
                                              vlan_id, vnic_type,
-                                             ucsm_ip):
+                                             ucsm_ip, trunk_vlans,
+                                             qos_policy):
                 LOG.error(_LE('UCS Manager network driver failed to create '
                               'Port Profile %s'), profile_name)
                 return False
@@ -795,7 +833,8 @@ class CiscoUcsmDriver(object):
             return self._handle_ucsm_exception(e, 'VNIC Template',
                                                vlan_id, ucsm_ip)
 
-    def delete_all_config_for_vlan(self, vlan_id, port_profile):
+    def delete_all_config_for_vlan(self, vlan_id, port_profile,
+                                   trunk_vlans):
         """Top level method to delete all config for vlan_id."""
         ucsm_ips = self.ucsm_conf.get_all_ucsm_ips()
         for ucsm_ip in ucsm_ips:
@@ -819,6 +858,8 @@ class CiscoUcsmDriver(object):
                                                                 vlan_id,
                                                                 ucsm_ip)
                 self._delete_vlan_profile(handle, vlan_id, ucsm_ip)
+                for vlan_id in trunk_vlans:
+                    self._delete_vlan_profile(handle, vlan_id, ucsm_ip)
 
     def _handle_ucsm_exception(self, exception_type, profile_type,
                                profile_name, ucsm_ip):

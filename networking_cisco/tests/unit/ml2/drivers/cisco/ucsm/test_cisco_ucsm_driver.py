@@ -45,6 +45,7 @@ SRIOV_VNIC_TYPES = [VNIC_DIRECT, VNIC_MACVTAP]
 SUPPORTED_PCI_DEVS = ["1137:0071", "8086:10c9"]
 
 NETWORK_ID_1 = 1001
+NETWORK_NAME = 'test-network'
 VLAN_ID_1 = 100
 VLAN_ID_2 = 101
 PORT_STATE_ACTIVE = n_const.PORT_STATUS_ACTIVE
@@ -102,7 +103,8 @@ class FakeNetworkContext(api.NetworkContext):
 
     @property
     def current(self):
-        return {'id': NETWORK_ID}
+        return {'id': NETWORK_ID_1,
+                'name': NETWORK_NAME}
 
     @property
     def original(self):
@@ -455,7 +457,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         # is mocked to a new method here. This method verifies input params
         # are correct.
         def new_create_portprofile(mech_context, profile_name, vlan_id,
-                                   vnic_type, host_id):
+                                   vnic_type, ucsm_ip, trunk_vlans):
             return True
 
         mock.patch.object(ucsm_network_driver.CiscoUcsmDriver,
@@ -487,7 +489,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         # is mocked to a new method here. This method verifies input params
         # are correct.
         def new_create_portprofile(mech_context, profile_name, vlan_id,
-                                   vnic_type, host_id):
+                                   vnic_type, ucsm_ip, trunk_vlans):
             return False
 
         mock.patch.object(ucsm_network_driver.CiscoUcsmDriver,
@@ -516,7 +518,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         # is mocked to a new method here. This method verifies input params
         # are correct.
         def new_create_portprofile(mech_context, profile_name, vlan_id,
-                                   vnic_type, ucsm_ip):
+                                   vnic_type, ucsm_ip, trunk_vlans):
             self.assertEqual("OS-PP-100", profile_name)
             self.assertEqual(100, vlan_id)
             self.assertEqual(VNIC_DIRECT, vnic_type)
@@ -545,7 +547,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         # is mocked to a new method here. This method verifies input params
         # are correct.
         def new_create_portprofile(mech_context, profile_name, vlan_id,
-                                   vnic_type, host_id):
+                                   vnic_type, ucsm_ip, trunk_vlans):
             self.assertEqual("OS-PP-100", profile_name)
             self.assertEqual(100, vlan_id)
             self.assertEqual(VNIC_MACVTAP, vnic_type)

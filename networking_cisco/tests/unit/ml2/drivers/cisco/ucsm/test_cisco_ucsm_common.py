@@ -65,6 +65,7 @@ class ConfigMixin(object):
                 'ucsm_password': [UCSM_PASSWORD_1],
                 'ucsm_virtio_eth_ports': UCSM_VIRTIO_ETH_PORTS_1,
                 'vnic_template_list': ['test-physnet:org-root:Test-VNIC'],
+                'sriov_qos_policy': ['Test']
             },
             'ml2_cisco_ucsm_ip: 2.2.2.2': {
                 'ucsm_username': [UCSM_USERNAME_2],
@@ -72,10 +73,14 @@ class ConfigMixin(object):
                 'ucsm_virtio_eth_ports': UCSM_VIRTIO_ETH_PORTS_2,
                 'vnic_template_list': ['physnet2:org-root/org-Test-Sub:Test']
             },
+            'sriov_multivlan_trunk': {
+                'test_network1': ['5, 7 - 9'],
+                'test_network2': ['500 - 509, 700'],
+            },
         }
         expected_ucsm_dict = {
-            '1.1.1.1': [UCSM_PASSWORD_1, UCSM_USERNAME_1],
-            '2.2.2.2': [UCSM_PASSWORD_2, UCSM_USERNAME_2],
+            '1.1.1.1': (UCSM_USERNAME_1, UCSM_PASSWORD_1),
+            '2.2.2.2': (UCSM_USERNAME_2, UCSM_PASSWORD_2),
         }
 
         expected_ucsm_port_dict = {
@@ -86,6 +91,16 @@ class ConfigMixin(object):
         expected_vnic_template_dict = {
             ('1.1.1.1', 'test-physnet'): ('org-root', 'Test-VNIC'),
             ('2.2.2.2', 'physnet2'): ('org-root/org-Test-Sub', 'Test'),
+        }
+
+        expected_sriov_qos_policy = {
+            '1.1.1.1': 'Test',
+        }
+
+        expected_multivlan_trunk_dict = {
+            'test_network1': [5, 7, 8, 9],
+            'test_network2': [500, 501, 502, 503, 504, 505, 506,
+                              507, 508, 509, 700]
         }
 
         self.mocked_parser = mock.patch.object(cfg,
@@ -99,3 +114,7 @@ class ConfigMixin(object):
                          ucsm_config.UcsmConfig.ucsm_port_dict)
         self.assertEqual(expected_vnic_template_dict,
                          ucsm_config.UcsmConfig.vnic_template_dict)
+        self.assertEqual(expected_sriov_qos_policy,
+                         ucsm_config.UcsmConfig.sriov_qos_policy)
+        self.assertEqual(expected_multivlan_trunk_dict,
+                         ucsm_config.UcsmConfig.multivlan_trunk_dict)
