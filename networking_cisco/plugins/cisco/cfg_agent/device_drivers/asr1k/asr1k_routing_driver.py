@@ -68,6 +68,10 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                                'device_id': device_params.get('device_id')}
 
     # ============== Public functions ==============
+    def send_empty_cfg(self):
+        LOG.debug("send empty config")
+        conf_str = asr1k_snippets.EMPTY_SNIPPET
+        self._edit_running_config(conf_str, 'EMPTY_SNIPPET')
 
     def internal_network_added(self, ri, port):
         gw_ip = port['subnets'][0]['gateway_ip']
