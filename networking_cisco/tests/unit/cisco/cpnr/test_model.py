@@ -348,7 +348,8 @@ class TestModel(base.BaseTestCase):
         # fake_networks.fake_subnet1
         fake_policy_opts = [('routers', fake_subnet.gateway_ip),
                             ('domain-name-servers', '8.8.8.8'),
-                            ('classless-static-routes', '24.40.0.1 40.0.0.2'),
+                            ('classless-static-routes',
+                                '18:28:00:01:28:00:00:02'),
                             ('dhcp-lease-time',
                              str(cfg.CONF.dhcp_lease_duration)),
                             ('domain-name', cfg.CONF.dhcp_domain)]
