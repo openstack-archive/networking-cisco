@@ -185,6 +185,18 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
             acl_name = "neutron_acl_%s" % vlan
         return acl_name
 
+    def _generate_acl_num_from_port(self, port):
+        port_id = port['id'][:8]  # Taking only the first 8 chars
+        vlan = self._get_interface_vlan_from_hosting_port(port)
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+
+        if is_multi_region_enabled:
+            region_id = cfg.CONF.multi_region.region_id
+            acl_name = "neutron_acl_%s_%s_%s" % (region_id, vlan, port_id)
+        else:
+            acl_name = "neutron_acl_%s_%s" % (vlan, port_id)
+        return acl_name
+
     def _get_interface_name_from_hosting_port(self, port):
         """
         Extract the underlying subinterface name for a port
@@ -492,6 +504,18 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
     def _get_hsrp_grp_num_from_ri(ri):
         return ri.router['ha_info']['group']
 
+    def _add_internal_nw_nat_rules(self, ri, port, ext_port):
+        vrf_name = self._get_vrf_name(ri)
+        acl_no = self._generate_acl_num_from_port(port)
+        internal_cidr = port['ip_cidr']
+        internal_net = netaddr.IPNetwork(internal_cidr).network
+        net_mask = netaddr.IPNetwork(internal_cidr).hostmask
+        inner_itfc = self._get_interface_name_from_hosting_port(port)
+        outer_itfc = self._get_interface_name_from_hosting_port(ext_port)
+        self._nat_rules_for_internet_access(acl_no, internal_net,
+                                            net_mask, inner_itfc,
+                                            outer_itfc, vrf_name)
+
     def _nat_rules_for_internet_access(self,
                                        acl_no,
                                        network,
@@ -561,9 +585,7 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         # first disable nat in all inner ports
         for port in ports:
             in_itfc_name = self._get_interface_name_from_hosting_port(port)
-            inner_vlan = self._get_interface_vlan_from_hosting_port(port)
-            acls.append(self._get_acl_name_from_vlan(inner_vlan))
-
+            acls.append(self._generate_acl_num_from_port(port))
             if not intf_deleted:
                 self._remove_interface_nat(in_itfc_name, 'inside')
         # There is a possibility that the dynamic NAT rule cannot be removed

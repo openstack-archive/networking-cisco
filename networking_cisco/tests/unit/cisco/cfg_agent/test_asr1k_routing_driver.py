@@ -450,7 +450,10 @@ class ASR1kRoutingDriver(base.BaseTestCase):
 
         self._assert_number_of_edit_run_cfg_calls(4)
 
-        acl_name = '%s_%s' % ('neutron_acl', str(self.vlan_int))
+        acl_name = '%(acl_prefix)s_%(vlan)s_%(port)s' % {
+                   'acl_prefix': 'neutron_acl',
+                   'vlan': self.vlan_int,
+                   'port': self.port['id'][:8]}
         net = netaddr.IPNetwork(self.gw_ip_cidr).network
         net_mask = netaddr.IPNetwork(self.gw_ip_cidr).hostmask
         cfg_params_create_acl = (acl_name, net, net_mask)
@@ -481,7 +484,12 @@ class ASR1kRoutingDriver(base.BaseTestCase):
 
         self._assert_number_of_edit_run_cfg_calls(4)
 
-        acl_name = '%s_%s_%s' % ('neutron_acl', region_id, str(self.vlan_int))
+        acl_name = '%(acl_prefix)s_%(region_id)s_%(vlan)s_%(port)s' % {
+                   'acl_prefix': 'neutron_acl',
+                   'region_id': region_id,
+                   'vlan': self.vlan_int,
+                   'port': self.port['id'][:8]}
+
         net = netaddr.IPNetwork(self.gw_ip_cidr).network
         net_mask = netaddr.IPNetwork(self.gw_ip_cidr).hostmask
         cfg_params_create_acl = (acl_name, net, net_mask)
@@ -506,7 +514,10 @@ class ASR1kRoutingDriver(base.BaseTestCase):
 
         self._assert_number_of_edit_run_cfg_calls(3)
 
-        acl_name = '%s_%s' % ('neutron_acl', str(self.vlan_int))
+        acl_name = '%(acl_prefix)s_%(vlan)s_%(port)s' % {
+                   'acl_prefix': 'neutron_acl',
+                   'vlan': self.vlan_int,
+                   'port': self.port['id'][:8]}
         pool_name = "%s_nat_pool" % self.vrf
 
         cfg_params_dyn_trans = (acl_name, pool_name, self.vrf)
@@ -527,7 +538,12 @@ class ASR1kRoutingDriver(base.BaseTestCase):
 
         self._assert_number_of_edit_run_cfg_calls(3)
 
-        acl_name = '%s_%s_%s' % ('neutron_acl', region_id, str(self.vlan_int))
+        acl_name = '%(acl_prefix)s_%(region_id)s_%(vlan)s_%(port)s' % {
+                   'acl_prefix': 'neutron_acl',
+                   'region_id': region_id,
+                   'vlan': self.vlan_int,
+                   'port': self.port['id'][:8]}
+
         pool_name = "%s_nat_pool" % vrf
 
         cfg_params_dyn_trans = (acl_name, pool_name, vrf)

@@ -111,20 +111,21 @@ NAT_OVERLOAD_MULTI_REGION_REGEX = ("ip nat inside source list"
     NROUTER_MULTI_REGION_REGEX + " overload")
 
 NAT_POOL_OVERLOAD_REGEX = ("ip nat inside source list"
-    " neutron_acl_(\d+) pool " +
+    " neutron_acl_(\d+)_(\w{1,8}) pool " +
     NROUTER_REGEX +
     "_nat_pool vrf " +
     NROUTER_REGEX +
     " overload")
 NAT_POOL_OVERLOAD_MULTI_REGION_REGEX = ("ip nat inside source"
-    " list neutron_acl_(\w{1,7})_(\d+) pool " +
+    " list neutron_acl_(\w{1,7})_(\d+)_(\w{1,8}) pool " +
     NROUTER_MULTI_REGION_REGEX +
     "_nat_pool vrf " +
     NROUTER_MULTI_REGION_REGEX +
     " overload")
 
-ACL_REGEX = "ip access-list standard neutron_acl_(\d+)"
-ACL_MULTI_REGION_REGEX = "ip access-list standard neutron_acl_(\w{1,7})_(\d+)"
+ACL_REGEX = "ip access-list standard neutron_acl_(\d+)_(\w{1,8})"
+ACL_MULTI_REGION_REGEX = ("ip access-list standard neutron_acl_" +
+                          "(\w{1,7})_(\d+)_(\w{1,8})")
 ACL_CHILD_REGEX = ("\s*permit (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
     " (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})")
 
@@ -255,7 +256,7 @@ class ConfigSyncer(object):
         if not conn:
             conn = self.driver._get_connection()
 
-        LOG.info(_LI("*************************"))
+        LOG.info(_LI("neutron router db records"))
 
         for router_id, router in six.iteritems(router_id_dict):
             #LOG.info("ROUTER ID: %s   DATA: %s\n\n" % (router_id, router))
@@ -508,8 +509,8 @@ class ConfigSyncer(object):
             match_obj = re.match(route_regex, route.text)
             is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
             if (is_multi_region_enabled):
-                router_id, region_id, segment_id, next_hop = \
-                    match_obj.group(1, 2, 3, 4)
+                router_id, region_id, segment_id, next_hop = (
+                    match_obj.group(1, 2, 3, 4))
                 LOG.info(_LI("    router_id: %(router_id)s,"
                              ", region_id: %(region_id)s, segment_id:"
                              " %(segment_id)s, next_hop: %(next_hop)s") %
@@ -713,13 +714,18 @@ class ConfigSyncer(object):
             LOG.info(_LI("\nnat overload rule: %(nat_rule)s") %
                      {'nat_rule': nat_rule})
             match_obj = re.match(nat_pool_overload_regex, nat_rule.text)
-            if (is_multi_region_enabled):
-                (region_id, segment_id, pool_router_id, pool_region_id,
-                    router_id) = (match_obj.group(1, 2, 3, 4, 5))
+            if is_multi_region_enabled:
+                (region_id, segment_id, port_id,
+                 pool_router_id, pool_region_id, router_id) = (
+                    match_obj.group(1, 2, 3, 4, 5, 6))
+                if (region_id != pool_region_id):
+                    LOG.info(_LI("region id mismatch, deleting"))
+                    delete_nat_list.append(nat_rule.text)
+                    continue
+
                 my_region_id = cfg.CONF.multi_region.region_id
                 other_region_ids = cfg.CONF.multi_region.other_region_ids
-                if (region_id != pool_region_id and
-                    region_id != my_region_id):
+                if (region_id != my_region_id):
                     if region_id not in other_region_ids:
                         delete_nat_list.append(nat_rule.text)
                     else:
@@ -729,6 +735,8 @@ class ConfigSyncer(object):
             else:
                 segment_id, pool_router_id, router_id = (
                     match_obj.group(1, 2, 3))
+                segment_id, port_id, pool_router_id, router_id = (
+                    match_obj.group(1, 2, 3, 4))
 
             segment_id = int(segment_id)
 
@@ -840,6 +848,7 @@ class ConfigSyncer(object):
             if (is_multi_region_enabled):
                 region_id = match_obj.group(1)
                 segment_id = int(match_obj.group(2))
+                port_id = match_obj.group(3)
                 if region_id != cfg.CONF.multi_region.region_id:
                     if region_id not in cfg.CONF.multi_region.other_region_ids:
                         delete_acl_list.append(acl.text)
@@ -849,7 +858,10 @@ class ConfigSyncer(object):
                         continue
             else:
                 segment_id = int(match_obj.group(1))
-            LOG.info(_LI("   segment_id: %(seg_id)s") % {'seg_id': segment_id})
+                port_id = match_obj.group(2)
+
+            LOG.info(_LI("   segment_id: %(seg_id)s, port_id: %(port_id)s") %
+                     {'seg_id': segment_id, 'port_id': port_id})
 
             # Check that segment_id exists in openstack DB info
             if segment_id not in intf_segment_dict:
