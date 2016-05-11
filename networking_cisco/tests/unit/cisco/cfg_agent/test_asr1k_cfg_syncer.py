@@ -191,7 +191,7 @@ ASR_BASIC_RUNNING_CFG_NO_MULTI_REGION = [
     " 172.16.0.124 netmask 255.255.0.0",
     "ip nat inside source static 10.2.0.5 172.16.0.126"
     " vrf nrouter-3ea5f9 redundancy neutron-hsrp-1064-3000",
-    "ip nat inside source list neutron_acl_2564 pool"
+    "ip nat inside source list neutron_acl_2564_47f1a63e pool"
     " nrouter-3ea5f9_nat_pool vrf nrouter-3ea5f9 overload",
     "ip forward-protocol nd",
     "!",
@@ -199,7 +199,7 @@ ASR_BASIC_RUNNING_CFG_NO_MULTI_REGION = [
     "ip route vrf nrouter-3ea5f9 0.0.0.0 0.0.0.0"
     " Port-channel10.3000 172.16.0.1",
     "!",
-    "ip access-list standard neutron_acl_2564",
+    "ip access-list standard neutron_acl_2564_47f1a63e",
     " permit 10.2.0.0 0.0.0.255",
     "!",
     "end",
@@ -278,7 +278,7 @@ ASR_BASIC_RUNNING_CFG = [
     " 172.16.0.124 netmask 255.255.0.0",
     "ip nat inside source static 10.2.0.5 172.16.0.126 vrf"
     " nrouter-3ea5f9-0000002 redundancy neutron-hsrp-1064-3000",
-    "ip nat inside source list neutron_acl_0000002_2564 pool"
+    "ip nat inside source list neutron_acl_0000002_2564_47f1a63e pool"
     " nrouter-3ea5f9-0000002_nat_pool vrf nrouter-3ea5f9-0000002 overload",
     "ip forward-protocol nd",
     "!",
@@ -286,7 +286,7 @@ ASR_BASIC_RUNNING_CFG = [
     "ip route vrf nrouter-3ea5f9-0000002 0.0.0.0 0.0.0.0"
     " Port-channel10.3000 172.16.0.1",
     "!",
-    "ip access-list standard neutron_acl_0000002_2564",
+    "ip access-list standard neutron_acl_0000002_2564_47f1a63e",
     " permit 10.2.0.0 0.0.0.255",
     "!",
     "end",
@@ -433,7 +433,42 @@ ASR_RUNNING_CFG_WITH_INVALID_INTFS = [
     " vrf forwarding Mgmt-intf",
     " ip address 172.20.231.19 255.255.255.0",
     " negotiation auto",
-    " no mop enabled",
+    " no mop enabled"
+]
+
+TEST_ACL_RUNNING_CFG = [
+    " vrf nrouter-bdc5b5-0000002 redundancy neutron-hsrp-1064-3000",
+    "ip nat inside source static 10.2.0.5 172.16.0.126"
+    " vrf nrouter-3ea5f9-0000002 redundancy neutron-hsrp-1064-3000",
+    "ip nat inside source list neutron_acl_0000002_2564_471f1a63e pool"
+    " nrouter-3ea5f9-0000002_nat_pool vrf nrouter-3ea5f9-0000002 overload",
+    "ip nat inside source list neutron_acl_0000002_2535_86f655d1 pool"
+    " nrouter-92740e-0000002_nat_pool vrf nrouter-92740e-0000002 overload",
+    "ip nat inside source list neutron_acl_0000001_2005_xxxxxxxx pool"
+    " nrouter-9ad979-0000001_nat_pool vrf nrouter-9ad979-0000001 overload",
+    "ip nat inside source list neutron_acl_0000001_2029_yyyyyyyy pool"
+    " nrouter-9ad979-0000001_nat_pool vrf nrouter-9ad979-0000001 overload",
+    "ip nat inside source list neutron_acl_0000001_2031_zzzzzzzz pool"
+    " nrouter-9ad979-0000001_nat_pool vrf nrouter-9ad979-0000001 overload",
+    "ip nat inside source list neutron_acl_0000001_2044_11111111 pool"
+    " nrouter-9ad979-0000001_nat_pool vrf nrouter-9ad979-0000001 overload",
+    "ip nat inside source list neutron_acl_0000002_2577_3f70129a pool"
+    " nrouter-bdc5b5-0000002_nat_pool vrf nrouter-bdc5b5-0000002 overload",
+    "!",
+    "ip access-list standard neutron_acl_0000001_2005_xxxxxxxx",
+    " permit 192.168.3.0 0.0.0.255",
+    "ip access-list standard neutron_acl_0000001_2029_yyyyyyyy",
+    " permit 192.168.2.0 0.0.0.255",
+    "ip access-list standard neutron_acl_0000001_2031_zzzzzzzz",
+    " permit 192.168.1.0 0.0.0.255",
+    "ip access-list standard neutron_acl_0000001_2044_11111111",
+    " permit 192.168.0.0 0.0.0.255",
+    "ip access-list standard neutron_acl_0000002_2535_86f655d1",
+    " permit 192.168.0.0 0.0.0.255",
+    "ip access-list standard neutron_acl_0000002_2564_47f1a63e",
+    " permit 10.2.0.0 0.0.0.255",
+    "ip access-list standard neutron_acl_0000002_2577_3f70129a",
+    " permit 20.20.20.0 0.0.0.255"
 ]
 
 # simulated neutron-db dictionary
@@ -1575,3 +1610,48 @@ class ASR1kCfgSyncer(base.BaseTestCase):
                                               parsed_cfg)
 
         self.assertEqual(2, len(invalid_cfg))
+
+    def test_clean_acls_basic_running_cfg(self):
+        """
+        region 1 acls should be ignored
+        """
+        cfg.CONF.set_override('enable_multi_region', True, 'multi_region')
+        cfg.CONF.set_override('region_id', '0000002', 'multi_region')
+        cfg.CONF.set_override('other_region_ids', ['0000001'], 'multi_region')
+
+        intf_segment_dict = self.config_syncer.intf_segment_dict
+        segment_nat_dict = self.config_syncer.segment_nat_dict
+
+        conn = self.driver._get_connection()
+
+        parsed_cfg = HTParser(TEST_ACL_RUNNING_CFG)
+
+        invalid_cfg = self.config_syncer.clean_acls(conn,
+                                                    intf_segment_dict,
+                                                    segment_nat_dict,
+                                                    parsed_cfg)
+
+        self.assertEqual([], invalid_cfg)
+
+    def test_clean_nat_pool_overload_basic_running_cfg(self):
+        """
+        region 1 acls should be ignored
+        """
+        cfg.CONF.set_override('enable_multi_region', True, 'multi_region')
+        cfg.CONF.set_override('region_id', '0000002', 'multi_region')
+        cfg.CONF.set_override('other_region_ids', ['0000001'], 'multi_region')
+
+        router_id_dict = self.config_syncer.router_id_dict
+        intf_segment_dict = self.config_syncer.intf_segment_dict
+        segment_nat_dict = self.config_syncer.segment_nat_dict
+
+        conn = self.driver._get_connection()
+
+        parsed_cfg = HTParser(TEST_ACL_RUNNING_CFG)
+        invalid_cfg = self.config_syncer.clean_nat_pool_overload(conn,
+                                                     router_id_dict,
+                                                     intf_segment_dict,
+                                                     segment_nat_dict,
+                                                     parsed_cfg)
+
+        self.assertEqual([], invalid_cfg)
