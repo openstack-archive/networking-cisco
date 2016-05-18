@@ -614,7 +614,9 @@ class HA_db_mixin(object):
                                              port, modified_port_data,
                                              redundancy_router_ids=None,
                                              ha_settings_db=None):
-        """Update router interface when port admin_state_up status changesn"""
+        """To be called when the router interfaces are updated,
+        like in the case of change in port admin_state_up status
+        """
         router_id = router['id']
         if ha_settings_db is None:
             ha_settings_db = self._get_ha_settings_by_router_id(context,
@@ -853,7 +855,7 @@ class HA_db_mixin(object):
         if hag is None:
             LOG.debug('Failed to fetch the HA group info for for router: '
                       '%(r_id)s and subnet: %(s_id)s. Giving up. No HA '
-                      'info will be added to the router\'s port: %s.',
+                      'info will be added to the router\'s port: %(p_id)s.',
                       {'r_id': router_id, 's_id': subnet_id,
                        'p_id': port['id']})
             # we leave it to the L3 config agent to handle this
