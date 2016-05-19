@@ -21,6 +21,7 @@ from neutron.common import constants
 from neutron.common import exceptions
 from neutron.common import utils
 from neutron import context as neutron_context
+from neutron.db import api as db_api
 from neutron.extensions import l3
 from neutron.extensions import portbindings
 from neutron import manager
@@ -48,6 +49,7 @@ class L3RouterCfgRpcCallback(object):
             return self._plugin
 
     # version 1.0 API
+    @db_api.retry_db_errors
     def cfg_sync_routers(self, context, host, router_ids=None,
                          hosting_device_ids=None):
         """Sync routers according to filters to a specific Cisco cfg agent.
@@ -75,6 +77,7 @@ class L3RouterCfgRpcCallback(object):
         return routers
 
     # version 1.2 API
+    @db_api.retry_db_errors
     def cfg_sync_all_hosted_routers(self, context, host):
         adm_context = neutron_context.get_admin_context()
         try:
