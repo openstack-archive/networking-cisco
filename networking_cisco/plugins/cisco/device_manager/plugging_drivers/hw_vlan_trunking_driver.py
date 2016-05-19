@@ -26,6 +26,8 @@ import networking_cisco.plugins.cisco.device_manager.plugging_drivers as plug
 
 LOG = logging.getLogger(__name__)
 
+DEVICE_OWNER_ROUTER_GW = l3_constants.DEVICE_OWNER_ROUTER_GW
+
 
 class HwVLANTrunkingPlugDriver(plug.PluginSidePluggingDriver):
     """Driver class for Cisco hardware-based devices.
@@ -67,8 +69,7 @@ class HwVLANTrunkingPlugDriver(plug.PluginSidePluggingDriver):
     def extend_hosting_port_info(self, context, port_db, hosting_device,
                                  hosting_info):
         hosting_info['segmentation_id'] = port_db.hosting_info.segmentation_id
-        is_external = port_db.get('router_port', {}).get(
-            'port_type') == l3_constants.DEVICE_OWNER_ROUTER_GW
+        is_external = (port_db.device_owner == DEVICE_OWNER_ROUTER_GW)
         hosting_info['physical_interface'] = self._get_interface_info(
             hosting_device['id'], port_db.network_id, is_external)
 
