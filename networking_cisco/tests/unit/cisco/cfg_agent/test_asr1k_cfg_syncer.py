@@ -120,7 +120,181 @@ ASR_RUNNING_CFG_NO_R2_JSON_JUST_INTERFACES = [
     "!"
 ]
 
-# simulated neutron-db dictionary for R2
+# A basic ASR running-cfg that doesn't have multi-region enabled
+ASR_BASIC_RUNNING_CFG_NO_MULTI_REGION = [
+    "!",
+    "vrf definition Mgmt-intf",
+    " !",
+    " address-family ipv4",
+    " exit-address-family",
+    " !",
+    " address-family ipv6",
+    " exit-address-family",
+    "!",
+    "vrf definition nrouter-3ea5f9",
+    " !",
+    " address-family ipv4",
+    " exit-address-family",
+    " !",
+    " address-family ipv6",
+    " exit-address-family",
+    "!",
+    "interface Port-channel10",
+    " no ip address",
+    "!",
+    "interface Port-channel10.2564",
+    " description OPENSTACK_NEUTRON_INTF",
+    " encapsulation dot1Q 2564",
+    " vrf forwarding nrouter-3ea5f9",
+    " ip address 10.2.0.4 255.255.255.0",
+    " ip nat inside",
+    " standby delay minimum 30 reload 60",
+    " standby version 2",
+    " standby 1064 ip 10.2.0.1",
+    " standby 1064 timers 1 3",
+    " standby 1064 priority 97",
+    " standby 1064 name neutron-hsrp-1064-2564",
+    "!",
+    "interface Port-channel10.3000",
+    " description OPENSTACK_NEUTRON_INTF",
+    " encapsulation dot1Q 3000",
+    " ip address 172.16.0.105 255.255.0.0",
+    " ip nat outside",
+    " standby delay minimum 30 reload 60",
+    " standby version 2",
+    " standby 1064 ip 172.16.0.104",
+    " standby 1064 timers 1 3",
+    " standby 1064 priority 97",
+    " standby 1064 name neutron-hsrp-1064-3000",
+    "!",
+    "interface TenGigabitEthernet0/0/0",
+    " no ip address",
+    " cdp enable",
+    " channel-group 10 mode active",
+    "!",
+    "interface TenGigabitEthernet0/1/0",
+    " no ip address",
+    " cdp enable",
+    " channel-group 10 mode active",
+    "!",
+    "interface TenGigabitEthernet0/3/0",
+    " no ip address",
+    " shutdown",
+    "!",
+    "interface GigabitEthernet0",
+    " vrf forwarding Mgmt-intf",
+    " ip address 172.20.231.19 255.255.255.0",
+    " negotiation auto",
+    " no mop enabled",
+    "!",
+    "ip nat pool nrouter-3ea5f9_nat_pool 172.16.0.124"
+    " 172.16.0.124 netmask 255.255.0.0",
+    "ip nat inside source static 10.2.0.5 172.16.0.126"
+    " vrf nrouter-3ea5f9 redundancy neutron-hsrp-1064-3000",
+    "ip nat inside source list neutron_acl_2564 pool"
+    " nrouter-3ea5f9_nat_pool vrf nrouter-3ea5f9 overload",
+    "ip forward-protocol nd",
+    "!",
+    "ip route vrf Mgmt-intf 0.0.0.0 0.0.0.0 172.20.231.1",
+    "ip route vrf nrouter-3ea5f9 0.0.0.0 0.0.0.0"
+    " Port-channel10.3000 172.16.0.1",
+    "!",
+    "ip access-list standard neutron_acl_2564",
+    " permit 10.2.0.0 0.0.0.255",
+    "!",
+    "end",
+    ""
+]
+
+# basic ASR running cfg emulating an openstack deployment with
+# region label 0000002
+ASR_BASIC_RUNNING_CFG = [
+    "!",
+    "vrf definition Mgmt-intf",
+    " !",
+    " address-family ipv4",
+    " exit-address-family",
+    " !",
+    " address-family ipv6",
+    " exit-address-family",
+    "!",
+    "vrf definition nrouter-3ea5f9-0000002",
+    " !",
+    " address-family ipv4",
+    " exit-address-family",
+    " !",
+    " address-family ipv6",
+    " exit-address-family",
+    "!",
+    "interface Port-channel10",
+    " no ip address",
+    "!",
+    "interface Port-channel10.2564",
+    " description OPENSTACK_NEUTRON_0000002_INTF",
+    " encapsulation dot1Q 2564",
+    " vrf forwarding nrouter-3ea5f9-0000002",
+    " ip address 10.2.0.4 255.255.255.0",
+    " ip nat inside",
+    " standby delay minimum 30 reload 60",
+    " standby version 2",
+    " standby 1064 ip 10.2.0.1",
+    " standby 1064 timers 1 3",
+    " standby 1064 priority 97",
+    " standby 1064 name neutron-hsrp-1064-2564",
+    "!",
+    "interface Port-channel10.3000",
+    " description OPENSTACK_NEUTRON_0000002_INTF",
+    " encapsulation dot1Q 3000",
+    " ip address 172.16.0.105 255.255.0.0",
+    " ip nat outside",
+    " standby delay minimum 30 reload 60",
+    " standby version 2",
+    " standby 1064 ip 172.16.0.104",
+    " standby 1064 timers 1 3",
+    " standby 1064 priority 97",
+    " standby 1064 name neutron-hsrp-1064-3000",
+    "!",
+    "interface TenGigabitEthernet0/0/0",
+    " no ip address",
+    " cdp enable",
+    " channel-group 10 mode active",
+    "!",
+    "interface TenGigabitEthernet0/1/0",
+    " no ip address",
+    " cdp enable",
+    " channel-group 10 mode active",
+    "!",
+    "interface TenGigabitEthernet0/3/0",
+    " no ip address",
+    " shutdown",
+    "!",
+    "interface GigabitEthernet0",
+    " vrf forwarding Mgmt-intf",
+    " ip address 172.20.231.19 255.255.255.0",
+    " negotiation auto",
+    " no mop enabled",
+    "!",
+    "ip nat pool nrouter-3ea5f9-0000002_nat_pool 172.16.0.124"
+    " 172.16.0.124 netmask 255.255.0.0",
+    "ip nat inside source static 10.2.0.5 172.16.0.126 vrf"
+    " nrouter-3ea5f9-0000002 redundancy neutron-hsrp-1064-3000",
+    "ip nat inside source list neutron_acl_0000002_2564 pool"
+    " nrouter-3ea5f9-0000002_nat_pool vrf nrouter-3ea5f9-0000002 overload",
+    "ip forward-protocol nd",
+    "!",
+    "ip route vrf Mgmt-intf 0.0.0.0 0.0.0.0 172.20.231.1",
+    "ip route vrf nrouter-3ea5f9-0000002 0.0.0.0 0.0.0.0"
+    " Port-channel10.3000 172.16.0.1",
+    "!",
+    "ip access-list standard neutron_acl_0000002_2564",
+    " permit 10.2.0.0 0.0.0.255",
+    "!",
+    "end",
+    ""
+]
+
+
+# simulated neutron-db dictionary
 NEUTRON_DB = [
     {
         "_floatingips": [
@@ -1084,6 +1258,78 @@ class ASR1kCfgSyncer(base.BaseTestCase):
         self.config_syncer = asr1k_cfg_syncer.ConfigSyncer(self.router_db_info,
                                                       self.driver,
                                                       self.hosting_device_info)
+
+    def test_delete_invalid_cfg_empty_routers_list(self):
+        """
+        expected invalid_cfg
+        [u'ip nat inside source static 10.2.0.5 172.16.0.126 vrf'
+          ' nrouter-3ea5f9 redundancy neutron-hsrp-1064-3000',
+         u'ip nat inside source list neutron_acl_2564 pool'
+          ' nrouter-3ea5f9_nat_pool vrf nrouter-3ea5f9 overload',
+         u'ip nat pool nrouter-3ea5f9_nat_pool 172.16.0.124'
+          ' 172.16.0.124 netmask 255.255.0.0',
+         u'ip route vrf nrouter-3ea5f9 0.0.0.0 0.0.0.0'
+          ' Port-channel10.3000 172.16.0.1',
+         u'ip access-list standard neutron_acl_2564',
+         <IOSCfgLine # 83 'interface Port-channel10.2564'>,
+         <IOSCfgLine # 96 'interface Port-channel10.3000'>,
+         u'nrouter-3ea5f9']
+        """
+
+        cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
+
+        # simulate a blank neutron-db
+        router_db_info = []
+
+        self.config_syncer = asr1k_cfg_syncer.ConfigSyncer(router_db_info,
+                                                      self.driver,
+                                                      self.hosting_device_info)
+        self.config_syncer.get_running_config = mock.Mock(
+            return_value=ASR_BASIC_RUNNING_CFG_NO_MULTI_REGION)
+
+        invalid_cfg = self.config_syncer.delete_invalid_cfg()
+        self.assertEqual(8, len(invalid_cfg))
+
+    def test_delete_invalid_cfg_with_multi_region_and_empty_routers_list(self):
+        """
+        This test verifies that the  cfg-syncer will delete invalid cfg
+        if the neutron-db (routers dictionary list) happens to be empty.
+
+        Since the neutron-db router_db_info is empty, all region 0000002
+        running-config should be deleted.
+
+        Expect 8 invalid configs found
+
+        ['ip nat inside source static 10.2.0.5 172.16.0.126'
+          ' vrf nrouter-3ea5f9-0000002 redundancy neutron-hsrp-1064-3000',
+         'ip nat inside source list neutron_acl_0000002_2564 pool '
+         'nrouter-3ea5f9-0000002_nat_pool vrf nrouter-3ea5f9-0000002 overload',
+         'ip nat pool nrouter-3ea5f9-0000002_nat_pool '
+          '172.16.0.124 172.16.0.124 netmask 255.255.0.0',
+         'ip route vrf nrouter-3ea5f9-0000002 0.0.0.0 0.0.0.0'
+          ' Port-channel10.3000 172.16.0.1',
+         'ip access-list standard neutron_acl_0000002_2564',
+         <IOSCfgLine # 83 'interface Port-channel10.2564'>,
+         <IOSCfgLine # 96 'interface Port-channel10.3000'>,
+         'nrouter-3ea5f9-0000002']
+        """
+
+        cfg.CONF.set_override('enable_multi_region', True, 'multi_region')
+        cfg.CONF.set_override('region_id', '0000002', 'multi_region')
+        cfg.CONF.set_override('other_region_ids', ['0000001'], 'multi_region')
+
+        # simulate a blank neutron-db
+        router_db_info = []
+        self.config_syncer = asr1k_cfg_syncer.ConfigSyncer(router_db_info,
+                                                      self.driver,
+                                                      self.hosting_device_info)
+
+        self.config_syncer.get_running_config = mock.Mock(
+            return_value=ASR_BASIC_RUNNING_CFG)
+
+        invalid_cfg = self.config_syncer.delete_invalid_cfg()
+
+        self.assertEqual(8, len(invalid_cfg))
 
     def test_clean_interfaces_basic_multi_region_enabled(self):
         """
