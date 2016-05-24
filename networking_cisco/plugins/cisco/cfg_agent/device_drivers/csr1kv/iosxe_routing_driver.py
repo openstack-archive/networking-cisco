@@ -32,6 +32,7 @@ from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
 from networking_cisco.plugins.cisco.extensions import ha
 
 ciscoconfparse = importutils.try_import('ciscoconfparse')
+ncclient = importutils.try_import('ncclient')
 manager = importutils.try_import('ncclient.manager')
 
 LOG = logging.getLogger(__name__)
@@ -656,11 +657,31 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
                   'snip': snippet,
                   'conf': conf_str,
                   'caller': self.caller_name()})
-        rpc_obj = conn.edit_config(target='running', config=conf_str)
-        self._check_response(rpc_obj, snippet, conf_str=conf_str)
+        try:
+            rpc_obj = conn.edit_config(target='running', config=conf_str)
+            self._check_response(rpc_obj, snippet, conf_str=conf_str)
+        except Exception as e:
+            # Here we catch all exceptions caused by REMOVE_/DELETE_ configs
+            # to avoid config agent to get stuck once it hits this condition.
+            # This is needed since the current ncclient version (0.4.2)
+            # generates an exception when an attempt to configure the device
+            # fails by the device (ASR1K router) but it doesn't provide any
+            # details about the error message that the device reported.
+            # With ncclient 0.4.4 version and onwards the exception returns
+            # also the proper error. Hence this code can be changed when the
+            # ncclient version is increased.
+            if re.search(r"REMOVE_|DELETE_", snippet):
+                LOG.warning(_LW("Pass exception for %s"), snippet)
+                pass
+            elif isinstance(e, ncclient.operations.rpc.RPCError):
+                e_tag = e.tag
+                e_type = e.type
+                params = {'snippet': snippet, 'type': e_type, 'tag': e_tag,
+                          'dev_id': self.hosting_device['id'],
+                          'ip': self._host_ip, 'confstr': conf_str}
+                raise cfg_exc.CSR1kvConfigException(**params)
 
-    @staticmethod
-    def _check_response(rpc_obj, snippet_name, conf_str=None):
+    def _check_response(self, rpc_obj, snippet_name, conf_str=None):
         """This function checks the rpc response object for status.
 
         This function takes as input the response rpc_obj and the snippet name
@@ -697,5 +718,6 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         e_type = rpc_obj._root[0][0].text
         e_tag = rpc_obj._root[0][1].text
         params = {'snippet': snippet_name, 'type': e_type, 'tag': e_tag,
-                  'conf_str': conf_str}
+                  'dev_id': self.hosting_device['id'],
+                  'ip': self._host_ip, 'confstr': conf_str}
         raise cfg_exc.CSR1kvConfigException(**params)

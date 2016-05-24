@@ -63,7 +63,7 @@ CREATE_SUBINTERFACE_EXTERNAL_WITH_ID = """
 <config>
         <cli-config-data>
             <cmd>interface %s</cmd>
-            <cmd>description OPENSTACK_NEUTRON_INTF</cmd>
+            <cmd>description OPENSTACK_NEUTRON_EXTERNAL_INTF</cmd>
             <cmd>encapsulation dot1Q %s</cmd>
             <cmd>ip address %s %s</cmd>
         </cli-config-data>

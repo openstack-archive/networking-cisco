@@ -45,6 +45,7 @@ class ConnectionException(DriverException):
 class CSR1kvConfigException(DriverException):
     """Configuration exception thrown when modifying the running config."""
     message = (_("Error executing snippet:%(snippet)s. "
+                 "Hosting device:%(dev_id)s Mgmt IP:%(ip)s "
                  "ErrorType:%(type)s ErrorTag:%(tag)s Config string:%("
                  "confstr)s."))
 
