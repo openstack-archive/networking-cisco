@@ -37,10 +37,19 @@ CFG_AGENT_L3_ROUTING = 'cisco_cfg_agent_l3_routing'
 # hosting Linux network namespace-based Neutron routers.
 NETWORK_NODE_TEMPLATE = 'NetworkNode_template'
 
-# Service VM status
-SVM_OK = 'OK'
-SVM_ERROR = 'ERROR'
-SVM_NON_RESPONSIVE = 'NON_RESPONSIVE'
+# Statuses of hosting devices
+# ===========================
+# Active means the hosting device is up, responds to pings and is configurable
+HD_ACTIVE = 'ACTIVE'
+# Not responding means that hosting device does not respond to pings but has
+# not yet been determined to be dead or faulty
+HD_NOT_RESPONDING = 'NOT RESPONDING'
+# Error means that hosting device has been determined to be faulty, meaning it
+# may respond to pings but other symptoms indicate it is faulty
+HD_ERROR = 'ERROR'
+# Dead means that hosting device has been determined to be dead in that it
+# does not respond to pings even given multiple, repeated attempts
+HD_DEAD = 'DEAD'
 
 
 # Routing service
