@@ -83,6 +83,18 @@ class DeviceStatus(object):
         resp = self.get_monitored_hosting_devices_info(hd_state_filter='Dead')
         return resp
 
+    def get_dead_hosting_devices_info(self):
+        """
+        Get a list of hosting devices that have been marked dead
+        :return: List of dead hosting device ids
+        """
+        res = []
+        for hd_id in self.backlog_hosting_devices:
+            hd = self.backlog_hosting_devices[hd_id]['hd']
+            if hd['hd_state'] == 'Dead':
+                res.append(hd['id'])
+        return res
+
     def get_monitored_hosting_devices_info(self, hd_state_filter=None):
         """
         This function returns a list of all hosting devices monitored
@@ -142,9 +154,18 @@ class DeviceStatus(object):
         hd = hosting_device
         hd_id = hosting_device['id']
         hd_mgmt_ip = hosting_device['management_ip_address']
-        # Modifying the 'created_at' to a date time object
-        hosting_device['created_at'] = datetime.datetime.strptime(
-            hosting_device['created_at'], '%Y-%m-%d %H:%M:%S')
+
+        dead_hd_list = self.get_dead_hosting_devices_info()
+        if hd_id in dead_hd_list:
+            LOG.debug("Hosting device: %(hd_id)s@%(ip)s is already marked as"
+                      " Dead. It is assigned as non-reachable",
+                      {'hd_id': hd_id, 'ip': hd_mgmt_ip})
+            return False
+
+        # Modifying the 'created_at' to a date time object if it is not
+        if not isinstance(hd['created_at'], datetime.datetime):
+            hd['created_at'] = datetime.datetime.strptime(hd['created_at'],
+                                                          '%Y-%m-%d %H:%M:%S')
 
         if _is_pingable(hd_mgmt_ip):
             LOG.debug("Hosting device: %(hd_id)s@%(ip)s is reachable.",

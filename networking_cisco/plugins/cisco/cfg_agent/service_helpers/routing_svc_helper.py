@@ -734,7 +734,12 @@ class RoutingServiceHelper(object):
         ri.router[l3_constants.INTERFACE_KEY] = []
         ri.router[l3_constants.FLOATINGIP_KEY] = []
         try:
-            if deconfigure:
+            hd = ri.router['hosting_device']
+            # We proceed to removing the configuration from the device
+            # only if (a) deconfigure is set to True (default)
+            # (b) the router's hosting device is reachable.
+            if (deconfigure and
+                    self._dev_status.is_hosting_device_reachable(hd)):
                 self._process_router(ri)
                 driver = self.driver_manager.get_driver(router_id)
                 driver.router_removed(ri)
