@@ -41,6 +41,7 @@ DEVICE_OWNER_ROUTER_GW = constants.DEVICE_OWNER_ROUTER_GW
 HA_INFO = 'ha_info'
 ROUTER_ROLE_ATTR = routerrole.ROUTER_ROLE_ATTR
 ROUTER_ROLE_HA_REDUNDANCY = cisco_constants.ROUTER_ROLE_HA_REDUNDANCY
+ROUTER_ROLE_GLOBAL = cisco_constants.ROUTER_ROLE_GLOBAL
 
 ASR1K_DRIVER_OPTS = [
     cfg.BoolOpt('enable_multi_region',
@@ -322,8 +323,8 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                           "%s"), cse)
 
     def _add_default_route(self, ri, ext_gw_port):
-        if self._fullsync and (
-                    ri.router_id in self._existing_cfg_dict['routes']):
+        if self._fullsync and (ri.router_id in
+                               self._existing_cfg_dict['routes']):
             LOG.debug("Default route already exists, skipping")
             return
         ext_gw_ip = ext_gw_port['subnets'][0]['gateway_ip']
@@ -345,7 +346,14 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                                       'REMOVE_DEFAULT_ROUTE_WITH_INTF')
 
     def _add_ha_hsrp(self, ri, port):
-        priority = ri.router[ha.DETAILS][ha.PRIORITY]
+        priority = None
+        if ri.router.get(ROUTER_ROLE_ATTR) in (ROUTER_ROLE_HA_REDUNDANCY,
+                                               ROUTER_ROLE_GLOBAL):
+            for router in ri.router[ha.DETAILS][ha.REDUNDANCY_ROUTERS]:
+                if ri.router['id'] == router['id']:
+                    priority = router[ha.PRIORITY]
+        else:
+            priority = ri.router[ha.DETAILS][ha.PRIORITY]
         port_ha_info = port[HA_INFO]
         group = port_ha_info['group']
         ip = port_ha_info['ha_port']['fixed_ips'][0]['ip_address']
@@ -359,7 +367,11 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
     def _do_set_ha_hsrp(self, sub_interface, vrf_name, priority, group,
                         ip, vlan):
         conf_str = asr1k_snippets.SET_INTC_ASR_HSRP_EXTERNAL % (sub_interface,
-             group, priority, group, ip, group, group, group, vlan)
+                                                                group,
+                                                                priority,
+                                                                group, ip,
+                                                                group, group,
+                                                                group, vlan)
         self._edit_running_config(conf_str, 'SET_INTC_ASR_HSRP_EXTERNAL')
 
     def _create_sub_interface_v6(self, ri, port, is_external=False, gw_ip=""):
@@ -375,7 +387,7 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         self._add_ha_HSRP_v6(ri, port, ip_cidr, is_external)
 
     def _do_create_sub_interface_v6(self, sub_interface, vlan_id, vrf_name,
-                                   ip_cidr, is_external=False):
+                                    ip_cidr, is_external=False):
         if is_external is True:
             conf_str = asr1k_snippets.CREATE_SUBINTERFACE_V6_NO_VRF_WITH_ID % (
                 sub_interface, self._deployment_id, vlan_id,
