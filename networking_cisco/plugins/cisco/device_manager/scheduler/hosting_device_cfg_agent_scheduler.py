@@ -19,10 +19,9 @@ import random
 from oslo_log import log as logging
 from sqlalchemy.orm import exc
 
-from networking_cisco._i18n import _LW
-
 from neutron.db import agents_db
 
+from networking_cisco._i18n import _LW
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
 from networking_cisco.plugins.cisco.db.scheduler import cfg_agentschedulers_db
@@ -46,25 +45,26 @@ class HostingDeviceCfgAgentScheduler(object):
         query = query.filter_by(agent_type=c_constants.AGENT_TYPE_CFG,
                                 host=agent_host, admin_state_up=True)
         try:
-            cfg_agent = query.one()
+            cfg_agent_db = query.one()
         except (exc.MultipleResultsFound, exc.NoResultFound):
             LOG.debug('No enabled Cisco cfg agent on host %s', agent_host)
             return
         if cfg_agentschedulers_db.CfgAgentSchedulerDbMixin.is_agent_down(
-                cfg_agent.heartbeat_timestamp):
-            LOG.warn(_LW('Cisco cfg agent %s is not alive'), cfg_agent.id)
-        return cfg_agent
+                cfg_agent_db.heartbeat_timestamp):
+            LOG.warning(_LW('Cisco cfg agent %s is not alive'),
+                        cfg_agent_db.id)
+        return cfg_agent_db
 
     def schedule_hosting_device(self, plugin, context, hosting_device):
         """Selects Cisco cfg agent that will configure <hosting_device>."""
         active_cfg_agents = plugin.get_cfg_agents(context, active=True)
         if not active_cfg_agents:
-            LOG.warn(_LW('There are no active Cisco cfg agents'))
+            LOG.warning(_LW('There are no active Cisco cfg agents'))
             # No worries, once a Cisco cfg agent is started and
             # announces itself any "dangling" hosting devices
             # will be scheduled to it.
             return
-        return random.choice(list(active_cfg_agents))
+        return random.choice(active_cfg_agents)
 
 
 class StingyHostingDeviceCfgAgentScheduler(HostingDeviceCfgAgentScheduler):
@@ -75,7 +75,7 @@ class StingyHostingDeviceCfgAgentScheduler(HostingDeviceCfgAgentScheduler):
     def schedule_hosting_device(self, plugin, context, hosting_device):
         active_cfg_agents = plugin.get_cfg_agents(context, active=True)
         if not active_cfg_agents:
-            LOG.warn(_LW('There are no active Cisco cfg agents'))
+            LOG.warning(_LW('There are no active Cisco cfg agents'))
             return
         else:
             cfg_agent_hosting_devices = []
