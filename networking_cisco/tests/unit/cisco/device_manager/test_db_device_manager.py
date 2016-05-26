@@ -106,7 +106,7 @@ class DeviceManagerTestCaseMixin(object):
                 '', kwargs['tenant_id'])
         hd_res = hd_req.get_response(self.ext_api)
         if expected_res_status:
-            self.assertEqual(hd_res.status_int, expected_res_status)
+            self.assertEqual(expected_res_status, hd_res.status_int)
         return hd_res
 
     @contextlib.contextmanager
@@ -146,7 +146,7 @@ class DeviceManagerTestCaseMixin(object):
                 '', kwargs['tenant_id'])
         hdt_res = hdt_req.get_response(self.ext_api)
         if expected_res_status:
-            self.assertEqual(hdt_res.status_int, expected_res_status)
+            self.assertEqual(expected_res_status, hdt_res.status_int)
         return hdt_res
 
     @contextlib.contextmanager
@@ -220,8 +220,8 @@ class DeviceManagerTestCaseMixin(object):
                          neutron_context=neutron_context,
                          query_params=query_params)
         resource = resource.replace('-', '_')
-        self.assertEqual(sorted([i['id'] for i in res[resource_plural]]),
-                         sorted([i[resource]['id'] for i in items]))
+        self.assertEqual(sorted([i[resource]['id'] for i in items]),
+                         sorted([i['id'] for i in res[resource_plural]]))
 
     def _replace_hosting_device_status(self, attrs, old_status, new_status):
         if attrs['status'] is old_status:
@@ -319,7 +319,7 @@ class TestDeviceManagerDBPlugin(
                         management_port_id=mgmt_port['port']['id'],
                         auto_delete=True, credentials_id=creds) as hd:
                     for k, v in six.iteritems(attrs):
-                        self.assertEqual(hd['hosting_device'][k], v)
+                        self.assertEqual(v, hd['hosting_device'][k])
 
     def test_create_hw_hosting_device(self):
         with self.hosting_device_template(host_category=HW_CATEGORY) as hdt:
@@ -334,7 +334,7 @@ class TestDeviceManagerDBPlugin(
                         management_port_id=mgmt_port['port']['id'],
                         credentials_id=creds) as hd:
                     for k, v in six.iteritems(attrs):
-                        self.assertEqual(hd['hosting_device'][k], v)
+                        self.assertEqual(v, hd['hosting_device'][k])
 
     def test_show_hosting_device(self):
         device_id = "device_XYZ"
@@ -357,7 +357,7 @@ class TestDeviceManagerDBPlugin(
                     res = self.deserialize(self.fmt,
                                            req.get_response(self.ext_api))
                     for k, v in six.iteritems(attrs):
-                        self.assertEqual(res['hosting_device'][k], v)
+                        self.assertEqual(v, res['hosting_device'][k])
 
     def test_list_hosting_devices(self):
         with self.hosting_device_template() as hdt:
@@ -403,7 +403,7 @@ class TestDeviceManagerDBPlugin(
                     res = self.deserialize(self.fmt,
                                            req.get_response(self.ext_api))
                     for k, v in six.iteritems(attrs):
-                        self.assertEqual(res['hosting_device'][k], v)
+                        self.assertEqual(v, res['hosting_device'][k])
 
     def test_delete_hosting_device_not_in_use_succeeds(self):
         ctx = n_context.get_admin_context()
@@ -417,7 +417,7 @@ class TestDeviceManagerDBPlugin(
                     hd_id = hd['hosting_device']['id']
                     req = self.new_delete_request('hosting_devices', hd_id)
                     res = req.get_response(self.ext_api)
-                    self.assertEqual(res.status_int, 204)
+                    self.assertEqual(204, res.status_int)
                     self.assertRaises(
                         ciscohostingdevicemanager.HostingDeviceNotFound,
                         self.plugin.get_hosting_device, ctx, hd_id)
@@ -447,7 +447,7 @@ class TestDeviceManagerDBPlugin(
                         req = self.new_show_request('hosting_devices', hd_id,
                                                     fmt=self.fmt)
                         res = req.get_response(self.ext_api)
-                        self.assertEqual(res.status_int, 200)
+                        self.assertEqual(200, res.status_int)
                         self._devmgr.release_hosting_device_slots(ctx, hd_db,
                                                                   resource, 1)
 
@@ -482,7 +482,7 @@ class TestDeviceManagerDBPlugin(
                             overwrite=False)
                         res = self._devmgr.get_hosting_device_config(ctx,
                                                                      hd_id)
-                        self.assertEqual(res, fake_running_config)
+                        self.assertEqual(fake_running_config, res)
                         agt_mock.assert_called_once_with(
                             mock.ANY, [hd_id], admin_state_up=True,
                             schedule=True)
@@ -521,8 +521,8 @@ class TestDeviceManagerDBPlugin(
                         agt_mock.assert_called_once_with(
                             mock.ANY, [hd_id], admin_state_up=True,
                             schedule=True)
-                        self.assertEqual(mock_prepare.call_count, 0)
-                        self.assertEqual(mock_call.call_count, 0)
+                        self.assertEqual(0, mock_prepare.call_count)
+                        self.assertEqual(0, mock_call.call_count)
 
     def test_hosting_device_policy(self):
         device_id = "device_XYZ"
@@ -569,7 +569,7 @@ class TestDeviceManagerDBPlugin(
 
         with self.hosting_device_template() as hdt:
             for k, v in six.iteritems(attrs):
-                self.assertEqual(hdt['hosting_device_template'][k], v)
+                self.assertEqual(v, hdt['hosting_device_template'][k])
 
     def test_create_hw_hosting_device_template(self):
         attrs = self._get_test_hosting_device_template_attr(
@@ -577,7 +577,7 @@ class TestDeviceManagerDBPlugin(
 
         with self.hosting_device_template(host_category=HW_CATEGORY) as hdt:
             for k, v in six.iteritems(attrs):
-                self.assertEqual(hdt['hosting_device_template'][k], v)
+                self.assertEqual(v, hdt['hosting_device_template'][k])
 
     def test_create_nn_hosting_device_template(self):
         attrs = self._get_test_hosting_device_template_attr(
@@ -585,7 +585,7 @@ class TestDeviceManagerDBPlugin(
 
         with self.hosting_device_template(host_category=NN_CATEGORY) as hdt:
             for k, v in six.iteritems(attrs):
-                self.assertEqual(hdt['hosting_device_template'][k], v)
+                self.assertEqual(v, hdt['hosting_device_template'][k])
 
     def test_show_hosting_device_template(self):
         name = "hosting_device_template1"
@@ -597,7 +597,7 @@ class TestDeviceManagerDBPlugin(
             res = self.deserialize(self.fmt,
                                    req.get_response(self.ext_api))
             for k, v in six.iteritems(attrs):
-                self.assertEqual(res['hosting_device_template'][k], v)
+                self.assertEqual(v, res['hosting_device_template'][k])
 
     def test_list_hosting_device_templates(self):
         with self.hosting_device_template(name='hdt1',
@@ -623,7 +623,7 @@ class TestDeviceManagerDBPlugin(
             res = self.deserialize(self.fmt,
                                    req.get_response(self.ext_api))
             for k, v in six.iteritems(attrs):
-                self.assertEqual(res['hosting_device_template'][k], v)
+                self.assertEqual(v, res['hosting_device_template'][k])
 
     def test_delete_hosting_device_template_not_in_use_succeeds(self):
         ctx = n_context.get_admin_context()
@@ -631,7 +631,7 @@ class TestDeviceManagerDBPlugin(
             hdt_id = hdt['hosting_device_template']['id']
             req = self.new_delete_request('hosting_device_templates', hdt_id)
             res = req.get_response(self.ext_api)
-            self.assertEqual(res.status_int, 204)
+            self.assertEqual(204, res.status_int)
             self.assertRaises(
                 ciscohostingdevicemanager.HostingDeviceTemplateNotFound,
                 self._devmgr.get_hosting_device_template, ctx, hdt_id)
@@ -651,7 +651,7 @@ class TestDeviceManagerDBPlugin(
                     req = self.new_show_request('hosting_device_templates',
                                                 hdt_id, fmt=self.fmt)
                     res = req.get_response(self.ext_api)
-                    self.assertEqual(res.status_int, 200)
+                    self.assertEqual(200, res.status_int)
 
     def test_hosting_device_template_policy(self):
         with self.hosting_device_template() as hdt:
@@ -721,7 +721,7 @@ class TestDeviceManagerDBPlugin(
                 hd_id = hd['hosting_device']['id']
                 hd_db = self._devmgr._get_hosting_device(context, hd_id)
                 info = self._devmgr.get_device_info_for_agent(context, hd_db)
-                self.assertEqual(info['management_ip_address'], mgmt_ip)
+                self.assertEqual(mgmt_ip, info['management_ip_address'])
 
     def test_get_device_info_for_agent_no_mgmt_port(self):
         device_id = "device_XYZ"
@@ -740,7 +740,7 @@ class TestDeviceManagerDBPlugin(
                 hd_id = hd['hosting_device']['id']
                 hd_db = self._devmgr._get_hosting_device(context, hd_id)
                 info = self._devmgr.get_device_info_for_agent(context, hd_db)
-                self.assertEqual(info['management_ip_address'], mgmt_ip)
+                self.assertEqual(mgmt_ip, info['management_ip_address'])
 
     def _set_ownership(self, bound_status, tenant_id, other_tenant_id=None):
         if bound_status == UNBOUND:
@@ -786,11 +786,11 @@ class TestDeviceManagerDBPlugin(
                             num_requested, bind)
                         allocation = self._devmgr.get_slot_allocation(
                             context, resource_id=resource['id'])
-                        self.assertEqual(result, expected_result)
-                        self.assertEqual(allocation, expected_allocation)
+                        self.assertEqual(expected_result, result)
+                        self.assertEqual(expected_allocation, allocation)
                         expected_bind = self._set_ownership(
                             expected_bind, resource['tenant_id'])
-                        self.assertEqual(hd_db.tenant_bound, expected_bind)
+                        self.assertEqual(expected_bind, hd_db.tenant_bound)
                         if pool_maintenance_expected:
                             pm_mock.assert_called_once_with(mock.ANY)
                             num_calls = 1
@@ -804,16 +804,16 @@ class TestDeviceManagerDBPlugin(
                                 return
                             allocation = self._devmgr.get_slot_allocation(
                                 context, resource_id=resource['id'])
-                            self.assertEqual(result, expected_release_result)
-                            self.assertEqual(allocation,
-                                             expected_final_allocation)
+                            self.assertEqual(expected_release_result, result)
+                            self.assertEqual(expected_final_allocation,
+                                             allocation)
                             expected_release_bind = self._set_ownership(
                                 expected_release_bind, resource['tenant_id'])
-                            self.assertEqual(hd_db.tenant_bound,
-                                             expected_release_bind)
+                            self.assertEqual(expected_release_bind,
+                                             hd_db.tenant_bound)
                             if release_pool_maintenance_expected:
                                 num_calls += 1
-                            self.assertEqual(pm_mock.call_count, num_calls)
+                            self.assertEqual(num_calls, pm_mock.call_count)
                         else:
                             # ensure we clean up everything
                             num_to_release = 0
@@ -931,6 +931,17 @@ class TestDeviceManagerDBPlugin(
                          num_to_release=VM_SLOT_CAPACITY + 1,
                          release_pool_maintenance_expected=False)
 
+    def test_release_all_slots_by_negative_num_argument_shared_hosting_device(
+            self):
+        self._test_slots(test_release=True, expected_final_allocation=0,
+                         num_to_release=-1)
+
+    def test_release_all_slots_by_negative_num_argument_owned_hosting_device(
+            self):
+        self._test_slots(expected_bind=REQUESTER, initial_bind=REQUESTER,
+                 bind=True, test_release=True, expected_release_bind=UNBOUND,
+                 expected_final_allocation=0, num_to_release=-1)
+
     # hosting device deletion test helper
     def _test_delete(self, to_delete=None, auto_delete=None, no_delete=None,
                      force_delete=True, expected_num_remaining=0):
@@ -996,8 +1007,8 @@ class TestDeviceManagerDBPlugin(
                                     context, template, force_delete))
                         result_hds = self._list(
                             'hosting_devices')['hosting_devices']
-                        self.assertEqual(len(result_hds),
-                                         expected_num_remaining)
+                        self.assertEqual(expected_num_remaining,
+                                         len(result_hds))
 
     # hosting device deletion tests
     def test_delete_all_hosting_devices(self):
@@ -1039,8 +1050,8 @@ class TestDeviceManagerDBPlugin(
                             context, None, [hd_id])
                         result_hds = self._list('hosting_devices')[
                             'hosting_devices']
-                        self.assertEqual(len(result_hds),
-                                         expected_num_remaining)
+                        self.assertEqual(expected_num_remaining,
+                                         len(result_hds))
                         l3mock = (NeutronManager.get_service_plugins().get().
                                   handle_non_responding_hosting_devices)
                         l3mock.assert_called_once_with(mock.ANY, mock.ANY,
@@ -1100,8 +1111,7 @@ class TestDeviceManagerDBPlugin(
                         template)
                     result_hds = self._list(
                         'hosting_devices')['hosting_devices']
-                    self.assertEqual(len(result_hds) * slot_capacity,
-                                     expected)
+                    self.assertEqual(expected, len(result_hds) * slot_capacity)
             self._devmgr.delete_all_hosting_devices(context, True)
 
     # hosting device pool maintenance tests
