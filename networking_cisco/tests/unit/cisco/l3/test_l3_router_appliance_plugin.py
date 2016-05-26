@@ -19,8 +19,6 @@ from oslo_config import cfg
 from oslo_log import log as logging
 import six
 
-from networking_cisco._i18n import _
-
 from neutron.api.v2 import attributes
 from neutron import context as q_context
 from neutron.db import agents_db
@@ -33,6 +31,7 @@ from neutron.tests.unit.db import test_db_base_plugin_v2
 from neutron.tests.unit.extensions import test_extraroute
 from neutron.tests.unit.extensions import test_l3
 
+from networking_cisco._i18n import _
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.common import cisco_constants as c_const
 from networking_cisco.plugins.cisco.device_manager import service_vm_lib
@@ -330,6 +329,40 @@ class L3RouterApplianceNamespaceTestCase(
     def test_floatingip_with_assoc_fails(self):
         self._test_floatingip_with_assoc_fails(
             'neutron.db.l3_db.L3_NAT_dbonly_mixin._check_and_get_fip_assoc')
+
+    def _check_driver_calls(self, func_name, num_teardown, num_setup):
+        with mock.patch.object(self.core_plugin,
+                               'get_hosting_device_plugging_driver') as m:
+            func = getattr(super(L3RouterApplianceNamespaceTestCase, self),
+                           func_name, None)
+            # call test case function
+            func()
+            drv = m.return_value
+            teardown_mock = drv.teardown_logical_port_connectivity
+            setup_mock = drv.setup_logical_port_connectivity
+            self.assertEqual(teardown_mock.call_count, num_teardown)
+            self.assertEqual(setup_mock.call_count, num_setup)
+
+    def test_router_update_gateway_with_external_ip_used_by_gw(self):
+        self._check_driver_calls(
+            'test_router_update_gateway_with_external_ip_used_by_gw', 0, 0)
+
+    def test_router_update_gateway_with_invalid_external_ip(self):
+        self._check_driver_calls(
+            'test_router_update_gateway_with_invalid_external_ip', 0, 0)
+
+    def test_router_update_gateway_with_invalid_external_subnet(self):
+        self._check_driver_calls(
+            'test_router_update_gateway_with_invalid_external_subnet', 0, 0)
+
+    def test_router_update_gateway_with_existed_floatingip(self):
+        self._check_driver_calls(
+            'test_router_update_gateway_with_existed_floatingip', 1, 1)
+
+    def test_router_update_gateway_to_empty_with_existed_floatingip(self):
+        self._check_driver_calls(
+            'test_router_update_gateway_to_empty_with_existed_floatingip', 1,
+            1)
 
 
 class L3RouterApplianceVMTestCase(L3RouterApplianceNamespaceTestCase):
