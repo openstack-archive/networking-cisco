@@ -32,7 +32,7 @@ function configure_cisco_fwaas {
 }
 
 function start_cisco_fwaas {
-     $NEUTRON_BIN_DIR/neutron-db-manage --service fwaas --config-file $NEUTRON_CONF --config-file /$Q_PLUGIN_CONF_FILE upgrade head
+     $NEUTRON_BIN_DIR/neutron-db-manage --subproject neutron-fwaas --config-file $NEUTRON_CONF --config-file /$Q_PLUGIN_CONF_FILE upgrade head
 }
 
 function cisco_fwaas_stop {
