@@ -42,7 +42,6 @@ fi
 CREATE_TEST_NETWORKS=$(trueorfalse "False" $Q_CISCO_CREATE_TEST_NETWORKS)
 
 if [[ "$Q_CISCO_ASR1K_ENABLED" == "True" ]]; then
-    source ${TOP_DIR}/openrc admin demo
     echo "***************** Setting up Keystone for ASR1k *****************"
     #pause
     ./setup_keystone_for_csr1kv_l3.sh $osn

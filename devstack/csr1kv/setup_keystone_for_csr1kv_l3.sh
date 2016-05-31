@@ -11,11 +11,11 @@ password=viewer
 
 
 echo -n "Checking if $l3AdminTenant tenant exists ..."
-tenantId=`openstack project show $l3AdminTenant 2>&1 | awk '/No tenant|id/ { if ($1 == "No") print "No"; else if ($2 == "id") print $4; }'`
-
+tenantId=`openstack project show $l3AdminTenant 2>&1 | awk '/No|id/ { if ($1 == "No") print "No"; else if ($2 == "id") print $4; }'`
 if [ "$tenantId" == "No" ]; then
    echo " No, it does not. Creating it."
-   tenantId=`openstack project create $l3AdminTenant --description="Owner of CSR1kv VMs" | awk '/id/ { if ($2 == "id") print $4; }'`
+   tenantId=$(openstack project create $l3AdminTenant --domain="default" --or-show -f value -c id)
+   echo $tenantId
 else
    echo " Yes, it does."
 fi
@@ -25,7 +25,8 @@ echo -n "Checking if $regularUser user exists ..."
 userId=`openstack user show $regularUser 2>&1 | awk '/No user|id/ { if ($1 == "No") print "No"; else print $4; }'`
 if [ "$userId" == "No" ]; then
    echo " No, it does not. Creating it."
-   openstack user create $regularUser --project $l3AdminTenant --password $password
+   userId=$(openstack user create $regularUser --password $password --domain="default" --or-show -f value -c id)
+   echo $userId
 else
    echo " Yes, it does."
 fi

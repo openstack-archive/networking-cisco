@@ -193,7 +193,9 @@ function net_create_neutron_initial_network {
         # Create a router, and add the private subnet as one of its interfaces
         if [[ "$Q_L3_ROUTER_PER_TENANT" == "True" ]]; then
             # create a tenant-owned router.
-            ROUTER_ID=$(neutron router-create --tenant-id $TENANT_ID $Q_ROUTER_NAME | grep ' id ' | get_field 2)
+            DEMO_TENANT_NAME="demo"
+            DEMO_TENANT_ID=$(openstack project list | awk "/ $DEMO_TENANT_NAME / { print \$2 }")
+            ROUTER_ID=$(neutron router-create --tenant-id $DEMO_TENANT_ID $Q_ROUTER_NAME | grep ' id ' | get_field 2)
             die_if_not_set $LINENO ROUTER_ID "Failure creating ROUTER_ID for $TENANT_ID $Q_ROUTER_NAME"
         else
             # Plugin only supports creating a single router, which should be admin owned.
