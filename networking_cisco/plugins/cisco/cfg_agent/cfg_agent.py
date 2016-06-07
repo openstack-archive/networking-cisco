@@ -90,6 +90,42 @@ class CiscoDeviceManagementApi(object):
                           'get_hosting_devices_for_agent',
                           host=self.host)
 
+OPTS = [
+    cfg.IntOpt('rpc_loop_interval', default=10,
+               help=_("Interval when the process_services() loop "
+                      "executes in seconds. This is when the config agent "
+                      "lets each service helper to process its neutron "
+                      "resources.")),
+    cfg.StrOpt('routing_svc_helper_class',
+               default='networking_cisco.plugins.cisco.cfg_agent.'
+                       'service_helpers.routing_svc_helper.'
+                       'RoutingServiceHelper',
+               help=_("Path of the routing service helper class.")),
+    cfg.BoolOpt('enable_heartbeat',
+                default=True,
+                help=_("If enabled, the agent will maintain a heartbeat "
+                       "against its hosting-devices. If a device dies "
+                       "and recovers, the agent will then trigger a "
+                       "configuration resync.")),
+    cfg.IntOpt('heartbeat_interval', default=5,
+               help=_("Interval in seconds when the config agent runs the "
+                      "backlog / hosting-device heart beat task.")),
+    cfg.IntOpt('max_device_sync_attempts', default=6,
+               help=_("Maximum number of attempts for a device sync.")),
+    cfg.IntOpt('keepalive_interval', default=10,
+               help=_("Interval in seconds when the config agent sents a "
+                      "timestamp to the plugin to say that it is alive.")),
+    cfg.IntOpt('report_iteration', default=6,
+               help=_("The iteration where the config agent sends a full "
+                      "status report to the plugin.  The default is every "
+                      "6th iteration of the keep alive interval. This "
+                      "means with default value of keepalive_interval "
+                      "(10sec), a full report is sent once every "
+                      "6*10 = 60 seconds.")),
+]
+
+cfg.CONF.register_opts(OPTS, "cfg_agent")
+
 
 class CiscoCfgAgent(manager.Manager):
     """Cisco Cfg Agent.
@@ -112,38 +148,6 @@ class CiscoCfgAgent(manager.Manager):
     `_backlog_task()` .
     """
     target = oslo_messaging.Target(version='1.1')
-
-    OPTS = [
-        cfg.IntOpt('rpc_loop_interval', default=10,
-                   help=_("Interval when the process_services() loop "
-                          "executes in seconds. This is when the config agent "
-                          "lets each service helper to process its neutron "
-                          "resources.")),
-        cfg.StrOpt('routing_svc_helper_class',
-                   default='networking_cisco.plugins.cisco.cfg_agent.'
-                           'service_helpers.routing_svc_helper.'
-                           'RoutingServiceHelper',
-                   help=_("Path of the routing service helper class.")),
-        cfg.BoolOpt('enable_heartbeat',
-                    default=False,
-                    help=_("If enabled, the agent will maintain a heartbeat "
-                           "against its hosting-devices. If a device dies "
-                           "and recovers, the agent will then trigger a "
-                           "configuration resync.")),
-        cfg.IntOpt('keepalive_interval', default=10, min=1,
-                   help=_("Interval in seconds when the config agent sents a "
-                          "timestamp to the plugin to say that it is alive."
-                          "This value should be more than 0, otherwise cfg "
-                          "agent will be considered as dead."
-                          "")),
-        cfg.IntOpt('report_iteration', default=6,
-                   help=_("The iteration where the config agent sends a full "
-                          "status report to the plugin. The default is every "
-                          "6th iteration of the keep alive interval. This "
-                          "means with default value of keepalive_interval "
-                          "(10sec), a full report is sent once every "
-                          "6*10 = 60 seconds")),
-    ]
 
     def __init__(self, host, conf=None):
         self.conf = conf or cfg.CONF
@@ -184,7 +188,7 @@ class CiscoCfgAgent(manager.Manager):
         return self.routing_service_helper
 
     ## Periodic tasks ##
-    @periodic_task.periodic_task
+    @periodic_task.periodic_task(spacing=cfg.CONF.cfg_agent.heartbeat_interval)
     def _backlog_task(self, context):
         """Process backlogged devices."""
         LOG.debug("Processing backlog.")
@@ -260,20 +264,30 @@ class CiscoCfgAgent(manager.Manager):
                            inform device manager that the hosting
                            device is non-responding
 
+        As additional note for the revived case:
+            Although the plugin was notified, there may be some lag
+            before the plugin actually can reschedule it's backlogged routers.
+
+            If process_services(device_ids...) isn't successful initially,
+            subsequent device syncs will be attempted until
+            MAX_DEVICE_SYNC_ATTEMPTS occurs.  Main process_service task
+            will resume if sync_devices is populated.
+
         :param context: RPC context
         :return: None
         """
-        res = self._dev_status.check_backlogged_hosting_devices()
+        driver_mgr = self.get_routing_service_helper().driver_manager
+        res = self._dev_status.check_backlogged_hosting_devices(driver_mgr)
         if res['reachable']:
             self.process_services(device_ids=res['reachable'])
         if res['revived']:
+            LOG.debug("Reporting revived hosting devices: %s " %
+                      res['revived'])
             # trigger a sync only on the revived hosting-devices
             if self.conf.cfg_agent.enable_heartbeat is True:
-                LOG.debug("Reporting revived hosting devices: %s " %
-                          res['revived'])
-                self.process_services(device_ids=res['revived'])
                 self.devmgr_rpc.report_revived_hosting_devices(
                     context, hd_ids=res['revived'])
+                self.process_services(device_ids=res['revived'])
         if res['dead']:
             LOG.debug("Reporting dead hosting devices: %s", res['dead'])
             self.devmgr_rpc.report_dead_hosting_devices(context,
