@@ -14,6 +14,7 @@
 
 import abc
 
+from oslo_utils import netutils
 import six
 
 from networking_cisco._i18n import _
@@ -60,12 +61,9 @@ class TenantBoundNotUUIDListOrNone(nexception.NetworkNotFound):
 def convert_validate_port_value(port):
     if port is None:
         return port
-    try:
-        val = int(port)
-    except (ValueError, TypeError):
-        raise HostingDeviceInvalidPortValue(port=port)
-    if val >= 0 and val <= 65535:
-        return val
+
+    if netutils.is_valid_port(port):
+        return int(port)
     else:
         raise HostingDeviceInvalidPortValue(port=port)
 
