@@ -461,8 +461,6 @@ class RoutingServiceHelper(object):
             deleted_routerids_list = []
 
             for r in routers:
-                if not r['admin_state_up']:
-                        continue
                 cur_router_ids.add(r['id'])
 
             # identify list of routers(ids) that no longer exist
@@ -490,13 +488,11 @@ class RoutingServiceHelper(object):
                     self.updated_routers.add(r['id'])
                     continue
                 try:
-                    if not r['admin_state_up']:
-                        continue
                     cur_router_ids.add(r['id'])
                     hd = r['hosting_device']
                     if not self._dev_status.is_hosting_device_reachable(hd):
                         LOG.info(_LI("Router: %(id)s is on an unreachable "
-                                   "hosting device. "), {'id': r['id']})
+                                 "hosting device. "), {'id': r['id']})
                         continue
                     if r['id'] not in self.router_info:
                         self._router_added(r['id'], r)
@@ -509,7 +505,7 @@ class RoutingServiceHelper(object):
                     continue
                 except cfg_exceptions.DriverException as e:
                     LOG.exception(_LE("Driver Exception on router:%(id)s. "
-                                    "Error is %(e)s"), {'id': r['id'], 'e': e})
+                                  "Error is %(e)s"), {'id': r['id'], 'e': e})
                     self.updated_routers.update([r['id']])
                     continue
                 LOG.debug("Done processing router[id:%(id)s, role:%(role)s]",
@@ -597,9 +593,26 @@ class RoutingServiceHelper(object):
                 self._external_gateway_removed(ri, ri.ex_gw_port)
 
             self._send_update_port_statuses(list_port_ids_up,
-                l3_constants.PORT_STATUS_ACTIVE)
+                                            l3_constants.PORT_STATUS_ACTIVE)
             if ex_gw_port:
                 self._process_router_floating_ips(ri, ex_gw_port)
+
+            if ri.router[ROUTER_ROLE_ATTR] not in [
+                c_constants.ROUTER_ROLE_GLOBAL,
+                c_constants.ROUTER_ROLE_LOGICAL_GLOBAL]:
+                if not ri.router['admin_state_up']:
+                    self._disable_router_interface(ri)
+                else:
+                    if ex_gw_port:
+                        if not ex_gw_port['admin_state_up']:
+                            self._disable_router_interface(ri, ex_gw_port)
+                        else:
+                            self._enable_router_interface(ri, ex_gw_port)
+                    for port in internal_ports:
+                        if not port['admin_state_up']:
+                            self._disable_router_interface(ri, port)
+                        else:
+                            self._enable_router_interface(ri, port)
 
             ri.ex_gw_port = ex_gw_port
             self._routes_updated(ri)
@@ -807,6 +820,14 @@ class RoutingServiceHelper(object):
     def _floating_ip_removed(self, ri, ex_gw_port, floating_ip, fixed_ip):
         driver = self.driver_manager.get_driver(ri.id)
         driver.floating_ip_removed(ri, ex_gw_port, floating_ip, fixed_ip)
+
+    def _enable_router_interface(self, ri, port):
+        driver = self.driver_manager.get_driver(ri.id)
+        driver.enable_router_interface(ri, port)
+
+    def _disable_router_interface(self, ri, port=None):
+        driver = self.driver_manager.get_driver(ri.id)
+        driver.disable_router_interface(ri, port)
 
     def _routes_updated(self, ri):
         """Update the state of routes in the router.
