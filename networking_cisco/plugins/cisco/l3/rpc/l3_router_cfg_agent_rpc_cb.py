@@ -128,21 +128,21 @@ class L3RouterCfgRpcCallback(object):
         """
         with context.session.begin(subtransactions=True):
             for (floatingip_id, status) in six.iteritems(fip_statuses):
-                LOG.debug(_("New status for floating IP %(floatingip_id)s: "
-                            "%(status)s"), {'floatingip_id': floatingip_id,
-                                            'status': status})
+                LOG.debug("New status for floating IP %(floatingip_id)s: "
+                          "%(status)s", {'floatingip_id': floatingip_id,
+                                         'status': status})
                 try:
                     self._l3plugin.update_floatingip_status(
                         context, floatingip_id, status)
                 except l3.FloatingIPNotFound:
-                    LOG.debug(_("Floating IP: %s no longer present."),
+                    LOG.debug("Floating IP: %s no longer present.",
                               floatingip_id)
             known_router_fips = self._l3plugin.get_floatingips(
                 context, {'last_known_router_id': [router_id]})
             fips_to_disable = (fip['id'] for fip in known_router_fips
                                if not fip['router_id'])
             for fip_id in fips_to_disable:
-                LOG.debug("update_fip_statuses: disable: %s", fip_id)
+                LOG.debug("Update_fip_statuses: disable: %s", fip_id)
                 self._l3plugin.update_floatingip_status(
                     context, fip_id, constants.FLOATINGIP_STATUS_DOWN)
 

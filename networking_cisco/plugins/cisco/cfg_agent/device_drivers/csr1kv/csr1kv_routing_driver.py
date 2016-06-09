@@ -30,6 +30,7 @@ from networking_cisco.plugins.cisco.cfg_agent.device_drivers import (
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
     cisco_csr1kv_snippets as snippets)
 from networking_cisco.plugins.cisco.common.htparser import HTParser
+from networking_cisco.plugins.cisco.extensions import ha
 
 manager = importutils.try_import('ncclient.manager')
 
@@ -87,7 +88,7 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
     @save_config
     def internal_network_added(self, ri, port):
         self._csr_create_subinterface(ri, port)
-        if port.get('ha_info') is not None and ri.ha_info['ha:enabled']:
+        if port.get(ha.HA_INFO) is not None and ri.ha_info[ha.ENABLED]:
             self._csr_add_ha(ri, port)
 
     @save_config
@@ -165,11 +166,11 @@ class CSR1kvRoutingDriver(devicedriver_api.RoutingDriverBase):
             'GBLP': CSR1kvRoutingDriver._csr_add_ha_GBLP
         }
         #Invoke the right function for the ha type
-        func_dict[ri.ha_info['ha:type']](self, ri, port)
+        func_dict[ri.ha_info[ha.TYPE]](self, ri, port)
 
     def _csr_add_ha_HSRP(self, ri, port):
         priority = ri.ha_info['priority']
-        port_ha_info = port['ha_info']
+        port_ha_info = port[ha.HA_INFO]
         group = port_ha_info['group']
         ip = port_ha_info['virtual_port']['fixed_ips'][0]['ip_address']
         if ip and group and priority:

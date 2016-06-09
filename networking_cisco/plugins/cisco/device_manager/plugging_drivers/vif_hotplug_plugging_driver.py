@@ -19,13 +19,12 @@ from novaclient import exceptions as nova_exc
 from oslo_log import log as logging
 from sqlalchemy.sql import expression as expr
 
-from networking_cisco._i18n import _, _LE, _LW
-
 from neutron.api.v2 import attributes
 from neutron.common import exceptions as n_exc
 from neutron.db import models_v2
 from neutron import manager
 
+from networking_cisco._i18n import _, _LE, _LW
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.device_manager import plugging_drivers
 from networking_cisco.plugins.cisco.device_manager.plugging_drivers import (
@@ -242,8 +241,8 @@ class VIFHotPlugPluggingDriver(plugging_drivers.PluginSidePluggingDriver,
         try:
             hosting_port = self._core_plugin.create_port(context, p_spec)
         except n_exc.NeutronException as e:
-            LOG.error(_('Error %s when creating hosting port'
-                        'Cleaning up.'), e)
+            LOG.error(_LE('Error %s when creating hosting port'
+                          'Cleaning up.'), e)
             self.delete_hosting_device_resources(
                 context, l3admin_tenant_id, hosting_port)
             hosting_port = None

@@ -22,14 +22,13 @@ import oslo_messaging
 from oslo_utils import excutils
 import six
 
-from networking_cisco._i18n import _, _LE, _LI, _LW
-
 from neutron.common import constants as l3_constants
 from neutron.common import rpc as n_rpc
 from neutron.common import topics
 from neutron.common import utils as common_utils
 from neutron import context as n_context
 
+from networking_cisco._i18n import _, _LE, _LI, _LW
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers import driver_mgr
 from networking_cisco.plugins.cisco.cfg_agent import device_status
@@ -39,6 +38,7 @@ from networking_cisco.plugins.cisco.extensions import ha
 from networking_cisco.plugins.cisco.extensions import routerrole
 
 LOG = logging.getLogger(__name__)
+
 
 N_ROUTER_PREFIX = 'nrouter-'
 ROUTER_ROLE_ATTR = routerrole.ROUTER_ROLE_ATTR
@@ -461,6 +461,8 @@ class RoutingServiceHelper(object):
             deleted_routerids_list = []
 
             for r in routers:
+                if not r['admin_state_up']:
+                        continue
                 cur_router_ids.add(r['id'])
 
             # identify list of routers(ids) that no longer exist
@@ -488,11 +490,13 @@ class RoutingServiceHelper(object):
                     self.updated_routers.add(r['id'])
                     continue
                 try:
+                    if not r['admin_state_up']:
+                        continue
                     cur_router_ids.add(r['id'])
                     hd = r['hosting_device']
                     if not self._dev_status.is_hosting_device_reachable(hd):
                         LOG.info(_LI("Router: %(id)s is on an unreachable "
-                                 "hosting device. "), {'id': r['id']})
+                                     "hosting device. "), {'id': r['id']})
                         continue
                     if r['id'] not in self.router_info:
                         self._router_added(r['id'], r)
@@ -505,7 +509,8 @@ class RoutingServiceHelper(object):
                     continue
                 except cfg_exceptions.DriverException as e:
                     LOG.exception(_LE("Driver Exception on router:%(id)s. "
-                                  "Error is %(e)s"), {'id': r['id'], 'e': e})
+                                      "Error is %(e)s"), {'id': r['id'],
+                                                          'e': e})
                     self.updated_routers.update([r['id']])
                     continue
                 LOG.debug("Done processing router[id:%(id)s, role:%(role)s]",
@@ -598,8 +603,8 @@ class RoutingServiceHelper(object):
                 self._process_router_floating_ips(ri, ex_gw_port)
 
             if ri.router[ROUTER_ROLE_ATTR] not in [
-                c_constants.ROUTER_ROLE_GLOBAL,
-                c_constants.ROUTER_ROLE_LOGICAL_GLOBAL]:
+                    c_constants.ROUTER_ROLE_GLOBAL,
+                    c_constants.ROUTER_ROLE_LOGICAL_GLOBAL]:
                 if not ri.router['admin_state_up']:
                     self._disable_router_interface(ri)
                 else:
@@ -616,6 +621,9 @@ class RoutingServiceHelper(object):
 
             ri.ex_gw_port = ex_gw_port
             self._routes_updated(ri)
+        except cfg_exceptions.HAParamsMissingException as e:
+            self.updated_routers.update([ri.router_id])
+            LOG.warning(e)
         except cfg_exceptions.DriverException as e:
             with excutils.save_and_reraise_exception():
                 self.updated_routers.update([ri.router_id])
