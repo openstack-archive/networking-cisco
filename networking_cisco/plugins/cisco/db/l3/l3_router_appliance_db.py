@@ -18,12 +18,12 @@ import subprocess
 
 from oslo_concurrency import lockutils
 from oslo_config import cfg
+from oslo_db import exception as db_exc
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import excutils
 from oslo_utils import importutils
 import six
-from sqlalchemy import exc as db_exc
 from sqlalchemy.orm import exc
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import expression as expr
@@ -625,7 +625,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                 return self._try_allocate_slots_and_bind_to_host(
                     context, binding_info_db, result[0], slot_need,
                     synchronized)
-            except db_exc.IntegrityError:
+            except db_exc.DBDuplicateEntry:
                 LOG.debug("Router %(r_id)s was already scheduled to hosting "
                           "device %(hd_id)s by another process",
                           {'r_id': binding_info_db.router_id,
@@ -1206,9 +1206,9 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                 hosting_port_id=alloc['allocated_port_id'],
                 segmentation_id=alloc['allocated_vlan'])
             context.session.add(h_info_db)
-            context.session.expire(port_db)
-        # allocation succeeded so establish connectivity for logical port
+        context.session.expire(port_db)
         context.session.expire(h_info_db)
+        # allocation succeeded so establish connectivity for logical port
         plugging_driver.setup_logical_port_connectivity(context, port_db,
                                                         hosting_device_id)
         return h_info_db

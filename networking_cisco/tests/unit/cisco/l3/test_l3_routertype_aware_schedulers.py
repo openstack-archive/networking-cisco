@@ -16,10 +16,11 @@ import copy
 
 import mock
 from oslo_config import cfg
+from oslo_db import exception as db_exc
 from oslo_log import log as logging
 from oslo_utils import importutils
 from oslo_utils import uuidutils
-from sqlalchemy import exc as db_exc
+from sqlalchemy import exc as inner_db_exc
 from webob import exc
 
 from neutron.api.rpc.agentnotifiers import l3_rpc_agent_api
@@ -538,7 +539,9 @@ class L3RoutertypeAwareHostingDeviceSchedulerBaseTestCase(
             # to mimic this.
             self.plugin._backlogged_routers.add(binding_info_db.router_id)
             # kaboom!
-            raise db_exc.IntegrityError("Invalid insert", params="", orig=None)
+            raise db_exc.DBDuplicateEntry(
+                inner_exception=inner_db_exc.IntegrityError(
+                    "Invalid insert", params="", orig=None))
 
         selected_hd_id = '00000000-0000-0000-0000-000000000002'
         with self.router() as router:
