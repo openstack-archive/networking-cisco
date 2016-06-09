@@ -210,6 +210,17 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.assertRaises(cfg_exceptions.CSR1kvConfigException,
                           self.routing_helper._process_router, ri)
 
+    def test_process_router_throw_session_close(self):
+        class SessionCloseError(Exception):
+            pass
+
+        self.routing_helper._internal_network_added.side_effect = (
+            SessionCloseError("Simulate SessionCloseError"))
+        router, ports = prepare_router_data()
+        ri = routing_svc_helper.RouterInfo(router['id'], router)
+        self.assertRaises(SessionCloseError,
+                          self.routing_helper._process_router, ri)
+
     def test_process_router(self):
         router, ports = prepare_router_data()
         #Setup mock for call to proceess floating ips

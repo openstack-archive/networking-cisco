@@ -17,10 +17,12 @@ import eventlet
 import netaddr
 import pprint as pp
 
+# from ncclient.transport import errors as ncc_errors
 from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging
 from oslo_utils import excutils
+from oslo_utils import importutils
 import six
 
 from neutron.common import constants as l3_constants
@@ -40,6 +42,8 @@ from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
 from networking_cisco.plugins.cisco.extensions import ha
 from networking_cisco.plugins.cisco.extensions import routerrole
+
+ncc_errors = importutils.try_import('ncclient.transport.errors')
 
 LOG = logging.getLogger(__name__)
 
@@ -260,7 +264,8 @@ class RoutingServiceHelper(object):
                         self.removed_routers = self.removed_routers | set(ids)
                 if self.removed_routers:
                     removed_routers_ids = list(self.removed_routers)
-                    LOG.debug("Removed routers:%s", removed_routers_ids)
+                    LOG.debug("Removed routers:%s",
+                              pp.pformat(removed_routers_ids))
                     for r in removed_routers_ids:
                         if r in self.router_info:
                             removed_routers.append(self.router_info[r].router)
@@ -571,6 +576,21 @@ class RoutingServiceHelper(object):
                     ri = self.router_info[r['id']]
                     ri.router = r
                     self._process_router(ri)
+                except ncc_errors.SessionCloseError as e:
+                    LOG.exception(
+                        _LE("ncclient Unexpected session close %s"), e)
+                    if not self._dev_status.is_hosting_device_reachable(
+                        r['hosting_device']):
+                        LOG.debug("Lost connectivity to Hosting Device %s" %
+                                  r['hosting_device']['id'])
+                        # Will rely on heartbeat to detect hd state
+                        # and schedule resync when hd comes back
+                    else:
+                        # retry the router update on the next pass
+                        self.updated_routers.add(r['id'])
+                        LOG.debug("RETRY_RTR_UPDATE %s" % (r['id']))
+
+                    continue
                 except KeyError as e:
                     LOG.exception(_LE("Key Error, missing key: %s"), e)
                     self.updated_routers.add(r['id'])
@@ -860,6 +880,19 @@ class RoutingServiceHelper(object):
             # end up there too if exception was thrown earlier inside
             # `_process_router()`
             self.updated_routers.discard(router_id)
+        except ncc_errors.SessionCloseError as e:
+            LOG.exception(_LE("ncclient Unexpected session close %s"
+                              " while attempting to remove router"), e)
+            if not self._dev_status.is_hosting_device_reachable(hd):
+                LOG.debug("Lost connectivity to Hosting Device %s" % hd['id'])
+                # rely on heartbeat to detect HD state
+                # and schedule resync when the device comes back
+            else:
+                # retry the router removal on the next pass
+                self.removed_routers.add(router_id)
+                LOG.debug("Interim connectivity lost to hosting device %s, "
+                          "enqueuing router %s in removed_routers set" %
+                          pp.pformat(hd), router_id)
 
     def _internal_network_added(self, ri, port, ex_gw_port):
         driver = self.driver_manager.get_driver(ri.id)

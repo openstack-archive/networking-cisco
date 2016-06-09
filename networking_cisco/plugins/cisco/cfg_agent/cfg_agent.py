@@ -530,7 +530,7 @@ def main(manager='networking_cisco.plugins.cisco.cfg_agent.'
     # debugging without actual backend hosting devices.
     #_mock_stuff()
     conf = cfg.CONF
-    conf.register_opts(CiscoCfgAgent.OPTS, "cfg_agent")
+    conf.register_opts(OPTS, "cfg_agent")
     config.register_agent_state_opts_helper(conf)
     config.register_root_helper(conf)
     conf.register_opts(interface.OPTS)
