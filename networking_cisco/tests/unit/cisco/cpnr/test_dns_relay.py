@@ -19,15 +19,17 @@ import socket
 import unittest
 
 from networking_cisco.plugins.cisco.cpnr.cpnr_client import UnexpectedError
-from networking_cisco.plugins.cisco.cpnr.dns_relay import cfg
-from networking_cisco.plugins.cisco.cpnr.dns_relay import DnsPacket
-from networking_cisco.plugins.cisco.cpnr.dns_relay import DnsRelayAgent
-from networking_cisco.plugins.cisco.cpnr.dns_relay import OPTS
+from networking_cisco.plugins.cisco.cpnr.cpnr_dns_relay_agent import (
+    DnsRelayAgent)
+from networking_cisco.plugins.cisco.cpnr.cpnr_dns_relay_agent import cfg
+from networking_cisco.plugins.cisco.cpnr.cpnr_dns_relay_agent import DnsPacket
+from networking_cisco.plugins.cisco.cpnr.cpnr_dns_relay_agent import OPTS
 
 
 class TestDnsRelayAgent(unittest.TestCase):
 
-    @mock.patch('networking_cisco.plugins.cisco.cpnr.dns_relay.netns')
+    @mock.patch('networking_cisco.plugins.cisco.'
+                'cpnr.cpnr_dns_relay_agent.netns')
     @mock.patch('socket.socket')
     def test_open_dns_ext_socket(self,
                                  mock_socket,
@@ -69,7 +71,8 @@ class TestDnsRelayAgent(unittest.TestCase):
         mock_netns.iflist.return_value.append(('lo', '127.0.0.1', '255.0.0.0'))
         sock, addr, port = relay._open_dns_ext_socket()
 
-    @mock.patch('networking_cisco.plugins.cisco.cpnr.dns_relay.netns')
+    @mock.patch('networking_cisco.plugins.cisco.'
+                'cpnr.cpnr_dns_relay_agent.netns')
     @mock.patch('socket.socket')
     def test_open_dns_int_socket(self,
                                  mock_socket,

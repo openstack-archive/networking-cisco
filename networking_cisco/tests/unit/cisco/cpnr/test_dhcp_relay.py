@@ -18,16 +18,19 @@ import mock
 import socket
 
 from networking_cisco.plugins.cisco.cpnr.cpnr_client import UnexpectedError
-from networking_cisco.plugins.cisco.cpnr.dhcp_relay import cfg
-from networking_cisco.plugins.cisco.cpnr.dhcp_relay import DhcpPacket
-from networking_cisco.plugins.cisco.cpnr.dhcp_relay import DhcpRelayAgent
-from networking_cisco.plugins.cisco.cpnr.dhcp_relay import OPTS
+from networking_cisco.plugins.cisco.cpnr.cpnr_dhcp_relay_agent import (
+    DhcpPacket)
+from networking_cisco.plugins.cisco.cpnr.cpnr_dhcp_relay_agent import (
+    DhcpRelayAgent)
+from networking_cisco.plugins.cisco.cpnr.cpnr_dhcp_relay_agent import cfg
+from networking_cisco.plugins.cisco.cpnr.cpnr_dhcp_relay_agent import OPTS
 import unittest
 
 
 class TestDhcpRelayAgent(unittest.TestCase):
 
-    @mock.patch('networking_cisco.plugins.cisco.cpnr.dhcp_relay.netns')
+    @mock.patch('networking_cisco.plugins.cisco.'
+                'cpnr.cpnr_dhcp_relay_agent.netns')
     @mock.patch('socket.socket')
     def test_open_dhcp_ext_socket(self, mock_socket, mock_netns):
         cfg.CONF.register_opts(OPTS, 'cisco_pnr')
@@ -64,7 +67,8 @@ class TestDhcpRelayAgent(unittest.TestCase):
                                                '255.0.0.0'))
         sock, addr = relay._open_dhcp_ext_socket()
 
-    @mock.patch('networking_cisco.plugins.cisco.cpnr.dhcp_relay.netns')
+    @mock.patch('networking_cisco.plugins.cisco.'
+                'cpnr.cpnr_dhcp_relay_agent.netns')
     @mock.patch('socket.socket')
     def test_open_dhcp_int_socket(self, mock_socket, mock_netns):
         cfg.CONF.register_opts(OPTS, 'cisco_pnr')

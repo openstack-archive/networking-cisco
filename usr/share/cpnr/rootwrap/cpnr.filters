@@ -1,0 +1,14 @@
+# cpnr-rootwrap command filters for nodes on which neutron is
+# expected to control network
+#
+# This file should be owned by (and only-writeable by) the root user
+
+# format seems to be
+# cmd-name: filter-name, raw-command, user, args
+
+[Filters]
+
+# cpnr-dhcp-relay-agent
+cpnr-dhcp-relay-agent: CommandFilter, cpnr-dhcp-relay-agent, root
+# cpnr-dns-relay-agent
+cpnr-dns-relay-agent: CommandFilter, cpnr-dns-relay-agent, root
