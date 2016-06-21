@@ -30,8 +30,6 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import expression as expr
 from sqlalchemy.sql import false as sql_false
 
-from networking_cisco._i18n import _, _LE, _LI, _LW
-
 from neutron.callbacks import events
 from neutron.callbacks import registry
 from neutron.callbacks import resources
@@ -49,6 +47,7 @@ from neutron_lib import constants as l3_constants
 from neutron_lib import exceptions as n_exc
 
 from networking_cisco import backwards_compatibility as bc_attr
+from networking_cisco._i18n import _, _LE, _LI, _LW
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.device_manager import hd_models
 from networking_cisco.plugins.cisco.db.l3 import l3_models
@@ -994,7 +993,20 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         LOG.info(_LI('Processing router (scheduling) backlog'))
         # try to reschedule
         for r_id in copy.deepcopy(self._backlogged_routers):
-            r_hd_binding = self._get_router_binding_info(e_context, r_id)
+            try:
+                r_hd_binding = self._get_router_binding_info(e_context, r_id)
+            except RouterBindingInfoError:
+                # As no binding information was found for the router we need
+                # to check if the router still exists in which case it
+                # should remain in the backlog for later processing attempts,
+                try:
+                    self.get_router(e_context, r_id)
+                except n_exc.NotFound:
+                    # this router was deleted by some other process so it
+                    # requires no further processing
+                    LOG.debug('Backlogged router %s has been deleted.', r_id)
+                    self._backlogged_routers.remove(r_id)
+                continue
             if r_hd_binding.hosting_device_id is not None:
                 # this router was scheduled by some other process so it
                 # requires no further processing

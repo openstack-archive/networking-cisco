@@ -131,3 +131,16 @@ class TestL3RouterServicePlugin(
 
     def get_plugin_description(self):
         return "L3 Routing Service Plugin for testing"
+
+    def cleanup_after_test(self):
+        """This function should be called in the TearDown() function of
+        test classes that use the plugin.
+
+        Reset all class variables to their default values.
+        This is needed to avoid tests to pollute subsequent tests.
+        """
+        TestL3RouterServicePlugin._router_schedulers = {}
+        TestL3RouterServicePlugin._router_drivers = {}
+        TestL3RouterServicePlugin._namespace_router_type_id = None
+        TestL3RouterServicePlugin._backlogged_routers = set()
+        TestL3RouterServicePlugin._refresh_router_backlog = True
