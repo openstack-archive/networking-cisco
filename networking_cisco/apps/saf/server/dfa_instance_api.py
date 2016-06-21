@@ -21,8 +21,8 @@ information such as display_name.
 """
 
 from keystoneclient.v2_0 import client as keyc
+from novaclient import client as nova_client
 from novaclient import exceptions as nexc
-from novaclient.v2 import client as nova_client
 
 from networking_cisco._i18n import _LE, _LI
 
@@ -87,7 +87,7 @@ class DFAInstanceAPI(object):
     def _create_nova_client(self):
         """Creates nova client object."""
         try:
-            clnt = nova_client.Client(self._user_name,
+            clnt = nova_client.Client("2", self._user_name,
                                       self._token_id,
                                       self._project_id,
                                       self._auth_url,
