@@ -205,12 +205,52 @@ class HAL3RouterApplianceVMTestCase(
             # get the extra port for the user visible router
             other_router_ports = [r_p for r_p in self._list('ports')['ports']
                                   if r_p['id'] not in r_port_ids]
-            # should only be one since we've created one router port
-            self.assertEqual(len(other_router_ports), 1)
-            self.assertEqual(other_router_ports[0]['device_owner'],
-                             DEVICE_OWNER_ROUTER_INTF)
             # clean-up
             self._router_interface_action('remove', r['id'], None, p['id'])
+
+            # should only be one since we've created one router port
+            self.assertEqual(1, len(other_router_ports))
+            self.assertEqual(DEVICE_OWNER_ROUTER_INTF,
+                             other_router_ports[0]['device_owner'])
+
+    def test_router_add_interface_portDNS(self):
+
+        tenant_id = _uuid()
+        with self.router(tenant_id=tenant_id) as router, (
+                self.subnet()) as subnet:
+            r = router['router']
+            s = subnet['subnet']
+
+            with mock.patch('networking_cisco.plugins.cisco.db.l3.ha_db.'
+                            'utils.is_extension_supported',
+                            return_value=True) as extension_support:
+                self._router_interface_action('add', r['id'], s['id'], None)
+                r_ids = [rr['id']
+                         for rr in [r] + r[ha.DETAILS][ha.REDUNDANCY_ROUTERS]]
+                # get ports for the user visible router and its two redundancy
+                # routers for which dns_name attribute should have been updated
+                params = "&".join(["device_id=%s" % r_id for r_id in r_ids])
+                expected_calls = []
+                # Verify the function is called with extension dns enabled
+                expected_calls.append(
+                    mock.call(self.core_plugin, 'dns-integration'))
+                extension_support.assert_has_calls(expected_calls,
+                                                   any_order=True)
+                with mock.patch('neutron.api.v2.base.Controller.'
+                            '_exclude_attributes_by_policy',
+                            return_value=[]):
+                    router_ports = (
+                        self._list('ports', query_params=params)['ports'])
+
+                    # clean-up
+                    self._router_interface_action('remove', r['id'],
+                                                  s['id'], None)
+
+                    self.assertEqual(3, len(router_ports))
+                    # Verify the dns-name attribute is present in the ports
+                    self.assertIsNone(router_ports[0]['dns_name'])
+                    self.assertIsNone(router_ports[1]['dns_name'])
+                    self.assertIsNone(router_ports[2]['dns_name'])
 
     def _test_create_ha_router(self, router, subnet, ha_settings=None):
         if ha_settings is None:

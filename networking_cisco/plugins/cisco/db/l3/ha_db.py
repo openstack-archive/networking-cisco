@@ -910,16 +910,18 @@ class HA_db_mixin(object):
     def _create_hidden_port(self, context, network_id, device_id, fixed_ips,
                             port_type=DEVICE_OWNER_ROUTER_INTF):
         """Creates port used specially for HA purposes."""
-        return self._core_plugin.create_port(context, {
-            'port': {
-                'tenant_id': '',  # intentionally not set
-                'network_id': network_id,
-                'mac_address': attrs.ATTR_NOT_SPECIFIED,
-                'fixed_ips': fixed_ips,
-                'device_id': device_id,
-                'device_owner': port_type,
-                'admin_state_up': True,
-                'name': ''}})
+        port = {'port': {
+            'tenant_id': '',  # intentionally not set
+            'network_id': network_id,
+            'mac_address': attrs.ATTR_NOT_SPECIFIED,
+            'fixed_ips': fixed_ips,
+            'device_id': device_id,
+            'device_owner': port_type,
+            'admin_state_up': True,
+            'name': ''}}
+        if utils.is_extension_supported(self._core_plugin, "dns-integration"):
+                port['port'].update(dns_name='')
+        return self._core_plugin.create_port(context, port)
 
     def _get_ha_settings_by_router_id(self, context, router_id):
         query = context.session.query(RouterHASetting)
