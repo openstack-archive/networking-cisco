@@ -16,11 +16,14 @@ import os
 
 import mock
 from oslo_config import cfg
+from oslo_db import exception as db_exc
 from oslo_log import log as logging
 import six
+from sqlalchemy import exc as inner_db_exc
+
 
 from neutron.api.v2 import attributes
-from neutron import context as q_context
+from neutron import context as n_context
 from neutron.db import agents_db
 from neutron.extensions import extraroute
 from neutron.extensions import l3
@@ -316,7 +319,7 @@ class L3RouterApplianceRouterTypeDriverTestCase(test_l3.L3NatTestCaseMixin,
                 r['route_list'] = []
                 binding_mock.router = r
                 self.plugin.unschedule_router_from_hosting_device(
-                    q_context.get_admin_context(), binding_mock)
+                    n_context.get_admin_context(), binding_mock)
             pre_mock.assert_has_calls([mock.call(mock.ANY, mock.ANY)])
             post_mock.assert_has_calls([mock.call(mock.ANY, mock.ANY)])
 
@@ -422,3 +425,81 @@ class L3CfgAgentRouterApplianceTestCase(L3RouterApplianceTestCaseBase,
         kargs = [item for item in args]
         kargs.append(self._l3_cfg_agent_mock)
         target_func(*kargs)
+
+    def test_failed_add_gw_hosting_port_info_changes_router_status(self,
+                                                                   num=1):
+        with self.subnet() as ext_s, self.subnet(cidr='10.0.1.0/24') as s:
+            ext_net_id = ext_s['subnet']['network_id']
+            self._set_net_external(ext_net_id)
+            with self.router(
+                    external_gateway_info={'network_id': ext_net_id}) as r,\
+                    self.port(s) as p:
+                self._router_interface_action('add', r['router']['id'], None,
+                                              p['port']['id'])
+                with mock.patch.object(
+                        self.plugin,
+                        'add_type_and_hosting_device_info') as m1,\
+                        mock.patch.object(
+                            self.plugin,
+                            '_populate_hosting_info_for_port') as m2,\
+                        mock.patch.object(
+                            self._core_plugin,
+                            'get_hosting_device_plugging_driver'):
+                    m1.side_effect = lambda ctx, r, bi=None, sch=None: (
+                        r.update({'hosting_device': {'id': 'fake_id'}}))
+                    m2.return_value = None
+                    routers = self.plugin.get_sync_data(
+                        n_context.get_admin_context(), None)
+                    self.assertEqual(num, len(routers))
+                    self.assertEqual(c_const.ROUTER_INFO_INCOMPLETE,
+                                     routers[0]['status'])
+                    self.assertEqual(num, m2.call_count)
+
+    def test_failed_add_hosting_port_info_changes_router_status(self, num=1):
+        with self.router() as r, self.subnet(cidr='10.0.1.0/24') as s2:
+            with self.port() as p1, self.port(s2) as p2:
+                r_id = r['router']['id']
+                self._router_interface_action('add', r_id, None,
+                                              p1['port']['id'])
+                self._router_interface_action('add', r_id, None,
+                                              p2['port']['id'])
+                with mock.patch.object(
+                        self.plugin,
+                        'add_type_and_hosting_device_info') as m1,\
+                        mock.patch.object(
+                            self.plugin,
+                            '_populate_hosting_info_for_port') as m2,\
+                        mock.patch.object(
+                            self._core_plugin,
+                            'get_hosting_device_plugging_driver'):
+                    m1.side_effect = lambda ctx, r, bi=None, sch=None: (
+                        r.update({'hosting_device': {'id': 'fake_id'}}))
+                    m2.return_value = None
+                    routers = self.plugin.get_sync_data(
+                        n_context.get_admin_context(), None)
+                    self.assertEqual(num, len(routers))
+                    self.assertEqual(c_const.ROUTER_INFO_INCOMPLETE,
+                                     routers[0]['status'])
+                    self.assertEqual(num, m2.call_count)
+
+    def test__allocate_hosting_port_returns_none_if_binding_fails(self):
+        with self.router() as r, self.port() as p1:
+            r_id = r['router']['id']
+            p1_id = p1['port']['id']
+            self._router_interface_action('add', r_id, None, p1_id)
+            plugging_drv_mock = mock.MagicMock()
+            plugging_drv_mock.allocate_hosting_port.return_value = {
+                'allocated_port_id': p1_id, 'allocated_vlan': 10}
+            adm_ctx = n_context.get_admin_context()
+            p1_db = self._core_plugin._get_port(adm_ctx, p1_id)
+            ctx_mock = mock.MagicMock()
+            ctx_mock.session = mock.MagicMock()
+            ctx_mock.session.begin = adm_ctx.session.begin
+            ctx_mock.session.add = mock.MagicMock()
+            ctx_mock.session.add.side_effect = db_exc.DBReferenceError(
+                'cisco_port_mappings', 'foreign key constraint', p1_id,
+                'ports', inner_exception=inner_db_exc.IntegrityError(
+                    "Invalid insert", params="", orig=None))
+            res = self.plugin._allocate_hosting_port(
+                ctx_mock, r_id, p1_db, 'fake_hd_id', plugging_drv_mock)
+            self.assertIsNone(res)

@@ -1942,3 +1942,12 @@ class L3CfgAgentHARouterApplianceTestCase(
                     self.assertIsNone(pop_p)
                     self.assertEqual(len(mod_itfcs), 0)
                     self.assertEqual(m.call_count, ha_db.LOOKUP_RETRIES)
+
+    def test_failed_add_gw_hosting_port_info_changes_router_status(self,
+                                                                   num=1):
+        (super(L3CfgAgentHARouterApplianceTestCase, self).
+         test_failed_add_gw_hosting_port_info_changes_router_status(3))
+
+    def test_failed_add_hosting_port_info_changes_router_status(self, num=1):
+        (super(L3CfgAgentHARouterApplianceTestCase, self).
+         test_failed_add_hosting_port_info_changes_router_status(3))
