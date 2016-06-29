@@ -23,6 +23,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import excutils
+from oslo_utils import netutils
 
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     constants as n1kv_const)
@@ -139,7 +140,8 @@ class Client(object):
         # Validate the configured VSM IP addresses
         # Note: Currently only support IPv4
         for vsm_ip in self.vsm_ips:
-            if not (netaddr.valid_ipv4(vsm_ip) or netaddr.valid_ipv6(vsm_ip)):
+            if not (netutils.is_valid_ipv4(vsm_ip) or
+                    netutils.is_valid_ipv6(vsm_ip)):
                 raise cfg.Error(_("Cisco Nexus1000V ML2 driver config: "
                                   "Invalid format for VSM IP address: %s") %
                                 vsm_ip)
@@ -486,7 +488,7 @@ class Client(object):
             headers = self._get_auth_header()
             headers['Content-Type'] = headers['Accept'] = "application/json"
         for vsm_ip in hosts:
-            if netaddr.valid_ipv6(vsm_ip):
+            if netutils.is_valid_ipv6(vsm_ip):
                 # Enclose IPv6 address in [] in the URL
                 vsm_action = action % ("[%s]" % vsm_ip)
             else:
