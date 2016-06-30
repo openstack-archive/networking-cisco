@@ -44,6 +44,8 @@ from networking_cisco.plugins.cisco.extensions import routertype
 LOG = logging.getLogger(__name__)
 
 
+RouterPort = l3_db.RouterPort
+
 HA_GROUP = 'group'
 HA_PORT = 'ha_port'
 
@@ -985,32 +987,23 @@ class HA_db_mixin(object):
             return random.randint(0, MAX_GLBP_GROUPS)
 
     # Overloaded function from l3_db
-    def _get_router_for_floatingip(self, context, internal_port,
-                                   internal_subnet_id,
-                                   external_network_id):
+    def get_router_for_floatingip(self, context, internal_port,
+                                  internal_subnet, external_network_id):
         """We need to over-load this function so that we only return the
         user visible router and never its redundancy routers (as they never
         have floatingips associated with them).
         """
-        subnet = self._core_plugin._get_subnet(context,
-                                               internal_subnet_id)
-        if not subnet['gateway_ip']:
-            msg = (_('Cannot add floating IP to port on subnet %s '
-                     'which has no gateway_ip') % internal_subnet_id)
-            raise n_exc.BadRequest(resource='floatingip', msg=msg)
-
         gw_port = orm.aliased(models_v2.Port, name="gw_port")
         routerport_qry = context.session.query(
-            l3_db.RouterPort.router_id,
-            models_v2.IPAllocation.ip_address).join(
+            RouterPort.router_id, models_v2.IPAllocation.ip_address).join(
             models_v2.Port, models_v2.IPAllocation).filter(
             models_v2.Port.network_id == internal_port['network_id'],
-            l3_db.RouterPort.port_type.in_(
-                l3_constants.ROUTER_INTERFACE_OWNERS),
-            models_v2.IPAllocation.subnet_id == internal_subnet_id
-        ).join(gw_port,
-               gw_port.device_id == l3_db.RouterPort.router_id).filter(
-            gw_port.network_id == external_network_id).distinct()
+            RouterPort.port_type.in_(l3_constants.ROUTER_INTERFACE_OWNERS),
+            models_v2.IPAllocation.subnet_id == internal_subnet['id']
+        ).join(gw_port, gw_port.device_id == RouterPort.router_id).filter(
+            gw_port.network_id == external_network_id,
+            gw_port.device_owner == l3_constants.DEVICE_OWNER_ROUTER_GW
+        ).distinct()
 
         # Ensure that redundancy routers (in a ha group) are not returned,
         # since only the user visible router should have floatingips.
@@ -1020,13 +1013,13 @@ class HA_db_mixin(object):
         routerport_qry = routerport_qry.outerjoin(
             RouterRedundancyBinding,
             RouterRedundancyBinding.redundancy_router_id ==
-            l3_db.RouterPort.router_id)
+            RouterPort.router_id)
         routerport_qry = routerport_qry.filter(
             RouterRedundancyBinding.redundancy_router_id == expr.null())
 
         first_router_id = None
         for router_id, interface_ip in routerport_qry:
-            if interface_ip == subnet['gateway_ip']:
+            if interface_ip == internal_subnet['gateway_ip']:
                 return router_id
             if not first_router_id:
                 first_router_id = router_id
@@ -1034,6 +1027,6 @@ class HA_db_mixin(object):
             return first_router_id
 
         raise l3.ExternalGatewayForFloatingIPNotFound(
-            subnet_id=internal_subnet_id,
+            subnet_id=internal_subnet['id'],
             external_network_id=external_network_id,
             port_id=internal_port['id'])
