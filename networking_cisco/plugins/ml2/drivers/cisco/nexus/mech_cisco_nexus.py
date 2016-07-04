@@ -509,6 +509,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
     def _is_supported_deviceowner(self, port):
         return (port['device_owner'].startswith('compute') or
                 port['device_owner'].startswith('baremetal') or
+                port['device_owner'].startswith('manila') or
                 port['device_owner'] == n_const.DEVICE_OWNER_DHCP or
                 port['device_owner'] == n_const.DEVICE_OWNER_ROUTER_HA_INTF)
 
