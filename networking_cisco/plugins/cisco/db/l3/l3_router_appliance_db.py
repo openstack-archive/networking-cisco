@@ -211,6 +211,11 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
             # Ensure create spec is compliant with any HA
             ha_spec = self._ensure_create_ha_compliant(r, router_type)
         auto_schedule, share_host = self._ensure_router_scheduling_compliant(r)
+        driver = self._get_router_type_driver(context,
+                                              router_type_id)
+        if driver:
+            router_ctxt = driver_context.RouterContext(router)
+            driver.create_router_precommit(context, router_ctxt)
         router_created, r_hd_b_db = self.do_create_router(
             context, router, router_type_id, auto_schedule, share_host, None,
             router_role)
@@ -221,9 +226,17 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         if auto_schedule is True:
             # backlog so this new router gets scheduled asynchronously
             self.backlog_router(context, r_hd_b_db)
+        if driver:
+            driver.create_router_postcommit(context, router_ctxt)
         return router_created
 
     def update_router(self, context, id, router):
+        router_type_id = self.get_router_type_id(context, id)
+        driver = self._get_router_type_driver(context,
+                                              router_type_id)
+        if driver:
+            router_ctxt = driver_context.RouterContext(router)
+            driver.update_router_precommit(context, router_ctxt)
         router_updated = self._update_router_no_notify(context, id, router)
         self.add_type_and_hosting_device_info(context.elevated(),
                                               router_updated)
@@ -321,6 +334,12 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
     def delete_router(self, context, router_id, unschedule=True):
         router_db = self._ensure_router_not_in_use(context, router_id)
         router = self._make_router_dict(router_db)
+        router_type_id = self.get_router_type_id(context, router_id)
+        driver = self._get_router_type_driver(context,
+                                              router_type_id)
+        if driver:
+            router_ctxt = driver_context.RouterContext(router)
+            driver.delete_router_precommit(context, router_ctxt)
         e_context = context.elevated()
         r_hd_binding_db = router_db.hosting_info
         # disable scheduling now since router is to be deleted and we're only
@@ -362,6 +381,8 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                 self._delete_redundancy_routers(context, router_db)
             super(L3RouterApplianceDBMixin, self).delete_router(context,
                                                                 router_id)
+            if driver:
+                driver.delete_router_postcommit(context, router_ctxt)
         except n_exc.NeutronException:
             with excutils.save_and_reraise_exception():
                 # put router back in backlog if deletion failed so that it
@@ -386,11 +407,25 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                       {'router_interface': router_interface_info})
 
     def add_router_interface(self, context, router_id, interface_info):
+        router_type_id = self.get_router_type_id(context, router_id)
+        r_hd_binding_db = self._get_router_binding_info(context.elevated(),
+                                                        router_id)
+        driver = self._get_router_type_driver(context,
+                                              router_type_id)
+        if driver:
+            by_port, by_subnet = self._validate_interface_info(
+                interface_info)
+            if by_port:
+                port = self._core_plugin.get_port(context,
+                    interface_info['port_id'])
+            else:
+                # no port exists yet, but we still pass a context
+                port = None
+            port_ctxt = driver_context.RouterPortContext(port)
+            driver.add_router_interface_precommit(context, port_ctxt)
         info = (super(L3RouterApplianceDBMixin, self).
                 add_router_interface(context, router_id, interface_info))
         context.session.expire_all()
-        r_hd_binding_db = self._get_router_binding_info(context.elevated(),
-                                                        router_id)
         is_ha = (utils.is_extension_supported(self, ha.HA_ALIAS) and
                  r_hd_binding_db.router_type_id !=
                  self.get_namespace_router_type_id(context))
@@ -402,6 +437,17 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                                                            info['port_id']))
         routers = [self.get_router(context, router_id)]
         self.add_type_and_hosting_device_info(context.elevated(), routers[0])
+        if driver:
+            if by_subnet:
+                subnet_db = self._core_plugin._get_subnet(
+                    context, interface_info['subnet_id'])
+                port = self._get_router_port_db_on_subnet(
+                    r_hd_binding_db.router, subnet_db)
+            else:
+                port = self._core_plugin.get_port(context,
+                    interface_info['port_id'])
+            port_ctxt._port = port
+            driver.add_router_interface_postcommit(context, port_ctxt)
         self.notify_router_interface_action(context, info, routers, 'add')
         return info
 
@@ -433,6 +479,12 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                 context, interface_info['subnet_id'])
             port_db = self._get_router_port_db_on_subnet(
                 r_hd_binding_db.router, subnet_db)
+        router_type_id = self.get_router_type_id(context, router_id)
+        driver = self._get_router_type_driver(context,
+                                              router_type_id)
+        if driver:
+            port_ctxt = driver_context.RouterPortContext(port_db)
+            driver.remove_router_interface_precommit(context, port_ctxt)
         routers = [self.get_router(context, router_id)]
         self.add_type_and_hosting_device_info(e_context, routers[0],
                                               r_hd_binding_db)
@@ -451,6 +503,8 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         info = super(L3RouterApplianceDBMixin, self).remove_router_interface(
             context, router_id, interface_info)
         self.notify_router_interface_action(context, info, routers, 'remove')
+        if driver:
+            driver.remove_router_interface_postcommit(context, port_ctxt)
         return info
 
     def create_floatingip(self, context, floatingip,
@@ -458,6 +512,15 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         info = super(L3RouterApplianceDBMixin, self).create_floatingip(
             context, floatingip, initial_status)
         router_ids = [info['router_id']] if info['router_id'] else []
+        if info['router_id']:
+            router_type_id = self.get_router_type_id(
+                context, info['router_id'])
+            driver = self._get_router_type_driver(context,
+                                                  router_type_id)
+            if driver:
+                fip_ctxt = driver_context.FloatingipContext(
+                        floatingip.get('floatingip'))
+                driver.create_floatingip_postcommit(context, fip_ctxt)
         self._notify_affected_routers(context, router_ids, 'create_floatingip')
         return info
 
@@ -465,6 +528,16 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         orig_fl_ip = super(L3RouterApplianceDBMixin, self).get_floatingip(
             context, floatingip_id)
         before_router_id = orig_fl_ip['router_id']
+        if before_router_id:
+            router_type_id = self.get_router_type_id(context, before_router_id)
+            driver = self._get_router_type_driver(context,
+                                                  router_type_id)
+            if driver:
+                fip_ctxt = driver_context.FloatingipContext(
+                        floatingip.get('floatingip'), orig_fl_ip)
+                driver.update_floatingip_precommit(context, fip_ctxt)
+        else:
+            fip_ctxt = None
         info = super(L3RouterApplianceDBMixin, self).update_floatingip(
             context, floatingip_id, floatingip)
         router_ids = []
@@ -473,15 +546,34 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         r_id = info['router_id']
         if r_id and r_id != before_router_id:
             router_ids.append(r_id)
+        if r_id:
+            router_type_id = self.get_router_type_id(context, r_id)
+            driver = self._get_router_type_driver(context,
+                                                  router_type_id)
+            if not fip_ctxt:
+                fip_ctxt = driver_context.FloatingipContext(
+                    floatingip.get('floatingip'), orig_fl_ip)
+            if driver:
+                driver.update_floatingip_postcommit(context, fip_ctxt)
         self._notify_affected_routers(context, router_ids, 'update_floatingip')
         return info
 
     def delete_floatingip(self, context, floatingip_id):
         floatingip_db = self._get_floatingip(context, floatingip_id)
         router_id = floatingip_db['router_id']
+        if router_id:
+            router_type_id = self.get_router_type_id(context, router_id)
+            driver = self._get_router_type_driver(context,
+                                                  router_type_id)
+            if driver:
+                fip_ctxt = driver_context.FloatingipContext(
+                        self._make_floatingip_dict(floatingip_db))
+                driver.delete_floatingip_precommit(context, fip_ctxt)
         super(L3RouterApplianceDBMixin, self).delete_floatingip(context,
                                                                 floatingip_id)
         router_ids = [router_id] if router_id else []
+        if router_id and driver:
+            driver.delete_floatingip_postcommit(context, fip_ctxt)
         self._notify_affected_routers(context, router_ids, 'delete_floatingip')
 
     def disassociate_floatingips(self, context, port_id, do_notify=True):

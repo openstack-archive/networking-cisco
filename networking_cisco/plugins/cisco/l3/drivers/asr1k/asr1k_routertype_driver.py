@@ -115,6 +115,9 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
     def remove_router_interface_postcommit(self, context, r_port_context):
         pass
 
+    def create_floatingip_postcommit(self, context, fip_context):
+        pass
+
     def update_floatingip_precommit(self, context, fip_context):
         pass
 

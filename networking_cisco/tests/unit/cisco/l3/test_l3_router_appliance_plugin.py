@@ -323,6 +323,185 @@ class L3RouterApplianceRouterTypeDriverTestCase(test_l3.L3NatTestCaseMixin,
             pre_mock.assert_has_calls([mock.call(mock.ANY, mock.ANY)])
             post_mock.assert_has_calls([mock.call(mock.ANY, mock.ANY)])
 
+    def test_create_router_pre_and_post(self):
+        driver = mock.Mock()
+        self.plugin._get_router_type_driver = mock.Mock(
+            return_value=driver)
+        router = {'router': {'tenant_id': 'foo',
+                             'admin_state_up': True,
+                             'name': 'bar'}}
+        ctx = n_context.get_admin_context()
+        self.plugin.create_router(ctx, router)
+        driver.create_router_precommit.assert_called_once_with(
+            ctx, mock.ANY)
+        driver.create_router_postcommit.assert_called_once_with(
+            ctx, mock.ANY)
+
+    def test_update_router_pre_and_post(self):
+        driver = mock.Mock()
+        self.plugin._get_router_type_driver = mock.Mock(
+            return_value=driver)
+        with self.router() as router:
+            r = router['router']
+            ctx = n_context.get_admin_context()
+            self.plugin.update_router(ctx, r['id'], router)
+            driver.update_router_precommit.assert_called_once_with(
+                ctx, mock.ANY)
+            driver.update_router_postcommit.assert_called_once_with(
+                ctx, mock.ANY)
+
+    def test_delete_router_pre_and_post(self):
+        driver = mock.Mock()
+        self.plugin._get_router_type_driver = mock.Mock(
+            return_value=driver)
+        with self.router() as router:
+            r = router['router']
+            ctx = n_context.get_admin_context()
+            self.plugin.delete_router(ctx, r['id'])
+            driver.delete_router_precommit.assert_called_once_with(
+                ctx, mock.ANY)
+            driver.delete_router_postcommit.assert_called_once_with(
+                ctx, mock.ANY)
+
+    def test_add_router_interface_pre_and_post_subnet(self):
+        driver = mock.Mock()
+        self.plugin._get_router_type_driver = mock.Mock(
+            return_value=driver)
+        with self.router() as router, self.subnet(cidr='10.0.1.0/24') as sub:
+            r = router['router']
+            s1 = sub['subnet']
+            ctx = n_context.get_admin_context()
+            info = {'subnet_id': s1['id']}
+            self.plugin.add_router_interface(ctx, r['id'], info)
+            driver.add_router_interface_precommit.assert_called_once_with(
+                ctx, mock.ANY)
+            driver.add_router_interface_postcommit.assert_called_once_with(
+                ctx, mock.ANY)
+
+    def test_add_router_interface_pre_and_post_port(self):
+        driver = mock.Mock()
+        self.plugin._get_router_type_driver = mock.Mock(
+            return_value=driver)
+        with self.router() as router, self.port(cidr='10.0.1.0/24') as port:
+            r = router['router']
+            p1 = port['port']
+            ctx = n_context.get_admin_context()
+            info = {'port_id': p1['id']}
+            self.plugin.add_router_interface(ctx, r['id'], info)
+            driver.add_router_interface_precommit.assert_called_once_with(
+                ctx, mock.ANY)
+            driver.add_router_interface_postcommit.assert_called_once_with(
+                ctx, mock.ANY)
+
+    def test_remove_router_interface_pre_and_post_subnet(self):
+        driver = mock.Mock()
+        self.plugin._get_router_type_driver = mock.Mock(
+            return_value=driver)
+        with self.router() as router, self.subnet(cidr='10.0.1.0/24') as sub:
+            r = router['router']
+            s1 = sub['subnet']
+            ctx = n_context.get_admin_context()
+            info = {'subnet_id': s1['id']}
+            self.plugin.add_router_interface(ctx, r['id'], info)
+            self.plugin.remove_router_interface(ctx, r['id'], info)
+            driver.remove_router_interface_precommit.assert_called_once_with(
+                ctx, mock.ANY)
+            driver.remove_router_interface_postcommit.assert_called_once_with(
+                ctx, mock.ANY)
+
+    def test_remove_router_interface_pre_and_post_port(self):
+        driver = mock.Mock()
+        self.plugin._get_router_type_driver = mock.Mock(
+            return_value=driver)
+        with self.router() as router, self.port(cidr='10.0.1.0/24') as port:
+            r = router['router']
+            p1 = port['port']
+            ctx = n_context.get_admin_context()
+            info = {'port_id': p1['id']}
+            self.plugin.add_router_interface(ctx, r['id'], info)
+            self.plugin.remove_router_interface(ctx, r['id'], info)
+            driver.remove_router_interface_precommit.assert_called_once_with(
+                ctx, mock.ANY)
+            driver.remove_router_interface_postcommit.assert_called_once_with(
+                ctx, mock.ANY)
+
+    def test_create_floating_ip_post(self):
+        driver = mock.Mock()
+        self.plugin._get_router_type_driver = mock.Mock(
+            return_value=driver)
+        with self.subnet() as ext_s, self.subnet(cidr='10.0.1.0/24') as s:
+            s1 = ext_s['subnet']
+            ext_net_id = s1['network_id']
+            self._set_net_external(ext_net_id)
+            with self.router(
+                    external_gateway_info={'network_id': ext_net_id}) as r,\
+                    self.port(s) as p:
+                self._router_interface_action('add', r['router']['id'], None,
+                                              p['port']['id'])
+                p1 = p['port']
+                fip = {'floatingip': {'floating_network_id': ext_net_id,
+                                      'port_id': p1['id'],
+                                      'tenant_id': s1['tenant_id']}}
+                ctx = n_context.get_admin_context()
+                self.plugin.create_floatingip(ctx, fip)
+                driver.create_floatingip_postcommit.assert_called_once_with(
+                    ctx, mock.ANY)
+
+    def test_update_floating_ip_pre_and_post(self):
+        driver = mock.Mock()
+        self.plugin._get_router_type_driver = mock.Mock(
+            return_value=driver)
+        with self.subnet() as ext_s, self.subnet(cidr='10.0.1.0/24') as s:
+            s1 = ext_s['subnet']
+            ext_net_id = s1['network_id']
+            self._set_net_external(ext_net_id)
+            with self.router(
+                    external_gateway_info={'network_id': ext_net_id}) as r,\
+                    self.port(s) as p:
+                self._router_interface_action('add', r['router']['id'], None,
+                                              p['port']['id'])
+                p1 = p['port']
+                fip = {'floatingip': {'floating_network_id': ext_net_id,
+                                      'port_id': p1['id'],
+                                      'tenant_id': s1['tenant_id']}}
+                ctx = n_context.get_admin_context()
+                floating_ip = self.plugin.create_floatingip(ctx, fip)
+                fip = {'floatingip': {'port_id': None}}
+                self.plugin.update_floatingip(ctx, floating_ip['id'], fip)
+                driver.update_floatingip_precommit.assert_called_once_with(
+                    ctx, mock.ANY)
+                fip = {'floatingip': {'floating_network_id': ext_net_id,
+                                      'port_id': p1['id'],
+                                      'tenant_id': s1['tenant_id']}}
+                self.plugin.update_floatingip(ctx, floating_ip['id'], fip)
+                driver.update_floatingip_postcommit.assert_called_once_with(
+                    ctx, mock.ANY)
+
+    def test_delete_floating_ip_pre_and_post(self):
+        driver = mock.Mock()
+        self.plugin._get_router_type_driver = mock.Mock(
+            return_value=driver)
+        with self.subnet() as ext_s, self.subnet(cidr='10.0.1.0/24') as s:
+            s1 = ext_s['subnet']
+            ext_net_id = s1['network_id']
+            self._set_net_external(ext_net_id)
+            with self.router(
+                    external_gateway_info={'network_id': ext_net_id}) as r,\
+                    self.port(s) as p:
+                self._router_interface_action('add', r['router']['id'], None,
+                                              p['port']['id'])
+                p1 = p['port']
+                fip = {'floatingip': {'floating_network_id': ext_net_id,
+                                      'port_id': p1['id'],
+                                      'tenant_id': s1['tenant_id']}}
+                ctx = n_context.get_admin_context()
+                floating_ip = self.plugin.create_floatingip(ctx, fip)
+                self.plugin.delete_floatingip(ctx, floating_ip['id'])
+                driver.delete_floatingip_precommit.assert_called_once_with(
+                    ctx, mock.ANY)
+                driver.delete_floatingip_postcommit.assert_called_once_with(
+                    ctx, mock.ANY)
+
 
 class L3RouterApplianceNamespaceTestCase(
     test_l3.L3NatTestCaseBase, test_extraroute.ExtraRouteDBTestCaseBase,
