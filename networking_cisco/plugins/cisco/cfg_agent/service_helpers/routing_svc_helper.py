@@ -632,6 +632,66 @@ class RoutingServiceHelper(object):
             self.plugin_rpc.send_update_port_statuses(self.context,
                                                       chunk_ports, status)
 
+    def _get_internal_port_changes(self, ri, internal_ports):
+        existing_port_ids = set([p['id'] for p in ri.internal_ports])
+        current_port_ids = set([p['id'] for p in internal_ports
+                                if p['admin_state_up']])
+        new_ports = [p for p in internal_ports
+                     if
+                     p['id'] in (current_port_ids - existing_port_ids)]
+        old_ports = [p for p in ri.internal_ports
+                     if p['id'] not in current_port_ids]
+
+        new_port_ids = [p['id'] for p in new_ports]
+        old_port_ids = [p['id'] for p in old_ports]
+        LOG.debug("++ new_port_ids = %s" % (pp.pformat(new_port_ids)))
+        LOG.debug("++ old_port_ids = %s" % (pp.pformat(old_port_ids)))
+
+        return new_ports, old_ports
+
+    def _enable_disable_ports(self, ri, ex_gw_port, internal_ports):
+        if not ri.router['admin_state_up']:
+            self._disable_router_interface(ri)
+        else:
+            if ex_gw_port:
+                if not ex_gw_port['admin_state_up']:
+                    self._disable_router_interface(ri, ex_gw_port)
+                else:
+                    self._enable_router_interface(ri, ex_gw_port)
+            for port in internal_ports:
+                if not port['admin_state_up']:
+                    self._disable_router_interface(ri, port)
+                else:
+                    self._enable_router_interface(ri, port)
+
+    def _process_new_ports(self, ri, new_ports, ex_gw_port, list_port_ids_up):
+        for p in new_ports:
+            self._set_subnet_info(p)
+            self._internal_network_added(ri, p, ex_gw_port)
+            ri.internal_ports.append(p)
+            list_port_ids_up.append(p['id'])
+
+    def _process_old_ports(self, ri, old_ports, ex_gw_port):
+        for p in old_ports:
+            self._internal_network_removed(ri, p, ri.ex_gw_port)
+            ri.internal_ports.remove(p)
+
+    def _process_gateway_set(self, ri, ex_gw_port, list_port_ids_up):
+        self._set_subnet_info(ex_gw_port)
+        self._external_gateway_added(ri, ex_gw_port)
+        list_port_ids_up.append(ex_gw_port['id'])
+
+    def _process_gateway_cleared(self, ri, ex_gw_port):
+        self._external_gateway_removed(ri, ex_gw_port)
+
+    def _add_rid_to_vrf_list(self, ri):
+        # not needed in base service helper
+        pass
+
+    def _remove_rid_from_vrf_list(self, ri):
+        # not needed in base service helper
+        pass
+
     def _process_router(self, ri):
         """Process a router, apply latest configuration and update router_info.
 
@@ -651,61 +711,45 @@ class RoutingServiceHelper(object):
         try:
             ex_gw_port = ri.router.get('gw_port')
             ri.ha_info = ri.router.get('ha_info', None)
+            gateway_set = ex_gw_port and not ri.ex_gw_port
+            gateway_cleared = not ex_gw_port and ri.ex_gw_port
             internal_ports = ri.router.get(l3_constants.INTERFACE_KEY, [])
+            # Once the gateway is set, then we know which VRF
+            # this router belongs to. Keep track of it in our
+            # lists of routers, organized as a dictionary by
+            # VRF name
+            if gateway_set:
+                self._add_rid_to_vrf_list(ri)
 
-            existing_port_ids = set([p['id'] for p in ri.internal_ports])
-            current_port_ids = set([p['id'] for p in internal_ports
-                                    if p['admin_state_up']])
-            new_ports = [p for p in internal_ports
-                         if
-                         p['id'] in (current_port_ids - existing_port_ids)]
-            old_ports = [p for p in ri.internal_ports
-                         if p['id'] not in current_port_ids]
+            new_ports, old_ports = self._get_internal_port_changes(
+                ri, internal_ports)
 
-            new_port_ids = [p['id'] for p in new_ports]
-            old_port_ids = [p['id'] for p in old_ports]
             list_port_ids_up = []
-            LOG.debug("++ new_port_ids = %s" % (pp.pformat(new_port_ids)))
-            LOG.debug("++ old_port_ids = %s" % (pp.pformat(old_port_ids)))
 
-            for p in new_ports:
-                self._set_subnet_info(p)
-                self._internal_network_added(ri, p, ex_gw_port)
-                ri.internal_ports.append(p)
-                list_port_ids_up.append(p['id'])
+            self._process_new_ports(ri, new_ports,
+                                    ex_gw_port, list_port_ids_up)
 
-            for p in old_ports:
-                self._internal_network_removed(ri, p, ri.ex_gw_port)
-                ri.internal_ports.remove(p)
+            self._process_old_ports(ri, old_ports, ex_gw_port)
 
-            if ex_gw_port and not ri.ex_gw_port:
-                self._set_subnet_info(ex_gw_port)
-                self._external_gateway_added(ri, ex_gw_port)
-                list_port_ids_up.append(ex_gw_port['id'])
-            elif not ex_gw_port and ri.ex_gw_port:
-                self._external_gateway_removed(ri, ri.ex_gw_port)
+            if gateway_set:
+                self._process_gateway_set(ri, ex_gw_port,
+                                          list_port_ids_up)
+            elif gateway_cleared:
+                self._process_gateway_cleared(ri, ri.ex_gw_port)
 
             self._send_update_port_statuses(list_port_ids_up,
                                             l3_constants.PORT_STATUS_ACTIVE)
             if ex_gw_port:
                 self._process_router_floating_ips(ri, ex_gw_port)
 
-            if ri.router[ROUTER_ROLE_ATTR] not in [
-                    c_constants.ROUTER_ROLE_GLOBAL,
-                    c_constants.ROUTER_ROLE_LOGICAL_GLOBAL]:
-                if not ri.router['admin_state_up']:
-                    self._disable_router_interface(ri)
-                else:
-                    if ex_gw_port:
-                        if not ex_gw_port['admin_state_up']:
-                            self._disable_router_interface(ri, ex_gw_port)
-                        else:
-                            self._enable_router_interface(ri, ex_gw_port)
-                    for port in internal_ports:
-                        if not port['admin_state_up']:
-                            self._disable_router_interface(ri, port)
-                        else:
-                            self._enable_router_interface(ri, port)
+            if ri.router[ROUTER_ROLE_ATTR] not in \
+                    [c_constants.ROUTER_ROLE_GLOBAL,
+                     c_constants.ROUTER_ROLE_LOGICAL_GLOBAL]:
+                self._enable_disable_ports(ri, ex_gw_port, internal_ports)
+
+                if gateway_cleared:
+                    # Remove this router from the list of routers by VRF
+                    self._remove_rid_from_vrf_list(ri)
 
             ri.ex_gw_port = ex_gw_port
             self._routes_updated(ri)
