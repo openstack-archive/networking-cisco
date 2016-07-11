@@ -168,16 +168,16 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
                 'name': self._global_router_name(hosting_device_id),
                 'admin_state_up': True,
                 l3.EXTERNAL_GW_INFO: {'network_id': ext_nw}}}
+            global_router, r_hd_b_db = self._l3_plugin.do_create_router(
+                context, r_spec, router[routertype.TYPE_ATTR], False, True,
+                hosting_device_id, ROUTER_ROLE_GLOBAL)
+            log_global_router = (
+                self._conditionally_add_logical_global_router(context,
+                                                              router))
+            # make the global router a redundancy router for the logical
+            # global router (which we treat as a hidden "user visible
+            # router" (how's that for a contradiction! :-) )
             with context.session.begin(subtransactions=True):
-                global_router, r_hd_b_db = self._l3_plugin.do_create_router(
-                    context, r_spec, router[routertype.TYPE_ATTR], False, True,
-                    hosting_device_id, ROUTER_ROLE_GLOBAL)
-                log_global_router = (
-                    self._conditionally_add_logical_global_router(context,
-                                                                  router))
-                # make the global router a redundancy router for the logical
-                # global router (which we treat as a hidden "user visible
-                # router" (how's that for a contradiction! :-) )
                 ha_priority = (
                     ha_db.DEFAULT_MASTER_PRIORITY -
                     len(global_routers) * ha_db.PRIORITY_INCREASE_STEP)
@@ -185,7 +185,7 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
                     redundancy_router_id=global_router['id'],
                     priority=ha_priority,
                     user_router_id=log_global_router['id'])
-            context.session.add(r_b_b)
+                context.session.add(r_b_b)
             self._l3_plugin.add_type_and_hosting_device_info(context,
                                                              global_router)
             for ni in self._l3_plugin.get_notifiers(context, [global_router]):
@@ -235,12 +235,11 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
                 # set auto-schedule to false to keep this router un-hosted
                 routertypeawarescheduler.AUTO_SCHEDULE_ATTR: False}}
             # notifications should never be sent for this logical router!
-            with context.session.begin(subtransactions=True):
-                logical_global_router, r_hd_b_db = (
-                    self._l3_plugin.do_create_router(
-                        context, r_spec, router[routertype.TYPE_ATTR], False,
-                        True, None, ROUTER_ROLE_LOGICAL_GLOBAL))
-                self._provision_ha(context, logical_global_router)
+            logical_global_router, r_hd_b_db = (
+                self._l3_plugin.do_create_router(
+                    context, r_spec, router[routertype.TYPE_ATTR], False,
+                    True, None, ROUTER_ROLE_LOGICAL_GLOBAL))
+            self._provision_ha(context, logical_global_router)
         else:
             logical_global_router = logical_global_routers[0]
             with context.session.begin(subtransactions=True):
