@@ -104,6 +104,10 @@ class L3RouterApplianceL3AgentSchedulerTestCase(
     def test_dvr_router_manual_rescheduling(self):
         pass
 
+    @unittest.skip("DVR not supported")
+    def test_sync_dvr_router(self):
+        pass
+
 
 class L3RouterApplianceL3AgentNotifierTestCase(
     test_agentschedulers_db.OvsL3AgentNotifierTestCase,
