@@ -76,7 +76,12 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                                         portbindings.VNIC_NORMAL)
 
         profile = context.current.get(portbindings.PROFILE, {})
-        host_id = context.current.get(portbindings.HOST_ID)
+        host_id = self._get_host_id(
+            context.current.get(portbindings.HOST_ID))
+        if not host_id:
+            LOG.warning(_LW('Host id from port context is None. '
+                'Ignoring this port'))
+            return
 
         vlan_id = self._get_vlanid(context)
         if not vlan_id:
@@ -165,7 +170,13 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
 
         # Checks to perform before UCS Manager can create a Port Profile.
         # 1. Make sure this host is on a known UCS Manager.
-        host_id = context.current.get(portbindings.HOST_ID)
+        host_id = self._get_host_id(
+            context.current.get(portbindings.HOST_ID))
+        if not host_id:
+            LOG.warning(_LW('Host id from port context is None. '
+                'Ignoring this port'))
+            return
+
         ucsm_ip = self.driver.get_ucsm_ip_for_host(host_id)
         if not ucsm_ip:
             LOG.info(_LI('Host_id %s is not controlled by any known UCS '
@@ -339,3 +350,7 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
     @staticmethod
     def make_profile_name(vlan_id):
         return const.PORT_PROFILE_NAME_PREFIX + str(vlan_id)
+
+    def _get_host_id(self, host_id):
+        """Strips the host_id of any domain name extensions."""
+        return host_id.split('.')[0] if host_id else None

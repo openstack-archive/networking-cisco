@@ -795,3 +795,40 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         eth_port_list = conf.parse_virtio_eth_ports()
         self.assertNotIn('test-eth1', eth_port_list)
         self.assertIn(const.ETH_PREFIX + 'test-eth1', eth_port_list)
+
+    def test_ucsm_host_config_with_path(self):
+        """Verifies that ucsm_host_list can contain SP paths."""
+        expected_service_profile1 = 'org-root/ls-SP1'
+        expected_service_profile2 = 'org-root/sub-org1/ls-SP2'
+        cfg.CONF.ml2_cisco_ucsm.ucsm_ip = '1.1.1.1'
+        cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = ['Host1:SP1',
+            'Host2:org-root/sub-org1/ls-SP2']
+
+        ucsm_sp_dict, ucsm_host_dict = conf.parse_ucsm_host_config()
+
+        key = ('1.1.1.1', 'Host1')
+        actual_service_profile1 = ucsm_sp_dict.get(key)
+        self.assertEqual(expected_service_profile1, actual_service_profile1)
+
+        key = ('1.1.1.1', 'Host2')
+        actual_service_profile2 = ucsm_sp_dict.get(key)
+        self.assertEqual(expected_service_profile2, actual_service_profile2)
+
+    def test_host_id_to_hostname(self):
+        host_id_with_domain1 = 'compute1.cisco.com'
+        expected_hostname1 = 'compute1'
+
+        hostname = self.mech_driver._get_host_id(
+            host_id_with_domain1)
+        self.assertEqual(expected_hostname1, hostname)
+
+        host_id_with_domain2 = 'compute2.localdomain'
+        expected_hostname2 = 'compute2'
+
+        hostname = self.mech_driver._get_host_id(
+            host_id_with_domain2)
+        self.assertEqual(expected_hostname2, hostname)
+
+        host_id3 = 'compute3'
+        hostname = self.mech_driver._get_host_id(host_id3)
+        self.assertEqual(host_id3, hostname)

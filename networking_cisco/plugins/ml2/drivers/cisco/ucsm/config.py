@@ -94,8 +94,21 @@ def parse_ucsm_host_config():
                 raise cfg.Error(_("UCS Mech Driver: Invalid Host Service "
                                   "Profile config: %s") % host)
             key = (cfg.CONF.ml2_cisco_ucsm.ucsm_ip, hostname)
-            sp_dict[key] = (const.SERVICE_PROFILE_PATH_PREFIX +
-                service_profile.strip())
+            if '/' not in service_profile:
+                # Assuming the service profile is at the root level
+                # and the path is not specified. This option
+                # allows backward compatability with earlier config
+                # format
+                sp_dict[key] = (const.SERVICE_PROFILE_PATH_PREFIX +
+                    service_profile.strip())
+            else:
+                # Assuming the complete path to Service Profile has
+                # been provided in the config. The Service Profile
+                # could be in an sub-org.
+                sp_dict[key] = service_profile.strip()
+
+            LOG.debug('Service Profile for %s is %s',
+                hostname, sp_dict.get(key))
             host_dict[hostname] = cfg.CONF.ml2_cisco_ucsm.ucsm_ip
         return sp_dict, host_dict
 
