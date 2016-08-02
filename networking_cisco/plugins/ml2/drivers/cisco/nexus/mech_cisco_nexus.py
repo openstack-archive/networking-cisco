@@ -1773,6 +1773,10 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                   {'port': context.current['id'],
                    'network': context.network.current['id']})
 
+        # Check to determine if there are segments to bind
+        if not context.segments_to_bind:
+            return
+
         #
         # if is VNIC_TYPE baremetal and all required config is intact,
         #    accept this transaction

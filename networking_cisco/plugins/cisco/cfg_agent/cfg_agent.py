@@ -416,10 +416,10 @@ class CiscoCfgAgentWithStateReport(CiscoCfgAgent):
                 LOG.error(_LE("[Agent registration] Neutron server said that "
                               "no device manager was found. Cannot continue. "
                               "Exiting!"))
-                raise SystemExit("Cfg Agent exiting")
+                raise SystemExit(_("Cfg Agent exiting"))
         LOG.error(_LE("[Agent registration] %d unsuccessful registration "
                       "attempts. Exiting!"), MAX_REGISTRATION_ATTEMPTS)
-        raise SystemExit("Cfg Agent exiting")
+        raise SystemExit(_("Cfg Agent exiting"))
 
     def _report_state(self):
         """Report state to the plugin.

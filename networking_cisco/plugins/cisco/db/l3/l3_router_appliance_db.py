@@ -930,7 +930,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                       {'name': gr['name'], 'id': gr['id'],
                        'hd': gr[HOSTING_DEVICE_ATTR], 'num': num_rtrs, })
             if num_rtrs == 0:
-                LOG.warn(_LW("Global router:%(name)s[id:%(id)s] is present "
+                LOG.warning(_LW("Global router:%(name)s[id:%(id)s] is present "
                              "for hosting device:%(hd)s but there are no "
                              "tenant or redundancy routers with gateway set "
                              "on that hosting device. Proceeding to delete "
@@ -941,7 +941,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                     l3plugin.delete_router(
                             e_context, gr['id'], unschedule=False)
                 except (exc.ObjectDeletedError, l3.RouterNotFound) as e:
-                    LOG.warn(e)
+                    LOG.warning(e)
                 driver = self._get_router_type_driver(
                         e_context, gr[routertype.TYPE_ATTR])
                 driver._conditionally_remove_logical_global_router(
