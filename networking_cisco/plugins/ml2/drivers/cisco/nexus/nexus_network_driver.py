@@ -19,8 +19,10 @@ Implements a Nexus-OS NETCONF over SSHv2 API Client
 
 import re
 import six
+import threading
 import time
 
+from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
@@ -48,9 +50,17 @@ class CiscoNexusDriver(object):
         self.time_stats = {}
         self.init_ssh_caching()
 
+    # Driver lock introduced to prevent replay thread and
+    # transaction thread from closing each others
+    # session before complete.
+    @lockutils.synchronized('cisco-nexus-drvrlock')
     def keep_ssh_caching(self):
         self._close_ssh_session = False
 
+    # Driver lock introduced to prevent replay thread and
+    # transaction thread from closing each others
+    # session before complete.
+    @lockutils.synchronized('cisco-nexus-drvrlock')
     def init_ssh_caching(self):
         self._close_ssh_session = True if (
             cfg.CONF.ml2_cisco.never_cache_ssh_connection or
@@ -107,10 +117,30 @@ class CiscoNexusDriver(object):
         if mgr:
             self.connections.pop(nexus_host, None)
             mgr.close_session()
-        self.capture_and_print_timeshot(
-            starttime, "close", switch=nexus_host)
+            self.capture_and_print_timeshot(
+                starttime, "close",
+                other=threading.current_thread().ident,
+                switch=nexus_host)
+        else:
+            self.capture_and_print_timeshot(
+                starttime, "nomgr_close",
+                other=threading.current_thread().ident,
+                switch=nexus_host)
 
-    def _get_config(self, nexus_host, filter=''):
+    # Driver lock introduced to prevent replay thread and
+    # transaction thread from closing each others
+    # session before complete.
+    @lockutils.synchronized('cisco-nexus-drvrlock')
+    def close_session(self, nexus_host):
+        mgr = self.nxos_connect(nexus_host)
+        self._close_session(mgr, nexus_host)
+
+    # Driver lock introduced to prevent replay thread and
+    # transaction thread from closing each others
+    # session before complete.
+    @lockutils.synchronized('cisco-nexus-drvrlock')
+    def _get_config(self, nexus_host, filter='',
+                    check_to_close_session=True):
         """Get Nexus Host Configuration
         nexus_host: IP address of switch
         filter:     filter string in XML format
@@ -154,9 +184,17 @@ class CiscoNexusDriver(object):
                                                  exc=first_exc)
             else:
                 self.capture_and_print_timeshot(
-                    starttime, "get", switch=nexus_host)
+                    starttime, "get",
+                    other=threading.current_thread().ident,
+                    switch=nexus_host)
+                if check_to_close_session and self._get_close_ssh_session():
+                    self._close_session(mgr, nexus_host)
                 return data_xml
 
+    # Driver lock introduced to prevent replay thread and
+    # transaction thread from closing each others
+    # session before complete.
+    @lockutils.synchronized('cisco-nexus-drvrlock')
     def _edit_config(self, nexus_host, target='running', config='',
                      allowed_exc_strs=None, check_to_close_session=True):
         """Modify switch config for a target config type.
@@ -211,7 +249,10 @@ class CiscoNexusDriver(object):
                                                  config=config,
                                                  exc=first_exc)
 
-        self.capture_and_print_timeshot(starttime, "edit", switch=nexus_host)
+        self.capture_and_print_timeshot(
+            starttime, "edit",
+            other=threading.current_thread().ident,
+            switch=nexus_host)
 
         # if configured, close the ncclient ssh session.
         if check_to_close_session and self._get_close_ssh_session():
@@ -219,7 +260,13 @@ class CiscoNexusDriver(object):
 
     def nxos_connect(self, nexus_host):
         """Make SSH connection to the Nexus Switch."""
-        if getattr(self.connections.get(nexus_host), 'connected', None):
+
+        starttime = time.time()
+        if hasattr(self.connections.get(nexus_host), 'connected'):
+            self.capture_and_print_timeshot(
+                starttime, "cacheconnect",
+                other=threading.current_thread().ident,
+                switch=nexus_host)
             return self.connections[nexus_host]
 
         if not self.ncclient:
@@ -228,7 +275,6 @@ class CiscoNexusDriver(object):
         nexus_user = self.nexus_switches[nexus_host, const.USERNAME]
         nexus_password = self.nexus_switches[nexus_host, const.PASSWORD]
         hostkey_verify = cfg.CONF.ml2_cisco.host_key_checks
-        starttime = time.time()
         try:
             # With new ncclient version, we can pass device_params...
             man = self.ncclient.connect(host=nexus_host,
@@ -242,11 +288,15 @@ class CiscoNexusDriver(object):
             # Raise a Neutron exception. Include a description of
             # the original ncclient exception.
             self.capture_and_print_timeshot(
-                starttime, "connecterr", switch=nexus_host)
+                starttime, "connecterr",
+                other=threading.current_thread().ident,
+                switch=nexus_host)
             raise cexc.NexusConnectFailed(nexus_host=nexus_host, exc=e)
 
         self.capture_and_print_timeshot(
-            starttime, "connect", switch=nexus_host)
+            starttime, "connect",
+            other=threading.current_thread().ident,
+            switch=nexus_host)
         self.connections[nexus_host] = man
         return self.connections[nexus_host]
 
@@ -283,7 +333,9 @@ class CiscoNexusDriver(object):
         confstr = snipp.EXEC_GET_INTF_SNIPPET % (intf_type, interface)
         starttime = time.time()
         response = self._get_config(nexus_host, confstr)
-        self.capture_and_print_timeshot(starttime, "getif", switch=nexus_host)
+        self.capture_and_print_timeshot(starttime, "getif",
+            other=threading.current_thread().ident,
+            switch=nexus_host)
         LOG.debug("GET call returned interface %(if_type)s %(interface)s "
             "config", {'if_type': intf_type, 'interface': interface})
         if response and re.search("switchport trunk allowed vlan", response):
@@ -315,7 +367,9 @@ class CiscoNexusDriver(object):
             self._edit_config(nexus_host, target='running',
                               config=confstr)
         self.capture_and_print_timeshot(
-            starttime, "get_allif", switch=nexus_host)
+            starttime, "get_allif",
+            other=threading.current_thread().ident,
+            switch=nexus_host)
 
     def get_version(self, nexus_host):
         """Given the nexus host, get the version data.
@@ -346,7 +400,9 @@ class CiscoNexusDriver(object):
         starttime = time.time()
         response = self._get_config(nexus_host, confstr)
         self.capture_and_print_timeshot(
-            starttime, "gettype", switch=nexus_host)
+            starttime, "gettype",
+            other=threading.current_thread().ident,
+            switch=nexus_host)
         if response:
             nexus_type = re.findall(
                 "\<[mod:]*desc\>\"*Nexus\s*(\d)\d+\s*[0-9A-Z]+\s*"
@@ -374,7 +430,9 @@ class CiscoNexusDriver(object):
 
         snippet = snipp.CMD_VLAN_CREATE_SNIPPET % vlanid_range
         self.capture_and_print_timeshot(
-            starttime, "set_all_vlan_states", switch=nexus_host)
+            starttime, "set_all_vlan_states",
+            other=threading.current_thread().ident,
+            switch=nexus_host)
         self.send_edit_string(nexus_host, snippet)
 
     def get_create_vlan(self, nexus_host, vlanid, vni):
@@ -389,7 +447,9 @@ class CiscoNexusDriver(object):
             snippet = snipp.CMD_VLAN_CREATE_SNIPPET % vlanid
 
         self.capture_and_print_timeshot(
-            starttime, "get_create_vlan", switch=nexus_host)
+            starttime, "get_create_vlan",
+            other=threading.current_thread().ident,
+            switch=nexus_host)
 
         return snippet
 
@@ -405,10 +465,13 @@ class CiscoNexusDriver(object):
         starttime = time.time()
         confstr = self.get_create_vlan(nexus_host, vlanid, vni)
 
-        self.send_edit_string(nexus_host, confstr)
+        self.send_edit_string(nexus_host, confstr,
+                              check_to_close_session=False)
 
         self.capture_and_print_timeshot(
-            starttime, "create_vlan_seg", switch=nexus_host)
+            starttime, "create_vlan_seg",
+            other=threading.current_thread().ident,
+            switch=nexus_host)
 
     def delete_vlan(self, nexus_host, vlanid):
         """Delete a VLAN on Nexus Switch given the VLAN ID."""
@@ -418,7 +481,9 @@ class CiscoNexusDriver(object):
         self._edit_config(nexus_host, target='running', config=confstr,
                           allowed_exc_strs=["None of the VLANs exist"])
         self.capture_and_print_timeshot(
-            starttime, "del_vlan", switch=nexus_host)
+            starttime, "del_vlan",
+            other=threading.current_thread().ident,
+            switch=nexus_host)
 
     def build_intf_confstr(self, snippet, intf_type, interface, vlanid):
         """Build the VLAN config string xml snippet to be used."""
@@ -448,7 +513,9 @@ class CiscoNexusDriver(object):
             vlanid=vlanid)
 
         self.capture_and_print_timeshot(
-            starttime, "createif", switch=nexus_host)
+            starttime, "createif",
+            other=threading.current_thread().ident,
+            switch=nexus_host)
 
         return confstr
 
@@ -460,9 +527,13 @@ class CiscoNexusDriver(object):
                    (intf_type, interface, vlanid, intf_type))
         confstr = self.create_xml_snippet(confstr)
         self._edit_config(nexus_host, target='running', config=confstr)
-        self.capture_and_print_timeshot(starttime, "delif", switch=nexus_host)
+        self.capture_and_print_timeshot(
+            starttime, "delif",
+            other=threading.current_thread().ident,
+            switch=nexus_host)
 
-    def send_edit_string(self, nexus_host, confstr):
+    def send_edit_string(self, nexus_host, confstr,
+                         check_to_close_session=True):
         """Sends any XML snippet to Nexus switch."""
 
         starttime = time.time()
@@ -471,10 +542,13 @@ class CiscoNexusDriver(object):
                           config=confstr,
                           allowed_exc_strs=["VLAN with the same name exists",
                                              "Can't modify state for extended",
-                                            "Command is only allowed on VLAN"])
+                                            "Command is only allowed on VLAN"],
+                          check_to_close_session=check_to_close_session)
 
         self.capture_and_print_timeshot(
-            starttime, "send_edit", switch=nexus_host)
+            starttime, "send_edit",
+            other=threading.current_thread().ident,
+            switch=nexus_host)
 
     def send_enable_vlan_on_trunk_int(self, nexus_host, vlanid, intf_type,
                                       interface):
@@ -494,7 +568,9 @@ class CiscoNexusDriver(object):
             self.send_enable_vlan_on_trunk_int(nexus_host, vlan_id,
                                                intf_type, nexus_port)
         self.capture_and_print_timeshot(
-            starttime, "create_all", switch=nexus_host)
+            starttime, "create_all",
+            other=threading.current_thread().ident,
+            switch=nexus_host)
 
     def create_vlan_svi(self, nexus_host, vlan_id, gateway_ip):
         """Create VLAN vn_segment."""

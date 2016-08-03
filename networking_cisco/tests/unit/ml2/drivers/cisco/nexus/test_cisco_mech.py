@@ -121,6 +121,7 @@ class CiscoML2MechanismTestCase(test_plugin.Ml2PluginV2TestCase):
         cfg.CONF.set_override('api_workers', 0)
         cfg.CONF.import_opt('rpc_workers', 'neutron.service')
         cfg.CONF.set_override('rpc_workers', 0)
+        cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
 
         # Configure the Cisco Nexus mechanism driver
         nexus_config = {
@@ -1136,10 +1137,11 @@ class TestCiscoPortsV2(CiscoML2MechanismTestCase,
                           '_get_close_ssh_session',
                           return_value=True).start()
 
-        # Verify that ncclient close is called twice. For create VLAN and
-        # trunk interface calls.
+        # Verify that ncclient close is called once. It is suppressed
+        # for successful create VLAN but called after trunk
+        # interface calls.
         with self._create_resources():
-            self.assertEqual(ncclient_close.call_count, 2)
+            self.assertEqual(1, ncclient_close.call_count)
 
 
 class TestCiscoNetworksV2(CiscoML2MechanismTestCase,
