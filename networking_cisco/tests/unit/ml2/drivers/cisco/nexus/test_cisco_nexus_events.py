@@ -143,6 +143,12 @@ class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase):
             format('ethernet', '1\/10', 267),
         test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)])
 
+    def setUp(self):
+        """Sets up mock ncclient, and switch and credentials dictionaries."""
+
+        cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
+        super(TestCiscoNexusDevice, self).setUp()
+
     def test_create_delete_duplicate_ports(self):
         """Tests creation and deletion of two new virtual Ports."""
 
@@ -378,7 +384,10 @@ class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase):
         # time resulting close of stale handle. Driver
         # loops around to try and reopen and create-vlan should
         # then be successful on the 2nd pass.
-        self.assertEqual(self.mock_ncclient.connect.call_count, 2)
+        self.assertEqual(2, self.mock_ncclient.connect.call_count)
+        self.assertEqual(1,
+            self.mock_ncclient.connect.return_value.
+            close_session.call_count)
 
 
 class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
@@ -592,3 +601,96 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
             self.simple_delete_port_ethernet_driver_result,
             nbr_of_bindings=1,
             other_test=local_test_configs['test_config1'])
+
+
+class TestCiscoNexusNonCacheSshDevice(
+    test_cisco_nexus_base.TestCiscoNexusBase):
+
+    """Unit tests for Cisco ML2 Nexus device driver in non-cache ssh mode."""
+
+    # Testing new default of True for config var 'never_cache_ssh_connection'
+
+    test_configs = {
+        'test_config1':
+            test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
+                test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
+                HOST_NAME_1,
+                test_cisco_nexus_base.NEXUS_PORT_1,
+                test_cisco_nexus_base.INSTANCE_1,
+                test_cisco_nexus_base.VLAN_ID_1,
+                test_cisco_nexus_base.NO_VXLAN_ID,
+                None,
+                test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
+                {},
+                test_cisco_nexus_base.NORMAL_VNIC),
+    }
+
+    simple_add_port_ethernet_driver_result = (
+        [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+        test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+            format('ethernet', '1\/10', 267)])
+
+    simple_delete_port_ethernet_driver_result = (
+        [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+            format('ethernet', '1\/10', 267),
+        test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)])
+
+    def test_create_delete_basic(self):
+        """Basic creation and deletion test of 1 ethernet port."""
+
+        # Clean all the ncclient mock_calls so we can evaluate
+        # results of add operation.
+        self.mock_ncclient.reset_mock()
+
+        # Call _create_port directly without verification
+        # We know at this point that this works.
+        self._create_port(self.test_configs['test_config1'])
+
+        # The objective is to verify call count when caching disabled
+        self.assertEqual(2, self.mock_ncclient.connect.call_count)
+        self.assertEqual(2,
+            self.mock_ncclient.connect.return_value.
+            close_session.call_count)
+
+        # Clean all the ncclient mock_calls so we can evaluate
+        # results of delete operations.
+        self.mock_ncclient.reset_mock()
+
+        # nbr_of_bindings includes reserved port binding
+        self._delete_port(self.test_configs['test_config1'])
+
+        self.assertEqual(2, self.mock_ncclient.connect.call_count)
+        self.assertEqual(2,
+            self.mock_ncclient.connect.return_value.
+            close_session.call_count)
+
+    def test_edit_fail_on_try_1(self):
+        """Verifies reconnect during ncclient edit. """
+
+        # Clean all the ncclient mock_calls so we can evaluate
+        # results of delete operations.
+        self.mock_ncclient.reset_mock()
+
+        config = {'connect.return_value.edit_config.side_effect':
+                  self._config_side_effects_on_count(
+                      'vlan vlan-id-create-delete 267',
+                      Exception(__name__), range(1))}
+        self.mock_ncclient.configure_mock(**config)
+
+        self._create_port(self.test_configs['test_config1'])
+
+        # With ssh handle not patched, there will be 3 connects
+        # and 3 closes.
+        # 1) Full connect during create_port get nexus type call
+        #    and close after this call.
+        # 2) Full connect during update_port on first failed
+        #    create_vlan, then close on error. Driver then
+        #    loops back and performs a full reconnect on
+        #    successful send of create_vlan.
+        #    The close operation is skipped following this.
+        # 3) When interface configuration is sent, a close
+        #    is then perform to complete this transaction set.
+        self.assertEqual(3, self.mock_ncclient.connect.call_count)
+        self.assertEqual(3,
+            self.mock_ncclient.connect.return_value.
+            close_session.call_count)
