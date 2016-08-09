@@ -804,6 +804,9 @@ class TestDeviceSyncOperations(base.BaseTestCase):
         svc_helper._drivermgr.set_driver = mock.Mock(return_value=driver)
         return driver
 
+    def _assert_called_once(self, mock_function):
+        self.assertEqual(1, mock_function.call_count)
+
     def test_handle_sync_devices(self):
         self.routing_helper._fetch_router_info = (
             mock.Mock(return_value=self.fetched_routers))
@@ -811,9 +814,9 @@ class TestDeviceSyncOperations(base.BaseTestCase):
         routers = []
         self.routing_helper._handle_sync_devices(routers)
 
-        self.routing_helper._fetch_router_info.assert_called_once()
+        self._assert_called_once(self.routing_helper._fetch_router_info)
         self.assertEqual(2, self.routing_helper._router_removed.call_count)
-        self.routing_helper._cleanup_invalid_cfg.assert_called_once()
+        self._assert_called_once(self.routing_helper._cleanup_invalid_cfg)
         self.assertEqual(2, len(routers))
 
     def test_handle_sync_devices_retry(self):
