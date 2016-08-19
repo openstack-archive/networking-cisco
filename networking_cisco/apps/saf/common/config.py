@@ -21,9 +21,14 @@ from oslo_config import cfg
 
 from networking_cisco._i18n import _LE
 
+
 from networking_cisco.apps.saf.agent.vdp import (
     lldpad_constants as vdp_const)
+from networking_cisco.apps.saf.common import constants as com_const
 from networking_cisco.apps.saf.common import utils
+from networking_cisco.apps.saf.server.services import constants as const
+from networking_cisco.apps.saf.server.services.firewall.native import (
+    fw_constants as fw_const)
 
 
 default_neutron_opts = {
@@ -49,6 +54,24 @@ default_vdp_opts = {
         'hints': 'none',
         'filter': vdp_const.VDP_FILTER_GIDMACVID,
         'vdp_sync_timeout': vdp_const.VDP_SYNC_TIMEOUT,
+    },
+}
+
+default_firewall_opts = {
+    'firewall': {
+        'device': fw_const.DEVICE,
+        'sched_policy': fw_const.SCHED_POLICY,
+        'fw_auto_serv_nwk_create': fw_const.AUTO_NWK_CREATE,
+        'fw_service_host_profile': fw_const.HOST_PROF,
+        'fw_service_host_fwd_mode': fw_const.HOST_FWD_MODE,
+        'fw_service_part_vrf_profile': fw_const.PART_PROF,
+        'fw_service_ext_profile': fw_const.EXT_PROF,
+        'fw_service_ext_fwd_mode': fw_const.EXT_FWD_MODE,
+        'fw_service_in_ip_start': fw_const.IN_IP_START,
+        'fw_service_in_ip_end': fw_const.IN_IP_END,
+        'fw_service_out_ip_start': fw_const.OUT_IP_START,
+        'fw_service_out_ip_end': fw_const.OUT_IP_END,
+        'fw_service_dummy_ip_subnet': fw_const.DUMMY_IP_SUBNET,
     },
 }
 
@@ -87,6 +110,10 @@ default_dcnm_opts = {
         'gateway_mac': '20:20:00:00:00:AA',
         'dcnm_dhcp_leases': '/var/lib/dhcpd/dhcpd.leases',
         'dcnm_dhcp': 'false',
+        'segmentation_reuse_timeout': com_const.SEG_REUSE_TIMEOUT,
+        'vlan_id_min': const.VLAN_ID_MIN,
+        'vlan_id_max': const.VLAN_ID_MAX,
+        'vlan_reuse_timeout': const.VLAN_REUSE_TIMEOUT,
     },
 }
 
@@ -104,6 +131,7 @@ default_opts_list = [
     default_sys_opts,
     default_dcnm_opts,
     default_notify_opts,
+    default_firewall_opts,
 ]
 
 

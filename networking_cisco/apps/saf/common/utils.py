@@ -127,6 +127,12 @@ def utc_time(ct):
         return datetime.datetime.strptime(ct, TIME_FORMAT)
 
 
+def utc_time_lapse(lapse):
+    current_time = utc_time(time.ctime())
+    hour_lapse = current_time - datetime.timedelta(hours=lapse)
+    return hour_lapse
+
+
 def is_valid_ipv4(addr):
     try:
         socket.inet_aton(addr)

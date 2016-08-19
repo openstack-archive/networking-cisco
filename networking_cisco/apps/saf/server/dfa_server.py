@@ -47,6 +47,10 @@ from networking_cisco.apps.saf.server import cisco_dfa_rest as cdr
 from networking_cisco.apps.saf.server import dfa_events_handler as deh
 from networking_cisco.apps.saf.server import dfa_fail_recovery as dfr
 from networking_cisco.apps.saf.server import dfa_instance_api as dfa_inst
+from networking_cisco.apps.saf.server.services.firewall.native import (
+    fabric_setup_base as FP)
+from networking_cisco.apps.saf.server.services.firewall.native import (
+    fw_mgr as fw_native)
 
 
 LOG = logging.getLogger(__name__)
@@ -187,7 +191,8 @@ class RpcCallBacks(object):
         return 0
 
 
-class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin):
+class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
+                fw_native.FwMgr):
 
     """Process keystone and neutron events.
 
@@ -196,11 +201,13 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin):
     """
 
     def __init__(self, cfg):
+        self.events = {}
         super(DfaServer, self).__init__(cfg)
+        self.fw_api = FP.FabricApi()
         self._cfg = cfg
         self._host = platform.node()
         self.server = None
-        self.events = {
+        self.events.update({
             'identity.project.created': self.project_create_event,
             'identity.project.deleted': self.project_delete_event,
             'identity.project.updated': self.project_update_event,
@@ -217,7 +224,9 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin):
             'agent.request.uplink': self.request_uplink_info,
             'cli.static_ip.set': self.set_static_ip_address,
             'agent.vm_result.update': self.vm_result_update,
-        }
+            'service.vnic.create': self.service_vnic_create,
+            'service.vnic.delete': self.service_vnic_delete,
+        })
         self.project_info_cache = {}
         self.network = {}
         self.subnet = {}
@@ -227,7 +236,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin):
         self.dcnm_event = None
 
         # Create segmentation id pool.
-        seg_id_min = int(cfg.dcnm.segmentation_id_min)
+        seg_id_min = int(cfg.dcnm.segmentation_id_min) + 25
         seg_id_max = int(cfg.dcnm.segmentation_id_max)
         self.segmentation_pool = set(six.moves.range(
             seg_id_min, seg_id_max + 1))
@@ -248,6 +257,9 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin):
         self._gateway_mac = cfg.dcnm.gateway_mac
         self.dcnm_dhcp = (cfg.dcnm.dcnm_dhcp.lower() == 'true')
         self.dcnm_client = cdr.DFARESTClient(cfg)
+
+        self.populate_cfg_dcnm(cfg, self.dcnm_client)
+        self.populate_event_queue(cfg, self.pqueue)
 
         self.keystone_event = deh.EventsHandler('keystone', self.pqueue,
                                                 self.PRI_HIGH_START,
@@ -302,6 +314,8 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin):
     def _load_network_info(self):
         nets = self.get_all_networks()
         for net in nets:
+            if self.fw_api.is_network_source_fw(net, net.name):
+                continue
             self.network[net.network_id] = {}
             self.network[net.network_id]['segmentation_id'] = (
                 net.segmentation_id)
@@ -413,6 +427,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin):
                                            dci_id=dci_id)
             LOG.debug('project %(name)s %(dci)s %(desc)s', (
                 {'name': proj_name, 'dci': dci_id, 'desc': proj.description}))
+        self.project_create_notif(proj_id, proj_name)
 
     def project_update_event(self, proj_info):
         """Process project update event.
@@ -503,6 +518,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin):
             else:
                 self.update_project_info_cache(proj_id, opcode='delete')
                 LOG.debug('Deleted project:%s', proj_name)
+            self.project_delete_notif(proj_id, proj_name)
 
     def subnet_create_event(self, subnet_info):
         """Process subnet create event."""
@@ -521,6 +537,12 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin):
         """Create subnet."""
 
         snet_id = snet.get('id')
+        # This checks if the source of the subnet creation is FW,
+        # If yes, this event is ignored.
+        if self.fw_api.is_subnet_source_fw(snet.get('tenant_id'),
+                                           snet.get('cidr')):
+            LOG.info(_LI("Service subnet %s, returning"), snet.get('cidr'))
+            return
         if snet_id not in self.subnet:
             self.subnet[snet_id] = {}
             self.subnet[snet_id].update(snet)
@@ -558,6 +580,8 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin):
                           {'net': dcnm_net.name})
             # Update network database with failure result.
             self.update_network_db(dcnm_net.id, constants.CREATE_FAIL)
+        self.network_sub_create_notif(snet.get('tenant_id'), tenant_name,
+                                      snet.get('cidr'))
 
     def _get_segmentation_id(self, segid):
         """Allocate segmentation id."""
@@ -578,6 +602,15 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin):
         """
         net = network_info['network']
         net_id = net['id']
+        net_name = net.get('name')
+        network_db_elem = self.get_network(net_id)
+        # Check if the source of network creation is FW and if yes, skip
+        # this event.
+        # Check if there's a way to read the DB from service class
+        # TODO(padkrish)
+        if self.fw_api.is_network_source_fw(network_db_elem, net_name):
+            LOG.info(_LI("Service network %s, returning"), net_name)
+            return
         self.network[net_id] = {}
         self.network[net_id].update(net)
 
@@ -698,6 +731,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin):
         for vm in instances_related:
             LOG.debug("deleting vm %s because network is deleted", vm.name)
             self.delete_vm_function(vm.port_id, vm)
+        self.network_del_notif(tenant_id, tenant_name, net_id)
 
     def dcnm_network_create_event(self, network_info):
         """Process network create event from DCNM."""
@@ -863,6 +897,9 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin):
         if not query_net:
             LOG.info(_LI('dcnm_network_delete_event: network %(segid)s '
                          'does not exist.'), {'segid': seg_id})
+            return
+        if self.fw_api.is_network_source_fw(query_net, query_net.name):
+            LOG.info(_LI("Service network %s, returning"), query_net.name)
             return
         # Send network delete request to neutron
         try:
@@ -1053,15 +1090,72 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin):
             self.update_vm_db(vm.port_id, **params)
             LOG.error(_LE('Failed to send VM info to agent'))
         else:
-            self.delete_vm_db(vm.instance_id)
+            self.delete_vm_db(vm.port_id)
             LOG.info(_LI('Deleted VM %(vm)s from DB.'),
                      {'vm': vm.instance_id})
         if vm.port_id in self.port:
             del self.port[vm.port_id]
 
+    def service_vnic_create(self, vnic_info_arg):
+        LOG.info(_LI("Service vnic create %s"), vnic_info_arg)
+        vnic_info = vnic_info_arg.get('service')
+        vm_info = {'status': vnic_info.get('status'),
+                   'vm_mac': vnic_info.get('mac'),
+                   'segmentation_id': vnic_info.get('segid'),
+                   'host': vnic_info.get('host'),
+                   'port_uuid': vnic_info.get('port_id'),
+                   'net_uuid': vnic_info.get('network_id'),
+                   'oui': {'ip_addr': vnic_info.get('vm_ip'),
+                           'vm_name': vnic_info.get('vm_name'),
+                           'vm_uuid': vnic_info.get('vm_uuid'),
+                           'gw_mac': vnic_info.get('gw_mac'),
+                           'fwd_mod': vnic_info.get('fwd_mod'),
+                           'oui_id': 'cisco'}}
+        try:
+            self.neutron_event.send_vm_info(str(vm_info.get('host')),
+                                            str(vm_info))
+        except (rpc.MessagingTimeout, rpc.RPCException, rpc.RemoteError):
+            # Failed to send info to the agent. Keep the data in the
+            # database as failure to send it later.
+            self.add_vms_db(vm_info, constants.CREATE_FAIL)
+            LOG.error(_LE("Failed to send VM info to agent. host %(host)s "
+                          "Port ID %(id)s VM name %(name)s"),
+                      {'host': vnic_info.get('host'),
+                       'id': vnic_info.get('port_id'),
+                       'name': vnic_info.get('vm_name')})
+        else:
+            self.add_vms_db(vm_info, constants.RESULT_SUCCESS)
+
+    def service_vnic_delete(self, vnic_info_arg):
+        LOG.info(_LI("Service vnic delete %s"), vnic_info_arg)
+        vnic_info = vnic_info_arg.get('service')
+        vm_info = dict(status=vnic_info.get('status'),
+                       vm_mac=vnic_info.get('mac'),
+                       segmentation_id=vnic_info.get('segid'),
+                       host=vnic_info.get('host'),
+                       port_uuid=vnic_info.get('port_id'),
+                       net_uuid=vnic_info.get('network_id'),
+                       oui=dict(ip_addr=vnic_info.get('vm_ip'),
+                                vm_name=vnic_info.get('vm_name'),
+                                vm_uuid=vnic_info.get('vm_uuid'),
+                                gw_mac=vnic_info.get('gw_mac'),
+                                fwd_mod=vnic_info.get('fwd_mod'),
+                                oui_id='cisco'))
+        try:
+            self.neutron_event.send_vm_info(str(vm_info.get('host')),
+                                            str(vm_info))
+        except (rpc.MessagingTimeout, rpc.RPCException, rpc.RemoteError):
+            # Failed to send info to the agent. Keep the data in the
+            # database as failure to send it later.
+            params = dict(columns=dict(result=constants.DELETE_FAIL))
+            self.update_vm_db(vnic_info.get('port_id'), **params)
+            LOG.error(_LE('Failed to send VM info to agent'))
+        else:
+            self.delete_vm_db(vnic_info.get('port_id'))
+
     def process_data(self, data):
-        LOG.debug('process_data: event: %(event)s, payload: %(payload)s',
-                  {'event': data[0], 'payload': data[1]})
+        LOG.info(_LI('process_data: event: %(event)s, payload: %(payload)s'),
+                 {'event': data[0], 'payload': data[1]})
         if self.events.get(data[0]):
             try:
                 self.events[data[0]](data[1])

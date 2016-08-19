@@ -193,7 +193,7 @@ class DfaFailureRecovery(object):
                     LOG.error(_LE('Failed to send VM info to agent. '
                                   'Reason %s'), str(e))
                 else:
-                    self.delete_vm_db(vm.instance_id)
+                    self.delete_vm_db(vm.port_id)
                     LOG.info(_LI('Deleted VM %(vm)s from DB.'),
                              {'vm': vm.name})
 
@@ -241,7 +241,10 @@ class DfaFailureRecovery(object):
                 LOG.debug("Success on failure recovery to deleted "
                           "%(project)s", {'project': proj.name})
 
-        # 6. DHCP port consistency check for HA.
+        # 6. Do failure recovery for Firewall service
+        self.fw_retry_failures()
+
+        # 7. DHCP port consistency check for HA.
         if self.need_dhcp_check():
             nets = self.get_all_networks()
             for net in nets:

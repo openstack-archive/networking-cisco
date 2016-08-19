@@ -27,6 +27,8 @@ from networking_cisco.apps.saf.server import cisco_dfa_rest as cdr
 from networking_cisco.apps.saf.server import dfa_events_handler as deh
 from networking_cisco.apps.saf.server import dfa_fail_recovery as dfr
 from networking_cisco.apps.saf.server import dfa_instance_api as dia
+from networking_cisco.apps.saf.server.services.firewall.native import (
+    fw_mgr as fw_native)
 
 FAKE_NETWORK_NAME = 'test_dfa_network'
 FAKE_NETWORK_ID = '949fdd05-a26a-4819-a829-9fc2285de6ff'
@@ -100,7 +102,7 @@ class TestDFAServer(base.BaseTestCase):
         self.dld = self.dld_patcher.start()
 
         ds.DfaServer.__bases__ = (FakeClass.imitate(
-            dfr.DfaFailureRecovery, dbm.DfaDBMixin),)
+            dfr.DfaFailureRecovery, dbm.DfaDBMixin, fw_native.FwMgr),)
 
         ds.DfaServer.get_all_projects.return_value = []
         ds.DfaServer.get_all_networks.return_value = []
@@ -464,7 +466,7 @@ class TestDFAServer(base.BaseTestCase):
         cargs, ckwargs = call_args
         self.assertTrue(cargs[0] == FAKE_HOST_ID)
         self.assertTrue(str(vm_info) == cargs[1])
-        self.dfa_server.delete_vm_db.assert_called_with(vm.instance_id)
+        self.dfa_server.delete_vm_db.assert_called_with(vm.port_id)
 
     def test_add_dhcp_port(self):
         """Test add dhcp port"""
