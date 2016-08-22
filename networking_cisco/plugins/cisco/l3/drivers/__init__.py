@@ -201,6 +201,25 @@ class L3RouterBaseDriver(object):
         pass
 
     @abc.abstractmethod
+    def create_floatingip_postcommit(self, context, fip_context):
+        """Create a floatingip.
+
+        :param context: the neutron context of the request
+        :param fip_context: FloatingipContext instance describing the new
+        state of the floatingip
+
+        Called after the transaction commits. Call can block, though will
+        block the entire process so care should be taken to not drastically
+        affect performance. Raising an exception will cause the deletion of
+        the resource.
+
+        create_flotingip_postcommit is called for all changes to the router
+        state.  It is up to the routertype driver to ignore state or state
+        changes that it does not know or care about.
+        """
+        pass
+
+    @abc.abstractmethod
     def update_floatingip_precommit(self, context, fip_context):
         """Perform operations specific to the routertype in preparation for
         the update of a floatingip.
