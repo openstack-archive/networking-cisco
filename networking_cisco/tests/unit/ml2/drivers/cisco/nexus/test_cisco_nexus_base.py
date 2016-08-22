@@ -631,7 +631,7 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
 
 
 class TestCiscoNexusReplayBase(TestCiscoNexusBase):
-    """Feature Base Test Class for Cisco ML2 Nexus driver."""
+    """Replay Base Test Class for Cisco ML2 Nexus driver."""
 
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""

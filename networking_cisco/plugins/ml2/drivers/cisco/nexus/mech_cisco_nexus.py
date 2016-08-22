@@ -131,8 +131,7 @@ class CiscoNexusCfgMonitor(object):
         if self._mdriver.is_replay_enabled():
             return
         try:
-                mgr = self._driver.nxos_connect(switch_ip)
-                self._driver._close_session(mgr, switch_ip)
+                self._driver.close_session(switch_ip)
         except Exception:
                 LOG.warning(_LW("Failed to release connection after "
                                 "initialize interfaces for switch "
@@ -196,11 +195,12 @@ class CiscoNexusCfgMonitor(object):
                 const.FAIL_CONFIG, switch_ip)
             contact_failure = self._mdriver.get_switch_replay_failure(
                 const.FAIL_CONTACT, switch_ip)
-            LOG.debug("check_connections() switch "
+            LOG.debug("check_connections() thread %(thid)d, switch "
                       "%(switch_ip)s state %(state)s "
                       "contact_failure %(contact_failure)d "
                       "config_failure %(config_failure)d ",
-                      {'switch_ip': switch_ip, 'state': state,
+                      {'thid': threading.current_thread().ident,
+                       'switch_ip': switch_ip, 'state': state,
                        'contact_failure': contact_failure,
                        'config_failure': config_failure})
             try:
@@ -240,6 +240,7 @@ class CiscoNexusCfgMonitor(object):
                     self._driver.keep_ssh_caching()
                     self.replay_config(switch_ip)
                     self._driver.init_ssh_caching()
+                    self._driver.close_session(switch_ip)
 
                     # If replay failed, it stops trying to configure db entries
                     # and sets switch state to inactive so this caller knows
@@ -286,6 +287,9 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         self.timer = None
         self.monitor_timeout = conf.cfg.CONF.ml2_cisco.switch_heartbeat_time
         self.monitor_lock = threading.Lock()
+        LOG.info(_LI("CiscoNexusMechanismDriver: initialize() called "
+                    "pid %(pid)d thid %(tid)d"), {'pid': self._ppid,
+                    'tid': threading.current_thread().ident})
         # Start the monitor thread
         if self.is_replay_enabled():
             eventlet.spawn_after(DELAY_MONITOR_THREAD, self._monitor_thread)
@@ -1317,15 +1321,19 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 with excutils.save_and_reraise_exception():
                     self.driver.capture_and_print_timeshot(
                         port_starttime, "port_configerr",
+                        other=threading.current_thread().ident,
                         switch=switch_ip)
                     self.driver.capture_and_print_timeshot(
                         starttime, "configerr",
+                        other=threading.current_thread().ident,
                         switch=switch_ip)
             self.driver.capture_and_print_timeshot(
                 port_starttime, "port_config",
+                other=threading.current_thread().ident,
                 switch=switch_ip)
         self.driver.capture_and_print_timeshot(
-            starttime, "config")
+            starttime, "config",
+            other=threading.current_thread().ident)
 
     def configure_next_batch_of_vlans(self, switch_ip):
         """Get next batch of vlans and send them to Nexus."""
@@ -1385,8 +1393,10 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         starttime = time.time()
 
         port_bindings.sort(key=lambda x: (x.port_id, x.vlan_id, x.vni))
-        self.driver.capture_and_print_timeshot(starttime, "replay_t2_aft_sort",
-                                               switch=switch_ip)
+        self.driver.capture_and_print_timeshot(
+            starttime, "replay_t2_aft_sort",
+            other=threading.current_thread().ident,
+            switch=switch_ip)
 
         # Let's make these lists a set to exclude duplicates
         vlans = set()
@@ -1442,8 +1452,10 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         LOG.debug("Replayed total %d ports for Switch %s",
                   interface_count + 1, switch_ip)
 
-        self.driver.capture_and_print_timeshot(starttime, "replay_part_1",
-                                               switch=switch_ip)
+        self.driver.capture_and_print_timeshot(
+            starttime, "replay_part_1",
+            other=threading.current_thread().ident,
+            switch=switch_ip)
         vlans = list(vlans)
         if vlans:
             vlans.sort()
@@ -1456,8 +1468,10 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         self.set_switch_ip_and_active_state(
             switch_ip, const.SWITCH_RESTORE_S2)
         self.configure_next_batch_of_vlans(switch_ip)
-        self.driver.capture_and_print_timeshot(starttime, "replay_part_2",
-                                               switch=switch_ip)
+        self.driver.capture_and_print_timeshot(
+            starttime, "replay_part_2",
+            other=threading.current_thread().ident,
+            switch=switch_ip)
 
     def _delete_nxos_db(self, unused, vlan_id, device_id, host_id, vni,
                         is_provider_vlan):
@@ -1662,8 +1676,18 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 try:
                     self.driver.get_nexus_type(switch_ip)
                     verified_active_switches.append(switch_ip)
-                except Exception:
-                    pass
+                except Exception as e:
+                    LOG.error(_LE("Failed to ping "
+                        "switch ip %(switch_ip)s error %(exp_err)s"),
+                        {'switch_ip': switch_ip, 'exp_err': e})
+
+            LOG.debug("Create Stats:  thread %(thid)d, "
+                      "all_switches %(all)d, "
+                      "active %(active)d, verified %(verify)d",
+                      {'thid': threading.current_thread().ident,
+                      'all': len(all_switches),
+                      'active': len(active_switches),
+                      'verify': len(verified_active_switches)})
 
             # if host_id is valid and there is no active
             # switches remaining

@@ -168,6 +168,12 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
 
     test_configs = collections.OrderedDict(sorted(test_configs.items()))
 
+    def setUp(self):
+        """Sets up mock ncclient, and switch and credentials dictionaries."""
+
+        cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
+        super(TestCiscoNexusReplay, self).setUp()
+
     def test_replay_unique_ports(self):
         """Provides replay data and result data for unique ports. """
 
@@ -1159,3 +1165,72 @@ class TestCiscoNexusBaremetalReplay(
             driver_result_unique_native_2vlan_replay,
             first_del,
             second_del)
+
+
+class TestCiscoNexusNonCachedSshReplay(
+    test_cisco_nexus_base.TestCiscoNexusReplayBase):
+    """Unit tests for Replay of Cisco ML2 Nexus data."""
+
+    # Testing new default of True for config var 'never_cache_ssh_connection'
+
+    test_configs = {
+        'test_replay_unique1':
+            test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
+                test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
+                RP_HOST_NAME_1,
+                test_cisco_nexus_base.NEXUS_PORT_1,
+                test_cisco_nexus_base.INSTANCE_1,
+                test_cisco_nexus_base.VLAN_ID_1,
+                test_cisco_nexus_base.NO_VXLAN_ID,
+                None,
+                test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
+                {},
+                test_cisco_nexus_base.NORMAL_VNIC),
+    }
+
+    def test_basic_replay_NonCacheSsh(self):
+        """Basic none cached ssh replay test."""
+
+        tmp_cfg = self.TestConfigObj(
+            test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
+            RP_HOST_NAME_1,
+            test_cisco_nexus_base.NEXUS_PORT_1,
+            test_cisco_nexus_base.INSTANCE_1,
+            test_cisco_nexus_base.VLAN_ID_1,
+            test_cisco_nexus_base.NO_VXLAN_ID,
+            None,
+            test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
+            {},
+            test_cisco_nexus_base.NORMAL_VNIC)
+
+        self._cisco_mech_driver.set_switch_ip_and_active_state(
+            tmp_cfg.nexus_ip_addr, const.SWITCH_ACTIVE)
+
+        self.mock_ncclient.reset_mock()
+
+        # Create a batch of port entries with unique vlans
+        num_vlans = 10
+        for x in range(num_vlans):
+            instance_id = test_cisco_nexus_base.INSTANCE_1 + '-' + str(x)
+            new_cfg = tmp_cfg._replace(
+                          vlan_id=test_cisco_nexus_base.VLAN_ID_1 + x,
+                          instance_id=instance_id)
+            self._create_port(new_cfg)
+
+        self.assertEqual(20, self.mock_ncclient.connect.call_count)
+        self.assertEqual(20,
+            self.mock_ncclient.connect.return_value.
+            close_session.call_count)
+
+        self.mock_ncclient.reset_mock()
+
+        # Put it back to inactive state
+        self._cisco_mech_driver.set_switch_ip_and_active_state(
+            tmp_cfg.nexus_ip_addr, const.SWITCH_INACTIVE)
+
+        self._cfg_monitor.check_connections()
+
+        self.assertEqual(2, self.mock_ncclient.connect.call_count)
+        self.assertEqual(2,
+            self.mock_ncclient.connect.return_value.
+            close_session.call_count)
