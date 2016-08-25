@@ -25,6 +25,8 @@ from neutron.api.v2 import base
 from neutron import manager
 from neutron.services import service_base as sb
 
+from neutron_lib.api import converters as conv
+
 
 POLICY_PROFILE = 'policy_profile'
 POLICY_PROFILES = 'policy_profiles'
@@ -39,11 +41,11 @@ RESOURCE_ATTRIBUTE_MAP = {
         'add_tenant': {
             'allow_post': True, 'allow_put': True,
             'is_visible': True, 'default': None,
-            'convert_to': attributes.convert_none_to_empty_list},
+            'convert_to': conv.convert_none_to_empty_list},
         'remove_tenant': {
             'allow_post': True, 'allow_put': True,
             'is_visible': True, 'default': None,
-            'convert_to': attributes.convert_none_to_empty_list},
+            'convert_to': conv.convert_none_to_empty_list},
     },
     'policy_profile_bindings': {
         'profile_id': {'allow_post': False, 'allow_put': False,

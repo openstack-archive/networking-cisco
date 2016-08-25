@@ -24,6 +24,8 @@ from neutron.api.v2 import resource_helper
 from neutron.common import exceptions
 from neutron.plugins.common import constants
 
+from neutron_lib.api import converters as conv
+
 from networking_cisco.plugins.cisco.common import utils
 
 LOG = logging.getLogger(__name__)
@@ -51,17 +53,17 @@ RESOURCE_ATTRIBUTE_MAP = {
                         'required_by_policy': True,
                         'validate': {'type:uuid': None}, 'is_visible': True},
         'ha_enabled_by_default': {'allow_post': True, 'allow_put': True,
-                                  'convert_to': attr.convert_to_boolean,
+                                  'convert_to': conv.convert_to_boolean,
                                   'validate': {'type:boolean': None},
                                   'default': False, 'is_visible': True},
         'shared': {'allow_post': True, 'allow_put': False,
-                   'convert_to': attr.convert_to_boolean,
+                   'convert_to': conv.convert_to_boolean,
                    'validate': {'type:boolean': None}, 'default': True,
                    'is_visible': True},
         #TODO(bobmel): add HA attribute: One of None, 'GPLB', 'VRRP', or 'HSRP'
         'slot_need': {'allow_post': True, 'allow_put': True,
                       'validate': {'type:non_negative': None},
-                      'convert_to': attr.convert_to_int,
+                      'convert_to': conv.convert_to_int,
                       'default': 0, 'is_visible': True},
         'scheduler': {'allow_post': True, 'allow_put': False,
                       'required_by_policy': True,

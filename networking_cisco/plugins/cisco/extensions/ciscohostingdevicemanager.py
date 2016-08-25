@@ -24,6 +24,8 @@ from neutron.api.v2 import resource_helper
 from neutron.common import exceptions as nexception
 from neutron.services.service_base import ServicePluginBase
 
+from neutron_lib.api import converters as conv
+
 from networking_cisco.plugins.cisco.common import cisco_constants as constants
 from networking_cisco.plugins.cisco.common import utils
 
@@ -116,7 +118,7 @@ RESOURCE_ATTRIBUTE_MAP = {
                       'validate': {'type:string_or_none': None},
                       'default': None, 'is_visible': True},
         'admin_state_up': {'allow_post': True, 'allow_put': True,
-                           'convert_to': attr.convert_to_boolean,
+                           'convert_to': conv.convert_to_boolean,
                            'default': True, 'is_visible': True},
         'management_ip_address': {'allow_post': True, 'allow_put': False,
                                   'validate': {'type:ip_address': None},
@@ -139,7 +141,7 @@ RESOURCE_ATTRIBUTE_MAP = {
                          'validate': {'type:uuid_or_none': None},
                          'default': None, 'is_visible': True},
         'auto_delete': {'allow_post': True, 'allow_put': True,
-                        'convert_to': attr.convert_to_boolean,
+                        'convert_to': conv.convert_to_boolean,
                         'default': AUTO_DELETE_DEFAULT, 'is_visible': True},
     },
     DEVICE_TEMPLATES: {
@@ -152,7 +154,7 @@ RESOURCE_ATTRIBUTE_MAP = {
                  'validate': {'type:string_or_none': None},
                  'default': None, 'is_visible': True},
         'enabled': {'allow_post': True, 'allow_put': True,
-                    'convert_to': attr.convert_to_boolean,
+                    'convert_to': conv.convert_to_boolean,
                     'default': True, 'is_visible': True},
         'host_category': {'allow_post': True, 'allow_put': False,
                           'validate': {'type:values': [VM_CATEGORY,
@@ -179,15 +181,15 @@ RESOURCE_ATTRIBUTE_MAP = {
                           'default': None, 'is_visible': True},
         'booting_time': {'allow_post': True, 'allow_put': True,
                          'validate': {'type:non_negative': 0},
-                         'convert_to': attr.convert_to_int,
+                         'convert_to': conv.convert_to_int,
                          'default': None, 'is_visible': True},
         'slot_capacity': {'allow_post': True, 'allow_put': False,
                           'validate': {'type:non_negative': 0},
-                          'convert_to': attr.convert_to_int,
+                          'convert_to': conv.convert_to_int,
                           'default': 0, 'is_visible': True},
         'desired_slots_free': {'allow_post': True, 'allow_put': False,
                                'validate': {'type:non_negative': 0},
-                               'convert_to': attr.convert_to_int,
+                               'convert_to': conv.convert_to_int,
                                'default': 0, 'is_visible': True},
         'tenant_bound': {'allow_post': True, 'allow_put': True,
                          'validate': {'type:uuid_list': []},
