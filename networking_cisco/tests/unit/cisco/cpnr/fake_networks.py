@@ -13,7 +13,7 @@
 #    under the License.
 
 from neutron.agent.linux import dhcp
-from neutron.common import constants as const
+from neutron_lib import constants as const
 
 
 fake_tenant_id = 'aaaaaaaa-aaaa-aaaa-aaaaaaaaaaaa'

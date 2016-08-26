@@ -16,12 +16,15 @@
 from apicapi import apic_manager
 from keystoneclient.v2_0 import client as keyclient
 import netaddr
-from neutron.common import constants as n_constants
+
 from neutron.common import exceptions as n_exc
 from neutron.plugins.common import constants
 from neutron.plugins.ml2 import driver_api as api
 from neutron.plugins.ml2 import driver_context
 from neutron.plugins.ml2 import models
+
+from neutron_lib import constants as n_constants
+
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log as logging

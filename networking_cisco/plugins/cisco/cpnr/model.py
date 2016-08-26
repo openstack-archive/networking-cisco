@@ -25,7 +25,7 @@ from networking_cisco.plugins.cisco.cpnr import cpnr_client
 from networking_cisco.plugins.cisco.cpnr import dhcpopts
 from networking_cisco._i18n import _LE, _LW
 from neutron.agent.linux import dhcp
-from neutron.common import constants
+from neutron_lib import constants
 
 LOG = logging.getLogger(__name__)
 RELOAD_TIMEOUT = 120

@@ -16,10 +16,11 @@ from oslo_config import cfg
 from oslo_utils import uuidutils
 from sqlalchemy.orm import exc
 
-from neutron.common import constants as l3_constants
 from neutron.extensions import l3
 from neutron import manager
 from neutron.plugins.common import constants
+
+from neutron_lib import constants as l3_constants
 
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.l3 import ha_db

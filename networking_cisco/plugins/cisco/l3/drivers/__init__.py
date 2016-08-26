@@ -305,7 +305,7 @@ class L3RouterBaseDriver(object):
 
         :returns - True if an extra IP address is needed, False otherwise.
         """
-        import neutron.common.constants as l3_constants
+        import neutron_lib.constants as l3_constants
         if port['device_owner'] == l3_constants.DEVICE_OWNER_ROUTER_GW:
             return False
         else:

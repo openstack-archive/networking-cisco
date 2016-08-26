@@ -18,11 +18,12 @@ from oslo_service import loopingcall
 
 from networking_cisco._i18n import _LW
 
-from neutron.common import constants as n_constants
 from neutron import context
 from neutron import manager
 from neutron.plugins.ml2 import db as l2_db
 from neutron.plugins.ml2 import driver_context
+
+from neutron_lib import constants as n_constants
 
 LOG = logging.getLogger(__name__)
 
