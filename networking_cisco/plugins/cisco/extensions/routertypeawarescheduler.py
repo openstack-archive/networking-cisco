@@ -31,6 +31,8 @@ from neutron.plugins.common import constants as svc_constants
 from neutron import policy
 from neutron import wsgi
 
+from neutron_lib.api import converters as conv
+
 from networking_cisco.plugins.cisco.extensions import ciscohostingdevicemanager
 
 
@@ -137,12 +139,12 @@ class HostingDevicesHostingRouterController(wsgi.Controller):
 EXTENDED_ATTRIBUTES_2_0 = {
     'routers': {
         AUTO_SCHEDULE_ATTR: {'allow_post': True, 'allow_put': True,
-                             'convert_to': attr.convert_to_boolean,
+                             'convert_to': conv.convert_to_boolean,
                              'validate': {'type:boolean': None},
                              'default': attr.ATTR_NOT_SPECIFIED,
                              'is_visible': True},
         SHARE_HOST_ATTR: {'allow_post': True, 'allow_put': False,
-                          'convert_to': attr.convert_to_boolean,
+                          'convert_to': conv.convert_to_boolean,
                           'validate': {'type:boolean': None},
                           'default': attr.ATTR_NOT_SPECIFIED,
                           'is_visible': True},

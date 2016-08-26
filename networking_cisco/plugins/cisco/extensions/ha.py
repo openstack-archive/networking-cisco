@@ -18,6 +18,8 @@ from neutron.api import extensions
 from neutron.api.v2 import attributes as attr
 from neutron.common import exceptions as nexception
 
+from neutron_lib.api import converters as conv
+
 
 HA_ALIAS = 'router_ha'
 HA = 'cisco_ha'
@@ -46,7 +48,7 @@ MAX_REDUNDANCY_LEVEL = 3
 EXTENDED_ATTRIBUTES_2_0 = {
     'routers': {
         ENABLED: {'allow_post': True, 'allow_put': True,
-                  'convert_to': attr.convert_to_boolean,
+                  'convert_to': conv.convert_to_boolean,
                   'default': attr.ATTR_NOT_SPECIFIED, 'is_visible': True},
         DETAILS: {
             'allow_post': True, 'allow_put': True,
@@ -59,18 +61,18 @@ EXTENDED_ATTRIBUTES_2_0 = {
                            'default': attr.ATTR_NOT_SPECIFIED,
                            'is_visible': True},
                     PRIORITY: {'allow_post': True, 'allow_put': True,
-                               'convert_to': attr.convert_to_int,
+                               'convert_to': conv.convert_to_int,
                                'type:non_negative': None,
                                'default': attr.ATTR_NOT_SPECIFIED},
                     REDUNDANCY_LEVEL: {'allow_post': True, 'allow_put': True,
-                                       'convert_to': attr.convert_to_int,
+                                       'convert_to': conv.convert_to_int,
                                        'type:range': [MIN_REDUNDANCY_LEVEL,
                                                       MAX_REDUNDANCY_LEVEL],
                                        'default': attr.ATTR_NOT_SPECIFIED,
                                        'is_visible': True},
                     PROBE_CONNECTIVITY: {'allow_post': True,
                                          'allow_put': True,
-                                         'convert_to': attr.convert_to_boolean,
+                                         'convert_to': conv.convert_to_boolean,
                                          'default': attr.ATTR_NOT_SPECIFIED,
                                          'is_visible': True},
                     PROBE_TARGET: {'allow_post': True, 'allow_put': True,
@@ -78,7 +80,7 @@ EXTENDED_ATTRIBUTES_2_0 = {
                                    'default': attr.ATTR_NOT_SPECIFIED,
                                    'is_visible': True},
                     PROBE_INTERVAL: {'allow_post': True, 'allow_put': True,
-                                     'convert_to': attr.convert_to_int,
+                                     'convert_to': conv.convert_to_int,
                                      'type:non_negative': None,
                                      'default': attr.ATTR_NOT_SPECIFIED,
                                      'is_visible': True},
@@ -93,7 +95,7 @@ EXTENDED_ATTRIBUTES_2_0 = {
                                 'type:uuid': None},
                             PRIORITY: {
                                 'allow_post': False, 'allow_put': False,
-                                'convert_to': attr.convert_to_int,
+                                'convert_to': conv.convert_to_int,
                                 'type:non_negative': None,
                                 'default': attr.ATTR_NOT_SPECIFIED}
                         }}

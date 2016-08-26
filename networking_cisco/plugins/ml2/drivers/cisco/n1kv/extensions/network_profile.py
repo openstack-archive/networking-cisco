@@ -22,6 +22,8 @@ from neutron.api.v2 import base
 from neutron import manager
 from neutron.services import service_base as sb
 
+from neutron_lib.api import converters as conv
+
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import constants
 
 NETWORK_PROFILE = 'network_profile'
@@ -72,12 +74,12 @@ RESOURCE_ATTRIBUTE_MAP = {
         'add_tenants': {
             'allow_post': True, 'allow_put': True,
             'is_visible': True, 'default': None,
-            'convert_to': attributes.convert_none_to_empty_list
+            'convert_to': conv.convert_none_to_empty_list
         },
         'remove_tenants': {
             'allow_post': True, 'allow_put': True,
             'is_visible': True, 'default': None,
-            'convert_to': attributes.convert_none_to_empty_list,
+            'convert_to': conv.convert_none_to_empty_list,
         },
     },
     NETWORK_PROFILE_BINDINGS: {
