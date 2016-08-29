@@ -29,11 +29,11 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
 
 from networking_cisco._i18n import _, _LE, _LI, _LW
 
-from neutron.common import exceptions as exc
 from neutron.db import api as db_api
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import driver_api as api
 from neutron.plugins.ml2.drivers import type_tunnel
+from neutron_lib import exceptions as exc
 
 LOG = log.getLogger(__name__)
 

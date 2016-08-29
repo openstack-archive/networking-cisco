@@ -23,10 +23,10 @@ from networking_cisco._i18n import _LE
 
 from neutron.api import extensions as api_extensions
 from neutron.api.v2 import attributes
-from neutron.common import exceptions as n_exc
 import neutron.db.api as db
 from neutron.db import common_db_mixin as base_db
 from neutron.plugins.common import constants as p_const
+from neutron_lib import exceptions as n_exc
 
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     constants as n1kv_const)

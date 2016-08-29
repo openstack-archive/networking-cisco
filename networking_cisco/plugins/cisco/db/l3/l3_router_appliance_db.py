@@ -36,7 +36,6 @@ from neutron.callbacks import events
 from neutron.callbacks import registry
 from neutron.callbacks import resources
 from neutron.common import constants as l3_constants
-from neutron.common import exceptions as n_exc
 from neutron.common import rpc as n_rpc
 from neutron.common import utils
 from neutron import context as n_context
@@ -47,6 +46,7 @@ from neutron.extensions import l3
 from neutron.extensions import providernet as pr_net
 from neutron import manager
 from neutron.plugins.common import constants as svc_constants
+from neutron_lib import exceptions as n_exc
 
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.device_manager import hd_models

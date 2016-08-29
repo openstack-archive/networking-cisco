@@ -16,7 +16,7 @@ from networking_cisco._i18n import _
 
 from neutron.api import extensions
 from neutron.api.v2 import attributes as attr
-from neutron.common import exceptions as nexception
+from neutron_lib import exceptions as nexception
 
 from neutron_lib.api import converters as conv
 

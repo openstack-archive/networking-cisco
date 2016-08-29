@@ -21,8 +21,8 @@ from networking_cisco._i18n import _
 from neutron.api import extensions
 from neutron.api.v2 import attributes as attr
 from neutron.api.v2 import resource_helper
-from neutron.common import exceptions
 from neutron.plugins.common import constants
+from neutron_lib import exceptions
 
 from neutron_lib.api import converters as conv
 
