@@ -86,7 +86,7 @@ class CiscoRouterPlugin(common_db_mixin.CommonDbMixin,
     def setup_rpc(self):
         # RPC support
         self.topic = topics.L3PLUGIN
-        self.conn = n_rpc.create_connection(new=True)
+        self.conn = n_rpc.create_connection()
         self.agent_notifiers[neutron_constants.AGENT_TYPE_L3] = (
             l3_rpc_agent_api.L3AgentNotifyAPI())
         self.agent_notifiers[cisco_constants.AGENT_TYPE_L3_CFG] = (

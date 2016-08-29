@@ -185,7 +185,7 @@ class RoutingServiceHelper(object):
         self._setup_rpc()
 
     def _setup_rpc(self):
-        self.conn = n_rpc.create_connection(new=True)
+        self.conn = n_rpc.create_connection()
         self.endpoints = [self]
         self.conn.create_consumer(self.topic, self.endpoints, fanout=False)
         self.conn.consume_in_threads()

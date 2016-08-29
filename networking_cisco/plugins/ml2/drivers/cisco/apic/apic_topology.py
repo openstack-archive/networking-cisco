@@ -88,7 +88,7 @@ class ApicTopologyService(manager.Manager):
             'agent_type': TYPE_APIC_SERVICE_AGENT,
         }
 
-        self.conn = rpc.create_connection(new=True)
+        self.conn = rpc.create_connection()
         self.dispatcher = [self, agents_db.AgentExtRpcCallback()]
         self.conn.create_consumer(
             self.topic, self.dispatcher, fanout=True)
