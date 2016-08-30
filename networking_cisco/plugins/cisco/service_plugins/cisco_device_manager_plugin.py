@@ -70,7 +70,7 @@ class CiscoDeviceManagerPlugin(dev_mgr_db.HostingDeviceManagerMixin,
     def setup_rpc(self):
         # RPC support
         self.topic = c_constants.DEVICE_MANAGER_PLUGIN
-        self.conn = n_rpc.create_connection(new=True)
+        self.conn = n_rpc.create_connection()
         self.agent_notifiers[c_constants.AGENT_TYPE_CFG] = (
             devmgr_rpc_cfgagent_api.DeviceMgrCfgAgentNotifyAPI(self))
         self.endpoints = [devices_rpc.DeviceMgrCfgRpcCallback(self)]
