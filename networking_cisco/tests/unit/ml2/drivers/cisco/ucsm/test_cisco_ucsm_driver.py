@@ -782,11 +782,11 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
     def test_bad_ucsm_host_config(self):
         """Verifies malformed ucsm_host_list raises an error."""
         cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = ['Host1:', 'Host2:SP2']
-        self.assertRaisesRegexp(cfg.Error, "Host1:",
+        self.assertRaisesRegex(cfg.Error, "Host1:",
             conf.parse_ucsm_host_config)
 
         cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = ['Host1:SP1', 'Host2']
-        self.assertRaisesRegexp(cfg.Error, "Host2",
+        self.assertRaisesRegex(cfg.Error, "Host2",
             conf.parse_ucsm_host_config)
 
     def test_parse_virtio_eth_ports(self):
