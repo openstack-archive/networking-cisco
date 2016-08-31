@@ -17,9 +17,10 @@ from oslo_utils import excutils
 
 from networking_cisco._i18n import _LE
 
-from neutron.common import constants as l3_constants
 from neutron.extensions import providernet as pr_net
 from neutron import manager
+
+from neutron_lib import constants as l3_constants
 
 from networking_cisco.plugins.cisco.device_manager import config
 import networking_cisco.plugins.cisco.device_manager.plugging_drivers as plug

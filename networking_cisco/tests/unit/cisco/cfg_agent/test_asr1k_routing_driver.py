@@ -20,8 +20,8 @@ import netaddr
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
-from neutron.common import constants as l3_constants
 from neutron.tests import base
+from neutron_lib import constants as l3_constants
 
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
     asr1k_routing_driver as driver)

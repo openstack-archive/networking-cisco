@@ -16,7 +16,7 @@ import netaddr
 
 from networking_cisco.plugins.cisco.common.htparser import HTParser
 
-from neutron.common import constants
+from neutron_lib import constants
 
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.extensions import ha

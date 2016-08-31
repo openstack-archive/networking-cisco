@@ -30,12 +30,13 @@ from oslo_utils import excutils
 
 from networking_cisco._i18n import _LE, _LI, _LW
 
-from neutron.common import constants as n_const
 from neutron.db import api as db_api
 from neutron.extensions import portbindings
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import db as ml2_db
 from neutron.plugins.ml2 import driver_api as api
+
+from neutron_lib import constants as n_const
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     config as conf)

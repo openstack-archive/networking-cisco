@@ -21,7 +21,7 @@ import xml.etree.ElementTree as ET
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from neutron.common import constants
+from neutron_lib import constants
 
 from networking_cisco._i18n import _LI
 

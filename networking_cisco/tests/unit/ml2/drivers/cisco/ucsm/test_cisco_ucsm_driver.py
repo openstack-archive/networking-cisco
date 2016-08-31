@@ -16,11 +16,12 @@
 import mock
 from oslo_config import cfg
 
-from neutron.common import constants as n_const
 from neutron.db import api as db_api
 from neutron.extensions import portbindings
 from neutron.plugins.ml2 import driver_api as api
 from neutron.tests.unit import testlib_api
+
+from neutron_lib import constants as n_const
 
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import (
     mech_cisco_ucsm as md)

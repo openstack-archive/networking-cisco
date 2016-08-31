@@ -21,7 +21,6 @@ from oslo_utils import uuidutils
 from sqlalchemy.orm import exc
 import webob.exc
 
-from neutron.common import constants as l3_constants
 from neutron import context
 from neutron.db import l3_db
 from neutron.extensions import extraroute
@@ -29,6 +28,8 @@ from neutron.extensions import l3
 from neutron import manager
 from neutron.plugins.common import constants as service_constants
 from neutron.tests import fake_notifier
+
+from neutron_lib import constants as l3_constants
 
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.common import (

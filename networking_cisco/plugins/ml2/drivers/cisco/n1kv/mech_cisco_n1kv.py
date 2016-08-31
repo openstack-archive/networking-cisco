@@ -25,13 +25,14 @@ from oslo_utils import excutils
 
 from networking_cisco._i18n import _LE, _LI, _LW
 
-from neutron.common import constants as n_const
 from neutron.db import db_base_plugin_v2
 from neutron.extensions import portbindings
 from neutron.extensions import providernet
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2.common import exceptions as ml2_exc
 from neutron.plugins.ml2 import driver_api as api
+
+from neutron_lib import constants as n_const
 
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     constants as n1kv_const)
