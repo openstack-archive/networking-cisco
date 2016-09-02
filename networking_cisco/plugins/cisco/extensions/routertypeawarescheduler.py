@@ -23,7 +23,6 @@ from neutron.api import extensions
 from neutron.api.v2 import attributes as attr
 from neutron.api.v2 import base
 from neutron.api.v2 import resource
-from neutron.common import exceptions
 from neutron.common import rpc as n_rpc
 from neutron.extensions import l3
 from neutron import manager
@@ -32,6 +31,7 @@ from neutron import policy
 from neutron import wsgi
 
 from neutron_lib.api import converters as conv
+from neutron_lib import exceptions as n_exc
 
 from networking_cisco.plugins.cisco.extensions import ciscohostingdevicemanager
 
@@ -39,32 +39,32 @@ from networking_cisco.plugins.cisco.extensions import ciscohostingdevicemanager
 LOG = logging.getLogger(__name__)
 
 
-class InvalidHostingDevice(exceptions.NotFound):
+class InvalidHostingDevice(n_exc.NotFound):
     message = _("Hosting device %(hosting_device_id)s does not exist or has "
                 "been disabled.")
 
 
-class RouterHostedByHostingDevice(exceptions.Conflict):
+class RouterHostedByHostingDevice(n_exc.Conflict):
     message = _("The router %(router_id)s is already hosted by the hosting "
                 "device %(hosting_device_id)s.")
 
 
-class RouterSchedulingFailed(exceptions.Conflict):
+class RouterSchedulingFailed(n_exc.Conflict):
     message = _("Failed scheduling router %(router_id)s to hosting device "
                 "%(hosting_device_id)s")
 
 
-class RouterReschedulingFailed(exceptions.Conflict):
+class RouterReschedulingFailed(n_exc.Conflict):
     message = _("Failed rescheduling router %(router_id)s: no eligible "
                 "hosting device found.")
 
 
-class RouterNotHostedByHostingDevice(exceptions.Conflict):
+class RouterNotHostedByHostingDevice(n_exc.Conflict):
     message = _("The router %(router_id)s is not hosted by hosting device "
                 "%(hosting_device_id)s.")
 
 
-class RouterHostingDeviceMismatch(exceptions.Conflict):
+class RouterHostingDeviceMismatch(n_exc.Conflict):
     message = _("Cannot host %(router_type)s router %(router_id)s "
                 "on hosting device %(hosting_device_id)s.")
 
