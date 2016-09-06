@@ -1505,11 +1505,11 @@ class L3CfgAgentHARouterApplianceTestCase(
 
         super(L3CfgAgentHARouterApplianceTestCase, self).setUp(
             l3_plugin=l3_plugin, ext_mgr=ext_mgr)
-        self.orig_get_sync_data = self.plugin.get_sync_data
-        self.plugin.get_sync_data = self.plugin.get_sync_data_ext
+        self.orig_get_sync_data = self.l3_plugin.get_sync_data
+        self.l3_plugin.get_sync_data = self.l3_plugin.get_sync_data_ext
 
     def tearDown(self):
-        self.plugin.get_sync_data = self.orig_get_sync_data
+        self.l3_plugin.get_sync_data = self.orig_get_sync_data
         super(L3CfgAgentHARouterApplianceTestCase, self).tearDown()
 
     # Overloaded test function that needs to be modified to run
@@ -1521,7 +1521,7 @@ class L3CfgAgentHARouterApplianceTestCase(
                                               None,
                                               p['port']['id'])
 
-                routers = self.plugin.get_sync_data(
+                routers = self.l3_plugin.get_sync_data(
                     context.get_admin_context(), None)
                 self.assertEqual(3, len(routers))
                 for router in routers:
@@ -1552,7 +1552,7 @@ class L3CfgAgentHARouterApplianceTestCase(
                                        'subnet_id': subnet['subnet']['id']}]}}
                     ctx = context.get_admin_context()
                     self.core_plugin.update_port(ctx, p['port']['id'], port)
-                    routers = self.plugin.get_sync_data(ctx, None)
+                    routers = self.l3_plugin.get_sync_data(ctx, None)
                     # One user visible router and two redundancy routers
                     self.assertEqual(3, len(routers))
                     # One interface for the user visible router and one each
@@ -1596,7 +1596,7 @@ class L3CfgAgentHARouterApplianceTestCase(
                           for rr in r[ha.DETAILS][ha.REDUNDANCY_ROUTERS]]
             router_ids.append(r['id'])
             e_context = context.get_admin_context()
-            routers = self.plugin.get_sync_data_ext(e_context, router_ids)
+            routers = self.l3_plugin.get_sync_data_ext(e_context, router_ids)
             self.assertEqual(len(router_ids), len(routers))
             correct_routes = _sort_routes(routes)
             for router in routers:
@@ -1627,13 +1627,13 @@ class L3CfgAgentHARouterApplianceTestCase(
             router_ids = [r['id'],
                           r[ha.DETAILS][ha.REDUNDANCY_ROUTERS][1]['id']]
             e_context = context.get_admin_context()
-            routers = self.plugin.get_sync_data_ext(e_context, router_ids)
+            routers = self.l3_plugin.get_sync_data_ext(e_context, router_ids)
             self.assertEqual(len(router_ids), len(routers))
             correct_routes1 = _sort_routes(routes1)
             for router in routers:
                 self.assertEqual(_sort_routes(router['routes']),
                                  correct_routes1)
-            routers = self.plugin.get_sync_data_ext(e_context, [rr1_id])
+            routers = self.l3_plugin.get_sync_data_ext(e_context, [rr1_id])
             routes1.extend(routes2)
             self.assertEqual(_sort_routes(routers[0]['routes']),
                              _sort_routes(routes1))
@@ -1708,7 +1708,7 @@ class L3CfgAgentHARouterApplianceTestCase(
     def _validate_router_sync_data(self, context, router_ids, external_subnet,
                                    ports, ha_settings, ha_groups_dict,
                                    fips_dict):
-            routers = self.plugin.get_sync_data_ext(context, router_ids)
+            routers = self.l3_plugin.get_sync_data_ext(context, router_ids)
             self.assertEqual(len(router_ids), len(routers))
             for r in routers:
                 self.assertEqual(external_subnet['subnet']['id'],
@@ -1857,7 +1857,8 @@ class L3CfgAgentHARouterApplianceTestCase(
                     'networking_cisco.plugins.cisco.db.l3.ha_db.HA_db_mixin.'
                     '_populate_port_ha_information') as mock_port_ha:
                     mock_port_ha.return_value = None
-                    routers = self.plugin.get_sync_data_ext(adm_ctx, [r['id']])
+                    routers = self.l3_plugin.get_sync_data_ext(adm_ctx,
+                                                               [r['id']])
                     for router in routers:
                         self.assertEqual(cisco_const.ROUTER_INFO_INCOMPLETE,
                             router['status'])
@@ -1879,7 +1880,7 @@ class L3CfgAgentHARouterApplianceTestCase(
                     mock_port_ha.return_value = None
                     rr_ids = [rr['id'] for rr in r[ha.DETAILS][
                         ha.REDUNDANCY_ROUTERS]]
-                    routers = self.plugin.get_sync_data_ext(adm_ctx, rr_ids)
+                    routers = self.l3_plugin.get_sync_data_ext(adm_ctx, rr_ids)
                     for router in routers:
                         self.assertEqual(cisco_const.ROUTER_INFO_INCOMPLETE,
                             router['status'])
@@ -1898,7 +1899,8 @@ class L3CfgAgentHARouterApplianceTestCase(
                     'networking_cisco.plugins.cisco.db.l3.ha_db.HA_db_mixin.'
                     '_populate_port_ha_information') as mock_port_ha:
                     mock_port_ha.return_value = None
-                    routers = self.plugin.get_sync_data_ext(adm_ctx, [r['id']])
+                    routers = self.l3_plugin.get_sync_data_ext(adm_ctx,
+                                                               [r['id']])
                     for router in routers:
                         body = self._show('routers', r['id'])
                         r_after = body['router']
@@ -1923,7 +1925,7 @@ class L3CfgAgentHARouterApplianceTestCase(
                     mock_port_ha.return_value = None
                     rr_ids = [rr['id'] for rr in r[ha.DETAILS][
                         ha.REDUNDANCY_ROUTERS]]
-                    routers = self.plugin.get_sync_data_ext(adm_ctx, rr_ids)
+                    routers = self.l3_plugin.get_sync_data_ext(adm_ctx, rr_ids)
                     for router in routers:
                         body = self._show('routers', router['id'])
                         r_after = body['router']
@@ -1953,12 +1955,12 @@ class L3CfgAgentHARouterApplianceTestCase(
                 adm_ctx = context.get_admin_context()
                 hags = {}
                 mod_itfcs = []
-                hag = self.plugin._get_ha_group_for_subnet_id(
+                hag = self.l3_plugin._get_ha_group_for_subnet_id(
                     adm_ctx, r['id'], p['fixed_ips'][0]['subnet_id'])
                 extra_port = self._show('ports', hag.extra_port_id)['port']
                 with mock.patch('sqlalchemy.orm.query.Query.one') as m:
                     m.side_effect = fake_one
-                    pop_p = self.plugin._populate_port_ha_information(
+                    pop_p = self.l3_plugin._populate_port_ha_information(
                         adm_ctx, p, r['id'], hags, r['id'], mod_itfcs)
                     self.assertEqual(m.call_count, 4)
                     self.assertIn(ha.HA_INFO, pop_p)
@@ -1978,7 +1980,7 @@ class L3CfgAgentHARouterApplianceTestCase(
                 mod_itfcs = []
                 with mock.patch('sqlalchemy.orm.query.Query.one') as m:
                     m.side_effect = exc.NoResultFound
-                    pop_p = self.plugin._populate_port_ha_information(
+                    pop_p = self.l3_plugin._populate_port_ha_information(
                         adm_ctx, p, r['id'], hags, r['id'], mod_itfcs)
                     self.assertIsNone(pop_p)
                     self.assertEqual(len(mod_itfcs), 0)

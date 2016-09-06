@@ -253,7 +253,7 @@ class TestHwVLANTrunkingPlugDriver(
                     gw_port_db = self.core_plugin._get_ports_query(
                         u1_ctx, filters={'network_id': [ext_net_id]}).one()
                     _validate_allocation(
-                        self.plugin, u1_ctx, r1, gw_port_db,
+                        self.l3_plugin, u1_ctx, r1, gw_port_db,
                         test_info1, 0, hd, plugging_driver)
                     for i in range(1, len(test_info1['network_types'])):
                         cidr = '1.0.' + str(i) + '.0/24'
@@ -265,8 +265,8 @@ class TestHwVLANTrunkingPlugDriver(
                             port_db = self.core_plugin._get_port(
                                 u1_ctx, itfc_info['port_id'])
                             _validate_allocation(
-                                self.plugin, u1_ctx, r1, port_db, test_info1,
-                                i, hd, plugging_driver)
+                                self.l3_plugin, u1_ctx, r1, port_db,
+                                test_info1, i, hd, plugging_driver)
 
     def test_allocate_hosting_port_vlan_network_all_unused(self):
         self._test_allocate_hosting_port({'network_types': ['vlan'],

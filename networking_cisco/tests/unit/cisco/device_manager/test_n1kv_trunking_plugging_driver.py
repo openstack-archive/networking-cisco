@@ -482,7 +482,7 @@ class TestN1kvTrunkingPluggingDriver(
                     gw_port_db = self.core_plugin._get_ports_query(
                         u1_ctx, filters={'network_id': [ext_net_id]}).one()
                     _validate_allocation(
-                        self.plugin, u1_ctx, r1, gw_port_db,
+                        self.l3_plugin, u1_ctx, r1, gw_port_db,
                         test_info1, 0, hd, trunk_ports, plugging_driver)
                     for i in range(1, len(test_info1['network_types'])):
                         cidr = '1.0.' + str(i) + '.0/24'
@@ -494,7 +494,8 @@ class TestN1kvTrunkingPluggingDriver(
                             port_db = self.core_plugin._get_port(
                                 u1_ctx, itfc_info['port_id'])
                             _validate_allocation(
-                                self.plugin, u1_ctx, r1, port_db, test_info1,
+                                self.l3_plugin, u1_ctx, r1, port_db,
+                                test_info1,
                                 i, hd, trunk_ports, plugging_driver)
                     self._network_type = test_info2['network_types'][0]
                     with self.router(external_gateway_info=gw_info,
@@ -506,7 +507,7 @@ class TestN1kvTrunkingPluggingDriver(
                             u2_ctx, filters={'network_id': [ext_net_id],
                                              'device_id': [r2['id']]}).one()
                         _validate_allocation(
-                            self.plugin, u2_ctx, r2, gw_port_db,
+                            self.l3_plugin, u2_ctx, r2, gw_port_db,
                             test_info2, 0, hd, trunk_ports, plugging_driver)
                         for i in range(1, len(test_info2['network_types'])):
                             cidr = '2.0.' + str(i) + '.0/24'
@@ -519,7 +520,7 @@ class TestN1kvTrunkingPluggingDriver(
                                 port_db = self.core_plugin._get_port(
                                     u2_ctx, itfc_info['port_id'])
                                 _validate_allocation(
-                                    self.plugin, u2_ctx, r2,
+                                    self.l3_plugin, u2_ctx, r2,
                                     port_db, test_info2, i, hd, trunk_ports,
                                     plugging_driver)
 

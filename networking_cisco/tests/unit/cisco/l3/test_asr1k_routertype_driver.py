@@ -75,7 +75,7 @@ class Asr1kRouterTypeDriverTestCase(
         self.assertEqual(g_l_rtr['name'], LOGICAL_ROUTER_ROLE_NAME)
         self.assertEqual(g_l_rtr[AUTO_SCHEDULE_ATTR], False)
         # ensure first routers_updated notification was for global router
-        notifier = self.plugin.agent_notifiers[AGENT_TYPE_L3_CFG]
+        notifier = self.l3_plugin.agent_notifiers[AGENT_TYPE_L3_CFG]
         notify_call = notifier.method_calls[0]
         self.assertEqual(notify_call[0], 'routers_updated')
         updated_routers = notify_call[1][1]
@@ -97,7 +97,7 @@ class Asr1kRouterTypeDriverTestCase(
             with self.router(tenant_id=tenant_id, external_gateway_info=ext_gw,
                              set_context=set_context) as router1:
                 r1 = router1['router']
-                self.plugin._process_backlogged_routers()
+                self.l3_plugin._process_backlogged_routers()
                 r1_after = self._show('routers', r1['id'])['router']
                 hd_id = r1_after[HOSTING_DEVICE_ATTR]
                 # should have one global router now
@@ -106,7 +106,7 @@ class Asr1kRouterTypeDriverTestCase(
                                  external_gateway_info=ext_gw,
                                  set_context=set_context) as router2:
                     r2 = router2['router']
-                    self.plugin._process_backlogged_routers()
+                    self.l3_plugin._process_backlogged_routers()
                     # should still have only one global router
                     self._verify_created_routers({r1['id'], r2['id']}, hd_id)
 
@@ -119,7 +119,7 @@ class Asr1kRouterTypeDriverTestCase(
     def _test_router_create_adds_no_global_router(self, set_context=False):
         with self.router(set_context=set_context) as router:
             r = router['router']
-            self.plugin._process_backlogged_routers()
+            self.l3_plugin._process_backlogged_routers()
             # tenant routers
             q_p = '%s=None' % ROUTER_ROLE_ATTR
             t_rtrs = self._list('routers', query_params=q_p)['routers']
@@ -134,7 +134,7 @@ class Asr1kRouterTypeDriverTestCase(
             q_p = '%s=%s' % (ROUTER_ROLE_ATTR, ROUTER_ROLE_LOGICAL_GLOBAL)
             g_l_rtrs = self._list('routers', query_params=q_p)['routers']
             self.assertEqual(len(g_l_rtrs), 0)
-            notifier = self.plugin.agent_notifiers[AGENT_TYPE_L3_CFG]
+            notifier = self.l3_plugin.agent_notifiers[AGENT_TYPE_L3_CFG]
             # ensure *no* update notifications where sent for global
             # router (as there should be none) or logical global router
             for call in notifier.method_calls:
@@ -163,7 +163,7 @@ class Asr1kRouterTypeDriverTestCase(
         # logical global router for global routers HA
         q_p = '%s=%s' % (ROUTER_ROLE_ATTR, ROUTER_ROLE_LOGICAL_GLOBAL)
         g_l_rtrs = self._list('routers', query_params=q_p)['routers']
-        notifier = self.plugin.agent_notifiers[AGENT_TYPE_L3_CFG]
+        notifier = self.l3_plugin.agent_notifiers[AGENT_TYPE_L3_CFG]
         if hd_id:
             self.assertEqual(len(g_rtrs), 1)
             g_rtr = g_rtrs[0]
@@ -204,7 +204,7 @@ class Asr1kRouterTypeDriverTestCase(
                 r2 = router2['router']
                 # backlog processing will trigger one routers_updated
                 # notification containing r1 and r2
-                self.plugin._process_backlogged_routers()
+                self.l3_plugin._process_backlogged_routers()
                 # should have no global router yet
                 r_ids = {r1['id'], r2['id']}
                 self._verify_updated_routers(r_ids)
@@ -244,7 +244,7 @@ class Asr1kRouterTypeDriverTestCase(
                 r2 = router2['router']
                 # backlog processing will trigger one routers_updated
                 # notification containing r1 and r2
-                self.plugin._process_backlogged_routers()
+                self.l3_plugin._process_backlogged_routers()
                 r1_after = self._show('routers', r1['id'])['router']
                 hd_id = r1_after[HOSTING_DEVICE_ATTR]
                 r_ids = {r1['id'], r2['id']}
@@ -276,7 +276,7 @@ class Asr1kRouterTypeDriverTestCase(
             return g_rtrs[0]['id']
         else:
             self.assertEqual(len(g_rtrs), 0)
-            notifier = self.plugin.agent_notifiers[AGENT_TYPE_L3_CFG]
+            notifier = self.l3_plugin.agent_notifiers[AGENT_TYPE_L3_CFG]
             # ensure last router_deleted notification was for global router
             notify_call = notifier.method_calls[-1]
             self.assertEqual(notify_call[0], 'router_deleted')
@@ -299,7 +299,7 @@ class Asr1kRouterTypeDriverTestCase(
                             set_context=set_context) as router2:
                 r1 = router1['router']
                 r2 = router2['router']
-                self.plugin._process_backlogged_routers()
+                self.l3_plugin._process_backlogged_routers()
                 r1_after = self._show('routers', r1['id'])['router']
                 hd_id = r1_after[HOSTING_DEVICE_ATTR]
                 self._delete('routers', r1['id'])
@@ -330,7 +330,7 @@ class Asr1kRouterTypeDriverTestCase(
                                 set_context=set_context) as router2:
                 r1 = router1['router']
                 r2 = router2['router']
-                self.plugin._process_backlogged_routers()
+                self.l3_plugin._process_backlogged_routers()
                 r1_after = self._show('routers', r1['id'])['router']
                 hd_id = r1_after[HOSTING_DEVICE_ATTR]
                 self._delete('routers', r1['id'])
@@ -437,7 +437,7 @@ class Asr1kHARouterTypeDriverTestCase(
         else:
             self.assertEqual(len(g_l_rtrs), 0)
 
-        notifier = self.plugin.agent_notifiers[AGENT_TYPE_L3_CFG]
+        notifier = self.l3_plugin.agent_notifiers[AGENT_TYPE_L3_CFG]
         if g_l_rtrs:
             # ensure first routers_updated notifications were
             # for global routers
@@ -469,7 +469,7 @@ class Asr1kHARouterTypeDriverTestCase(
             with self.router(tenant_id=tenant_id, external_gateway_info=ext_gw,
                              set_context=set_context) as router1:
                 r = router1['router']
-                self.plugin._process_backlogged_routers()
+                self.l3_plugin._process_backlogged_routers()
                 # should now have one user-visible router, its single
                 # redundancy router and two global routers (one for each of
                 # the hosting devices of the aforementioned routers)
@@ -478,7 +478,7 @@ class Asr1kHARouterTypeDriverTestCase(
     def _test_router_create_adds_no_global_router(self, set_context=False):
         with self.router(set_context=set_context) as router:
             r = router['router']
-            self.plugin._process_backlogged_routers()
+            self.l3_plugin._process_backlogged_routers()
             self._verify_ha_created_routers([r['id']], 1, has_gw=[False])
 
     def _verify_ha_updated_router(self, router_id, hd_ids=None, call_index=1,
@@ -539,7 +539,7 @@ class Asr1kHARouterTypeDriverTestCase(
             self.assertEqual(len(g_l_rtrs), 0)
 
         # global routers
-        notifier = self.plugin.agent_notifiers[AGENT_TYPE_L3_CFG]
+        notifier = self.l3_plugin.agent_notifiers[AGENT_TYPE_L3_CFG]
         # routers_updated notification call_index is for global router
         notify_call = notifier.method_calls[call_index]
         self.assertEqual(notify_call[0], 'routers_updated')
@@ -568,7 +568,7 @@ class Asr1kHARouterTypeDriverTestCase(
                 r1 = router1['router']
                 r2 = router2['router']
                 # backlog processing to schedule the routers
-                self.plugin._process_backlogged_routers()
+                self.l3_plugin._process_backlogged_routers()
                 # should have no global router yet
                 r_ids = [r1['id'], r2['id']]
                 self._verify_ha_created_routers(r_ids, 1, has_gw=[False,
@@ -606,7 +606,7 @@ class Asr1kHARouterTypeDriverTestCase(
                 self._delete('hosting_devices',
                              hds['hosting_devices'][1]['id'])
                 # backlog processing to schedule the routers
-                self.plugin._process_backlogged_routers()
+                self.l3_plugin._process_backlogged_routers()
                 self._verify_ha_created_routers([r1['id'], r2['id']])
                 r_spec = {'router': {l3.EXTERNAL_GW_INFO: None}}
                 self._update('routers', r1['id'], r_spec)
@@ -638,7 +638,7 @@ class Asr1kHARouterTypeDriverTestCase(
                 self._delete('hosting_devices',
                              hds['hosting_devices'][1]['id'])
                 # backlog processing to schedule the routers
-                self.plugin._process_backlogged_routers()
+                self.l3_plugin._process_backlogged_routers()
                 self._verify_ha_created_routers([r1['id'], r2['id']])
                 self._delete('routers', r1['id'])
                 # should still have two global routers, we verify using r2
@@ -668,7 +668,7 @@ class Asr1kHARouterTypeDriverTestCase(
                 hds = self._list('hosting_devices', query_params=qp)
                 self._delete('hosting_devices',
                              hds['hosting_devices'][1]['id'])
-                self.plugin._process_backlogged_routers()
+                self.l3_plugin._process_backlogged_routers()
                 self._verify_ha_created_routers([r1['id'], r2['id']],
                                                 has_gw=[False, True])
                 self._delete('routers', r1['id'])
@@ -696,16 +696,16 @@ class L3CfgAgentAsr1kRouterTypeDriverTestCase(
 
         super(L3CfgAgentAsr1kRouterTypeDriverTestCase, self).setUp(
             l3_plugin=l3_plugin, ext_mgr=ext_mgr)
-        self.orig_get_sync_data = self.plugin.get_sync_data
-        self.plugin.get_sync_data = self.plugin.get_sync_data_ext
+        self.orig_get_sync_data = self.l3_plugin.get_sync_data
+        self.l3_plugin.get_sync_data = self.l3_plugin.get_sync_data_ext
 
     def tearDown(self):
-        self.plugin.get_sync_data = self.orig_get_sync_data
+        self.l3_plugin.get_sync_data = self.orig_get_sync_data
         super(L3CfgAgentAsr1kRouterTypeDriverTestCase, self).tearDown()
 
     def _verify_sync_data(self, context, ids_colocated_routers, g_l_rtr,
                           g_l_rtr_rr_ids, ha_settings):
-        routers = self.plugin.get_sync_data_ext(context,
+        routers = self.l3_plugin.get_sync_data_ext(context,
                                                 ids_colocated_routers)
         self.assertEqual(len(routers), 2)
         global_router = [r for r in routers if
@@ -734,7 +734,7 @@ class L3CfgAgentAsr1kRouterTypeDriverTestCase(
             ext_gw = {'network_id': s_ext['subnet']['network_id']}
             with self.router(external_gateway_info=ext_gw) as router:
                 r = router['router']
-                self.plugin._process_backlogged_routers()
+                self.l3_plugin._process_backlogged_routers()
                 r_after = self._show('routers', r['id'])['router']
                 hd_id = r_after[HOSTING_DEVICE_ATTR]
                 id_r_ha_backup = r_after[ha.DETAILS][
