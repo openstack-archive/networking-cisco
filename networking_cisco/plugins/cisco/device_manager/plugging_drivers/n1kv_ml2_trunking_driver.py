@@ -21,14 +21,13 @@ from sqlalchemy.sql import expression as expr
 
 from networking_cisco._i18n import _, _LE, _LI, _LW
 
-from neutron.api.v2 import attributes
 from neutron import context as n_context
 from neutron.db import models_v2
 from neutron.extensions import providernet as pr_net
 from neutron import manager
-
 from neutron_lib import exceptions as n_exc
 
+from networking_cisco import backwards_compatibility as bc_attr
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.device_manager import hd_models
 import networking_cisco.plugins.cisco.device_manager.plugging_drivers as plug
@@ -180,7 +179,7 @@ class N1kvML2TrunkingPlugDriver(plug.PluginSidePluggingDriver,
                 'admin_state_up': True,
                 'name': 'mgmt',
                 'network_id': mgmt_context['mgmt_nw_id'],
-                'mac_address': attributes.ATTR_NOT_SPECIFIED,
+                'mac_address': bc_attr.ATTR_NOT_SPECIFIED,
                 'fixed_ips': self._mgmt_subnet_spec(context, mgmt_context),
                 'n1kv:profile': self.mgmt_port_profile_id(),
                 'device_id': "",
@@ -198,16 +197,16 @@ class N1kvML2TrunkingPlugDriver(plug.PluginSidePluggingDriver,
                     p_spec['port'].update(
                         {'name': n1kv_const.T1_PORT_NAME + index,
                          'network_id': t1_net_id,
-                         'fixed_ips': attributes.ATTR_NOT_SPECIFIED,
-                         'mac_address': attributes.ATTR_NOT_SPECIFIED,
+                         'fixed_ips': bc_attr.ATTR_NOT_SPECIFIED,
+                         'mac_address': bc_attr.ATTR_NOT_SPECIFIED,
                          'n1kv:profile': self.t1_port_profile_id()})
                     t_p.append(self._core_plugin.create_port(context, p_spec))
                     # Create trunk port T2 for VLAN
                     p_spec['port'].update(
                         {'name': n1kv_const.T2_PORT_NAME + index,
                          'network_id': t2_net_id,
-                         'fixed_ips': attributes.ATTR_NOT_SPECIFIED,
-                         'mac_address': attributes.ATTR_NOT_SPECIFIED,
+                         'fixed_ips': bc_attr.ATTR_NOT_SPECIFIED,
+                         'mac_address': bc_attr.ATTR_NOT_SPECIFIED,
                          'n1kv:profile': self.t2_port_profile_id()})
                     t_p.append(self._core_plugin.create_port(context, p_spec))
             except n_exc.NeutronException as e:
@@ -422,11 +421,11 @@ class N1kvML2TrunkingPlugDriver(plug.PluginSidePluggingDriver,
                 'name': subnet_name,
                 'cidr': subnet_cidr,
                 'enable_dhcp': False,
-                'gateway_ip': attributes.ATTR_NOT_SPECIFIED,
-                'allocation_pools': attributes.ATTR_NOT_SPECIFIED,
+                'gateway_ip': bc_attr.ATTR_NOT_SPECIFIED,
+                'allocation_pools': bc_attr.ATTR_NOT_SPECIFIED,
                 'ip_version': 4,
-                'dns_nameservers': attributes.ATTR_NOT_SPECIFIED,
-                'host_routes': attributes.ATTR_NOT_SPECIFIED}}
+                'dns_nameservers': bc_attr.ATTR_NOT_SPECIFIED,
+                'host_routes': bc_attr.ATTR_NOT_SPECIFIED}}
             sn = self._core_plugin.create_subnet(context, s_spec)
             LOG.debug('Created %(t_n)s subnet with name %(name)s, id %(id)s '
                       'and CIDR %(cidr)s',

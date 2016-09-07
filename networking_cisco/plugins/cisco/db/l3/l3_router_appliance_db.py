@@ -31,7 +31,6 @@ from sqlalchemy.sql import false as sql_false
 
 from networking_cisco._i18n import _, _LE, _LI, _LW
 
-from neutron.api.v2 import attributes
 from neutron.callbacks import events
 from neutron.callbacks import registry
 from neutron.callbacks import resources
@@ -48,6 +47,7 @@ from neutron import manager
 from neutron.plugins.common import constants as svc_constants
 from neutron_lib import exceptions as n_exc
 
+from networking_cisco import backwards_compatibility as bc_attr
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.device_manager import hd_models
 from networking_cisco.plugins.cisco.db.l3 import l3_models
@@ -260,9 +260,9 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         # Check if external gateway has changed so we may
         # have to update trunking
         old_ext_gw = (old_router_db.gw_port or {}).get('network_id')
-        new_ext_gw = r.get(EXTERNAL_GW_INFO, attributes.ATTR_NOT_SPECIFIED)
+        new_ext_gw = r.get(EXTERNAL_GW_INFO, bc_attr.ATTR_NOT_SPECIFIED)
         e_context = context.elevated()
-        if new_ext_gw != attributes.ATTR_NOT_SPECIFIED:
+        if new_ext_gw != bc_attr.ATTR_NOT_SPECIFIED:
             gateway_changed = old_ext_gw != (new_ext_gw or {}).get(
                 'network_id')
             self.add_type_and_hosting_device_info(
@@ -1116,8 +1116,8 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
 
     def _ensure_create_routertype_compliant(self, context, router):
         router_type_name = router.pop(routertype.TYPE_ATTR,
-                                      attributes.ATTR_NOT_SPECIFIED)
-        if router_type_name is attributes.ATTR_NOT_SPECIFIED:
+                                      bc_attr.ATTR_NOT_SPECIFIED)
+        if router_type_name is bc_attr.ATTR_NOT_SPECIFIED:
             router_type_name = cfg.CONF.routing.default_router_type
         namespace_router_type_id = self.get_namespace_router_type_id(context)
         router_type_db = self.get_routertype_db_by_id_name(context,
@@ -1164,7 +1164,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         if routertype.TYPE_ATTR not in r:
             return
         router_type_name = r[routertype.TYPE_ATTR]
-        if router_type_name is attributes.ATTR_NOT_SPECIFIED:
+        if router_type_name is bc_attr.ATTR_NOT_SPECIFIED:
             router_type_name = cfg.CONF.routing.default_router_type
         router_type_id = self.get_routertype_by_id_name(context,
                                                         router_type_name)['id']

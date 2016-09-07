@@ -26,7 +26,6 @@ from sqlalchemy.sql import expression as expr
 
 from networking_cisco._i18n import _, _LW
 
-from neutron.api.v2 import attributes as attrs
 from neutron.common import exceptions as n_exc
 from neutron.common import utils
 from neutron.db import l3_db
@@ -36,6 +35,7 @@ from neutron.extensions import l3
 
 from neutron_lib import constants as l3_constants
 
+from networking_cisco import backwards_compatibility as bc_attr
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.common import utils as cisco_utils
 from networking_cisco.plugins.cisco.extensions import ha
@@ -54,8 +54,8 @@ MAX_VRRP_GROUPS = 4094
 MAX_HSRP_GROUPS = 4094
 MAX_GLBP_GROUPS = 1023
 
-is_attr_set = attrs.is_attr_set
-ATTR_NOT_SPECIFIED = attrs.ATTR_NOT_SPECIFIED
+is_attr_set = bc_attr.is_attr_set
+ATTR_NOT_SPECIFIED = bc_attr.ATTR_NOT_SPECIFIED
 EXTERNAL_GW_INFO = l3.EXTERNAL_GW_INFO
 DEVICE_OWNER_ROUTER_GW = l3_constants.DEVICE_OWNER_ROUTER_GW
 DEVICE_OWNER_ROUTER_INTF = l3_constants.DEVICE_OWNER_ROUTER_INTF
@@ -914,7 +914,7 @@ class HA_db_mixin(object):
         port = {'port': {
             'tenant_id': '',  # intentionally not set
             'network_id': network_id,
-            'mac_address': attrs.ATTR_NOT_SPECIFIED,
+            'mac_address': bc_attr.ATTR_NOT_SPECIFIED,
             'fixed_ips': fixed_ips,
             'device_id': device_id,
             'device_owner': port_type,

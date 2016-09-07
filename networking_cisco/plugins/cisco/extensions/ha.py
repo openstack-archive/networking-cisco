@@ -15,10 +15,11 @@
 from networking_cisco._i18n import _
 
 from neutron.api import extensions
-from neutron.api.v2 import attributes as attr
 from neutron_lib import exceptions as nexception
 
 from neutron_lib.api import converters as conv
+
+from networking_cisco import backwards_compatibility as bc_attr
 
 
 HA_ALIAS = 'router_ha'
@@ -49,45 +50,47 @@ EXTENDED_ATTRIBUTES_2_0 = {
     'routers': {
         ENABLED: {'allow_post': True, 'allow_put': True,
                   'convert_to': conv.convert_to_boolean,
-                  'default': attr.ATTR_NOT_SPECIFIED, 'is_visible': True},
+                  'default': bc_attr.ATTR_NOT_SPECIFIED,
+                  'is_visible': True},
         DETAILS: {
             'allow_post': True, 'allow_put': True,
-            'is_visible': True, 'default': attr.ATTR_NOT_SPECIFIED,
+            'is_visible': True,
+            'default': bc_attr.ATTR_NOT_SPECIFIED,
             'enforce_policy': True,
             'validate': {
                 'type:dict_or_nodata': {
                     TYPE: {'allow_post': True, 'allow_put': True,
                            'type:values': HA_TYPES,
-                           'default': attr.ATTR_NOT_SPECIFIED,
+                           'default': bc_attr.ATTR_NOT_SPECIFIED,
                            'is_visible': True},
                     PRIORITY: {'allow_post': True, 'allow_put': True,
                                'convert_to': conv.convert_to_int,
                                'type:non_negative': None,
-                               'default': attr.ATTR_NOT_SPECIFIED},
+                               'default': bc_attr.ATTR_NOT_SPECIFIED},
                     REDUNDANCY_LEVEL: {'allow_post': True, 'allow_put': True,
                                        'convert_to': conv.convert_to_int,
                                        'type:range': [MIN_REDUNDANCY_LEVEL,
                                                       MAX_REDUNDANCY_LEVEL],
-                                       'default': attr.ATTR_NOT_SPECIFIED,
+                                       'default': bc_attr.ATTR_NOT_SPECIFIED,
                                        'is_visible': True},
                     PROBE_CONNECTIVITY: {'allow_post': True,
                                          'allow_put': True,
                                          'convert_to': conv.convert_to_boolean,
-                                         'default': attr.ATTR_NOT_SPECIFIED,
+                                         'default': bc_attr.ATTR_NOT_SPECIFIED,
                                          'is_visible': True},
                     PROBE_TARGET: {'allow_post': True, 'allow_put': True,
                                    'type:ip_address': None,
-                                   'default': attr.ATTR_NOT_SPECIFIED,
+                                   'default': bc_attr.ATTR_NOT_SPECIFIED,
                                    'is_visible': True},
                     PROBE_INTERVAL: {'allow_post': True, 'allow_put': True,
                                      'convert_to': conv.convert_to_int,
                                      'type:non_negative': None,
-                                     'default': attr.ATTR_NOT_SPECIFIED,
+                                     'default': bc_attr.ATTR_NOT_SPECIFIED,
                                      'is_visible': True},
                     REDUNDANCY_ROUTERS: {
                         'allow_post': False, 'allow_put': False,
                         'is_visible': True,
-                        'default': attr.ATTR_NOT_SPECIFIED,
+                        'default': bc_attr.ATTR_NOT_SPECIFIED,
                         'enforce_policy': True,
                         'validate': {'type:dict_or_nodata': {
                             ROUTER_ID: {
@@ -97,7 +100,7 @@ EXTENDED_ATTRIBUTES_2_0 = {
                                 'allow_post': False, 'allow_put': False,
                                 'convert_to': conv.convert_to_int,
                                 'type:non_negative': None,
-                                'default': attr.ATTR_NOT_SPECIFIED}
+                                'default': bc_attr.ATTR_NOT_SPECIFIED}
                         }}
                     }
                 }

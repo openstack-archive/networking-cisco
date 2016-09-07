@@ -19,12 +19,11 @@ from novaclient import exceptions as nova_exc
 from oslo_log import log as logging
 from sqlalchemy.sql import expression as expr
 
-from neutron.api.v2 import attributes
 from neutron.db import models_v2
 from neutron import manager
-
 from neutron_lib import exceptions as n_exc
 
+from networking_cisco import backwards_compatibility as bc_attr
 from networking_cisco._i18n import _, _LE, _LW
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.device_manager import plugging_drivers
@@ -70,7 +69,7 @@ class VIFHotPlugPluggingDriver(plugging_drivers.PluginSidePluggingDriver,
                 'admin_state_up': True,
                 'name': 'mgmt',
                 'network_id': mgmt_context['mgmt_nw_id'],
-                'mac_address': attributes.ATTR_NOT_SPECIFIED,
+                'mac_address': bc_attr.ATTR_NOT_SPECIFIED,
                 'fixed_ips': self._mgmt_subnet_spec(context, mgmt_context),
                 'device_id': "",
                 # Use device_owner attribute to ensure we can query for these
@@ -234,7 +233,7 @@ class VIFHotPlugPluggingDriver(plugging_drivers.PluginSidePluggingDriver,
                   'admin_state_up': True,
                   'name': hostingport_name,
                   'network_id': port_db['network_id'],
-                  'mac_address': attributes.ATTR_NOT_SPECIFIED,
+                  'mac_address': bc_attr.ATTR_NOT_SPECIFIED,
                   'fixed_ips': [],
                   'device_id': '',
                   'device_owner': '',
