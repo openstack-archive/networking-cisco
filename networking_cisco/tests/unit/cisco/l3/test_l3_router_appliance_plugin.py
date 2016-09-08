@@ -20,9 +20,10 @@ from oslo_db import exception as db_exc
 from oslo_log import log as logging
 import six
 from sqlalchemy import exc as inner_db_exc
-
+import unittest
 
 from neutron.api.v2 import attributes
+from neutron.callbacks import registry
 from neutron import context as n_context
 from neutron.db import agents_db
 from neutron.extensions import extraroute
@@ -35,8 +36,10 @@ from neutron.tests.unit.extensions import test_extraroute
 from neutron.tests.unit.extensions import test_l3
 
 from networking_cisco._i18n import _
+from networking_cisco import backwards_compatibility
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.common import cisco_constants as c_const
+from networking_cisco.plugins.cisco.db.l3 import l3_router_appliance_db
 from networking_cisco.plugins.cisco.device_manager import service_vm_lib
 from networking_cisco.plugins.cisco.extensions import ciscohostingdevicemanager
 from networking_cisco.plugins.cisco.extensions import routertype
@@ -247,6 +250,13 @@ class L3RouterApplianceRouterTypeDriverTestCase(test_l3.L3NatTestCaseMixin,
               ext_mgr=None):
         super(L3RouterApplianceRouterTypeDriverTestCase, self).setUp(
             core_plugin, l3_plugin, dm_plugin, ext_mgr)
+        # Remove any dict extend functions that our plugin does not support
+        _dict_extend_functions = l3_router_appliance_db.DICT_EXTEND_FUNCTIONS
+        _dict_extend_functions.append('_extend_router_dict_extraroute')
+        for func in self.plugin._dict_extend_functions[l3.ROUTERS][:]:
+            if func in l3_router_appliance_db.DICT_EXTEND_FUNCTIONS:
+                continue
+            self.plugin._dict_extend_functions[l3.ROUTERS].remove(func)
 
     def test_schedule_router_pre_and_post_commit(self):
         hdts = self._list(
@@ -560,6 +570,15 @@ class L3RouterApplianceVMTestCase(L3RouterApplianceNamespaceTestCase):
 
         self._mock_get_routertype_scheduler_always_none()
 
+    @unittest.skipIf(backwards_compatibility.IS_PRE_NEWTON is True,
+                     "Test not applicable prior to Newton")
+    def test_create_router_gateway_fails_nested_delete_router_failed(self):
+        (super(L3RouterApplianceNamespaceTestCase, self).
+         test_create_router_gateway_fails_nested_delete_router_failed())
+        # must disable the UT patches so that our router type cleanup,
+        # which deletes any remaining routers, can proceed
+        mock.patch.stopall()
+
 
 class L3AgentRouterApplianceTestCase(L3RouterApplianceTestCaseBase,
                                      test_l3.L3AgentDbTestCaseBase):
@@ -573,6 +592,14 @@ class L3AgentRouterApplianceTestCase(L3RouterApplianceTestCaseBase,
             ext_mgr=ext_mgr)
         # UTs in parent class expects self.plugin to refer to l3 plugin
         self.plugin = self.l3_plugin
+
+    # Overloaded test function that needs to be modified to run
+    @unittest.skipIf(backwards_compatibility.IS_PRE_NEWTON is True,
+                     "Test not applicable prior to Newton")
+    def test_router_delete_event_exception_preserved(self):
+        super(L3AgentRouterApplianceTestCase,
+              self).test_router_delete_event_exception_preserved()
+        registry.clear()
 
     def _test_notify_op_agent(self, target_func, *args):
         kargs = [item for item in args]
@@ -597,6 +624,14 @@ class L3CfgAgentRouterApplianceTestCase(L3RouterApplianceTestCaseBase,
     def tearDown(self):
         self.l3_plugin.get_sync_data = self.orig_get_sync_data
         super(L3CfgAgentRouterApplianceTestCase, self).tearDown()
+
+    # Overloaded test function that needs to be modified to run
+    @unittest.skipIf(backwards_compatibility.IS_PRE_NEWTON is True,
+                     "Test not applicable prior to Newton")
+    def test_router_delete_event_exception_preserved(self):
+        super(L3CfgAgentRouterApplianceTestCase,
+              self).test_router_delete_event_exception_preserved()
+        registry.clear()
 
     def _test_notify_op_agent(self, target_func, *args):
         kargs = [item for item in args]

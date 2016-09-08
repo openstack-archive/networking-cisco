@@ -25,7 +25,9 @@ if StrictVersion(str(version.version_info)) >= StrictVersion('9.0.0'):
     from neutron_lib import constants
     ATTR_NOT_SPECIFIED = constants.ATTR_NOT_SPECIFIED
     is_attr_set = validators.is_attr_set
+    IS_PRE_NEWTON = False
 else:
     from neutron.api.v2 import attributes
     ATTR_NOT_SPECIFIED = attributes.ATTR_NOT_SPECIFIED
     is_attr_set = attributes.is_attr_set
+    IS_PRE_NEWTON = True

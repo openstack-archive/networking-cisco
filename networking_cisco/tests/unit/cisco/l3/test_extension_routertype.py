@@ -18,6 +18,7 @@ import mock
 from oslo_utils import uuidutils
 from webob import exc
 
+from networking_cisco import backwards_compatibility
 from networking_cisco.plugins.cisco.common import utils
 from networking_cisco.plugins.cisco.extensions import routertype
 
@@ -51,9 +52,10 @@ class RouterTypeTestCase(test_extensions_base.ExtensionTestCase):
                         'noop_l3_router_hosting_device_scheduler.'
                         'NoopL3RouterHostingDeviceScheduler')
         rt_id = _uuid()
+        tenant_id = _uuid()
         data = {'routertype': {
             'id': None,
-            'tenant_id': _uuid(),
+            'tenant_id': tenant_id,
             'name': 'Fancy router type 1',
             'description': 'Lightning fast router type',
             'template_id': _uuid(),
@@ -64,6 +66,9 @@ class RouterTypeTestCase(test_extensions_base.ExtensionTestCase):
             'driver': dummy_driver,
             'cfg_agent_service_helper': dummy_driver,
             'cfg_agent_driver': dummy_driver}}
+
+        if backwards_compatibility.IS_PRE_NEWTON is False:
+            data['routertype']['project_id'] = tenant_id
 
         return_value = copy.copy(data['routertype'])
         return_value.update({'id': rt_id})

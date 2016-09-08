@@ -32,6 +32,7 @@ from neutron.tests.unit.db import test_db_base_plugin_v2
 from neutron_lib import constants as n_const
 
 import networking_cisco
+from networking_cisco import backwards_compatibility
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
 from networking_cisco.plugins.cisco.db.device_manager import (
@@ -320,6 +321,8 @@ class TestRoutertypeDBPlugin(test_db_base_plugin_v2.NeutronDbPluginV2TestCase,
                 attrs = self._get_non_admin_routertype_attr(hdt_id)
                 attrs['id'] = rt_id
                 attrs['tenant_id'] = tenant_id
+                if backwards_compatibility.IS_PRE_NEWTON is False:
+                    attrs['project_id'] = tenant_id
                 self.assertEqual(len(res['routertype']), len(attrs))
                 for k, v in six.iteritems(attrs):
                     self.assertEqual(res['routertype'][k], v)
