@@ -21,6 +21,7 @@ from neutron import manager
 from neutron.plugins.common import constants
 
 from neutron_lib import constants as l3_constants
+from neutron_lib import exceptions as n_exc
 
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.l3 import ha_db
@@ -38,6 +39,7 @@ LOG = logging.getLogger(__name__)
 HOSTING_DEVICE_ATTR = routerhostingdevice.HOSTING_DEVICE_ATTR
 ROUTER_ROLE_GLOBAL = cisco_constants.ROUTER_ROLE_GLOBAL
 ROUTER_ROLE_LOGICAL_GLOBAL = cisco_constants.ROUTER_ROLE_LOGICAL_GLOBAL
+ROUTER_ROLE_HA_REDUNDANCY = cisco_constants.ROUTER_ROLE_HA_REDUNDANCY
 
 TENANT_HSRP_GRP_RANGE = 1
 TENANT_HSRP_GRP_OFFSET = 1064
@@ -46,6 +48,10 @@ EXT_HSRP_GRP_OFFSET = 1064
 
 N_ROUTER_PREFIX = 'nrouter-'
 DEV_NAME_LEN = 14
+
+
+class TopologyNotSupportedByRouterError(n_exc.Conflict):
+    message = _("Requested topology cannot be supported by router.")
 
 
 class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
@@ -105,7 +111,33 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
                                                      current)
 
     def add_router_interface_precommit(self, context, r_port_context):
-        pass
+        # Inside an ASR1k, VLAN sub-interfaces are used to connect to internal
+        # neutron networks. Only one such sub-interface can be created for each
+        # VLAN. As the VLAN sub-interface is added to the VRF representing the
+        # Neutron router, we must only allow one Neutron router to attach to a
+        # particular Neutron subnet/network.
+        if (r_port_context.router_context.current[routerrole.ROUTER_ROLE_ATTR]
+                == ROUTER_ROLE_HA_REDUNDANCY):
+            # redundancy routers can be exempt as we check the user visible
+            # routers and the request will be rejected there.
+            return
+        e_context = context.elevated()
+        if r_port_context.current is None:
+            sn = self._core_plugin.get_subnet(e_context,
+                                              r_port_context.current_subnet_id)
+            net_id = sn['network_id']
+        else:
+            net_id = r_port_context.current['network_id']
+        filters = {'network_id': [net_id],
+                   'device_owner': [l3_constants.DEVICE_OWNER_ROUTER_INTF]}
+        for port in self._core_plugin.get_ports(e_context,
+                                                filters=filters):
+            router_id = port['device_id']
+            if router_id is None:
+                continue
+            router = self._l3_plugin.get_router(e_context, router_id)
+            if router[routerrole.ROUTER_ROLE_ATTR] is None:
+                raise TopologyNotSupportedByRouterError()
 
     def add_router_interface_postcommit(self, context, r_port_context):
         pass
@@ -324,6 +356,10 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
         else:
             return '%s-%s' % (cisco_constants.ROUTER_ROLE_NAME_PREFIX,
                               hosting_device_id[-cisco_constants.ROLE_ID_LEN:])
+
+    @property
+    def _core_plugin(self):
+        return manager.NeutronManager.get_plugin()
 
     @property
     def _l3_plugin(self):
