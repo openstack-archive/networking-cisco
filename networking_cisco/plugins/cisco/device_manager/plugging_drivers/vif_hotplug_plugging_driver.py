@@ -20,9 +20,10 @@ from oslo_log import log as logging
 from sqlalchemy.sql import expression as expr
 
 from neutron.api.v2 import attributes
-from neutron.common import exceptions as n_exc
 from neutron.db import models_v2
 from neutron import manager
+
+from neutron_lib import exceptions as n_exc
 
 from networking_cisco._i18n import _, _LE, _LW
 from networking_cisco.plugins.cisco.common import cisco_constants

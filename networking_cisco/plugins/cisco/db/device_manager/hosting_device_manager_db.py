@@ -36,11 +36,12 @@ from sqlalchemy.sql import expression as expr
 
 from networking_cisco._i18n import _, _LE, _LI, _LW
 
-from neutron.common import exceptions as n_exc
 from neutron.common import utils
 from neutron import context as neutron_context
 from neutron import manager
 from neutron.plugins.common import constants as svc_constants
+
+from neutron_lib import exceptions as n_exc
 
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)

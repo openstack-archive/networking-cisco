@@ -22,11 +22,12 @@ from sqlalchemy.sql import expression as expr
 from networking_cisco._i18n import _, _LE, _LI, _LW
 
 from neutron.api.v2 import attributes
-from neutron.common import exceptions as n_exc
 from neutron import context as n_context
 from neutron.db import models_v2
 from neutron.extensions import providernet as pr_net
 from neutron import manager
+
+from neutron_lib import exceptions as n_exc
 
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.device_manager import hd_models
