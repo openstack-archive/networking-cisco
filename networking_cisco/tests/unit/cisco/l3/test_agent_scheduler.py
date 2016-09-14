@@ -17,8 +17,11 @@ import unittest
 from oslo_config import cfg
 from oslo_utils import importutils
 
+from neutron.api.rpc.agentnotifiers import dhcp_rpc_agent_api
 from neutron.common import constants
+from neutron.common import topics
 from neutron.db import agentschedulers_db
+from neutron.plugins.ml2 import rpc
 from neutron.tests.unit.db import test_agentschedulers_db
 
 from networking_cisco.plugins.cisco.common import cisco_constants as c_const
@@ -54,6 +57,13 @@ class TestAgentSchedCorePlugin(device_manager_test_support.TestCorePlugin,
         self.network_scheduler = importutils.import_object(
             cfg.CONF.network_scheduler_driver)
         super(TestAgentSchedCorePlugin, self).__init__()
+        self._start_rpc_notifiers()
+
+    def _start_rpc_notifiers(self):
+        """Initialize RPC notifiers for agents."""
+        self.notifier = rpc.AgentNotifierApi(topics.AGENT)
+        self.agent_notifiers[constants.AGENT_TYPE_DHCP] = (
+            dhcp_rpc_agent_api.DhcpAgentNotifyAPI())
 
 
 class L3RouterApplianceL3AgentSchedulerTestCase(
@@ -65,6 +75,13 @@ class L3RouterApplianceL3AgentSchedulerTestCase(
 
     resource_prefix_map = (test_db_device_manager.TestDeviceManagerDBPlugin
                            .resource_prefix_map)
+
+    def setup_coreplugin(self, core_plugin=None):
+        # NOTE(bobmel): we override this function to make sure our core plugin,
+        # which includes device manager functionality, is used for the tests
+        cp_str = CORE_PLUGIN_KLASS if core_plugin == "ml2" else core_plugin
+        super(L3RouterApplianceL3AgentSchedulerTestCase,
+              self).setup_coreplugin(cp_str)
 
     def setUp(self, core_plugin=None, l3_plugin=None, dm_plugin=None,
               ext_mgr=None):
@@ -118,6 +135,13 @@ class L3RouterApplianceL3AgentNotifierTestCase(
 
     resource_prefix_map = (test_db_device_manager.TestDeviceManagerDBPlugin
                            .resource_prefix_map)
+
+    def setup_coreplugin(self, core_plugin=None):
+        # NOTE(bobmel): we override this function to make sure our core plugin,
+        # which includes device manager functionality, is used for the tests
+        cp_str = CORE_PLUGIN_KLASS if core_plugin == "ml2" else core_plugin
+        super(L3RouterApplianceL3AgentNotifierTestCase, self).setup_coreplugin(
+            cp_str)
 
     def setUp(self, core_plugin=None, l3_plugin=None, dm_plugin=None,
               ext_mgr=None):
