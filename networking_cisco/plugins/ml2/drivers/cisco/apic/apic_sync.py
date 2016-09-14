@@ -17,6 +17,8 @@ from oslo_log import log as logging
 from oslo_service import loopingcall
 
 from networking_cisco._i18n import _LW
+from networking_cisco.plugins.ml2.drivers.cisco.apic import constants
+from networking_cisco.plugins.ml2.drivers.cisco.apic import exceptions as aexc
 
 from neutron import context
 from neutron import manager
@@ -56,38 +58,50 @@ class ApicBaseSynchronizer(SynchronizerBase):
     def _sync_base(self):
         ctx = context.get_admin_context()
         # Sync Networks
-        for network in self.core_plugin.get_networks(ctx):
-            mech_context = driver_context.NetworkContext(self.core_plugin, ctx,
-                                                         network)
+        # Unroll to avoid unwanted additions during sync
+        networks = [x for x in self.core_plugin.get_networks(ctx)]
+        for network in networks:
+            if constants.APIC_SYNC_NETWORK == network['name']:
+                continue
+
+            mech_context = driver_context.NetworkContext(
+                self.core_plugin, ctx, network)
             try:
                 self.driver.create_network_postcommit(mech_context)
-            except Exception:
+            except aexc.ReservedSynchronizationName as e:
+                LOG.debug(e.message)
+            except Exception as e:
                 LOG.warning(_LW("Create network postcommit failed for "
-                                "network %s"), network['id'])
-
+                                "network %(net_id)s: %(message)s"),
+                            net_id=network['id'], message=e.message)
         # Sync Subnets
-        for subnet in self.core_plugin.get_subnets(ctx):
+        subnets = [x for x in self.core_plugin.get_subnets(ctx)]
+        for subnet in subnets:
             mech_context = driver_context.SubnetContext(self.core_plugin, ctx,
                                                         subnet)
             try:
                 self.driver.create_subnet_postcommit(mech_context)
-            except Exception:
-                LOG.warning(_LW("Create subnet postcommit failed for"
-                                " subnet %s"), subnet['id'])
-
+            except Exception as e:
+                LOG.warning(_LW("Create subnet postcommit failed for "
+                                "subnet %(sub_id)s: %(message)s"),
+                            sub_id=subnet['id'], message=e.message)
         # Sync Ports (compute/gateway/dhcp)
-        for port in self.core_plugin.get_ports(ctx):
-            _, binding = l2_db.get_locked_port_and_binding(ctx.session,
-                                                           port['id'])
+        ports = [x for x in self.core_plugin.get_ports(ctx)]
+        for port in ports:
+            binding = l2_db.get_locked_port_and_binding(ctx.session,
+                                                        port['id'])[1]
+            levels = l2_db.get_binding_levels(ctx.session, port['id'],
+                                              binding.host)
             network = self.core_plugin.get_network(ctx, port['network_id'])
             mech_context = driver_context.PortContext(self.core_plugin, ctx,
                                                       port, network, binding,
-                                                      [])
+                                                      levels)
             try:
                 self.driver.create_port_postcommit(mech_context)
-            except Exception:
-                LOG.warning(_LW("Create port postcommit failed for"
-                                " port %s"), port['id'])
+            except Exception as e:
+                LOG.warning(_LW("Create port postcommit failed for "
+                                "port %(port_id)s: %(message)s"),
+                            port_id=port['id'], message=e.message)
 
 
 class ApicRouterSynchronizer(SynchronizerBase):
@@ -99,7 +113,8 @@ class ApicRouterSynchronizer(SynchronizerBase):
         ctx = context.get_admin_context()
         # Sync Router Interfaces
         filters = {'device_owner': [n_constants.DEVICE_OWNER_ROUTER_INTF]}
-        for interface in self.core_plugin.get_ports(ctx, filters=filters):
+        ports = [x for x in self.core_plugin.get_ports(ctx, filters=filters)]
+        for interface in ports:
             try:
                 self.driver.add_router_interface_postcommit(
                     ctx, interface['device_id'],
