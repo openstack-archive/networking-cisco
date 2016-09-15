@@ -1563,9 +1563,9 @@ class L3CfgAgentHARouterApplianceTestCase(
                     # IP addresses 9.0.1.4 and 9.0.1.5 are consumed by the
                     # redundancy routers to we need to use other addresses.
                     port = {'port': {'fixed_ips':
-                                     [{'ip_address': '9.0.1.6',
+                                     [{'ip_address': '9.0.1.199',
                                        'subnet_id': subnet['subnet']['id']},
-                                      {'ip_address': '9.0.1.7',
+                                      {'ip_address': '9.0.1.200',
                                        'subnet_id': subnet['subnet']['id']}]}}
                     ctx = context.get_admin_context()
                     self.core_plugin.update_port(ctx, p['port']['id'], port)
