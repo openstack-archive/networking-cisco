@@ -134,7 +134,7 @@ class RemoteServerDriver(dhcp.DhcpBase):
 
     @property
     def active(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     @classmethod
     def check_version(cls):
