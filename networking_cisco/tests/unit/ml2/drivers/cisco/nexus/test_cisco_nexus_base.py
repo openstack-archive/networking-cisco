@@ -47,11 +47,18 @@ NEXUS_IP_ADDRESS_2 = '2.2.2.2'
 NEXUS_IP_ADDRESS_3 = '3.3.3.3'
 NEXUS_IP_ADDRESS_DUAL = '4.4.4.4'
 NEXUS_IP_ADDRESS_DUAL2 = '5.5.5.5'
+NEXUS_IP_ADDRESS_6 = '6.6.6.6'
+NEXUS_IP_ADDRESS_7 = '7.7.7.7'
+NEXUS_IP_ADDRESS_8 = '8.8.8.8'
 
 HOST_NAME_1 = 'testhost1'
 HOST_NAME_2 = 'testhost2'
 HOST_NAME_PC = 'testpchost'
 HOST_NAME_DUAL = 'testdualhost'
+HOST_NAME_3 = 'testhost3'
+HOST_NAME_4 = 'testhost4'
+HOST_NAME_5 = 'testhost5'
+HOST_NAME_6 = 'testhost6'
 HOST_NAME_UNUSED = 'unused'
 
 INSTANCE_1 = 'testvm1'
@@ -66,6 +73,7 @@ NEXUS_DUAL1 = 'ethernet:1/3'
 NEXUS_DUAL2 = 'ethernet:1/2'
 NEXUS_PORTCHANNELS = 'portchannel:2'
 NEXUS_DUAL = 'ethernet:1/3,portchannel:2'
+NEXUS_DUAL_2 = '1/2,1/3'
 
 VLAN_ID_1 = 267
 VLAN_ID_2 = 265
@@ -77,6 +85,10 @@ NO_VXLAN_ID = 0
 
 MCAST_GROUP = '255.1.1.1'
 
+PHYSNET = 'physnet1'
+NETID = 999
+PORT_ID = 'fakePortID'
+
 DEVICE_OWNER_BAREMETAL = 'baremetal:none'
 DEVICE_OWNER_COMPUTE = 'compute:test'
 DEVICE_OWNER_DHCP = n_const.DEVICE_OWNER_DHCP
@@ -87,14 +99,19 @@ PORT_STATE = n_const.PORT_STATUS_ACTIVE
 NETWORK_TYPE = 'vlan'
 VLAN_TYPE_TRUNK = 'trunk'
 VLAN_TYPE_NATIVE = 'native'
-NEXUS_VXLAN_NETWORK_TYPE = 'nexus_vxlan'
 
 NORMAL_VNIC = u'normal'
 BAREMETAL_VNIC = u'baremetal'
 
+CONNECT_ERROR = 'Unable to connect to Nexus'
+
 ## Test snippets used to verify nexus command output
 RESULT_ADD_VLAN = """configure\>\s+\<vlan\>\s+\
 <vlan-id-create-delete\>\s+\<__XML__PARAM_value\>{0}"""
+
+RESULT_ADD_VLAN_VNI = """configure\>\s+\<vlan\>\s+\
+<vlan-id-create-delete\>\s+\<__XML__PARAM_value\>{0}[\x20-\x7e]+\
+\s+[\x20-\x7e]+\s+\<vn-segment\>\s+\<vlan-vnsegment\>{1}"""
 
 RESULT_ADD_INTERFACE = """\<{0}\>\s+\<interface\>\
 {1}\<\/interface\>\s+[\x20-\x7e]+\s+\<switchport\>\s+\<trunk\>\s+\
@@ -103,6 +120,14 @@ RESULT_ADD_INTERFACE = """\<{0}\>\s+\<interface\>\
 RESULT_ADD_NATIVE_INTERFACE = """\<{0}\>\s+\<interface\>\
 {1}\<\/interface\>\s+[\x20-\x7e]+\s+\<switchport\>\s+\<trunk\>\s+\
 \<native\>\s+\<vlan\>\s+\<vlan_id\>{2}"""
+
+RESULT_ADD_NVE_INTERFACE = """\<interface\>\s+\
+\<nve\>nve{0}\<\/nve\>\s+[\x20-\x7e]+\s+\<member\>member vni {1} \
+mcast-group {2}"""
+
+RESULT_INTERFACE = """\<{0}\>\s+\<interface\>\
+{1}\<\/interface\>\s+[\x20-\x7e]+\s+\<switchport\>\s+\<trunk\>\s+\
+\<allowed\>\s+\<vlan\>\s+\<vlan_id\>{2}"""
 
 RESULT_DEL_VLAN = """\
 \<no\>\s+\<vlan\>\s+<vlan-id-create-delete\>\
@@ -118,24 +143,33 @@ RESULT_DEL_NATIVE_INTERFACE = """\
 [\x20-\x7e\s]+\<no\>\s+\<switchport\>\s+\<trunk\>\s+\
 \<native\>"""
 
+RESULT_DEL_NVE_INTERFACE = """\<interface\>\s+\
+\<nve\>nve{0}\<\/nve\>\s+[\x20-\x7e]+\s+\<member\>no member vni {1}"""
+
 NEXUS_DRIVER = ('networking_cisco.plugins.ml2.drivers.cisco.nexus.'
                 'nexus_network_driver.CiscoNexusDriver')
 
 
 class FakeNetworkContext(object):
-
     """Network context for testing purposes only."""
 
-    def __init__(self, segment_id, nw_type, mcast_group='physnet1'):
+    def __init__(self, segment_id, nw_type, mcast_group='physnet1',
+                 netid=None):
 
+        if not netid:
+            netid = NETID
         self._network_segments = {api.SEGMENTATION_ID: segment_id,
-                                  api.ID: 999,
+                                  api.ID: netid,
                                   api.NETWORK_TYPE: nw_type,
                                   const.PROVIDER_SEGMENT: False,
                                   api.PHYSICAL_NETWORK: mcast_group}
 
     @property
     def network_segments(self):
+        return self._network_segments
+
+    @property
+    def current(self):
         return self._network_segments
 
 
@@ -145,29 +179,61 @@ class FakePortContext(object):
 
     def __init__(self, device_id, host_name, device_owner,
                  network_context, bottom_segment=None,
-                 profile=None, vnic_type=u'normal'):
+                 profile=None, vnic_type=u'normal', netid=None):
         if profile is None:
             profile = []
+        if not netid:
+            netid = NETID
+        self._set_port(device_id, host_name, device_owner,
+                       profile, vnic_type, netid)
+        self._port_orig = None
+        self._network = network_context
+        if network_context:
+            self._segment = network_context.network_segments
+            self.segments_to_bind = [network_context.network_segments]
+        if bottom_segment is None:
+            self._bottom_segment = None
+        else:
+            self._bottom_segment = bottom_segment.network_segments
+        self._segments_to_bind = None
+
+    def _set_port(self, device_id, host_name, device_owner,
+                  profile=None, vnic_type=u'normal', netid=None):
+
         self._port = {
             'status': PORT_STATE,
             'device_id': device_id,
             'device_owner': device_owner,
+            api.ID: PORT_ID,
+            'network_id': netid,
             portbindings.HOST_ID: host_name,
             portbindings.VNIC_TYPE: vnic_type,
             portbindings.PROFILE: profile,
             portbindings.VIF_TYPE: portbindings.VIF_TYPE_OVS
         }
-        self._network = network_context
-        self._segment = network_context.network_segments
-        self.segments_to_bind = [network_context.network_segments]
-        if bottom_segment is None:
-            self._bottom_segment = None
-        else:
-            self._bottom_segment = bottom_segment.network_segments
+
+    def set_orig_port(self, device_id, host_name, device_owner,
+                      profile=None, vnic_type=u'normal', netid=None):
+
+        self._port_orig = {
+            'status': PORT_STATE,
+            'device_id': device_id,
+            'device_owner': device_owner,
+            api.ID: PORT_ID,
+            'network_id': netid,
+            portbindings.HOST_ID: host_name,
+            portbindings.VNIC_TYPE: vnic_type,
+            portbindings.PROFILE: profile,
+            portbindings.VIF_TYPE: portbindings.VIF_TYPE_OVS
+        }
 
     @property
     def current(self):
         return self._port
+
+    @property
+    def original(self):
+        return self._port_orig
 
     @property
     def network(self):
@@ -189,9 +255,39 @@ class FakePortContext(object):
     def original_bottom_bound_segment(self):
         return None
 
+    def continue_binding(self, segment_id, next_segments_to_bind):
+        pass
+
     def set_binding(self, segment_id, vif_type, vif_details,
                     status=None):
         pass
+
+    def allocate_dynamic_segment(self, segment):
+        pass
+
+    def _prepare_to_bind(self, segments_to_bind):
+        self._segments_to_bind = segments_to_bind
+        self._new_bound_segment = None
+        self._next_segments_to_bind = None
+
+
+class FakeUnbindPortContext(FakePortContext):
+    """Port context used during migration to unbind port."""
+    @property
+    def top_bound_segment(self):
+        return None
+
+    @property
+    def bottom_bound_segment(self):
+        return None
+
+    @property
+    def original_top_bound_segment(self):
+        return self._segment
+
+    @property
+    def original_bottom_bound_segment(self):
+        return self._bottom_segment
 
 
 class TestCiscoNexusBase(testlib_api.SqlTestCase):
@@ -202,8 +298,20 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         'nexus_ip_addr host_name nexus_port instance_id vlan_id vxlan_id '
         'mcast_group device_owner profile vnic_type')
 
+    def _mock_init(self):
+        # this is to prevent interface initialization from occurring
+        # which adds unnecessary noise to the results.
+
+        data_xml = {'connect.return_value.get.return_value.data_xml':
+                    'switchport trunk allowed vlan none'}
+        self.mock_ncclient.configure_mock(**data_xml)
+
+    def _clear_port_dbs(self):
+        nexus_db_v2.remove_all_nexusport_bindings()
+
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
+
         super(TestCiscoNexusBase, self).setUp()
 
         cfg.CONF.import_opt('api_workers', 'neutron.service')
@@ -216,11 +324,12 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         mock.patch.object(nexus_network_driver.CiscoNexusDriver,
                           '_import_ncclient',
                           return_value=self.mock_ncclient).start()
-        # this is to prevent interface initialization from occurring
-        # which adds unnecessary noise to the results.
-        data_xml = {'connect.return_value.get.return_value.data_xml':
-                    'switchport trunk allowed vlan none'}
-        self.mock_ncclient.configure_mock(**data_xml)
+
+        self.mock_continue_binding = mock.patch.object(
+            FakePortContext,
+            'continue_binding').start()
+
+        self._mock_init()
 
         def new_nexus_init(mech_instance):
             mech_instance.driver = importutils.import_object(NEXUS_DRIVER)
@@ -254,6 +363,8 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
                                                constants.USERNAME)] = 'admin'
                 mech_instance._nexus_switches[(ip_addr,
                                               constants.PASSWORD)] = 'password'
+                mech_instance._nexus_switches[(ip_addr,
+                                              'physnet')] = PHYSNET
             mech_instance.driver.nexus_switches = (
                 mech_instance._nexus_switches)
 
@@ -265,11 +376,18 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
                              CiscoNexusCfgMonitor(
                                  self._cisco_mech_driver.driver,
                                  self._cisco_mech_driver))
+        self.addCleanup(self._clear_port_dbs)
 
-    def _generate_port_context(self, port_config):
+    def _generate_port_context(self, port_config,
+                               override_host_name=None,
+                               override_netid=None,
+                               unbind_port=False):
         """Returns port context from port_config."""
 
-        host_name = port_config.host_name
+        if override_host_name:
+            host_name = override_host_name
+        else:
+            host_name = port_config.host_name
         instance_id = port_config.instance_id
         vlan_id = port_config.vlan_id
         vxlan_id = port_config.vxlan_id
@@ -277,18 +395,36 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         device_owner = port_config.device_owner
         profile = port_config.profile
         vnic_type = port_config.vnic_type
+        if override_netid:
+            netid = override_netid
+        else:
+            netid = None
 
-        network_context = FakeNetworkContext(vlan_id, NETWORK_TYPE)
+        network_context = FakeNetworkContext(vlan_id, NETWORK_TYPE, netid)
         if vxlan_id != NO_VXLAN_ID:
             vxlan_network_context = FakeNetworkContext(vxlan_id,
-                NEXUS_VXLAN_NETWORK_TYPE, mcast_group)
-            port_context = FakePortContext(instance_id, host_name,
-                device_owner, vxlan_network_context, network_context,
-                profile, vnic_type)
+                const.TYPE_NEXUS_VXLAN, mcast_group, netid)
+            if unbind_port:
+                port_context = FakeUnbindPortContext(
+                    instance_id, host_name, device_owner,
+                    vxlan_network_context, network_context,
+                    profile, vnic_type, netid)
+            else:
+                port_context = FakePortContext(
+                    instance_id, host_name, device_owner,
+                    vxlan_network_context, network_context,
+                    profile, vnic_type, netid)
         else:
-            port_context = FakePortContext(instance_id, host_name,
-                device_owner, network_context, None,
-                profile, vnic_type)
+            if unbind_port:
+                port_context = FakeUnbindPortContext(
+                    instance_id, host_name, device_owner,
+                    network_context, None,
+                    profile, vnic_type, netid)
+            else:
+                port_context = FakePortContext(
+                    instance_id, host_name, device_owner,
+                    network_context, None,
+                    profile, vnic_type, netid)
 
         return port_context
 
@@ -301,16 +437,14 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
             FakePortContext,
             'set_binding').start()
 
+        port_context._prepare_to_bind(port_context)
         self._cisco_mech_driver.bind_port(port_context)
-        if expect_success:
-            assert self.mock_set_binding.called
-        else:
-            assert not self.mock_set_binding.called
 
-    def _create_port(self, port_config):
+    def _create_port(self, port_config, override_netid=None):
         """Tests creation of a virtual port."""
 
-        port_context = self._generate_port_context(port_config)
+        port_context = self._generate_port_context(
+            port_config, override_netid=override_netid)
 
         self._cisco_mech_driver.create_port_postcommit(port_context)
         self._cisco_mech_driver.update_port_precommit(port_context)
@@ -333,7 +467,7 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
                            port_config.vlan_id,
                            port_config.nexus_ip_addr,
                            port_config.instance_id)
-            self.assertEqual(len(bindings), 1)
+            self.assertEqual(1, len(bindings))
 
     def _delete_port(self, port_config):
         """Tests deletion of a virtual port."""
@@ -365,20 +499,24 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
     def _verify_results(self, driver_result):
         """Verifies correct entries sent to Nexus."""
 
-        self.assertEqual(self.mock_ncclient.connect.return_value.
-            edit_config.call_count,
+        self.assertEqual(
             len(driver_result),
+            self.mock_ncclient.connect.return_value.
+            edit_config.call_count,
             "Unexpected driver count")
 
         for idx in range(0, len(driver_result)):
-            self.assertNotEqual(self.mock_ncclient.connect.
+            self.assertIsNotNone(
+                self.mock_ncclient.connect.
                 return_value.edit_config.mock_calls[idx][2]['config'],
-                None, "mock_data is None")
-            self.assertNotEqual(
-                re.search(driver_result[idx],
-                    self.mock_ncclient.connect.return_value.
-                    edit_config.mock_calls[idx][2]['config']),
-                None, "Expected result data not found")
+                "mock_data is None")
+            # assign None to skip testing this one.
+            if driver_result[idx]:
+                self.assertIsNotNone(
+                    re.search(driver_result[idx],
+                        self.mock_ncclient.connect.return_value.
+                        edit_config.mock_calls[idx][2]['config']),
+                    "Expected result data not found")
 
     def _basic_create_verify_port_vlan(self, test_name, test_result,
                                        nbr_of_bindings=1,
@@ -402,7 +540,7 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
                 port_cfg.nexus_ip_addr)
         except exceptions.NexusPortBindingNotFound:
             port_bindings = []
-        assert(len(port_bindings) == nbr_of_bindings)
+        self.assertEqual(nbr_of_bindings, len(port_bindings))
 
         # Make sure there is only a single attempt to configure.
         self._verify_results(test_result)
@@ -433,7 +571,7 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
                 port_cfg.nexus_ip_addr)
         except exceptions.NexusPortBindingNotFound:
             port_bindings = []
-        assert(len(port_bindings) == nbr_of_bindings)
+        self.assertEqual(nbr_of_bindings, len(port_bindings))
 
         # Make sure there is only a single attempt to configure.
         self._verify_results(test_result)
@@ -522,6 +660,45 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
             Exception(__name__))}
         self.mock_ncclient.configure_mock(**config)
 
+    def _create_port_valid_exception(self, attr, match_str, test_case,
+                                     which_exc):
+        """Verifies exception handling during initial create object.
+
+        This method is a shared method to initiate an exception
+        at various point of object creation.  The points of failure
+        are identified by the caller which can be get operations or
+        edit operations.  When the mechanism replay is functioning,
+        the exception should be suppressed and the switch is marked
+        as inactive.
+
+        attr:      Which mock attribute to contain side_effect exception
+        match_str: String for side_effect method to match for exception
+        test_case: which configuration test case to run thru test
+        which_exc: Acceptable exception String to raise in exception.
+        """
+
+        # Set switch state to active
+        switch_ip = self.test_configs[test_case].nexus_ip_addr
+        self._cisco_mech_driver.set_switch_ip_and_active_state(
+            switch_ip, const.SWITCH_ACTIVE)
+
+        # Clean all the ncclient mock_calls to clear exception
+        # and other mock_call history.
+        self.mock_ncclient.reset_mock()
+
+        # Set up driver exception
+        config = {attr:
+            self._config_side_effects_on_count(match_str,
+            Exception(which_exc))}
+        self.mock_ncclient.configure_mock(**config)
+
+        self._create_port(self.test_configs[test_case])
+
+        # _create_port should complete with no switch state change.
+        self.assertEqual(
+            const.SWITCH_ACTIVE,
+            self._cisco_mech_driver.get_switch_ip_and_active_state(switch_ip))
+
     def _create_port_failure(self, attr, match_str, test_case, test_id,
                              which_exc=exceptions.NexusConfigFailed):
         """Verifies exception handling during initial create object.
@@ -537,6 +714,7 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         match_str: String for side_effect method to match for exception
         test_case: which configuration test case to run thru test
         test_id:   String to put in the exception.
+        which_exc: Exception expecting to encounter
         """
 
         # Set switch state to active
@@ -591,8 +769,8 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
 
         # _create_port should complete successfully and no switch state change.
         self.assertEqual(
-            self._cisco_mech_driver.get_switch_ip_and_active_state(switch_ip),
-            const.SWITCH_ACTIVE)
+            const.SWITCH_ACTIVE,
+            self._cisco_mech_driver.get_switch_ip_and_active_state(switch_ip))
 
         # Clean all the ncclient mock_calls to clear exception
         # and other mock_call history.
@@ -618,16 +796,16 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         except exceptions.NexusPortBindingNotFound:
             port_bindings = []
 
-        assert(len(port_bindings) == nbr_bindings)
+        self.assertEqual(nbr_bindings, len(port_bindings))
 
         # Verify nothing in the nve data base
-        assert(len(nexus_db_v2.get_nve_switch_bindings(
-               switch_ip)) == 0)
+        self.assertEqual(0,
+            len(nexus_db_v2.get_nve_switch_bindings(switch_ip)))
 
         # _delete_port should complete with no switch state change.
         self.assertEqual(
-            self._cisco_mech_driver.get_switch_ip_and_active_state(switch_ip),
-            const.SWITCH_ACTIVE)
+            const.SWITCH_ACTIVE,
+            self._cisco_mech_driver.get_switch_ip_and_active_state(switch_ip))
 
 
 class TestCiscoNexusReplayBase(TestCiscoNexusBase):
@@ -805,31 +983,29 @@ class TestContext(TestCiscoNexusBase):
         else:
             return 'vnic_type invalid'
 
-        return ''
-
     def test_normal_vlan_format(self):
         port_context = self._generate_port_context(
                 self.test_configs['test_vlan_unique1'])
 
-        self.assertEqual(
+        self.assertIsNone(
             self._verify_port_context(
                 port_context,
-                self.test_configs['test_vlan_unique1']), '')
+                self.test_configs['test_vlan_unique1']))
 
     def test_normal_vxlan_format(self):
         port_context = self._generate_port_context(
                 self.test_configs['test_vxlan_unique1'])
 
-        self.assertEqual(
+        self.assertIsNone(
             self._verify_port_context(
                 port_context,
-                self.test_configs['test_vxlan_unique1']), '')
+                self.test_configs['test_vxlan_unique1']))
 
     def test_baremetal_format(self):
         port_context = self._generate_port_context(
                 self.test_configs['test_bm_vlan_unique1'])
 
-        self.assertEqual(
+        self.assertIsNone(
             self._verify_port_context(
                 port_context,
-                self.test_configs['test_bm_vlan_unique1']), '')
+                self.test_configs['test_bm_vlan_unique1']))

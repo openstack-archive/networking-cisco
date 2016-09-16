@@ -295,6 +295,15 @@ def update_nexusport_binding(port_id, new_vlan_id):
     return binding
 
 
+def remove_all_nexusport_bindings():
+    """Removes all nexusport bindings."""
+
+    LOG.debug("remove_all_nexusport_bindings() called")
+    session = db.get_session()
+    session.query(nexus_models_v2.NexusPortBinding).delete()
+    session.flush()
+
+
 def get_nexusvm_bindings(vlan_id, instance_id):
     """Lists nexusvm bindings."""
     LOG.debug("get_nexusvm_bindings() called")
@@ -386,6 +395,15 @@ def remove_nexusnve_binding(vni, switch_ip, device_id):
         session.delete(binding)
         session.flush()
         return binding
+
+
+def remove_all_nexusnve_bindings():
+    """Removes all nexusnve bindings."""
+
+    LOG.debug("remove_all_nexusport_bindings() called")
+    session = db.get_session()
+    session.query(nexus_models_v2.NexusNVEBinding).delete()
+    session.flush()
 
 
 def get_nve_vni_switch_bindings(vni, switch_ip):

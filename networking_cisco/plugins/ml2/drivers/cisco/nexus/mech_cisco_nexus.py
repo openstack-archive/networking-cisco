@@ -1659,6 +1659,13 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         # retries for new VMs will stop.  Subnet
         # transactions will continue to be retried.
 
+        vlan_segment, vxlan_segment = self._get_segments(
+                                        context.top_bound_segment,
+                                        context.bottom_bound_segment)
+        # Verify segment.
+        if not self._is_valid_segment(vlan_segment):
+            return
+
         port = context.current
         if self._is_supported_deviceowner(port):
             if self._is_baremetal(context.current):
@@ -1846,7 +1853,8 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                                              [dynamic_segment])
                 else:
                     raise excep.NoDynamicSegmentAllocated(
-                                        network_id=network_id, physnet=physnet)
+                                        network_segment=network_id,
+                                        physnet=physnet)
             else:
                 LOG.debug("No binding required for segment ID %(id)s, "
                           "segment %(seg)s, phys net %(physnet)s, and "

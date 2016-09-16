@@ -388,8 +388,9 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
         # Even though 2nd entry is inactive, there should be
         # a data base entry configured for it.
         # 2 = One entry for port the other for reserved binding
-        assert(len(nexus_db_v2.get_nexusport_switch_bindings(
-               port_cfg2.nexus_ip_addr)) == 2)
+        self.assertEqual(
+            2, len(nexus_db_v2.get_nexusport_switch_bindings(
+                   port_cfg2.nexus_ip_addr)))
 
         # Clean-up the port entry
         result_del = (
@@ -426,8 +427,9 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
         # Even though 2nd entry is inactive, there should be
         # a data base entry configured for it.
         # 2 = One entry for port the other for reserved binding
-        assert(len(nexus_db_v2.get_nexusport_switch_bindings(
-               port_cfg2.nexus_ip_addr)) == 2)
+        self.assertEqual(
+            2, len(nexus_db_v2.get_nexusport_switch_bindings(
+                   port_cfg2.nexus_ip_addr)))
 
         # Restore port data for that switch
         self._cfg_monitor.check_connections()
@@ -595,9 +597,10 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
         self._cfg_monitor.check_connections()
 
         # Verify that switch is put back into INACTIVE state
-        assert(self._cisco_mech_driver.get_switch_ip_and_active_state(
-               port_cfg.nexus_ip_addr) ==
-               const.SWITCH_INACTIVE)
+        self.assertEqual(
+            const.SWITCH_INACTIVE,
+            self._cisco_mech_driver.get_switch_ip_and_active_state(
+                port_cfg.nexus_ip_addr))
 
         # The edit of create_vlan failed, but there will
         # be 2 create vlan attempts in mock call history.
@@ -616,9 +619,10 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
         self._cfg_monitor.check_connections()
 
         # Verify that switch is in ACTIVE state
-        assert(self._cisco_mech_driver.get_switch_ip_and_active_state(
-               port_cfg.nexus_ip_addr) ==
-               const.SWITCH_ACTIVE)
+        self.assertEqual(
+            const.SWITCH_ACTIVE,
+            self._cisco_mech_driver.get_switch_ip_and_active_state(
+                port_cfg.nexus_ip_addr))
 
         # Clear mock_call history.
         self.mock_ncclient.reset_mock()
@@ -660,9 +664,10 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
         self._cfg_monitor.check_connections()
 
         # Verify the switch is in restore stage 2 state
-        assert(self._cisco_mech_driver.get_switch_ip_and_active_state(
-               tmp_cfg.nexus_ip_addr) ==
-               const.SWITCH_RESTORE_S2)
+        self.assertEqual(
+            const.SWITCH_RESTORE_S2,
+            self._cisco_mech_driver.get_switch_ip_and_active_state(
+                tmp_cfg.nexus_ip_addr))
 
         config = {'connect.return_value.edit_config.side_effect':
                   self._config_side_effects_on_count(
@@ -674,9 +679,10 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
         # last batch of 10 which should fail
         self._cfg_monitor.check_connections()
         # Verify the switch is back in INACTIVE state
-        assert(self._cisco_mech_driver.get_switch_ip_and_active_state(
-               tmp_cfg.nexus_ip_addr) ==
-               const.SWITCH_INACTIVE)
+        self.assertEqual(
+            const.SWITCH_INACTIVE,
+            self._cisco_mech_driver.get_switch_ip_and_active_state(
+                tmp_cfg.nexus_ip_addr))
 
         # Clear mock_call history.
         self.mock_ncclient.reset_mock()
@@ -690,18 +696,20 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
         self._cfg_monitor.check_connections()
 
         # Verify the switch is in restore stage 2 state
-        assert(self._cisco_mech_driver.get_switch_ip_and_active_state(
-               tmp_cfg.nexus_ip_addr) ==
-               const.SWITCH_RESTORE_S2)
+        self.assertEqual(
+            const.SWITCH_RESTORE_S2,
+            self._cisco_mech_driver.get_switch_ip_and_active_state(
+                tmp_cfg.nexus_ip_addr))
 
         # Call check_connections() to successfully send
         # last batch of 10 which should fail
         self._cfg_monitor.check_connections()
 
         # Verify the switch is in restore stage 2 state
-        assert(self._cisco_mech_driver.get_switch_ip_and_active_state(
-               tmp_cfg.nexus_ip_addr) ==
-               const.SWITCH_ACTIVE)
+        self.assertEqual(
+            const.SWITCH_ACTIVE,
+            self._cisco_mech_driver.get_switch_ip_and_active_state(
+                tmp_cfg.nexus_ip_addr))
 
     def test_replay_no_retry_failure_handling(self):
         """Tests to check replay 'no retry' failure handling.
@@ -752,16 +760,18 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
         # were only MAX_REPLAY_COUNT+1 attempts to send create_vlan.
         # first is from test_replay_create_vlan_failure()
         # and MAX_REPLAY_COUNT from check_connections()
-        assert(self._cisco_mech_driver.get_switch_replay_failure(
-               const.FAIL_CONFIG,
-               test_cisco_nexus_base.NEXUS_IP_ADDRESS_1) ==
-               config_replay)
+        self.assertEqual(
+            config_replay,
+            self._cisco_mech_driver.get_switch_replay_failure(
+                const.FAIL_CONFIG,
+                test_cisco_nexus_base.NEXUS_IP_ADDRESS_1))
         self._verify_results(driver_result2)
 
         # Verify there exists a single port binding
         # plus 1 for reserved switch entry
-        assert(len(nexus_db_v2.get_nexusport_switch_bindings(
-               test_cisco_nexus_base.NEXUS_IP_ADDRESS_1)) == 2)
+        self.assertEqual(
+            2, len(nexus_db_v2.get_nexusport_switch_bindings(
+                   test_cisco_nexus_base.NEXUS_IP_ADDRESS_1)))
 
         # Clear mock_call history.
         self.mock_ncclient.reset_mock()
@@ -784,14 +794,16 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
 
         # Verify switch FAIL_CONTACT reached (MAX_REPLAY_COUNT)
         # and there were no attempts to send create_vlan.
-        assert(self._cisco_mech_driver.get_switch_replay_failure(
-               const.FAIL_CONFIG,
-               test_cisco_nexus_base.NEXUS_IP_ADDRESS_1) ==
-               config_replay)
-        assert(self._cisco_mech_driver.get_switch_replay_failure(
-               const.FAIL_CONTACT,
-               test_cisco_nexus_base.NEXUS_IP_ADDRESS_1) ==
-               config_replay)
+        self.assertEqual(
+            config_replay,
+            self._cisco_mech_driver.get_switch_replay_failure(
+                const.FAIL_CONFIG,
+                test_cisco_nexus_base.NEXUS_IP_ADDRESS_1))
+        self.assertEqual(
+            config_replay,
+            self._cisco_mech_driver.get_switch_replay_failure(
+                const.FAIL_CONTACT,
+                test_cisco_nexus_base.NEXUS_IP_ADDRESS_1))
         self._verify_results([])
 
         # Test 3)
@@ -800,12 +812,16 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
             [])
 
         # Verify failure stats is not reset
-        assert(self._cisco_mech_driver.get_switch_replay_failure(
-               const.FAIL_CONFIG,
-               test_cisco_nexus_base.NEXUS_IP_ADDRESS_1) == config_replay)
-        assert(self._cisco_mech_driver.get_switch_replay_failure(
-               const.FAIL_CONTACT,
-               test_cisco_nexus_base.NEXUS_IP_ADDRESS_1) == config_replay)
+        self.assertEqual(
+            config_replay,
+            self._cisco_mech_driver.get_switch_replay_failure(
+                const.FAIL_CONFIG,
+                test_cisco_nexus_base.NEXUS_IP_ADDRESS_1))
+        self.assertEqual(
+            config_replay,
+            self._cisco_mech_driver.get_switch_replay_failure(
+                const.FAIL_CONTACT,
+                test_cisco_nexus_base.NEXUS_IP_ADDRESS_1))
 
         # Clear the get nexus type driver exception.
         config = {'connect.return_value.get.side_effect':
@@ -820,18 +836,22 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
         # failure stats to be reset to 0.
         # Then verify these stats are indeed 0.
         self._cfg_monitor.check_connections()
-        assert(self._cisco_mech_driver.get_switch_replay_failure(
-               const.FAIL_CONFIG,
-               test_cisco_nexus_base.NEXUS_IP_ADDRESS_1) == 0)
-        assert(self._cisco_mech_driver.get_switch_replay_failure(
-               const.FAIL_CONTACT,
-               test_cisco_nexus_base.NEXUS_IP_ADDRESS_1) == 0)
+        self.assertEqual(
+            0,
+            self._cisco_mech_driver.get_switch_replay_failure(
+                const.FAIL_CONFIG,
+                test_cisco_nexus_base.NEXUS_IP_ADDRESS_1))
+        self.assertEqual(
+            0,
+            self._cisco_mech_driver.get_switch_replay_failure(
+                const.FAIL_CONTACT,
+                test_cisco_nexus_base.NEXUS_IP_ADDRESS_1))
 
         # Verify switch state is now active following successful replay.
         self.assertEqual(
+            const.SWITCH_ACTIVE,
             self._cisco_mech_driver.get_switch_ip_and_active_state(
-                test_cisco_nexus_base.NEXUS_IP_ADDRESS_1),
-            const.SWITCH_ACTIVE)
+                test_cisco_nexus_base.NEXUS_IP_ADDRESS_1))
 
 
 class TestCiscoNexusBaremetalReplay(
@@ -965,6 +985,12 @@ class TestCiscoNexusBaremetalReplay(
         test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)])
 
     test_configs = collections.OrderedDict(sorted(test_configs.items()))
+
+    def setUp(self):
+        """Sets up mock ncclient, and switch and credentials dictionaries."""
+
+        cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
+        super(TestCiscoNexusBaremetalReplay, self).setUp()
 
     def test_replay_unique_ethernet_ports(self):
         """Provides replay data and result data for unique ports. """
