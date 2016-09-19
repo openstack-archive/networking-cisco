@@ -27,6 +27,8 @@ from neutron_lib import constants as n_constants
 
 from networking_cisco.plugins.ml2.drivers.cisco.apic import (
     mechanism_apic as md)
+from networking_cisco.plugins.ml2.drivers.cisco.apic import constants as acst
+from networking_cisco.plugins.ml2.drivers.cisco.apic import exceptions as aexc
 from networking_cisco.tests.unit.ml2.drivers.cisco.apic import (
     test_cisco_apic_common as mocked)
 
@@ -187,12 +189,12 @@ class TestCiscoApicMechDriver(base.BaseTestCase,
         ctx = self._get_network_context(mocked.APIC_TENANT,
                                         mocked.APIC_NETWORK,
                                         TEST_SEGMENT1,
-                                        name=md.APIC_SYNC_NETWORK)
+                                        name=acst.APIC_SYNC_NETWORK)
         ctx._plugin_context.is_admin = True
         with mock.patch.object(md.APICMechanismDriver, '_is_network_context',
                                return_value=True):
             self.assertRaises(
-                md.ReservedSynchronizationName,
+                aexc.ReservedSynchronizationName,
                 self.driver.create_network_postcommit, ctx)
             self.assertEqual(1, self.synchronizer._sync_base.call_count)
 

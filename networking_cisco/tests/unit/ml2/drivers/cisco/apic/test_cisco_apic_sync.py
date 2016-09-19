@@ -22,6 +22,7 @@ sys.modules["apicapi"] = mock.Mock()
 from neutron.tests import base
 
 from networking_cisco.plugins.ml2.drivers.cisco.apic import apic_sync
+from networking_cisco.plugins.ml2.drivers.cisco.apic import constants as acst
 
 
 LOOPING_CALL = 'oslo_service.loopingcall.FixedIntervalLoopingCall'
@@ -59,10 +60,13 @@ class TestCiscoApicSync(base.BaseTestCase):
     def test_sync_base(self):
         sync = apic_sync.ApicBaseSynchronizer(self.driver)
         sync.core_plugin = mock.Mock()
-        sync.core_plugin.get_networks.return_value = [{'id': 'net'}]
-        sync.core_plugin.get_subnets.return_value = [{'id': 'sub'}]
-        sync.core_plugin.get_ports.return_value = [{'id': 'port',
-                                                    'network_id': 'net'}]
+        sync.core_plugin.get_networks.return_value = [
+            {'id': 'net1', 'name': 'some'},
+            {'id': 'net2', 'name': acst.APIC_SYNC_NETWORK}]
+        sync.core_plugin.get_subnets.return_value = [
+            {'id': 'sub', 'name': 'some'}]
+        sync.core_plugin.get_ports.return_value = [
+            {'id': 'port', 'network_id': 'net', 'name': 'some'}]
         sync._sync_base()
         self.assertEqual(1, self.driver.create_network_postcommit.call_count)
         self.assertEqual(1, self.driver.create_subnet_postcommit.call_count)
@@ -74,7 +78,8 @@ class TestCiscoApicSync(base.BaseTestCase):
         sync.core_plugin = mock.Mock()
         sync.core_plugin.get_ports.return_value = [{'id': 'port',
                                                     'network_id': 'net',
-                                                    'device_id': 'dev'}]
+                                                    'device_id': 'dev',
+                                                    'name': 'some'}]
         sync._sync_router()
         self.assertEqual(
             1, self.driver.add_router_interface_postcommit.call_count)
