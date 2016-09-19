@@ -23,6 +23,7 @@ from neutron import manager
 from neutron.services import service_base as sb
 
 from neutron_lib.api import converters as conv
+from neutron_lib import constants as lib_constants
 
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import constants
 
@@ -35,7 +36,7 @@ RESOURCE_ATTRIBUTE_MAP = {
     NETWORK_PROFILES: {
         'id': {
             'allow_post': False, 'allow_put': False,
-            'validate': {'type:uuid': attributes.UUID_PATTERN},
+            'validate': {'type:uuid': lib_constants.UUID_PATTERN},
             'is_visible': True
         },
         'name': {
@@ -84,7 +85,7 @@ RESOURCE_ATTRIBUTE_MAP = {
     },
     NETWORK_PROFILE_BINDINGS: {
         'profile_id': {'allow_post': False, 'allow_put': False,
-                       'validate': {'type:regex': attributes.UUID_PATTERN},
+                       'validate': {'type:regex': lib_constants.UUID_PATTERN},
                        'is_visible': True},
         'tenant_id': {'allow_post': True, 'allow_put': False,
                       'is_visible': True},

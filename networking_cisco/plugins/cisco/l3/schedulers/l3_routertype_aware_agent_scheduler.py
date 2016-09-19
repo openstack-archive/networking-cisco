@@ -15,10 +15,10 @@
 from oslo_log import log as logging
 from sqlalchemy import sql
 
-from neutron.common import constants
 from neutron.db import l3_agentschedulers_db
 from neutron.db import l3_db
 from neutron.scheduler import l3_agent_scheduler
+from neutron_lib import constants as lib_constants
 
 from networking_cisco.plugins.cisco.db.l3 import l3_models
 from networking_cisco.plugins.cisco.extensions import routertype
@@ -26,7 +26,7 @@ from networking_cisco.plugins.cisco.extensions import routertype
 LOG = logging.getLogger(__name__)
 
 
-AGENT_TYPE_L3 = constants.AGENT_TYPE_L3
+AGENT_TYPE_L3 = lib_constants.AGENT_TYPE_L3
 
 
 class L3RouterTypeAwareScheduler(l3_agent_scheduler.L3Scheduler):

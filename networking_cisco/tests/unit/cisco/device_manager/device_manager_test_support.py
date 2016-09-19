@@ -34,6 +34,7 @@ from neutron.db import agents_db
 from neutron.extensions import agent
 from neutron import manager
 from neutron.tests.unit.extensions import test_l3
+from neutron_lib import constants as lib_constants
 
 import networking_cisco
 from networking_cisco import plugins
@@ -209,7 +210,7 @@ class DeviceManagerTestSupportMixin(object):
         self._cfg_agent_mock = mock.MagicMock()
         self._l3_cfg_agent_mock = mock.MagicMock()
         plugin.agent_notifiers = {
-            common_constants.AGENT_TYPE_L3: self._l3_agent_mock,
+            lib_constants.AGENT_TYPE_L3: self._l3_agent_mock,
             cisco_constants.AGENT_TYPE_CFG: self._cfg_agent_mock,
             cisco_constants.AGENT_TYPE_L3_CFG: self._l3_cfg_agent_mock}
 

@@ -20,12 +20,12 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     constants)
 
 from neutron.api import extensions
-from neutron.api.v2 import attributes
 from neutron.api.v2 import base
 from neutron import manager
 from neutron.services import service_base as sb
 
 from neutron_lib.api import converters as conv
+from neutron_lib import constants as lib_constants
 
 
 POLICY_PROFILE = 'policy_profile'
@@ -34,7 +34,7 @@ POLICY_PROFILES = 'policy_profiles'
 RESOURCE_ATTRIBUTE_MAP = {
     POLICY_PROFILES: {
         'id': {'allow_post': False, 'allow_put': False,
-               'validate': {'type:uuid': attributes.UUID_PATTERN},
+               'validate': {'type:uuid': lib_constants.UUID_PATTERN},
                'is_visible': True},
         'name': {'allow_post': False, 'allow_put': False,
                  'is_visible': True, 'default': ''},
@@ -49,7 +49,7 @@ RESOURCE_ATTRIBUTE_MAP = {
     },
     'policy_profile_bindings': {
         'profile_id': {'allow_post': False, 'allow_put': False,
-                       'validate': {'type:regex': attributes.UUID_PATTERN},
+                       'validate': {'type:regex': lib_constants.UUID_PATTERN},
                        'is_visible': True},
         'tenant_id': {'allow_post': True, 'allow_put': False,
                       'is_visible': True},
