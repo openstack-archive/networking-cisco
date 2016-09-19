@@ -18,6 +18,7 @@ import mock
 from oslo_utils import uuidutils
 from webob import exc
 
+from networking_cisco import backwards_compatibility as bc_attr
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.common import utils
 from networking_cisco.plugins.cisco.extensions import ciscohostingdevicemanager
@@ -61,6 +62,9 @@ class CiscoHostingDeviceManagerTestCase(
             'tenant_bound': None,
             'auto_delete': True}}
 
+        if not bc_attr.IS_PRE_NEWTON:
+            data['hosting_device']['project_id'] = (
+                               data['hosting_device']['tenant_id'])
         return_value = copy.copy(data['hosting_device'])
         return_value.update({'id': hd_id})
 
@@ -158,6 +162,9 @@ class CiscoHostingDeviceManagerTestCase(
             'device_driver': device_driver,
             'plugging_driver': plugging_driver}}
 
+        if not bc_attr.IS_PRE_NEWTON:
+            data['hosting_device_template']['project_id'] = (
+                               data['hosting_device_template']['tenant_id'])
         return_value = copy.copy(data['hosting_device_template'])
         return_value.update({'id': hdt_id})
 

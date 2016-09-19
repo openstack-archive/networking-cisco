@@ -60,6 +60,8 @@ def verify_resource_dict(res_dict, is_create, attr_info):
     This function contains code taken from function 'prepare_request_body' in
     attributes.py.
     """
+    if not bc_attr.IS_PRE_NEWTON and 'tenant_id' in res_dict:
+        res_dict['project_id'] = res_dict['tenant_id']
     if is_create:  # POST
         for attr, attr_vals in six.iteritems(attr_info):
             if attr_vals['allow_post']:

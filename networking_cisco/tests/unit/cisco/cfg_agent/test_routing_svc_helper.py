@@ -19,10 +19,10 @@ from oslo_config import cfg
 import oslo_messaging
 from oslo_utils import uuidutils
 
-from neutron.common import config as base_config
 from neutron.common import constants as l3_constants
 from neutron.tests import base
 
+from networking_cisco import backwards_compatibility as bc_attr
 from networking_cisco.plugins.cisco.cfg_agent import cfg_agent
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
 from networking_cisco.plugins.cisco.cfg_agent.service_helpers import (
@@ -125,7 +125,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
     def setUp(self):
         super(TestBasicRoutingOperations, self).setUp()
         self.conf = cfg.ConfigOpts()
-        self.conf.register_opts(base_config.core_opts)
+        self.conf.register_opts(bc_attr.core_opts)
         self.conf.register_opts(cfg_agent.OPTS, "cfg_agent")
         self.ex_gw_port = {'id': _uuid(),
                            'network_id': _uuid(),
@@ -745,7 +745,7 @@ class TestDeviceSyncOperations(base.BaseTestCase):
     def setUp(self):
         super(TestDeviceSyncOperations, self).setUp()
         self.conf = cfg.ConfigOpts()
-        self.conf.register_opts(base_config.core_opts)
+        self.conf.register_opts(bc_attr.core_opts)
         self.conf.register_opts(cfg_agent.OPTS, "cfg_agent")
         self.ex_gw_port = {'id': _uuid(),
                            'network_id': _uuid(),

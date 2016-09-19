@@ -15,6 +15,8 @@
 import copy
 
 import mock
+import unittest
+
 from oslo_config import cfg
 from oslo_db import exception as db_exc
 from oslo_log import log as logging
@@ -292,11 +294,64 @@ class L3RoutertypeAwareChanceL3AgentSchedulerTestCase(
         super(L3RoutertypeAwareChanceL3AgentSchedulerTestCase,
               self).test_scheduler_auto_schedule_when_agent_added()
 
+    @unittest.skip("DVR not supported")
+    def test_get_l3_agent_candidates_dvr_ha_snat_no_vms(self):
+        pass
+
+    @unittest.skip("DVR not supported")
+    def test_get_l3_agent_candidates_dvr_no_vms(self):
+        pass
+
+    @unittest.skip("DVR not supported")
+    def test_add_router_to_l3_agent_dvr_to_snat(self):
+        pass
+
+    @unittest.skip("DVR not supported")
+    def test_remove_router_from_l3_agent_in_dvr_snat_mode(self):
+        pass
+
+    @unittest.skip("DVR not supported")
+    def test_add_router_to_l3_agent_mismatch_error_dvr_to_legacy(self):
+        pass
+
 
 class L3RoutertypeAwareLeastRoutersL3AgentSchedulerTestCase(
     test_l3_agent_scheduler.L3AgentLeastRoutersSchedulerTestCase,
         L3RoutertypeAwareL3AgentSchedulerTestCase):
-    pass
+
+    def setUp(self):
+        cfg.CONF.set_override('router_scheduler_driver',
+                              'neutron.scheduler.l3_agent_scheduler.'
+                              'LeastRoutersScheduler')
+        # call grandparent's setUp() to avoid that wrong scheduler is used
+        super(test_l3_agent_scheduler.L3AgentLeastRoutersSchedulerTestCase,
+              self).setUp()
+        # Some UTs in parent class expects self.plugin to refer to l3 plugin
+        self.plugin = self.l3_plugin
+
+    @unittest.skip("DVR not supported")
+    def test_add_router_to_l3_agent_mismatch_error_dvr_to_legacy(self):
+        pass
+
+    @unittest.skip("DVR not supported")
+    def test_remove_router_from_l3_agent_in_dvr_mode(self):
+        pass
+
+    @unittest.skip("DVR not supported")
+    def test_add_router_to_l3_agent_mismatch_error_legacy_to_dvr(self):
+        pass
+
+    @unittest.skip("DVR not supported")
+    def test_add_router_to_l3_agent_dvr_to_snat(self):
+        pass
+
+    @unittest.skip("DVR not supported")
+    def test_remove_router_from_l3_agent_in_dvr_snat_mode(self):
+        pass
+
+    @unittest.skip("DVR not supported")
+    def test_get_l3_agent_candidates_dvr_snat(self):
+        pass
 
 
 #TODO(bobmel): Activate unit tests for DVR when we support DVR
