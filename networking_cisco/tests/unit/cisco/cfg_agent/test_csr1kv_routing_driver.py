@@ -18,8 +18,8 @@ import mock
 import netaddr
 from oslo_utils import uuidutils
 
-from neutron.common import constants as l3_constants
 from neutron.tests import base
+from neutron_lib import constants as l3_constants
 
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
     cisco_csr1kv_snippets as snippets)
