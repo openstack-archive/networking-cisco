@@ -19,8 +19,12 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 from sqlalchemy.orm import exc
+import unittest
 import webob.exc
 
+from neutron.callbacks import events
+from neutron.callbacks import registry
+from neutron.callbacks import resources
 from neutron import context
 from neutron.db import l3_db
 from neutron.extensions import extraroute
@@ -31,6 +35,7 @@ from neutron.tests import fake_notifier
 
 from neutron_lib import constants as l3_constants
 
+from networking_cisco import backwards_compatibility
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.common import (
     cisco_constants as cisco_const)
@@ -214,44 +219,21 @@ class HAL3RouterApplianceVMTestCase(
             self.assertEqual(DEVICE_OWNER_ROUTER_INTF,
                              other_router_ports[0]['device_owner'])
 
-    def test_router_add_interface_portDNS(self):
-
-        tenant_id = _uuid()
-        with self.router(tenant_id=tenant_id) as router, (
-                self.subnet()) as subnet:
-            r = router['router']
-            s = subnet['subnet']
-
-            with mock.patch('networking_cisco.plugins.cisco.db.l3.ha_db.'
-                            'utils.is_extension_supported',
-                            return_value=True) as extension_support:
-                self._router_interface_action('add', r['id'], s['id'], None)
-                r_ids = [rr['id']
-                         for rr in [r] + r[ha.DETAILS][ha.REDUNDANCY_ROUTERS]]
-                # get ports for the user visible router and its two redundancy
-                # routers for which dns_name attribute should have been updated
-                params = "&".join(["device_id=%s" % r_id for r_id in r_ids])
-                expected_calls = []
-                # Verify the function is called with extension dns enabled
-                expected_calls.append(
-                    mock.call(self.core_plugin, 'dns-integration'))
-                extension_support.assert_has_calls(expected_calls,
-                                                   any_order=True)
-                with mock.patch('neutron.api.v2.base.Controller.'
-                            '_exclude_attributes_by_policy',
-                            return_value=[]):
-                    router_ports = (
-                        self._list('ports', query_params=params)['ports'])
-
-                    # clean-up
-                    self._router_interface_action('remove', r['id'],
-                                                  s['id'], None)
-
-                    self.assertEqual(3, len(router_ports))
-                    # Verify the dns-name attribute is present in the ports
-                    self.assertIsNone(router_ports[0]['dns_name'])
-                    self.assertIsNone(router_ports[1]['dns_name'])
-                    self.assertIsNone(router_ports[2]['dns_name'])
+    def test_hidden_port_creation_includes_dns_attribute(self):
+        with mock.patch('networking_cisco.plugins.cisco.db.l3.ha_db.'
+                        'utils.is_extension_supported',
+                        return_value=True) as extension_support,\
+                mock.patch.object(self.core_plugin, 'create_port') as c_p_mock:
+                    # Verify the function is called with extension dns enabled
+                    expected_calls = [
+                        mock.call(self.core_plugin, 'dns-integration')]
+                    self.l3_plugin._create_hidden_port(
+                        'fake_ctx', 'some_network_id', 'some_device_id', [])
+                    extension_support.assert_has_calls(expected_calls,
+                                                       any_order=True)
+                    c_p_mock.assert_called_once_with('fake_ctx', mock.ANY)
+                    self.assertEqual(
+                        '', c_p_mock.call_args[0][1]['port']['dns_name'])
 
     def _test_create_ha_router(self, router, subnet, ha_settings=None):
         if ha_settings is None:
@@ -1212,20 +1194,20 @@ class HAL3RouterApplianceVMTestCase(
                                               r2i_port['port']['id'])
 
                 with self.port(subnet=ins1,
-                    # Need to use 12.0.0.9 instead of 12.0.0.3 as the
-                    # latter gets consumed by the redundancy routers
-                               fixed_ips=[{'ip_address': '12.0.0.9'}]
+                    # Use 12.0.0.199 instead of 12.0.0.3 so that the IP
+                    # address we're requesting is definitely available
+                               fixed_ips=[{'ip_address': '12.0.0.199'}]
                                ) as private_port:
-                    # Need to use 10.0.0.5 instead of 10.0.0.3 as the
-                    # latter gets consumed by one of the redundancy routers
+                    # Use 10.0.0.199 instead of 10.0.0.3 so that the IP
+                    # address we're requesting is definitely available
                     fp1 = self._make_floatingip(self.fmt, network_ex_id1,
                                                 private_port['port']['id'],
-                                                floating_ip='10.0.0.5')
-                    # Need to use 11.0.0.5 instead of 11.0.0.3 as the
-                    # latter gets consumed by one of the redundancy routers
+                                                floating_ip='10.0.0.199')
+                    # Use 11.0.0.199 instead of 11.0.0.3 so that the IP
+                    # address we're requesting is definitely available
                     fp2 = self._make_floatingip(self.fmt, network_ex_id2,
                                                 private_port['port']['id'],
-                                                floating_ip='11.0.0.5')
+                                                floating_ip='11.0.0.199')
                     self.assertEqual(fp1['floatingip']['router_id'],
                                      r1['router']['id'])
                     self.assertEqual(fp2['floatingip']['router_id'],
@@ -1254,7 +1236,7 @@ class HAL3RouterApplianceVMTestCase(
                 self.assertEqual(len(port_list['ports']), 3)
 
                 routes = [{'destination': '135.207.0.0/16',
-                           'nexthop': '10.0.1.3'}]
+                           'nexthop': '10.0.1.199'}]
 
                 body = self._update('routers', r['router']['id'],
                                     {'router': {'routes':
@@ -1284,6 +1266,42 @@ class HAL3RouterApplianceVMTestCase(
                     body = self._show('routers', rr_info['id'])
                     gw_info = body['router']['external_gateway_info']
                     self.assertIsNone(gw_info)
+
+    # Overloaded test function that needs to be modified to run
+    def test_floatingip_same_external_and_internal(self):
+        # Select router with subnet's gateway_ip for floatingip when
+        # routers connected to same subnet and external network.
+        with self.subnet(cidr="10.0.0.0/24") as exs, \
+                self.subnet(cidr="12.0.0.0/24", gateway_ip="12.0.0.50") as ins:
+            network_ex_id = exs['subnet']['network_id']
+            self._set_net_external(network_ex_id)
+
+            r2i_fixed_ips = [{'ip_address': '12.0.0.2'}]
+            with self.router() as r1, \
+                    self.router() as r2, \
+                    self.port(subnet=ins,
+                              fixed_ips=r2i_fixed_ips) as r2i_port:
+                self._add_external_gateway_to_router(
+                    r1['router']['id'],
+                    network_ex_id)
+                self._router_interface_action('add', r2['router']['id'],
+                                              None,
+                                              r2i_port['port']['id'])
+                self._router_interface_action('add', r1['router']['id'],
+                                              ins['subnet']['id'],
+                                              None)
+                self._add_external_gateway_to_router(
+                    r2['router']['id'],
+                    network_ex_id)
+                # Use 12.0.0.199 instead of 12.0.0.14 so that the IP
+                # address we're requesting is definitely available
+                with self.port(subnet=ins,
+                               fixed_ips=[{'ip_address': '12.0.0.199'}]
+                               ) as private_port:
+                    fp = self._make_floatingip(self.fmt, network_ex_id,
+                                               private_port['port']['id'])
+                    self.assertEqual(r1['router']['id'],
+                                     fp['floatingip']['router_id'])
 
     def test_router_update_change_external_gateway_and_routes(self):
         with self.router() as router:
@@ -1376,9 +1394,10 @@ class HAL3RouterApplianceVMTestCase(
                                                   s_priv['subnet']['id'], None)
 
     def test_redundancy_router_routes_is_from_user_visible_router(self):
-        routes = [{'destination': '135.207.0.0/16', 'nexthop': '10.0.1.3'},
-                  {'destination': '12.0.0.0/8', 'nexthop': '10.0.1.4'},
-                  {'destination': '141.212.0.0/16', 'nexthop': '10.0.1.5'}]
+
+        routes = [{'destination': '135.207.0.0/16', 'nexthop': '10.0.1.199'},
+                  {'destination': '12.0.0.0/8', 'nexthop': '10.0.1.200'},
+                  {'destination': '141.212.0.0/16', 'nexthop': '10.0.1.201'}]
         with self.router() as router,\
                 self.subnet(cidr='10.0.1.0/24') as subnet,\
                 self.port(subnet=subnet) as port:
@@ -1411,11 +1430,11 @@ class HAL3RouterApplianceVMTestCase(
         self._router_interface_action('remove', router_id, subnet_id, port_id)
 
     def test_redundancy_router_routes_includes_user_visible_router(self):
-        routes1 = [{'destination': '135.207.0.0/16', 'nexthop': '10.0.1.3'},
-                   {'destination': '12.0.0.0/8', 'nexthop': '10.0.1.4'},
-                   {'destination': '141.212.0.0/16', 'nexthop': '10.0.1.5'}]
-        routes2 = [{'destination': '155.210.0.0/28', 'nexthop': '11.0.1.7'},
-                   {'destination': '130.238.5.0/24', 'nexthop': '11.0.1.7'}]
+        routes1 = [{'destination': '135.207.0.0/16', 'nexthop': '10.0.1.199'},
+                   {'destination': '12.0.0.0/8', 'nexthop': '10.0.1.200'},
+                   {'destination': '141.212.0.0/16', 'nexthop': '10.0.1.201'}]
+        routes2 = [{'destination': '155.210.0.0/28', 'nexthop': '11.0.1.199'},
+                   {'destination': '130.238.5.0/24', 'nexthop': '11.0.1.199'}]
         with self.router() as router,\
                 self.subnet(cidr='10.0.1.0/24') as subnet1,\
                 self.subnet(cidr='11.0.1.0/24') as subnet2,\
@@ -1561,6 +1580,20 @@ class L3CfgAgentHARouterApplianceTestCase(
                         interfaces = r.get(l3_constants.INTERFACE_KEY, [])
                         self.assertEqual(1, len(interfaces))
 
+    # Overloaded test function that needs to be modified to run
+    @unittest.skipIf(backwards_compatibility.IS_PRE_NEWTON is True,
+                     "Test not applicable prior to Newton")
+    def test_router_delete_precommit_event(self):
+        deleted = set()
+        auditor = lambda *a, **k: deleted.add(k['router_id'])
+        registry.subscribe(auditor, resources.ROUTER, events.PRECOMMIT_DELETE)
+        with self.router() as r:
+            self._delete('routers', r['router']['id'])
+        r_ids = {rr['id'] for rr in
+                 r['router'][ha.DETAILS][ha.REDUNDANCY_ROUTERS]}
+        r_ids.add(r['router']['id'])
+        self.assertEqual(r_ids, deleted)
+
     def _test_notify_op_agent(self, target_func, *args):
         kargs = [item for item in args]
         kargs.append(self._l3_cfg_agent_mock)
@@ -1582,9 +1615,9 @@ class L3CfgAgentHARouterApplianceTestCase(
 
     def test_l3_cfg_agent_query_ha_rdcy_router_routes_is_from_user_vsbl_router(
             self):
-        routes = [{'destination': '135.207.0.0/16', 'nexthop': '10.0.1.3'},
-                  {'destination': '12.0.0.0/8', 'nexthop': '10.0.1.4'},
-                  {'destination': '141.212.0.0/16', 'nexthop': '10.0.1.5'}]
+        routes = [{'destination': '135.207.0.0/16', 'nexthop': '10.0.1.199'},
+                  {'destination': '12.0.0.0/8', 'nexthop': '10.0.1.200'},
+                  {'destination': '141.212.0.0/16', 'nexthop': '10.0.1.201'}]
         with self.router() as router,\
                 self.subnet(cidr='10.0.1.0/24') as subnet,\
                 self.port(subnet=subnet) as port:
@@ -1606,11 +1639,11 @@ class L3CfgAgentHARouterApplianceTestCase(
 
     def test_l3_cfg_agent_query_ha_rdcy_router_routes_include_user_vsbl_router(
             self):
-        routes1 = [{'destination': '135.207.0.0/16', 'nexthop': '10.0.1.3'},
-                   {'destination': '12.0.0.0/8', 'nexthop': '10.0.1.4'},
-                   {'destination': '141.212.0.0/16', 'nexthop': '10.0.1.5'}]
-        routes2 = [{'destination': '155.210.0.0/28', 'nexthop': '11.0.1.7'},
-                   {'destination': '130.238.5.0/24', 'nexthop': '11.0.1.7'}]
+        routes1 = [{'destination': '135.207.0.0/16', 'nexthop': '10.0.1.199'},
+                   {'destination': '12.0.0.0/8', 'nexthop': '10.0.1.200'},
+                   {'destination': '141.212.0.0/16', 'nexthop': '10.0.1.201'}]
+        routes2 = [{'destination': '155.210.0.0/28', 'nexthop': '11.0.1.202'},
+                   {'destination': '130.238.5.0/24', 'nexthop': '11.0.1.202'}]
         with self.router() as router,\
                 self.subnet(cidr='10.0.1.0/24') as subnet1,\
                 self.subnet(cidr='11.0.1.0/24') as subnet2,\

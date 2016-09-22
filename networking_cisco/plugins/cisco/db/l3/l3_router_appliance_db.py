@@ -24,6 +24,7 @@ from oslo_service import loopingcall
 from oslo_utils import excutils
 from oslo_utils import importutils
 import six
+from sqlalchemy import exc as sa_exc
 from sqlalchemy.orm import exc
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import expression as expr
@@ -71,6 +72,12 @@ L3_ROUTER_NAT = svc_constants.L3_ROUTER_NAT
 HOSTING_DEVICE_ATTR = routerhostingdevice.HOSTING_DEVICE_ATTR
 ROUTER_ROLE_GLOBAL = cisco_constants.ROUTER_ROLE_GLOBAL
 ROUTER_ROLE_HA_REDUNDANCY = cisco_constants.ROUTER_ROLE_HA_REDUNDANCY
+
+DICT_EXTEND_FUNCTIONS = ['_extend_router_dict_routertype',
+                         '_extend_router_dict_routerhostingdevice',
+                         '_extend_router_dict_routerrole',
+                         '_extend_router_dict_scheduling_info',
+                         '_extend_router_dict_ha']
 
 ROUTER_APPLIANCE_OPTS = [
     cfg.StrOpt('default_router_type',
@@ -122,14 +129,10 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
     _heartbeat = None
 
     db_base_plugin_v2.NeutronDbPluginV2.register_dict_extend_funcs(
-        l3.ROUTERS, ['_extend_router_dict_routertype',
-                     '_extend_router_dict_routerhostingdevice',
-                     '_extend_router_dict_routerrole',
-                     '_extend_router_dict_scheduling_info',
-                     '_extend_router_dict_ha'])
+        l3.ROUTERS, DICT_EXTEND_FUNCTIONS)
 
     def _cisco_router_model_hook(self, context, original_model, query):
-        query = query.join(l3_models.RouterHostingDeviceBinding,
+        query = query.outerjoin(l3_models.RouterHostingDeviceBinding,
                            (original_model.id ==
                             l3_models.RouterHostingDeviceBinding.router_id))
         return query
@@ -332,9 +335,27 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                                                             gw_info)
 
     def delete_router(self, context, router_id, unschedule=True):
-        router_db = self._ensure_router_not_in_use(context, router_id)
+        try:
+            router_db = self._ensure_router_not_in_use(context, router_id)
+        except sa_exc.InvalidRequestError:
+            # Perform router deletion for a partially failed router creation
+            # that involved rollback of the transaction in the  context's
+            # session. We therefore use a temporary context for the router
+            # deletion and rely on the parent delete function.
+            temp_ctx = n_context.Context(context.user_id, context.tenant_id,
+                                         context.is_admin)
+            super(L3RouterApplianceDBMixin, self).delete_router(
+                temp_ctx, router_id)
+            return
         router = self._make_router_dict(router_db)
-        router_type_id = self.get_router_type_id(context, router_id)
+        try:
+            router_type_id = self.get_router_type_id(context, router_id)
+        except RouterBindingInfoError:
+            # The router was only partially created so rely on the parent
+            # delete function to delete the router.
+            super(L3RouterApplianceDBMixin, self).delete_router(context,
+                                                                router_id)
+            return
         driver = self._get_router_type_driver(context,
                                               router_type_id)
         if driver:

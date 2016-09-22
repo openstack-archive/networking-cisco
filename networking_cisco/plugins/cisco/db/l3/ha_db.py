@@ -738,7 +738,7 @@ class HA_db_mixin(object):
 
     def _delete_ha_group(self, context, ha_port_id):
         hag = self._get_ha_group_by_ha_port_id(context, ha_port_id)
-        if hag is not None:
+        if hag is not None and hag.extra_port_id is not None:
             self._core_plugin.delete_port(context, hag.extra_port_id,
                                           l3_port_check=False)
             with context.session.begin(subtransactions=True):

@@ -32,6 +32,7 @@ PRIORITY = 'priority'
 STATE = 'state'
 HA_ACTIVE = 'ACTIVE'
 HA_STANDBY = 'STANDBY'
+HA_STATES = [HA_ACTIVE, HA_STANDBY]
 REDUNDANCY_LEVEL = 'redundancy_level'
 REDUNDANCY_ROUTERS = 'redundancy_routers'
 ROUTER_ID = 'id'
@@ -63,10 +64,16 @@ EXTENDED_ATTRIBUTES_2_0 = {
                            'type:values': HA_TYPES,
                            'default': bc_attr.ATTR_NOT_SPECIFIED,
                            'is_visible': True},
+                    STATE: {
+                        'allow_post': False, 'allow_put': False,
+                        'type:values': HA_STATES,
+                        'default': bc_attr.ATTR_NOT_SPECIFIED,
+                        'is_visible': True},
                     PRIORITY: {'allow_post': True, 'allow_put': True,
                                'convert_to': conv.convert_to_int,
                                'type:non_negative': None,
-                               'default': bc_attr.ATTR_NOT_SPECIFIED},
+                               'default': bc_attr.ATTR_NOT_SPECIFIED,
+                               'is_visible': True},
                     REDUNDANCY_LEVEL: {'allow_post': True, 'allow_put': True,
                                        'convert_to': conv.convert_to_int,
                                        'type:range': [MIN_REDUNDANCY_LEVEL,
@@ -96,6 +103,10 @@ EXTENDED_ATTRIBUTES_2_0 = {
                             ROUTER_ID: {
                                 'allow_post': False, 'allow_put': False,
                                 'type:uuid': None},
+                            STATE: {
+                                'allow_post': False, 'allow_put': False,
+                                'type:values': HA_STATES,
+                                'default': bc_attr.ATTR_NOT_SPECIFIED},
                             PRIORITY: {
                                 'allow_post': False, 'allow_put': False,
                                 'convert_to': conv.convert_to_int,
