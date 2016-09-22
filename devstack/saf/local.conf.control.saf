@@ -54,6 +54,181 @@ ENABLER_LOG_LEVEL=<debug level>
 ENABLER_DCNM_IP_ADDR=<DCNM IP address>
 ENABLER_DCNM_PASSWORD=<DCNM password>
 
+#FWaaS Settings
+#     FABRIC_TYPE           : Specifies if the fabric is EVPN or FabricPath(DFA)
+#                             Default is EVPN. For DFA, set this as:
+#                             FABRIC_TYPE='dfa'
+#                             For explicitly setting to EVPN, do:
+#                             FABRIC_TYPE='evpn'
+#
+#     Firewall Device Specific Configs
+#
+#     FIREWALL_DEVICE       : Specifies the type of firewall. Currently
+#                             supported devices are Physical ASA and Native
+#                             Openstack FW using IPTables.
+#                             More than one ASA for FW load balancing is also
+#                             supported. 
+#                             For Native, set this as FIREWALL_DEVICE=native
+#                             For Phy ASA, set this as FIREWALL_DEVICE=phy_asa
+#                             For more than one Phy ASA device, set this as:
+#                             FIREWALL_DEVICE=[phy_asa, phy_asa]
+#     FIREWALL_MGMT_IP      : Specifies the Management IP address of FW device.
+#                             Set this to a random value for Native FW.
+#                             Example when there are two ASA FW devices with
+#                             Managament IP address of 1.1.1.1 and 2.2.2.2:
+#                             FIREWALL_MGMT_IP=[1.1.1.1,2.2.2.2]
+#                             The IP addresses are delimited with a comma.
+#                             For Native FW, you will set this like:
+#                             FIREWALL_MGMT_IP=[2.3.4.5]
+#                             The IP address for native FW value is ignored, it
+#                             can be set to any value for Native FW. This line
+#                             is currently needed to work.
+#     FIREWALL_USERNAME     : Specifies the Firewall username for Physical ASA.
+#                             This line is not needed for Native Firewall. For,
+#                             a single ASA device with username as admin:
+#                             FIREWALL_USERNAME=[admin]
+#                             For two ASA devices:
+#                             FIREWALL_USERNAME=[admin,admin]
+#                             The first value corresponds to the username for
+#                             the first device, second value to the second
+#                             device and so on. It's again delimited with a
+#                             comma.
+#     FIREWALL_PASSWORD     : Spcifies the Firewall password for Physical ASA.
+#                             This line is not needed for Native Firewall. Use
+#                             the same semantics as that of USERNAME above to
+#                             set the values.
+#     FIREWALL_INTERFACE_IN : Specifies the interface in the physical firewall
+#                             through which traffic will be ingressing to the
+#                             firewall from the protected host network.
+#                             This line is not needed for Native Firewall. Use 
+#                             the same semantics as that of USERNAME above to
+#                             set the values. As an example:
+#                             FIREWALL_INTERFACE_IN=[Gi0/0,Gi2/0]
+#                             The above lines specifies Gi0/0 and Gi2/0 as the
+#                             'in' interfaces for the first and second firewall
+#                             respectively.
+#     FIREWALL_INTERFACE_OUT: Specifies the interface in the physical firewall
+#                             through which traffic will be egressing out of the
+#                             firewall to the external network.
+#                             This line is not needed for Native Firewall. Use 
+#                             the same semantics as that of EWALL_INTERFACE_IN
+#                             set the values.
+#
+# Common Firewall Configs
+#
+#     FIREWALL_IN_IP_START  : Specifies the start of the subnet pool for the
+#                             'in' service network. 
+#                             This is optional to set.
+#                             Default of 100.121.10.0/24 will be used,
+#                             if this value is not set. As an example:
+#                             FIREWALL_IN_IP_START=100.122.10.0/24
+#                             In this example, for a 24 subnet, the first
+#                             service IN network will have 100.122.10.x, and
+#                             subsequent ones will have 100.122.11.x and so on.
+#     FIREWALL_IN_IP_END    : Specifies the end of the subnet pool for the
+#                             'in' service network.
+#                             This is optional to set.
+#                             Default of 100.121.200.0/24 will be used,
+#                             if this value is not set. As an example:
+#                             FIREWALL_IN_IP_END=100.122.200.0/24
+#     FIREWALL_OUT_IP_START : Specifies the start of the subnet pool for the
+#                             'out' service network. 
+#                             This is optional to set.
+#                             Default of 200.121.10.0/24 will be used,
+#                             if this value is not set. As an example:
+#                             FIREWALL_OUT_IP_START=200.122.10.0/24
+#                             In this example, for a 24 subnet, the first
+#                             service OUT network will have 200.122.10.x, and
+#                             subsequent ones will have 200.122.11.x and so on.
+#     FIREWALL_IN_IP_END    : Specifies the end of the subnet pool for the
+#                             'out' service network.
+#                             This is optional to set.
+#                             Default of 200.121.200.0/24 will be used,
+#                             if this value is not set. As an example:
+#                             FIREWALL_OUT_IP_END=200.122.200.0/24
+#     FIREWALL_DUMMY_SUBNET : This specifies the subnet for the dummy
+#                             interface. Openstack needs a router with an
+#                             interface for the FW rules to be applied. So,
+#                             enabler needs to create a router with a dummy
+#                             interface so that FW can get activated.
+#                             This is optional to set.
+#                             Default of 9.9.9.0/24 will be used if this value
+#                             is not set.
+#
+#     For expert usage:
+#
+#     The below parameters are optional, the default values will be filled
+#     based on the fabric type and firewall. 
+#     All the below parameters are optional and is not recommended to be set
+#     unless one understands the profiles and SAF functionality very well.
+#
+#     FIREWALL_HOST_NETWORK_PROFILE_EVPN_DYNAMIC : This specifies the profile
+#                                                  of the 'in' service network
+#                                                  for EVPN fabric where the
+#                                                  firewall can run a routing
+#                                                  protocol (e.g ASA)
+#     FIREWALL_HOST_NETWORK_PROFILE_EVPN_STATIC :  This specifies the profile
+#                                                  of the 'in' service network
+#                                                  for EVPN fabric where the
+#                                                  firewall cannot run a routing
+#                                                  protocol (e.g native)
+#     FIREWALL_HOST_NETWORK_PROFILE_DFA_DYNAMIC :  This specifies the profile
+#                                                  of the 'in' service network
+#                                                  for DFA fabric where the
+#                                                  firewall can run a routing
+#                                                  protocol (e.g ASA)
+#     FIREWALL_HOST_NETWORK_PROFILE_DFA_STATIC :  This specifies the profile
+#                                                  of the 'in' service network
+#                                                  for DFA fabric where the
+#                                                  firewall cannot run a routing
+#                                                  protocol (e.g native)
+#
+#     ENABLER_FIREWALL_EXT_PART_VRF_PROFILE_EVPN_DYNAMIC : This specifies the
+#                                                          profile for out
+#                                                  service partition for EVPN
+#                                                  fabric where the firewall
+#                                                  can run a routing
+#                                                  protocol.
+#     ENABLER_FIREWALL_EXT_PART_VRF_PROFILE_EVPN_STATIC : This specifies the
+#                                                          profile for out
+#                                                  service partition for EVPN
+#                                                  fabric where the firewall
+#                                                  cannot run a routing
+#                                                  protocol.
+#     ENABLER_FIREWALL_EXT_PART_VRF_PROFILE_DFA_DYNAMIC : This specifies the
+#                                                         profile for out
+#                                                  service partition for DFA
+#                                                  fabric where the firewall
+#                                                  can run a routing
+#                                                  protocol.
+#     ENABLER_FIREWALL_EXT_PART_VRF_PROFILE_DFA_STATIC : This specifies the
+#                                                        profile for out
+#                                                  service partition for DFA
+#                                                  fabric where the firewall
+#                                                  cannot run a routing
+#                                                  protocol.
+#
+#     ENABLER_FIREWALL_EXT_NETWORK_PROFILE_EVPN_DYNAMIC : This specifies the
+#                                                  profile of the 'out' service
+#                                                  network for EVPN fabric
+#                                                  where the firewall can run a
+#                                                  routing protocol.
+#     ENABLER_FIREWALL_EXT_NETWORK_PROFILE_EVPN_STATIC : This specifies the
+#                                                  profile of the 'out' service
+#                                                  network for EVPN fabric
+#                                                  where the firewall cannot
+#                                                  run a routing protocol.
+#     ENABLER_FIREWALL_EXT_NETWORK_PROFILE_DFA_DYNAMIC : This specifies the
+#                                                  profile of the 'out' service
+#                                                  network for DFA fabric
+#                                                  where the firewall can run a
+#                                                  routing protocol.
+#     ENABLER_FIREWALL_EXT_NETWORK_PROFILE_DFA_STATIC : This specifies the
+#                                                  profile of the 'out' service
+#                                                  network for DFA fabric
+#                                                  where the firewall cannot
+#                                                  run a routing protocol.
+
 #----------------------------------------------------
 DATABASE_TYPE=mysql
 SERVICE_HOST=$HOST_IP

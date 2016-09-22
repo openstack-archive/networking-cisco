@@ -26,7 +26,27 @@ ENABLER_MYSQL_HOST=${MYSQL_HOST}
 ENABLER_DB_PASSWORD=${MYSQL_PASSWORD}
 ENABLER_DCNM_DHCP=${ENABLER_DCNM_DHCP:-False}
 NETWORKING_CISCO_ETC_SAF_DIR="etc/saf"
+ENABLER_FABRIC_TYPE=${FABRIC_TYPE:-evpn}
+ENABLER_FIREWALL_IN_IP_START=${FIREWALL_IN_IP_START:-100.121.10.0/24}
+ENABLER_FIREWALL_IN_IP_END=${FIREWALL_IN_IP_END:-100.121.200.0/24}
+ENABLER_FIREWALL_OUT_IP_START=${FIREWALL_OUT_IP_START:-200.121.10.0/24}
+ENABLER_FIREWALL_OUT_IP_END=${FIREWALL_OUT_IP_END:-200.121.200.0/24}
+ENABLER_FIREWALL_DUMMY_SUBNET=${FIREWALL_DUMMY_SUBNET:-9.9.9.0/24}
 
+ENABLER_FIREWALL_HOST_NETWORK_PROFILE_EVPN_DYNAMIC=${FIREWALL_HOST_NETWORK_PROFILE_EVPN_DYNAMIC:-'serviceNetworkDynamicRoutingESChainLBESEvpnProfile'}
+ENABLER_FIREWALL_HOST_NETWORK_PROFILE_EVPN_STATIC=${FIREWALL_HOST_NETWORK_PROFILE_EVPN_STATIC:-'serviceNetworkEvpnProfile'}
+ENABLER_FIREWALL_HOST_NETWORK_PROFILE_DFA_DYNAMIC=${FIREWALL_HOST_NETWORK_PROFILE_DFA_DYNAMIC:-'serviceNetworkUniversalDynamicRoutingESProfile'}
+ENABLER_FIREWALL_HOST_NETWORK_PROFILE_DFA_STATIC=${FIREWALL_HOST_NETWORK_PROFILE_DFA_STATIC:-'serviceNetworkUniversalTfStaticRoutingProfile'}
+
+ENABLER_FIREWALL_EXT_PART_VRF_PROFILE_EVPN_DYNAMIC=${FIREWALL_EXT_PART_VRF_PROFILE_EVPN_DYNAMIC:-'vrf-common-evpn-external-dynamic-ES'}
+ENABLER_FIREWALL_EXT_PART_VRF_PROFILE_EVPN_STATIC=${FIREWALL_EXT_PART_VRF_PROFILE_EVPN_STATIC:-'vrf-common-universal-external-static'}
+ENABLER_FIREWALL_EXT_PART_VRF_PROFILE_DFA_DYNAMIC=${FIREWALL_EXT_PART_VRF_PROFILE_DFA_DYNAMIC:-'vrf-common-universal-external-dynamic-ES'}
+ENABLER_FIREWALL_EXT_PART_VRF_PROFILE_DFA_STATIC=${FIREWALL_EXT_PART_VRF_PROFILE_DFA_STATIC:-'vrf-common-universal-external-static'}
+
+ENABLER_FIREWALL_EXT_NETWORK_PROFILE_EVPN_DYNAMIC=${FIREWALL_EXT_NETWORK_PROFILE_EVPN_DYNAMIC:-'externalNetworkDynamicRoutingESEvpnProfile'}
+ENABLER_FIREWALL_EXT_NETWORK_PROFILE_EVPN_STATIC=${FIREWALL_EXT_NETWORK_PROFILE_EVPN_STATIC:-'externalNetworkESEvpnProfile'}
+ENABLER_FIREWALL_EXT_NETWORK_PROFILE_DFA_DYNAMIC=${FIREWALL_EXT_NETWORK_PROFILE_DFA_DYNAMIC:-'externalNetworkUniversalDynamicRoutingESProfile'}
+ENABLER_FIREWALL_EXT_NETWORK_PROFILE_DFA_STATIC=${FIREWALL_EXT_NETWORK_PROFILE_DFA_STATIC:-'externalNetworkUniversalTfStaticRoutingESProfile'}
 
 # Setup configuration parameters in enabler_conf.ini
 function setup_saf_config {
@@ -52,6 +72,44 @@ function setup_saf_config {
     iniset $cfgfile dfa_log log_dir $ENABLER_LOG_DIR
     iniset $cfgfile dfa_log log_file $ENABLER_LOG_FILE
     iniset $cfgfile dfa_log log_level $ENABLER_LOG_LEVEL
+
+    FW_DEV=`echo $FIREWALL_DEVICE | awk -F ',' '{print $1}'`
+    if [[ $FW_DEV != '' ]]; then
+        iniset $cfgfile firewall device "[$FIREWALL_DEVICE]"
+        iniset $cfgfile firewall fw_mgmt_ip $FIREWALL_MGMT_IP
+        if [[ $FW_DEV != 'native' ]]; then
+            iniset $cfgfile firewall fw_username $FIREWALL_USERNAME
+            iniset $cfgfile firewall fw_password $FIREWALL_PASSWORD
+            iniset $cfgfile firewall fw_interface_in $FIREWALL_INTERFACE_IN
+            iniset $cfgfile firewall fw_interface_out $FIREWALL_INTERFACE_OUT
+        fi
+        iniset $cfgfile firewall fw_service_in_ip_start $ENABLER_FIREWALL_IN_IP_START
+        iniset $cfgfile firewall fw_service_in_ip_end $ENABLER_FIREWALL_IN_IP_END
+        iniset $cfgfile firewall fw_service_out_ip_start $ENABLER_FIREWALL_OUT_IP_START
+        iniset $cfgfile firewall fw_service_out_ip_end $ENABLER_FIREWALL_OUT_IP_END
+        iniset $cfgfile firewall fw_service_dummy_ip_subnet $ENABLER_FIREWALL_DUMMY_SUBNET
+        if [[ $ENABLER_FABRIC_TYPE == 'evpn' ]]; then
+            if [[ $FW_DEV == 'phy_asa' ]]; then
+                iniset $cfgfile firewall fw_service_host_profile $ENABLER_FIREWALL_HOST_NETWORK_PROFILE_EVPN_DYNAMIC
+                iniset $cfgfile firewall fw_service_part_vrf_profile $ENABLER_FIREWALL_EXT_PART_VRF_PROFILE_EVPN_DYNAMIC
+                iniset $cfgfile firewall fw_service_ext_profile $ENABLER_FIREWALL_EXT_NETWORK_PROFILE_EVPN_DYNAMIC
+            elif [[ $FW_DEV == 'native' ]]; then
+                iniset $cfgfile firewall fw_service_host_profile $ENABLER_FIREWALL_HOST_NETWORK_PROFILE_EVPN_STATIC
+                iniset $cfgfile firewall fw_service_part_vrf_profile $ENABLER_FIREWALL_EXT_PART_VRF_PROFILE_EVPN_STATIC
+                iniset $cfgfile firewall fw_service_ext_profile $ENABLER_FIREWALL_EXT_NETWORK_PROFILE_EVPN_STATIC
+            fi
+        elif [[ $FABRIC_TYPE == 'dfa' ]]; then
+            if [[ $FW_DEV == 'phy_asa' ]]; then
+                iniset $cfgfile firewall fw_service_host_profile $ENABLER_FIREWALL_HOST_NETWORK_PROFILE_DFA_DYNAMIC
+                iniset $cfgfile firewall fw_service_part_vrf_profile $ENABLER_FIREWALL_EXT_PART_VRF_PROFILE_DFA_DYNAMIC
+                iniset $cfgfile firewall fw_service_ext_profile $ENABLER_FIREWALL_EXT_NETWORK_PROFILE_DFA_DYNAMIC
+            elif [[ $FW_DEV == 'native' ]]; then
+                iniset $cfgfile firewall fw_service_host_profile $ENABLER_FIREWALL_HOST_NETWORK_PROFILE_DFA_STATIC
+                iniset $cfgfile firewall fw_service_part_vrf_profile $ENABLER_FIREWALL_EXT_PART_VRF_PROFILE_DFA_STATIC
+                iniset $cfgfile firewall fw_service_ext_profile $ENABLER_FIREWALL_EXT_NETWORK_PROFILE_DFA_STATIC
+            fi
+        fi
+    fi
 }
 
 
