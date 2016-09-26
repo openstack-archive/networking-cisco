@@ -30,15 +30,9 @@ class CLITestV20NetworkProfile(test_cli20.CLITestV20Base):
         self.register_non_admin_status_resource('network_profile')
         super(CLITestV20NetworkProfile, self).setUp()
 
-    def _create_patch(self, name, func=None):
-        patcher = mock.patch(name)
-        thing = patcher.start()
-        self.addCleanup(patcher.stop)
-        return thing
-
     def _mock_extension_loading(self):
         ext_pkg = 'neutronclient.common.extension'
-        ext = self._create_patch(ext_pkg + '._discover_via_entry_points')
+        ext = mock.patch(ext_pkg + '._discover_via_entry_points').start()
         ext.return_value = [("network_profile", np)]
         return ext
 

@@ -32,15 +32,9 @@ class CLITestV20HostingDeviceTemplate(test_cli20.CLITestV20Base):
         super(CLITestV20HostingDeviceTemplate, self).setUp()
         self.non_admin_status_resources.append('hosting_device_template')
 
-    def _create_patch(self, name, func=None):
-        patcher = mock.patch(name)
-        thing = patcher.start()
-        self.addCleanup(patcher.stop)
-        return thing
-
     def _mock_extension_loading(self):
         ext_pkg = 'neutronclient.common.extension'
-        contrib = self._create_patch(ext_pkg + '._discover_via_entry_points')
+        contrib = mock.patch(ext_pkg + '._discover_via_entry_points').start()
         contrib.return_value = [("hostingdevicetemplate",
                                  hostingdevicetemplate)]
         return contrib
