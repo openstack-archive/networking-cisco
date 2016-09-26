@@ -14,9 +14,12 @@
 
 from oslo_config import cfg
 from oslo_utils import uuidutils
+from webob import exc
 
 from neutron import context
 from neutron.extensions import l3
+
+from neutron_lib import constants as l3_constants
 
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.l3 import ha_db
@@ -33,6 +36,7 @@ from networking_cisco.tests.unit.cisco.l3 import (
 
 _uuid = uuidutils.generate_uuid
 
+DEVICE_OWNER_ROUTER_INTF = l3_constants.DEVICE_OWNER_ROUTER_INTF
 EXTERNAL_GW_INFO = l3.EXTERNAL_GW_INFO
 AGENT_TYPE_L3_CFG = cisco_constants.AGENT_TYPE_L3_CFG
 ROUTER_ROLE_GLOBAL = cisco_constants.ROUTER_ROLE_GLOBAL
@@ -346,10 +350,67 @@ class Asr1kRouterTypeDriverTestCase(
     def test_router_delete_removes_no_global_router_non_admin(self):
         self._test_router_delete_removes_no_global_router(True)
 
+    def _test_router_interface_add_refused_for_unsupported_topology(
+            self, num_expected_ports=2, set_context=False, same_tenant=True):
+        tenant_id_1 = _uuid()
+        tenant_id_2 = tenant_id_1 if same_tenant is True else _uuid()
+        with self.network(tenant_id=tenant_id_1,
+                          set_context=set_context) as n1, \
+                self.network(tenant_id=tenant_id_1,
+                             set_context=set_context) as n2, \
+                self.subnet(
+                    network=n1, cidr='10.0.0.0/24', tenant_id=tenant_id_1,
+                    set_context=set_context) as subnet1, \
+                self.subnet(
+                    network=n2, cidr='10.0.1.0/24', tenant_id=tenant_id_2,
+                    set_context=set_context) as subnet2, \
+                self.port(subnet=subnet2, tenant_id=tenant_id_1,
+                          set_context=set_context) as port1, \
+                self.port(subnet=subnet1, tenant_id=tenant_id_2,
+                          set_context=set_context) as port2, \
+                self.router(tenant_id=tenant_id_1,
+                            set_context=set_context) as router1, \
+                self.router(name='router2', tenant_id=tenant_id_1,
+                            set_context=set_context) as router2:
+            sn1 = subnet1['subnet']
+            sn2 = subnet2['subnet']
+            p1 = port1['port']
+            p2 = port2['port']
+            r1 = router1['router']
+            r2 = router2['router']
+            self._router_interface_action('add', r1['id'], sn1['id'], None)
+            # Add r2 to sn1 by subnet id
+            # Two routers on same network == non-supported topology so
+            # should fail
+            self._router_interface_action('add', r2['id'], sn1['id'], None,
+                                          expected_code=exc.HTTPConflict.code)
+            # Add r2 to sn1 by port id
+            # Two routers on same network == non-supported topology so
+            # should fail
+            self._router_interface_action('add', r2['id'], None, p2['id'],
+                                          expected_code=exc.HTTPConflict.code)
+            # Add r2 to sn2 by subnet id
+            # One router per network is ok
+            self._router_interface_action('add', r2['id'], sn2['id'], None)
+            # Add r1 to sn2 by port id
+            # Two routers on same network == non-supported topology so
+            # should fail
+            self._router_interface_action('add', r1['id'], None, p1['id'],
+                                          expected_code=exc.HTTPConflict.code)
+            q_p = 'device_owner=%s' % DEVICE_OWNER_ROUTER_INTF
+            r_ports = self._list('ports', query_params=q_p)['ports']
+            self.assertEqual(num_expected_ports, len(r_ports))
 
-class Asr1kHARouterTypeDriverTestCase(
-        Asr1kRouterTypeDriverTestCase,
-        cisco_ha_test.HAL3RouterTestsMixin):
+    def test_router_interface_add_refused_for_unsupported_topology(self):
+        self._test_router_interface_add_refused_for_unsupported_topology()
+
+    def test_router_interface_add_refused_for_unsupported_topology_dt(self):
+        self._test_router_interface_add_refused_for_unsupported_topology(
+            same_tenant=False)
+
+
+class Asr1kHARouterTypeDriverTestCase(Asr1kRouterTypeDriverTestCase,
+                                      cisco_ha_test.HAL3RouterTestsMixin):
 
     # For the HA tests we need more than one hosting device
     router_type = 'ASR1k_Neutron_router'
@@ -677,6 +738,14 @@ class Asr1kHARouterTypeDriverTestCase(
                 self._delete('routers', r2['id'])
                 # should have no global routers now
                 self._verify_ha_updated_router(None)
+
+    def test_router_interface_add_refused_for_unsupported_topology(self):
+        self._test_router_interface_add_refused_for_unsupported_topology(
+            num_expected_ports=6)
+
+    def test_router_interface_add_refused_for_unsupported_topology_dt(self):
+        self._test_router_interface_add_refused_for_unsupported_topology(
+            num_expected_ports=6, same_tenant=False)
 
 
 class L3CfgAgentAsr1kRouterTypeDriverTestCase(

@@ -48,25 +48,38 @@ class RouterContext(L3ContextBase):
 
 class RouterPortContext(L3ContextBase):
 
-    def __init__(self, port, old_port=None):
+    def __init__(self, port, router, old_port=None, subnet_id=None):
         self._port = port
+        self._router_context = RouterContext(router)
         self._original_port = old_port
+        if port and port.get('fixed_ips'):
+            self._subnet_id = port['fixed_ips'][0]['subnet_id']
+        else:
+            self._subnet_id = subnet_id
 
     @property
     def current(self):
         return self._port
 
     @property
+    def current_subnet_id(self):
+        return self._subnet_id
+
+    @property
     def original(self):
         return self._original_port
 
     @property
+    def router_context(self):
+        return self._router_context
+
+    @property
     def current_router(self):
-        return self._port['device_id']
+        return (self._port or {}).get('device_id')
 
     @property
     def original_router(self):
-        return self._original_port['device_id']
+        return (self._original_port or {}).get('device_id')
 
 
 class FloatingipContext(L3ContextBase):
@@ -85,8 +98,8 @@ class FloatingipContext(L3ContextBase):
 
     @property
     def current_router(self):
-        return self._fip['router_id']
+        return (self._fip or {}).get('router_id')
 
     @property
     def original_router(self):
-        return self._original_fip['router_id']
+        return (self._original_fip or {}).get('router_id')
