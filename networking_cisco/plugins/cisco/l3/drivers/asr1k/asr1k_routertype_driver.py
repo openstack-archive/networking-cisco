@@ -33,6 +33,8 @@ from networking_cisco.plugins.cisco.extensions import routertype
 from networking_cisco.plugins.cisco.extensions import routertypeawarescheduler
 from networking_cisco.plugins.cisco.l3 import drivers
 
+from networking_cisco._i18n import _
+
 from oslo_log import log as logging
 LOG = logging.getLogger(__name__)
 
