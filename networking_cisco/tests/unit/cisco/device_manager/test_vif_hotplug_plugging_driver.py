@@ -15,14 +15,11 @@
 import mock
 
 from neutron.tests import base
-from oslo_log import log as logging
 
 from neutron_lib import exceptions as n_exc
 
 from networking_cisco.plugins.cisco.device_manager.plugging_drivers.\
     vif_hotplug_plugging_driver import(VIFHotPlugPluggingDriver)
-
-LOG = logging.getLogger(__name__)
 
 
 class TestVIFHotPlugPluggingDriver(base.BaseTestCase):

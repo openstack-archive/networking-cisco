@@ -15,7 +15,6 @@
 import copy
 
 import mock
-from oslo_log import log as logging
 
 from neutron.common import test_lib
 from neutron import context
@@ -42,8 +41,6 @@ POLICY_PROFILE_PLUGIN = ('networking_cisco.plugins.ml2.drivers.cisco.n1kv.'
 NETWORK_PROFILE_PLUGIN = ('networking_cisco.plugins.ml2.drivers.cisco.n1kv.'
                   'network_profile_service.NetworkProfilePlugin')
 DEFAULT_PP = 'm1'
-
-LOG = logging.getLogger(__name__)
 
 
 class TestN1kvTrunkingPluggingDriver(

@@ -19,7 +19,6 @@ import unittest
 
 from oslo_config import cfg
 from oslo_db import exception as db_exc
-from oslo_log import log as logging
 from oslo_utils import importutils
 from oslo_utils import uuidutils
 from sqlalchemy import exc as inner_db_exc
@@ -59,8 +58,6 @@ from networking_cisco.tests.unit.cisco.l3 import (
     test_l3_router_appliance_plugin)
 from networking_cisco.tests.unit.cisco.l3 import l3_router_test_support
 from networking_cisco.tests.unit.cisco.l3 import test_db_routertype
-
-LOG = logging.getLogger(__name__)
 
 
 CORE_PLUGIN_KLASS = device_manager_test_support.CORE_PLUGIN_KLASS

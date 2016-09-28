@@ -14,8 +14,6 @@
 
 import abc
 
-from oslo_log import log as logging
-
 from networking_cisco._i18n import _
 
 from neutron.api import extensions
@@ -27,8 +25,6 @@ from neutron_lib import exceptions
 from neutron_lib.api import converters as conv
 
 from networking_cisco.plugins.cisco.common import utils
-
-LOG = logging.getLogger(__name__)
 
 
 ROUTERTYPE = 'routertype'

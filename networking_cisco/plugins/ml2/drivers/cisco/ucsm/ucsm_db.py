@@ -13,13 +13,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from oslo_log import log as logging
 from sqlalchemy import orm
 
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucsm_model
 from neutron.db import api as db_api
-
-LOG = logging.getLogger(__name__)
 
 
 class UcsmDbModel(object):
