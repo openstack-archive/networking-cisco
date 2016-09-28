@@ -1322,19 +1322,15 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 with excutils.save_and_reraise_exception():
                     self.driver.capture_and_print_timeshot(
                         port_starttime, "port_configerr",
-                        other=threading.current_thread().ident,
                         switch=switch_ip)
                     self.driver.capture_and_print_timeshot(
                         starttime, "configerr",
-                        other=threading.current_thread().ident,
                         switch=switch_ip)
             self.driver.capture_and_print_timeshot(
                 port_starttime, "port_config",
-                other=threading.current_thread().ident,
                 switch=switch_ip)
         self.driver.capture_and_print_timeshot(
-            starttime, "config",
-            other=threading.current_thread().ident)
+            starttime, "config")
 
     def configure_next_batch_of_vlans(self, switch_ip):
         """Get next batch of vlans and send them to Nexus."""
@@ -1396,7 +1392,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         port_bindings.sort(key=lambda x: (x.port_id, x.vlan_id, x.vni))
         self.driver.capture_and_print_timeshot(
             starttime, "replay_t2_aft_sort",
-            other=threading.current_thread().ident,
             switch=switch_ip)
 
         # Let's make these lists a set to exclude duplicates
@@ -1455,7 +1450,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         self.driver.capture_and_print_timeshot(
             starttime, "replay_part_1",
-            other=threading.current_thread().ident,
             switch=switch_ip)
         vlans = list(vlans)
         if vlans:
@@ -1471,7 +1465,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         self.configure_next_batch_of_vlans(switch_ip)
         self.driver.capture_and_print_timeshot(
             starttime, "replay_part_2",
-            other=threading.current_thread().ident,
             switch=switch_ip)
 
     def _delete_nxos_db(self, unused, vlan_id, device_id, host_id, vni,
