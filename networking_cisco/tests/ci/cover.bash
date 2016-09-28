@@ -32,7 +32,7 @@ run_coverage () {
 
 # Stash uncommitted changes, checkout master and save coverage report
 uncommited=$(git status --porcelain | grep -v "^??")
-[[ -n "$uncommited" ]] && git stash > /dev/null
+[[ -n "$uncommited" ]] && git -c user.name=test -c user.email=test@test.com stash -u > /dev/null
 git checkout HEAD^
 
 run_coverage BASELINE $*
