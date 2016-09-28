@@ -17,7 +17,6 @@ import re
 import six
 
 from oslo_config import cfg
-from oslo_log import log as logging
 from oslo_serialization import jsonutils
 import requests
 
@@ -25,7 +24,6 @@ from networking_cisco._i18n import _
 
 from neutron.plugins.ml2 import driver_api as api
 
-LOG = logging.getLogger(__name__)
 
 ncs_opts = [
     cfg.StrOpt('url',

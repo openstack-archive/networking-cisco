@@ -13,7 +13,6 @@
 #    under the License.
 
 import mock
-from oslo_log import log as logging
 
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.db.l3 import l3_router_appliance_db
@@ -30,8 +29,6 @@ from neutron.db import common_db_mixin
 from neutron.extensions import l3
 from neutron.extensions import standardattrdescription
 from neutron.plugins.common import constants as service_constants
-
-LOG = logging.getLogger(__name__)
 
 
 L3_PLUGIN_KLASS = (

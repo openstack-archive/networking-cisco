@@ -13,8 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo_log import log
-
 import sqlalchemy.orm.exc as sa_exc
 from sqlalchemy import sql
 
@@ -29,8 +27,6 @@ from neutron import context as ncontext
 import neutron.db.api as db
 from neutron.db import models_v2
 from neutron.plugins.common import constants as p_const
-
-LOG = log.getLogger(__name__)
 
 
 def add_network_binding(network_id,

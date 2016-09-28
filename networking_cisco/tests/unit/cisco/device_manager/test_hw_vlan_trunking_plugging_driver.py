@@ -15,7 +15,6 @@
 import copy
 
 import mock
-from oslo_log import log as logging
 
 from neutron.common import test_lib
 from neutron import context
@@ -28,8 +27,6 @@ from networking_cisco.plugins.cisco.device_manager.plugging_drivers.\
     hw_vlan_trunking_driver import HwVLANTrunkingPlugDriver
 from networking_cisco.tests.unit.cisco.l3 import (
     test_l3_router_appliance_plugin)
-
-LOG = logging.getLogger(__name__)
 
 
 class TestHwVLANTrunkingPlugDriver(

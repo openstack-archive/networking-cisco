@@ -19,14 +19,12 @@ from operator import itemgetter
 import random
 import six
 
-from oslo_log import log as logging
 from sqlalchemy import func
 from sqlalchemy.sql import expression as expr
 
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.device_manager import hd_models
 
-LOG = logging.getLogger(__name__)
 
 ROUTER_ROLE_HA_REDUNDANCY = cisco_constants.ROUTER_ROLE_HA_REDUNDANCY
 # Maximum allowed minute difference in creation time
