@@ -188,6 +188,10 @@ class ConfigSyncer(object):
         self.intf_segment_dict = interface_segment_dict
         self.segment_nat_dict = segment_nat_dict
         self.test_mode = test_mode
+        if (cfg.CONF.multi_region.enable_multi_region):
+            self.route_regex = DEFAULT_ROUTE_MULTI_REGION_REGEX
+        else:
+            self.route_regex = DEFAULT_ROUTE_REGEX
 
     def process_routers_data(self, routers):
         hd_id = self.hosting_device_info['id']
@@ -297,17 +301,12 @@ class ConfigSyncer(object):
                                            segment_nat_dict,
                                            parsed_cfg)
 
-        if (cfg.CONF.multi_region.enable_multi_region):
-            default_route_regex = DEFAULT_ROUTE_MULTI_REGION_REGEX
-        else:
-            default_route_regex = DEFAULT_ROUTE_REGEX
-
-        invalid_cfg += self.clean_default_route(conn,
-                                                router_id_dict,
-                                                intf_segment_dict,
-                                                segment_nat_dict,
-                                                parsed_cfg,
-                                                default_route_regex)
+        invalid_cfg += self.clean_routes(conn,
+                                         router_id_dict,
+                                         intf_segment_dict,
+                                         segment_nat_dict,
+                                         parsed_cfg,
+                                         self.route_regex)
         invalid_cfg += self.clean_acls(conn,
                                        intf_segment_dict,
                                        segment_nat_dict,
@@ -495,16 +494,16 @@ class ConfigSyncer(object):
         LOG.debug("delete_pool_list = %s " % (pp.pformat(delete_pool_list)))
         return delete_pool_list
 
-    def clean_default_route(self,
-                            conn,
-                            router_id_dict,
-                            intf_segment_dict,
-                            segment_nat_dict,
-                            parsed_cfg,
-                            route_regex):
+    def clean_routes(self,
+                     conn,
+                     router_id_dict,
+                     intf_segment_dict,
+                     segment_nat_dict,
+                     parsed_cfg,
+                     route_regex):
         delete_route_list = []
-        default_routes = parsed_cfg.find_objects(route_regex)
-        for route in default_routes:
+        routes = parsed_cfg.find_objects(route_regex)
+        for route in routes:
             LOG.info(_LI("\ndefault route: %s"), (route))
             match_obj = re.match(route_regex, route.text)
             is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
