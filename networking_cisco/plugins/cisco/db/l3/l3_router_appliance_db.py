@@ -127,6 +127,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
     _backlogged_routers = set()
     _refresh_router_backlog = True
     _heartbeat = None
+    _is_gbp_workflow = None
 
     db_base_plugin_v2.NeutronDbPluginV2.register_dict_extend_funcs(
         l3.ROUTERS, DICT_EXTEND_FUNCTIONS)
@@ -531,8 +532,80 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
             driver.remove_router_interface_postcommit(context, port_ctxt)
         return info
 
+    @property
+    def is_gbp_workflow(self):
+        """Determine if Group Based Policy service plugin is used.
+
+        The behavior of some floating IP APIs is slightly different
+        when GBP workflow is used.
+        """
+
+        if self._is_gbp_workflow is None:
+            try:
+                if manager.NeutronManager.get_service_plugins()[
+                        'GROUP_POLICY']:
+                    self._is_gbp_workflow = True
+            except KeyError:
+                self._is_gbp_workflow = False
+        return self._is_gbp_workflow
+
     def create_floatingip(self, context, floatingip,
                           initial_status=FLOATINGIP_STATUS_ACTIVE):
+        if self.is_gbp_workflow:
+            return self._create_floatingip_gbp(context,
+                floatingip, initial_status=FLOATINGIP_STATUS_ACTIVE)
+        else:
+            return self._create_floatingip_neutron(context,
+                floatingip, initial_status=FLOATINGIP_STATUS_ACTIVE)
+
+    def _create_floatingip_gbp(self, context, floatingip,
+                               initial_status=FLOATINGIP_STATUS_ACTIVE):
+        """Group Based Policy hanlding of Floating IP Creation.
+
+        This version of the create_flaotingip is needed for the GBP workflow,
+        as the pre-/post-commmit calls for creating the floating IP must be
+        peformed in a loop with the database call in the grandparent class.
+        """
+
+        result = None
+        fip = floatingip['floatingip']
+        if not fip.get('subnet_id'):
+            # NOTE: default router type must be ASR1k
+            router_type_name = cfg.CONF.routing.default_router_type
+            driver = self._get_router_type_driver(context,
+                                                  router_type_name)
+            if driver:
+                fip_ctxt = driver_context.FloatingipContext(floatingip)
+                driver.create_floatingip_precommit(context, fip_ctxt)
+                nat_pool_list = getattr(context, 'nat_pool_list', [])
+                for nat_pool in nat_pool_list:
+                    if not nat_pool:
+                        continue
+                    fip['subnet_id'] = nat_pool['subnet_id']
+                    try:
+                        result = super(L3RouterApplianceDBMixin,
+                                    self).create_floatingip(context,
+                                                            floatingip)
+                        router_ids = ([result['router_id']]
+                                      if result['router_id'] else [])
+                    except n_exc.IpAddressGenerationFailure as ex:
+                        LOG.info(_LI("Floating allocation failed: %s"),
+                                 ex.message)
+                    if result:
+                        break
+        if not result:
+            result = super(L3RouterApplianceDBMixin,
+                           self).create_floatingip(context,
+                                                   floatingip, initial_status)
+            router_ids = [result['router_id']] if result['router_id'] else []
+        context.result = result
+        if driver:
+            driver.create_floatingip_postcommit(context, fip_ctxt)
+        self._notify_affected_routers(context, router_ids, 'create_floatingip')
+        return result
+
+    def _create_floatingip_neutron(self, context, floatingip,
+                                   initial_status=FLOATINGIP_STATUS_ACTIVE):
         info = super(L3RouterApplianceDBMixin, self).create_floatingip(
             context, floatingip, initial_status)
         router_ids = [info['router_id']] if info['router_id'] else []
@@ -548,7 +621,14 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         self._notify_affected_routers(context, router_ids, 'create_floatingip')
         return info
 
-    def update_floatingip(self, context, floatingip_id, floatingip):
+    def _do_update_floatingip(self, context, floatingip_id,
+                           floatingip, add_fip=False):
+        """Modified version of update_floatingip.
+
+        This modifies the existing update_floatingip call with a flag
+        used to add the result of the superclass call to the context
+        for the postcommit call.
+        """
         orig_fl_ip = super(L3RouterApplianceDBMixin, self).get_floatingip(
             context, floatingip_id)
         before_router_id = orig_fl_ip['router_id']
@@ -578,9 +658,19 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                 fip_ctxt = driver_context.FloatingipContext(
                     floatingip.get('floatingip'), orig_fl_ip)
             if driver:
+                if add_fip:
+                    context.result = info
                 driver.update_floatingip_postcommit(context, fip_ctxt)
         self._notify_affected_routers(context, router_ids, 'update_floatingip')
         return info
+
+    def update_floatingip(self, context, floatingip_id, floatingip):
+        if self.is_gbp_workflow:
+            return self._do_update_floatingip(context, floatingip_id,
+                                              floatingip, add_fip=True)
+        else:
+            return self._do_update_floatingip(context,
+                                              floatingip_id, floatingip)
 
     def delete_floatingip(self, context, floatingip_id):
         floatingip_db = self._get_floatingip(context, floatingip_id)
