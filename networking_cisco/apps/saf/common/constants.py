@@ -51,6 +51,9 @@ HB_INTERVAL = 30
 # Segmentation ID reuse after 1 hour
 SEG_REUSE_TIMEOUT = 1
 
+# Default Orchestrator ID
+ORCHESTRATOR_ID = 'Openstack Controller'
+
 # Special return value for an invalid OVS ofport
 INVALID_OFPORT = -1
 INVALID_VLAN = -1

@@ -53,8 +53,10 @@ class TestCiscoDFAClient(base.BaseTestCase):
                                           '_send_request').start()
         self.get_vers = mock.patch.object(dc.DFARESTClient,
                                           'get_version').start()
-        self.login = mock.patch.object(dc.DFARESTClient, '_login').start()
-        self.logout = mock.patch.object(dc.DFARESTClient, '_logout').start()
+        self.login = mock.patch.object(dc.DFARESTClient,
+                                       '_login_request').start()
+        self.logout = mock.patch.object(dc.DFARESTClient,
+                                        '_logout_request').start()
         self.send_req.return_value = mock.Mock()
         self.send_req.return_value.status_code = 200
         self.send_req.return_value.json.return_value = {}
@@ -70,7 +72,8 @@ class TestCiscoDFAClient(base.BaseTestCase):
         org_name = 'Cisco'
         part_name = self.dcnm_client._part_name
         dci = 100
-        self.dcnm_client.create_project(org_name, part_name, dci)
+        orch_id = 'OpenStack Controller'
+        self.dcnm_client.create_project(orch_id, org_name, part_name, dci)
         call_cnt = self.dcnm_client._send_request.call_count
         self.assertEqual(2, call_cnt)
 
@@ -157,5 +160,78 @@ class TestCiscoDFAClient(base.BaseTestCase):
         del_part_url = self.dcnm_client._del_part % (tenant_name, part_name)
         expected_calls = [mock.call('DELETE', del_part_url, '', 'partition'),
                           mock.call('DELETE', del_org_url, '', 'organization')]
+        self.assertEqual(expected_calls,
+                         self.dcnm_client._send_request.call_args_list)
+
+    def test_http_verify_protocol(self):
+        """Test login test using http. """
+
+        self.login.reset_mock()
+        self.logout.reset_mock()
+        self.dcnm_client._verify_protocol('http')
+        test_login_url = 'http://' + FAKE_DCNM_IP + '/rest/logon'
+        test_logout_url = 'http://' + FAKE_DCNM_IP + '/rest/logout'
+        self.login.assert_called_with(test_login_url)
+        self.logout.assert_called_with(test_logout_url)
+
+    def test_https_verify_protocol(self):
+        """Test login test using https. """
+
+        self.login.reset_mock()
+        self.logout.reset_mock()
+        self.dcnm_client._verify_protocol('https')
+        test_login_url = 'https://' + FAKE_DCNM_IP + '/rest/logon'
+        test_logout_url = 'https://' + FAKE_DCNM_IP + '/rest/logout'
+        self.login.assert_called_with(test_login_url)
+        self.logout.assert_called_with(test_logout_url)
+
+    def test_get_segmentid_range(self):
+        """Test get segment ID range."""
+
+        self.send_req.reset_mock()
+        orch_id = 'OpenStack_Controller'
+        self.dcnm_client.get_segmentid_range(orch_id)
+
+        segment_range_url = self.dcnm_client._segmentid_ranges_url + '/' + (
+            orch_id)
+        expected_calls = [mock.call('GET', segment_range_url, None,
+                                    'segment-id range')]
+        self.assertEqual(expected_calls,
+                         self.dcnm_client._send_request.call_args_list)
+
+    def test_set_segmentid_range(self):
+        """Test set segment ID range."""
+
+        self.send_req.reset_mock()
+        orch_id = 'OpenStack_Controller'
+        segid_min = 10000
+        segid_max = 12000
+        self.dcnm_client.set_segmentid_range(orch_id, segid_min, segid_max)
+
+        segment_range_url = self.dcnm_client._segmentid_ranges_url
+        payload = {'orchestratorId': orch_id,
+                   'segmentIdRanges': "%s-%s" % (segid_min, segid_max)}
+
+        expected_calls = [mock.call('POST', segment_range_url, payload,
+                                    'segment-id range')]
+        self.assertEqual(expected_calls,
+                         self.dcnm_client._send_request.call_args_list)
+
+    def test_update_segmentid_range(self):
+        """Test set segment ID range."""
+
+        self.send_req.reset_mock()
+        orch_id = 'OpenStack_Controller'
+        segid_min = 10000
+        segid_max = 12000
+        self.dcnm_client.update_segmentid_range(orch_id, segid_min, segid_max)
+
+        segment_range_url = self.dcnm_client._segmentid_ranges_url + '/' + (
+            orch_id)
+        payload = {'orchestratorId': orch_id,
+                   'segmentIdRanges': "%s-%s" % (segid_min, segid_max)}
+
+        expected_calls = [mock.call('PUT', segment_range_url, payload,
+                                    'segment-id range')]
         self.assertEqual(expected_calls,
                          self.dcnm_client._send_request.call_args_list)
