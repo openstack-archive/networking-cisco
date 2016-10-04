@@ -16,6 +16,7 @@
 
 import eventlet
 import os
+import signal
 import socket
 import struct
 import time
@@ -85,6 +86,7 @@ class DnsRelayAgent(object):
         self.ext_addr = ""
         self.ns_lock = eventlet.semaphore.Semaphore()
         self.debug_stats = debug_stats.DebugStats('dns')
+        self.kill_now = False
 
     def serve(self):
         self.greenpool = eventlet.GreenPool(4)
@@ -95,9 +97,15 @@ class DnsRelayAgent(object):
             self.greenpool.spawn_n(self._write_debug_stats)
         self.greenpool.waitall()
 
+    def _signal_handler(self, signum, frame):
+        LOG.debug('Recieved the signal %s', signum)
+        self.kill_now = True
+
     def _namespace_monitor(self):
 
         while True:
+            if self.kill_now:
+                break
             eventlet.sleep(MONITOR_INTERVAL)
 
             # Get list of network namespaces on system
@@ -119,6 +127,7 @@ class DnsRelayAgent(object):
                 if ns in curr_ns:
                     continue
                 self.ns_states[ns] = NS_RELAY_DELETING
+        LOG.debug('Namespace Monitor exiting')
 
     def _server_network_relay(self):
 
@@ -136,7 +145,10 @@ class DnsRelayAgent(object):
 
         # Forward DNS responses from external to internal networks
         while True:
+            if self.kill_now:
+                break
             try:
+                self.ext_sock.settimeout(1)
                 size = self.ext_sock.recv_into(recvbuf)
                 pkt = DnsPacket.parse(recvbuf, size)
                 msgid = pkt.get_msgid()
@@ -152,8 +164,11 @@ class DnsRelayAgent(object):
                 int_sock.sendto(recvbuf[:size], (int_addr, int_port))
                 del self.request_info_by_msgid[msgid]
                 self.debug_stats.increment_pkts_to_client(viewid)
+            except socket.timeout:
+                pass
             except Exception:
                 LOG.exception(_LE('Failed to forward dns response'))
+        LOG.debug('Server Network relay exiting')
 
     def _client_network_relay(self, namespace):
 
@@ -178,7 +193,10 @@ class DnsRelayAgent(object):
 
         # Forward DNS requests from internal to external networks
         while self.ns_states[namespace] != NS_RELAY_DELETING:
+            if self.kill_now:
+                break
             try:
+                int_sock.settimeout(1)
                 size, (src_addr, src_port) = int_sock.recvfrom_into(recvbuf)
                 LOG.debug("got dns request from ns: %s", namespace)
                 self.debug_stats.increment_pkts_from_client(viewid)
@@ -193,6 +211,8 @@ class DnsRelayAgent(object):
                 LOG.debug("forwarding request to external nameserver")
                 self.ext_sock.send(pkt.data())
                 self.debug_stats.increment_pkts_to_server(viewid)
+            except socket.timeout:
+                pass
             except Exception:
                 LOG.exception(_LE('Failed to forward dns request to server '
                                 'from %s'), namespace)
@@ -204,6 +224,7 @@ class DnsRelayAgent(object):
             int_sock.close()
         except Exception:
             LOG.warning(_LW('Failed to cleanup dns relay for %s'), namespace)
+        LOG.debug('Client network relay exiting')
 
     def _open_dns_ext_socket(self):
 
@@ -243,6 +264,8 @@ class DnsRelayAgent(object):
     def _cleanup_stale_requests(self):
 
         while True:
+            if self.kill_now:
+                break
             eventlet.sleep(CLEANUP_INTERVAL)
 
             currtime = time.time()
@@ -251,6 +274,7 @@ class DnsRelayAgent(object):
                 createtime = reqvals[3]
                 if (currtime - createtime) > STALE_REQUEST_TMO:
                     del self.request_info_by_msgid[msgid]
+        LOG.debug('Cleanup thread exiting')
 
     def _convert_namespace_to_viewid(self, namespace):
         netid = namespace[6:]
@@ -425,6 +449,8 @@ def main():
     cfg.CONF(project='neutron')
     config.setup_logging()
     relay = DnsRelayAgent()
+    signal.signal(signal.SIGINT, relay._signal_handler)
+    signal.signal(signal.SIGTERM, relay._signal_handler)
     relay.serve()
 
 if __name__ == "__main__":
