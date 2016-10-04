@@ -201,6 +201,26 @@ class L3RouterBaseDriver(object):
         pass
 
     @abc.abstractmethod
+    def create_floatingip_precommit(self, context, fip_context):
+        """Create a floatingip.
+
+        :param context: the neutron context of the request
+        :param fip_context: FloatingipContext instance describing the new
+        state of the floatingip
+
+        Called before the transaction commits. Call can block, though will
+        block the entire process so care should be taken to not drastically
+        affect performance. Raising an exception will cause the deletion of
+        the resource.
+
+        create_flotingip_precommit will not be used by most drivers. The
+        only way a routertype driver can be known is to assume the default
+        router type. This API was introduced to support allocation of
+        floating IPs from NAT pools for Group Based Policy (GBP) workflow.
+        """
+        pass
+
+    @abc.abstractmethod
     def create_floatingip_postcommit(self, context, fip_context):
         """Create a floatingip.
 
