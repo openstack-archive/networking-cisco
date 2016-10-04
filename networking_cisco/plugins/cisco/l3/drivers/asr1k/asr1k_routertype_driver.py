@@ -249,7 +249,7 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
                     self._l3_plugin.delete_router(
                         context, global_routers[0]['id'], unschedule=False)
                 except (exc.ObjectDeletedError, l3.RouterNotFound) as e:
-                    LOG.warn(e)
+                    LOG.warning(e)
                 self._conditionally_remove_logical_global_router(context,
                                                                  router)
 
@@ -336,7 +336,7 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
                 super(L3RouterApplianceDBMixin, self._l3_plugin).delete_router(
                     context, log_global_routers[0]['id'])
             except (exc.ObjectDeletedError, l3.RouterNotFound) as e:
-                LOG.warn(e)
+                LOG.warning(e)
         else:
             self._update_ha_redundancy_level(context, log_global_routers[0],
                                              -1)
