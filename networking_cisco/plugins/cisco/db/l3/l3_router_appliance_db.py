@@ -183,11 +183,9 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
     def do_create_router(self, context, router, router_type_id, auto_schedule,
                          share_host, hosting_device_id=None, role=None,
                          inflated_slot_need=0):
-        r = router['router']
-        gw_info = r.pop(EXTERNAL_GW_INFO, None)
-        router_created = (super(L3RouterApplianceDBMixin, self).
-                          create_router(context, router))
         with context.session.begin(subtransactions=True):
+            router_created = (super(L3RouterApplianceDBMixin, self).
+                              create_router(context, router))
             r_hd_b_db = l3_models.RouterHostingDeviceBinding(
                 router_id=router_created['id'],
                 role=role,
@@ -203,18 +201,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         router_created[routertypeawarescheduler.SHARE_HOST_ATTR] = share_host
         router_created[routerhostingdevice.HOSTING_DEVICE_ATTR] = (
             hosting_device_id)
-        try:
-            router_db = self._get_router(context, router_created['id'])
-            if gw_info:
-                self._update_router_gw_info(context, router_created['id'],
-                                            gw_info)
-        except Exception:
-            with excutils.save_and_reraise_exception():
-                LOG.exception(_LE("An exception occurred while creating "
-                                  "the router: %s"), router)
-                self.delete_router(context, router_created['id'])
-
-        return self._make_router_dict(router_db), r_hd_b_db
+        return router_created, r_hd_b_db
 
     def create_router(self, context, router):
         r = router['router']
