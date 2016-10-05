@@ -48,6 +48,9 @@ FAIL_REC_INTERVAL = 60
 # Heartbeat interval
 HB_INTERVAL = 30
 
+# Segmentation ID reuse after 1 hour
+SEG_REUSE_TIMEOUT = 1
+
 # Special return value for an invalid OVS ofport
 INVALID_OFPORT = -1
 INVALID_VLAN = -1
@@ -61,7 +64,12 @@ UPLINK_MSG_TYPE = 51
 UPLINK_DET_INTERVAL = 10
 ERR_PROC_INTERVAL = 20
 # IF 'down' is seen twice continuously
-UPLINK_DOWN_THRES = 2
+UPLINK_DOWN_THRES = 3
 
 Q_UPL_PRIO = 1
 Q_VM_PRIO = 2
+
+RES_SEGMENT = "SEGMENT"
+RES_VLAN = "VLAN"
+RES_IN_SUBNET = 'IN_SUB'
+RES_OUT_SUBNET = 'OUT_SUB'

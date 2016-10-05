@@ -58,7 +58,7 @@ class TestCiscoDFAClient(base.BaseTestCase):
         self.send_req.return_value = mock.Mock()
         self.send_req.return_value.status_code = 200
         self.send_req.return_value.json.return_value = {}
-        self.get_vers.return_value = ""
+        self.get_vers.return_value = '7.0(1)'
 
         self.dcnm_client = dc.DFARESTClient(self.cfg)
         self.testnetwork = TestNetwork()
@@ -82,7 +82,8 @@ class TestCiscoDFAClient(base.BaseTestCase):
         part_pyld = {
             'partitionName': part_name,
             'organizationName': org_name,
-            'description': org_name}
+            'description': org_name,
+            'serviceNodeIpAddress': None}
         org_url = self.dcnm_client._org_url
         part_url = self.dcnm_client._create_part_url % org_name
         expected_calls = [mock.call('POST', org_url, org_pyld, 'organization'),
