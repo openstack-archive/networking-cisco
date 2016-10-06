@@ -221,7 +221,38 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.assertRaises(SessionCloseError,
                           self.routing_helper._process_router, ri)
 
-    def test_process_router(self):
+    def _test_router_admin_port_state(self, router, ri, ex_gw_port):
+        # change the router admin_state_up to false
+        router['admin_state_up'] = False
+        ri.router = router
+        self.routing_helper._process_router(ri)
+        self.routing_helper._disable_router_interface.assert_called_with(
+            ri)
+        self.assertFalse(self.routing_helper._enable_router_interface.called)
+        self._reset_mocks()
+
+        # Change router admin_state_up to True, and set the router port
+        # admin_state_up to false
+        router['admin_state_up'] = True
+        router['gw_port']['admin_state_up'] = False
+        ri.router = router
+        self.routing_helper._process_router(ri)
+        self.routing_helper._disable_router_interface.assert_called_with(
+            ri, ex_gw_port)
+        self._reset_mocks()
+
+        # Change admin_state_up for Router and router port to True
+        router['gw_port']['admin_state_up'] = True
+        ri.router = router
+        self.routing_helper._process_router(ri)
+        self.routing_helper._enable_router_interface.assert_any_call(
+            ri, ex_gw_port)
+        self.routing_helper._enable_router_interface.assert_any_call(
+            ri, router[l3_constants.INTERFACE_KEY][0])
+        self.assertFalse(self.routing_helper._disable_router_interface.called)
+        self._reset_mocks()
+
+    def test_process_router(self, test_admin_state=True):
         router, ports = prepare_router_data()
         #Setup mock for call to proceess floating ips
         self.routing_helper._process_router_floating_ips = mock.Mock()
@@ -269,35 +300,8 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.assertFalse(self.routing_helper._external_gateway_added.called)
         self._reset_mocks()
 
-        # change the router admin_state_up to false
-        router['admin_state_up'] = False
-        ri.router = router
-        self.routing_helper._process_router(ri)
-        self.routing_helper._disable_router_interface.assert_called_with(
-            ri)
-        self.assertFalse(self.routing_helper._enable_router_interface.called)
-        self._reset_mocks()
-
-        # Change router admin_state_up to True, and set the router port
-        # admin_state_up to false
-        router['admin_state_up'] = True
-        router['gw_port']['admin_state_up'] = False
-        ri.router = router
-        self.routing_helper._process_router(ri)
-        self.routing_helper._disable_router_interface.assert_called_with(
-            ri, ex_gw_port)
-        self._reset_mocks()
-
-        # Change admin_state_up for Router and router port to True
-        router['gw_port']['admin_state_up'] = True
-        ri.router = router
-        self.routing_helper._process_router(ri)
-        self.routing_helper._enable_router_interface.assert_any_call(
-            ri, ex_gw_port)
-        self.routing_helper._enable_router_interface.assert_any_call(
-            ri, router[l3_constants.INTERFACE_KEY][0])
-        self.assertFalse(self.routing_helper._disable_router_interface.called)
-        self._reset_mocks()
+        if test_admin_state:
+            self._test_router_admin_port_state(router, ri, ex_gw_port)
 
         # now no ports so state is torn down
         del router[l3_constants.INTERFACE_KEY]
