@@ -1,5 +1,4 @@
-# Copyright 2016 Cisco Systems, Inc.
-# All Rights Reserved.
+# Copyright 2016 Cisco Systems, Inc.  All rights reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -14,22 +13,15 @@
 #    under the License.
 #
 
-[Unit]
-Description=CPNR DHCP Relay Agent
-After=syslog.target network.target
+import subprocess
+import sys
 
-[Service]
-Type=simple
-User=cpnr
-Environment="OPTS1=--config-file"
-Environment="OPTS2=/etc/neutron/dhcp_agent.ini"
-Environment="OPTS3=--log-file"
-Environment="OPTS4=/var/log/cpnr/cpnr-dhcp-relay-agent.log"
-ExecStart=/usr/bin/cpnr-dhcp-relay $OPTS1 $OPTS2 $OPTS3 $OPTS4
-ExecReload=/bin/kill -HUP $MAINPID
-Restart=on-failure
-RestartSec=10s
 
-[Install]
-WantedBy=multi-user.target
+def main():
+    return subprocess.check_output(['sudo', 'cpnr-rootwrap',
+        '/etc/cpnr/rootwrap.conf',
+        'cpnr-dhcp-relay-agent'] + sys.argv[1:])
 
+
+if __name__ == "__main__":
+    main()

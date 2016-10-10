@@ -17,6 +17,7 @@
 import binascii
 import eventlet
 import os
+import signal
 import socket
 import struct
 
@@ -98,6 +99,7 @@ class DhcpRelayAgent(object):
         self.ns_lock = eventlet.semaphore.Semaphore()
         self.int_sock_retries = 0
         self.debug_stats = debug_stats.DebugStats('dhcp')
+        self.kill_now = False
 
     def serve(self):
         self.greenpool = eventlet.GreenPool(3)
@@ -107,9 +109,15 @@ class DhcpRelayAgent(object):
             self.greenpool.spawn_n(self._write_debug_stats)
         self.greenpool.waitall()
 
+    def _signal_handler(self, signum, frame):
+        LOG.debug('Recieved the signal %s', signum)
+        self.kill_now = True
+
     def _namespace_monitor(self):
 
         while True:
+            if self.kill_now:
+                break
             eventlet.sleep(MONITOR_INTERVAL)
 
             # Get list of network namespaces on system
@@ -131,6 +139,7 @@ class DhcpRelayAgent(object):
                 if ns in curr_ns:
                     continue
                 self.ns_states[ns] = NS_RELAY_DELETING
+        LOG.debug('Namespace Monitor exiting')
 
     def _server_network_relay(self):
 
@@ -145,7 +154,10 @@ class DhcpRelayAgent(object):
 
         # Forward DHCP responses from external to internal networks
         while True:
+            if self.kill_now:
+                break
             try:
+                self.ext_sock.settimeout(1)
                 size = self.ext_sock.recv_into(recvbuf)
                 pkt = DhcpPacket.parse(recvbuf)
                 vpnid = pkt.get_relay_option(151)
@@ -159,8 +171,11 @@ class DhcpRelayAgent(object):
                 LOG.debug('Forwarding DHCP response for vpn %s', vpnid)
                 int_sock.sendto(recvbuf[:size], (ciaddr, DHCP_CLIENT_PORT))
                 self.debug_stats.increment_pkts_to_client(vpnid)
+            except socket.timeout:
+                pass
             except Exception:
                 LOG.exception(_LE('Failed to forward dhcp response'))
+        LOG.debug('Server network relay exiting')
 
     def _client_network_relay(self, namespace):
 
@@ -184,10 +199,12 @@ class DhcpRelayAgent(object):
         recvbuf = bytearray(RECV_BUFFER_SIZE)
         LOG.debug('Opened dhcp server socket on ns:%s, addr:%s, vpn:%s',
                   namespace, int_addr, vpnid)
-
         # Forward DHCP requests from internal to external networks
         while self.ns_states[namespace] != NS_RELAY_DELETING:
+            if self.kill_now:
+                break
             try:
+                recv_sock.settimeout(1)
                 recv_sock.recv_into(recvbuf)
                 pkt = DhcpPacket.parse(recvbuf)
                 options = [(5, int_addr),
@@ -201,6 +218,8 @@ class DhcpRelayAgent(object):
                 LOG.debug('Forwarding DHCP request for vpn %s', vpnid)
                 self.ext_sock.send(pkt.data())
                 self.debug_stats.increment_pkts_to_server(vpnid)
+            except socket.timeout:
+                pass
             except Exception:
                 LOG.exception(_LE('Failed to forward dhcp to server from %s'),
                               namespace)
@@ -214,6 +233,7 @@ class DhcpRelayAgent(object):
             send_sock.close()
         except Exception:
             LOG.warning(_LW('Failed to cleanup relay for %s'), namespace)
+        LOG.debug('Client network relay exiting')
 
     def _open_dhcp_ext_socket(self):
 
@@ -371,6 +391,8 @@ def main():
         LOG.error(_LE('Must run dhcp relay as root'))
         return
     relay = DhcpRelayAgent()
+    signal.signal(signal.SIGINT, relay._signal_handler)
+    signal.signal(signal.SIGTERM, relay._signal_handler)
     relay.serve()
 
 if __name__ == "__main__":
