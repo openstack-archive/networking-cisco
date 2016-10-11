@@ -73,9 +73,9 @@ class DfaCli(cmd.Cmd):
         if (not ipaddr or not macaddr or
                 not utils.is_valid_ipv4(ipaddr)
                 or not utils.is_valid_mac(macaddr)):
-            print ('Invalid input parameters.\n'
-                   'Usage:'
-                   ' set_static_ip --mac <mac address> --ip <ip address>')
+            print('Invalid input parameters.\n'
+                  'Usage:'
+                  ' set_static_ip --mac <mac address> --ip <ip address>')
             return
 
         self.set_static_ip_address(ipaddr, macaddr)
