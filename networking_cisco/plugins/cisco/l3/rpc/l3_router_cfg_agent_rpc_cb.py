@@ -17,11 +17,10 @@ import oslo_messaging
 from oslo_serialization import jsonutils
 import six
 
-from neutron.common import constants
 from neutron import context as neutron_context
 from neutron.db import api as db_api
 from neutron.extensions import l3
-from neutron import manager
+from neutron_lib import constants
 
 LOG = logging.getLogger(__name__)
 
@@ -36,14 +35,6 @@ class L3RouterCfgRpcCallback(object):
 
     def __init__(self, l3plugin):
         self._l3plugin = l3plugin
-
-    @property
-    def _core_plugin(self):
-        try:
-            return self._plugin
-        except AttributeError:
-            self._plugin = manager.NeutronManager.get_plugin()
-            return self._plugin
 
     # version 1.0 API
     @db_api.retry_db_errors
@@ -110,6 +101,7 @@ class L3RouterCfgRpcCallback(object):
                   "routers: %(routers)s", {'host': host, 'routers': []})
 
     # version 1.1 API
+    @db_api.retry_db_errors
     def update_floatingip_statuses_cfg(self, context, router_id, fip_statuses):
         """Update operational status for one or several floating IPs.
 
@@ -131,8 +123,13 @@ class L3RouterCfgRpcCallback(object):
                 except l3.FloatingIPNotFound:
                     LOG.debug("Floating IP: %s no longer present.",
                               floatingip_id)
+            # Find all floating IPs known to have been the given router
+            # for which an update was not received. Set them DOWN mercilessly
+            # This situation might occur for some asynchronous backends if
+            # notifications were missed
             known_router_fips = self._l3plugin.get_floatingips(
                 context, {'last_known_router_id': [router_id]})
+            # Consider only floating ips which were disassociated in the API
             fips_to_disable = (fip['id'] for fip in known_router_fips
                                if not fip['router_id'])
             for fip_id in fips_to_disable:
@@ -140,6 +137,7 @@ class L3RouterCfgRpcCallback(object):
                 self._l3plugin.update_floatingip_status(
                     context, fip_id, constants.FLOATINGIP_STATUS_DOWN)
 
+    @db_api.retry_db_errors
     def update_port_statuses_cfg(self, context, port_ids, status):
         """Update the operational statuses of a list of router ports.
 
