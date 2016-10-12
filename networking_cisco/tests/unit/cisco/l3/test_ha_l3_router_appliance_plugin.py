@@ -34,7 +34,7 @@ from neutron.tests import fake_notifier
 
 from neutron_lib import constants as l3_constants
 
-from networking_cisco import backwards_compatibility
+from networking_cisco import backwards_compatibility as bc
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.common import (
     cisco_constants as cisco_const)
@@ -1589,7 +1589,7 @@ class L3CfgAgentHARouterApplianceTestCase(
                         self.assertEqual(1, len(interfaces))
 
     # Overloaded test function that needs to be modified to run
-    @unittest.skipIf(backwards_compatibility.IS_PRE_NEWTON is True,
+    @unittest.skipIf(bc.NEUTRON_VERSION < bc.NEUTRON_NEWTON_VERSION,
                      "Test not applicable prior to Newton")
     def test_router_delete_precommit_event(self):
         deleted = set()

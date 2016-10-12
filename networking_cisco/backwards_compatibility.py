@@ -21,17 +21,20 @@ from neutron import version
 # backwards-compatibility with stable/mitaka this will act as a translator
 # that passes constants and functions according to version number.
 
-if StrictVersion(str(version.version_info)) >= StrictVersion('9.0.0'):
+NEUTRON_VERSION = StrictVersion(str(version.version_info))
+NEUTRON_NEWTON_VERSION = StrictVersion('9.0.0')
+
+# 9.0.0 is Newton
+if NEUTRON_VERSION >= NEUTRON_NEWTON_VERSION:
     from neutron.conf import common as base_config
     from neutron_lib.api import validators
     from neutron_lib import constants
     ATTR_NOT_SPECIFIED = constants.ATTR_NOT_SPECIFIED
     is_attr_set = validators.is_attr_set
-    IS_PRE_NEWTON = False
-else:
+# Pre Newton
+elif NEUTRON_VERSION < NEUTRON_NEWTON_VERSION:
     from neutron.api.v2 import attributes
     from neutron.common import config as base_config
     ATTR_NOT_SPECIFIED = attributes.ATTR_NOT_SPECIFIED
     is_attr_set = attributes.is_attr_set
-    IS_PRE_NEWTON = True
 core_opts = base_config.core_opts

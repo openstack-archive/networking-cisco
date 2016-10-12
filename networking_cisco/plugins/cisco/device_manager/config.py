@@ -21,7 +21,7 @@ from oslo_utils import uuidutils
 import six
 
 from networking_cisco._i18n import _, _LE
-from networking_cisco import backwards_compatibility as bc_attr
+from networking_cisco import backwards_compatibility as bc
 from neutron.api.v2 import attributes
 
 LOG = logging.getLogger(__name__)
@@ -60,7 +60,8 @@ def verify_resource_dict(res_dict, is_create, attr_info):
     This function contains code taken from function 'prepare_request_body' in
     attributes.py.
     """
-    if not bc_attr.IS_PRE_NEWTON and 'tenant_id' in res_dict:
+    if ((bc.NEUTRON_VERSION >= bc.NEUTRON_NEWTON_VERSION) and 'tenant_id'
+            in res_dict):
         res_dict['project_id'] = res_dict['tenant_id']
     if is_create:  # POST
         for attr, attr_vals in six.iteritems(attr_info):
@@ -82,7 +83,7 @@ def verify_resource_dict(res_dict, is_create, attr_info):
 
     for attr, attr_vals in six.iteritems(attr_info):
         if (attr not in res_dict or
-                res_dict[attr] is bc_attr.ATTR_NOT_SPECIFIED):
+                res_dict[attr] is bc.ATTR_NOT_SPECIFIED):
             continue
         # Convert values if necessary
         if 'convert_to' in attr_vals:

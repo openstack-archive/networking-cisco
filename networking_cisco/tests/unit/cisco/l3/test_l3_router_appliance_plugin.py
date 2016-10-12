@@ -40,7 +40,7 @@ from neutron.tests.unit.extensions import test_extraroute
 from neutron.tests.unit.extensions import test_l3
 
 from networking_cisco._i18n import _
-from networking_cisco import backwards_compatibility
+from networking_cisco import backwards_compatibility as bc
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.common import cisco_constants as c_const
 from networking_cisco.plugins.cisco.db.l3 import l3_router_appliance_db
@@ -568,7 +568,7 @@ class L3RouterApplianceVMTestCase(L3RouterApplianceNamespaceTestCase):
 
         self._mock_get_routertype_scheduler_always_none()
 
-    @unittest.skipIf(backwards_compatibility.IS_PRE_NEWTON is True,
+    @unittest.skipIf(bc.NEUTRON_VERSION < bc.NEUTRON_NEWTON_VERSION,
                      "Test not applicable prior to Newton")
     def test_create_router_gateway_fails_nested_delete_router_failed(self):
         (super(L3RouterApplianceNamespaceTestCase, self).
@@ -592,7 +592,7 @@ class L3AgentRouterApplianceTestCase(L3RouterApplianceTestCaseBase,
         self.plugin = self.l3_plugin
 
     # Overloaded test function that needs to be modified to run
-    @unittest.skipIf(backwards_compatibility.IS_PRE_NEWTON is True,
+    @unittest.skipIf(bc.NEUTRON_VERSION < bc.NEUTRON_NEWTON_VERSION,
                      "Test not applicable prior to Newton")
     def test_router_delete_event_exception_preserved(self):
         super(L3AgentRouterApplianceTestCase,
@@ -624,7 +624,7 @@ class L3CfgAgentRouterApplianceTestCase(L3RouterApplianceTestCaseBase,
         super(L3CfgAgentRouterApplianceTestCase, self).tearDown()
 
     # Overloaded test function that needs to be modified to run
-    @unittest.skipIf(backwards_compatibility.IS_PRE_NEWTON is True,
+    @unittest.skipIf(bc.NEUTRON_VERSION < bc.NEUTRON_NEWTON_VERSION,
                      "Test not applicable prior to Newton")
     def test_router_delete_event_exception_preserved(self):
         super(L3CfgAgentRouterApplianceTestCase,
