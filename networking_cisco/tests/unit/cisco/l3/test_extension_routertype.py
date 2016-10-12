@@ -18,7 +18,7 @@ import mock
 from oslo_utils import uuidutils
 from webob import exc
 
-from networking_cisco import backwards_compatibility
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import utils
 from networking_cisco.plugins.cisco.extensions import routertype
 
@@ -67,7 +67,7 @@ class RouterTypeTestCase(test_extensions_base.ExtensionTestCase):
             'cfg_agent_service_helper': dummy_driver,
             'cfg_agent_driver': dummy_driver}}
 
-        if backwards_compatibility.IS_PRE_NEWTON is False:
+        if bc.NEUTRON_VERSION >= bc.NEUTRON_NEWTON_VERSION:
             data['routertype']['project_id'] = tenant_id
 
         return_value = copy.copy(data['routertype'])

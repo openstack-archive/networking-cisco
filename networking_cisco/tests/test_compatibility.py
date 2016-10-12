@@ -16,7 +16,7 @@
 from networking_cisco import backwards_compatibility as bc
 
 
-if bc.IS_PRE_NEWTON:
+if bc.NEUTRON_VERSION < bc.NEUTRON_NEWTON_VERSION:
     from neutron.tests.common import base
 
     class MySQLTestCase(base.MySQLTestCase):
