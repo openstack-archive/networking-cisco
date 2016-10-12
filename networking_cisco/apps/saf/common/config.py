@@ -114,6 +114,7 @@ default_dcnm_opts = {
         'vlan_id_min': const.VLAN_ID_MIN,
         'vlan_id_max': const.VLAN_ID_MAX,
         'vlan_reuse_timeout': const.VLAN_REUSE_TIMEOUT,
+        'orchestrator_id': com_const.ORCHESTRATOR_ID
     },
 }
 

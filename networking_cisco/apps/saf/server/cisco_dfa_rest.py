@@ -20,6 +20,7 @@
 
 import re
 import requests
+import sys
 
 from oslo_serialization import jsonutils
 
@@ -44,7 +45,6 @@ class DFARESTClient(object):
         self._ip = cfg.dcnm.dcnm_ip
         self._user = cfg.dcnm.dcnm_user
         self._pwd = cfg.dcnm.dcnm_password
-        protocol = 'http'
         self._part_name = cfg.dcnm.default_partition_name
         if (not self._ip) or (not self._user) or (not self._pwd):
             msg = ("[DFARESTClient] Input DCNM IP, user name or password"
@@ -59,32 +59,13 @@ class DFARESTClient(object):
         # url timeout: 10 seconds
         self.timeout_resp = (10 if not cfg.dcnm.timeout_resp else
                              cfg.dcnm.timeout_resp)
-
-        # urls
-        self._org_url = 'http://%s/rest/auto-config/organizations' % self._ip
-        self._create_network_url = ('http://%s/' % self._ip +
-                                    'rest/auto-config/organizations'
-                                    '/%s/partitions/%s/networks')
-        self._cfg_profile_list_url = ('http://%s/rest/auto-config/profiles' %
-                                      self._ip)
-        self._cfg_profile_get_url = self._cfg_profile_list_url + '/%s'
-        self._global_settings_url = '%s://%s/rest/auto-config/settings' % (
-            (protocol, self._ip))
-        self._create_part_url = ('http://%s/rest/auto-config/' % self._ip +
-                                 'organizations/%s/partitions')
-        self._update_part_url = ('http://%s/rest/auto-config/' % self._ip +
-                                 'organizations/%s/partitions/%s')
-        self._del_org_url = ('http://%s/rest/auto-config/organizations' %
-                             self._ip + '/%s')
-        self._del_part = ('http://%s/rest/auto-config/organizations' %
-                          self._ip + '/%s/partitions/%s')
-        self._network_url = ('http://%s/rest/auto-config/organizations' %
-                             self._ip + '/%s/partitions/%s/networks/'
-                             'segment/%s')
-        self._login_url = 'http://%s/rest/logon' % (self._ip)
-        self._logout_url = 'http://%s/rest/logout' % (self._ip)
         self._exp_time = 100000
-        self._resp_ok = (200, 201, 202)
+        self._resp_ok = (requests.codes.ok, requests.codes.created,
+                         requests.codes.accepted)
+
+        self.dcnm_protocol = self.get_dcnm_protocol()
+        # Fill the urls for DCNM Rest API's.
+        self.fill_urls()
 
         self._cur_ver = self.get_version()
         self._detect_iplus()
@@ -114,6 +95,44 @@ class DFARESTClient(object):
 
     def _failure_msg(self, response):
         return "[%s] %s" % (response.status_code, response.text)
+
+    def get_segmentid_range(self, orchestrator_id):
+        """Get segment id range from DCNM. """
+
+        url = "%s/%s" % (self._segmentid_ranges_url, orchestrator_id)
+
+        res = self._send_request('GET', url, None, 'segment-id range')
+        if res and res.status_code in self._resp_ok:
+            return res.json()
+
+    def set_segmentid_range(self, orchestrator_id, segid_min, segid_max):
+        """set segment id range in DCNM. """
+
+        url = self._segmentid_ranges_url
+
+        payload = {'orchestratorId': orchestrator_id,
+                   'segmentIdRanges': "%s-%s" % (segid_min, segid_max)}
+
+        res = self._send_request('POST', url, payload, 'segment-id range')
+        if not (res and res.status_code in self._resp_ok):
+            LOG.error(_LE("Failed to set segment id range for orchestrator "
+                          "%(orch)s on DCNM: %(text)s"),
+                      {'orch': orchestrator_id, 'text': res.text})
+            raise dexc.DfaClientRequestFailed(reason=self._failure_msg(res))
+
+    def update_segmentid_range(self, orchestrator_id, segid_min, segid_max):
+        """update segment id range in DCNM. """
+        url = "%s/%s" % (self._segmentid_ranges_url, orchestrator_id)
+
+        payload = {'orchestratorId': orchestrator_id,
+                   'segmentIdRanges': "%s-%s" % (segid_min, segid_max)}
+
+        res = self._send_request('PUT', url, payload, 'segment-id range')
+        if not (res and res.status_code in self._resp_ok):
+            LOG.error(_LE("Failed to update segment id range for orchestrator "
+                          "%(orch)s on DCNM: %(text)s"),
+                      {'orch': orchestrator_id, 'text': res.text})
+            raise dexc.DfaClientRequestFailed(reason=self._failure_msg(res))
 
     def _set_default_cfg_profile(self):
         """Set default network config profile.
@@ -188,9 +207,10 @@ class DFARESTClient(object):
         else:
             self._default_md = "md0"
 
-    def _create_org(self, name, desc):
+    def _create_org(self, orch_id, name, desc):
         """Create organization on the DCNM.
 
+        :param orch_id: orchestrator ID
         :param name: Name of organization
         :param desc: Description of organization
         """
@@ -198,7 +218,7 @@ class DFARESTClient(object):
         payload = {
             "organizationName": name,
             "description": name if len(desc) == 0 else desc,
-            "orchestrationSource": "OpenStack Controller"}
+            "orchestrationSource": orch_id}
 
         return self._send_request('POST', url, payload, 'organization')
 
@@ -254,6 +274,7 @@ class DFARESTClient(object):
 
     def _get_partition(self, org_name, part_name=None):
         """send get partition request to the DCNM.
+
         :param org_name: name of organization
         :param part_name: name of partition
         """
@@ -267,8 +288,8 @@ class DFARESTClient(object):
     def update_partition_static_route(self, org_name, part_name,
                                       static_ip_list, vrf_prof=None,
                                       service_node_ip=None):
-        """
-        Send static route update requests to DCNM.
+        """Send static route update requests to DCNM.
+
         :param org_name: name of organization
         :param part_name: name of partition
         :static_ip_list: List of static IP addresses
@@ -349,30 +370,39 @@ class DFARESTClient(object):
         url = self._network_url % (org_name, part_name, segment_id)
         return self._send_request('GET', url, '', 'network')
 
-    def _login(self):
-        """Login request to DCNM."""
+    def _login_request(self, url_login):
+        """Internal function to send login request. """
 
-        url_login = self._login_url
         expiration_time = self._exp_time
-
         payload = {'expirationTime': expiration_time}
+        # TODO(padkrish), after testing with certificates, make the
+        # verify option configurable.
         res = requests.post(url_login,
                             data=jsonutils.dumps(payload),
                             headers=self._req_headers,
                             auth=(self._user, self._pwd),
-                            timeout=self.timeout_resp)
+                            timeout=self.timeout_resp, verify=False)
         session_id = ''
         if res and res.status_code in self._resp_ok:
             session_id = res.json().get('Dcnm-Token')
         self._req_headers.update({'Dcnm-Token': session_id})
 
-    def _logout(self):
-        """Logout request to DCNM."""
+    def _login(self):
+        """Login request to DCNM. """
 
-        url_logout = self._logout_url
+        self._login_request(self._login_url)
+
+    def _logout_request(self, url_logout):
+        """Internal logout request to DCNM. """
+
         requests.post(url_logout,
                       headers=self._req_headers,
-                      timeout=self.timeout_resp)
+                      timeout=self.timeout_resp, verify=False)
+
+    def _logout(self, url_arg=None):
+        """Logout request to DCNM."""
+
+        self._logout_request(self._logout_url)
 
     def _send_request(self, operation, url, payload, desc):
         """Send request to DCNM."""
@@ -388,7 +418,7 @@ class DFARESTClient(object):
 
             res = requests.request(operation, url, data=payload_json,
                                    headers=self._req_headers,
-                                   timeout=self.timeout_resp)
+                                   timeout=self.timeout_resp, verify=False)
             desc += desc_lookup.get(operation, operation.lower())
             LOG.info(_LI("DCNM-send_request: %(desc)s %(url)s %(pld)s"),
                      {'desc': desc, 'url': url, 'pld': payload})
@@ -689,16 +719,17 @@ class DFARESTClient(object):
                       ({'part': partition_name, 'res': res}))
             raise dexc.DfaClientRequestFailed(reason=self._failure_msg(res))
 
-    def create_project(self, org_name, part_name, dci_id, desc=None):
+    def create_project(self, orch_id, org_name, part_name, dci_id, desc=None):
         """Create project on the DCNM.
 
+        :param orch_id: orchestrator ID
         :param org_name: name of organization.
         :param part_name: name of partition.
         :param dci_id: Data Center interconnect id.
         :param desc: description of project.
         """
         desc = desc or org_name
-        res = self._create_org(org_name, desc)
+        res = self._create_org(orch_id, org_name, desc)
         if res and res.status_code in self._resp_ok:
             LOG.debug("Created %s organization in DCNM.", org_name)
         else:
@@ -850,12 +881,81 @@ class DFARESTClient(object):
     def get_version(self):
         """Get the DCNM version."""
 
-        url = 'http://%s/rest/dcnm-version' % self._ip
+        url = '%s://%s/rest/dcnm-version' % (self.dcnm_protocol, self._ip)
         payload = {}
 
         try:
             res = self._send_request('GET', url, payload, 'dcnm-version')
             if res and res.status_code in self._resp_ok:
                 return res.json().get('Dcnm-Version')
-        except dexc.DfaClientRequestFailed:
+        except dexc.DfaClientRequestFailed as exc:
             LOG.error(_LE("Failed to get DCNM version."))
+            sys.exit(_LE("ERROR: Failed to connect to DCNM: %s"), exc)
+
+    def _verify_protocol(self, protocol):
+        try:
+            self._login_request("%s://%s/rest/logon" % (protocol, self._ip))
+            self._logout_request("%s://%s/rest/logout" % (protocol, self._ip))
+        except (requests.HTTPError, requests.Timeout,
+                requests.ConnectionError) as exc:
+            LOG.error(_LE("Login Test failed for %(protocol)s Exc %(exc)s."),
+                      {'protocol': protocol, 'exc': exc})
+            return False
+        return True
+
+    def get_dcnm_protocol(self):
+        """Routine to find out if DCNM is using http or https.
+
+        DCNM 10 (Fuji-4) and above does not support http. Only https is
+        supported and enabled by default.
+        Prior DCNM versions supported both http and https. But, only http
+        was enabled by default.
+        So, enabler needs to find out if DCNM is supporting http or https to
+        be friendly with the existing installed setups.
+        """
+        if self._verify_protocol('https'):
+            return 'https'
+        if self._verify_protocol('http'):
+            return 'http'
+        sys.exit(_LE("ERROR: Both http and https test failed"))
+
+    def _build_url(self, url_remaining):
+        """This function builds the URL from host, protocol and string. """
+        return self.host_protocol_url + url_remaining
+
+    def fill_urls(self):
+        """This assigns the URL's based on the protocol. """
+
+        protocol = self.dcnm_protocol
+        self._org_url = '%s://%s/rest/auto-config/organizations' % (
+            (protocol, self._ip))
+        self._create_network_url = ('%s://%s/' % (protocol, self._ip) +
+                                    'rest/auto-config/organizations'
+                                    '/%s/partitions/%s/networks')
+        self.host_protocol_url = '%s://%s/' % (protocol, self._ip)
+        self._create_network_url = self._build_url(
+            'rest/auto-config/organizations'
+            '/%s/partitions/%s/networks')
+        self._cfg_profile_list_url = '%s://%s/rest/auto-config/profiles' % (
+            (protocol, self._ip))
+        self._cfg_profile_get_url = self._cfg_profile_list_url + '/%s'
+        self._global_settings_url = self._build_url(
+            'rest/auto-config/settings')
+        self._create_part_url = self._build_url(
+            'rest/auto-config/organizations/%s/partitions')
+        self._update_part_url = self._build_url(
+            'rest/auto-config/organizations/%s/partitions/%s')
+        self._del_org_url = self._build_url(
+            'rest/auto-config/organizations/%s')
+        self._del_part = self._build_url(
+            'rest/auto-config/organizations/%s/partitions/%s')
+        self._network_url = self._build_url(
+            'rest/auto-config/organizations/%s/partitions/'
+            '%s/networks/segment/%s')
+        self._network_mob_url = self._build_url(
+            'rest/auto-config/organizations/%s/partitions/'
+            '%s/networks/vlan/%s/mobility-domain/%s')
+        self._segmentid_ranges_url = self._build_url(
+            'rest/settings/segmentid-ranges')
+        self._login_url = self._build_url('rest/logon')
+        self._logout_url = self._build_url('rest/logout')

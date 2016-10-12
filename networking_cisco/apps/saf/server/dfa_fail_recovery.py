@@ -75,7 +75,8 @@ class DfaFailureRecovery(object):
                 {'name': proj.name}))
             # Try to create the project in DCNM
             try:
-                self.dcnm_client.create_project(proj.name,
+                self.dcnm_client.create_project(self.cfg.dcnm.orchestrator_id,
+                                                proj.name,
                                                 self.cfg.dcnm.
                                                 default_partition_name,
                                                 proj.dci_id)
