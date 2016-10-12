@@ -28,7 +28,7 @@ from neutron.tests.functional.db import test_migrations
 from networking_cisco.db.migration import alembic_migrations
 from networking_cisco.db.migration.models import head
 
-from networking_cisco import backwards_compatibility as bc
+from networking_cisco.tests import test_compatibility as tc
 
 # EXTERNAL_TABLES should contain all names of tables that are not related to
 # current repo.
@@ -57,5 +57,5 @@ class _TestModelsMigrationsCisco(test_migrations._TestModelsMigrations):
 
 
 class TestModelsMigrationsMysql(_TestModelsMigrationsCisco,
-                                bc.MySQLTestCase):
+                                tc.MySQLTestCase):
     pass
