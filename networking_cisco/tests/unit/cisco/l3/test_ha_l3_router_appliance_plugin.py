@@ -83,9 +83,19 @@ class TestApplianceHAL3RouterServicePlugin(
     ha_db.HA_db_mixin,
         test_l3_router_appliance_plugin.TestApplianceL3RouterServicePlugin):
 
-        supported_extension_aliases = (
-            test_l3_router_appliance_plugin.TestApplianceL3RouterServicePlugin.
-            supported_extension_aliases + [ha.HA_ALIAS])
+    supported_extension_aliases = (
+        test_l3_router_appliance_plugin.TestApplianceL3RouterServicePlugin.
+        supported_extension_aliases + [ha.HA_ALIAS])
+
+    def cleanup_after_test(self):
+        """Reset all class variables to their default values.
+        This is needed to avoid tests to pollute subsequent tests.
+        """
+        TestApplianceHAL3RouterServicePlugin._router_schedulers = {}
+        TestApplianceHAL3RouterServicePlugin._router_drivers = {}
+        TestApplianceHAL3RouterServicePlugin._namespace_router_type_id = None
+        TestApplianceHAL3RouterServicePlugin._backlogged_routers = set()
+        TestApplianceHAL3RouterServicePlugin._refresh_router_backlog = True
 
 
 # TODO(bobmel): Add tests that ensures that Cisco HA is not applied on

@@ -128,6 +128,16 @@ class TestApplianceL3RouterServicePlugin(
         l3_router_test_support.TestL3RouterServicePlugin.
         supported_extension_aliases + ["extraroute"])
 
+    def cleanup_after_test(self):
+        """Reset all class variables to their default values.
+        This is needed to avoid tests to pollute subsequent tests.
+        """
+        TestApplianceL3RouterServicePlugin._router_schedulers = {}
+        TestApplianceL3RouterServicePlugin._router_drivers = {}
+        TestApplianceL3RouterServicePlugin._namespace_router_type_id = None
+        TestApplianceL3RouterServicePlugin._backlogged_routers = set()
+        TestApplianceL3RouterServicePlugin._refresh_router_backlog = True
+
 
 class L3RouterApplianceTestCaseBase(
     test_db_base_plugin_v2.NeutronDbPluginV2TestCase,
@@ -215,24 +225,8 @@ class L3RouterApplianceTestCaseBase(
             self._test_remove_hosting_device_templates()
         if self._created_mgmt_nw is True:
             self._remove_mgmt_nw_for_tests()
-        TestApplianceL3RouterServicePlugin._router_schedulers = {}
-        TestApplianceL3RouterServicePlugin._router_drivers = {}
-        TestApplianceL3RouterServicePlugin._namespace_router_type_id = None
-        TestApplianceL3RouterServicePlugin._backlogged_routers = set()
-        TestApplianceL3RouterServicePlugin._refresh_router_backlog = True
-        device_manager_test_support.TestCorePlugin._l3_tenant_uuid = None
-        device_manager_test_support.TestCorePlugin._mgmt_nw_uuid = None
-        device_manager_test_support.TestCorePlugin._mgmt_subnet_uuid = None
-        device_manager_test_support.TestCorePlugin._mgmt_sec_grp_id = None
-        device_manager_test_support.TestCorePlugin._credentials = {}
-        device_manager_test_support.TestCorePlugin._plugging_drivers = {}
-        device_manager_test_support.TestCorePlugin._hosting_device_drivers = {}
-        device_manager_test_support.TestCorePlugin._hosting_device_locks = {}
-        device_manager_test_support.TestCorePlugin._cfgagent_scheduler = None
-        device_manager_test_support.TestCorePlugin._cfg_agent_statuses = {}
-        device_manager_test_support.TestCorePlugin._svc_vm_mgr_obj = None
-        device_manager_test_support.TestCorePlugin._nova_running = False
-
+        self.l3_plugin.cleanup_after_test()
+        self.core_plugin.cleanup_after_test()
         self.restore_attribute_map()
         super(L3RouterApplianceTestCaseBase, self).tearDown()
 

@@ -328,6 +328,26 @@ class TestCorePlugin(test_l3.TestNoL3NatPlugin,
         self.agent_notifiers[cisco_constants.AGENT_TYPE_CFG] = (
             devmgr_rpc_cfgagent_api.DeviceMgrCfgAgentNotifyAPI(self))
 
+    def cleanup_after_test(self):
+        """This function should be called in the TearDown() function of
+        test classes that use the plugin.
+
+        Reset all class variables to their default values.
+        This is needed to avoid tests to pollute subsequent tests.
+        """
+        TestCorePlugin._l3_tenant_uuid = None
+        TestCorePlugin._mgmt_nw_uuid = None
+        TestCorePlugin._mgmt_subnet_uuid = None
+        TestCorePlugin._mgmt_sec_grp_id = None
+        TestCorePlugin._credentials = {}
+        TestCorePlugin._plugging_drivers = {}
+        TestCorePlugin._hosting_device_drivers = {}
+        TestCorePlugin._hosting_device_locks = {}
+        TestCorePlugin._cfgagent_scheduler = None
+        TestCorePlugin._cfg_agent_statuses = {}
+        TestCorePlugin._svc_vm_mgr_obj = None
+        TestCorePlugin._nova_running = False
+
 
 # Used to fake Glance images, Nova VMs and Nova services
 class FakeResource(object):

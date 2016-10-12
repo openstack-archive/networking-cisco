@@ -113,6 +113,18 @@ class TestSchedulingCapableL3RouterServicePlugin(
         self.l3agent_scheduler = importutils.import_object(
             cfg.CONF.router_scheduler_driver)
 
+    def cleanup_after_test(self):
+        """Reset all class variables to their default values.
+        This is needed to avoid tests to pollute subsequent tests.
+        """
+        TestSchedulingCapableL3RouterServicePlugin._router_schedulers = {}
+        TestSchedulingCapableL3RouterServicePlugin._router_drivers = {}
+        (TestSchedulingCapableL3RouterServicePlugin.
+         _namespace_router_type_id) = None
+        TestSchedulingCapableL3RouterServicePlugin._backlogged_routers = set()
+        (TestSchedulingCapableL3RouterServicePlugin.
+         _refresh_router_backlog) = True
+
 
 class L3RoutertypeAwareL3AgentSchedulerTestCase(
     test_l3_agent_scheduler.L3SchedulerTestCaseMixin,
@@ -165,6 +177,8 @@ class L3RoutertypeAwareL3AgentSchedulerTestCase(
     def tearDown(self):
         self._test_remove_routertypes()
         self._test_remove_hosting_device_templates()
+        self.l3_plugin.cleanup_after_test()
+        self.plugin.cleanup_after_test()
         super(L3RoutertypeAwareL3AgentSchedulerTestCase, self).tearDown()
 
     def _test_add_router_to_l3_agent(self,
@@ -612,6 +626,14 @@ class L3RoutertypeAwareHostingDeviceSchedulerBaseTestCase(
             self.assertEqual(1, len(self.l3_plugin._backlogged_routers))
             r_after = self._show('routers', r['id'])['router']
             self.assertEqual(selected_hd_id, r_after[HOSTING_DEVICE_ATTR])
+
+    def test_router_deleted_by_other_process_removed_from_backlog(self):
+        r_id = 'non_existant_router_id'
+        self.l3_plugin._backlogged_routers.add(r_id)
+        self.l3_plugin._refresh_router_backlog = False
+        self.assertEqual(1, len(self.l3_plugin._backlogged_routers))
+        self.l3_plugin._process_backlogged_routers()
+        self.assertEqual(0, len(self.l3_plugin._backlogged_routers))
 
 
 class L3RoutertypeAwareHostingDeviceSchedulerTestCase(
@@ -1273,6 +1295,19 @@ class TestSchedulingHACapableL3RouterServicePlugin(
         [routertypeawarescheduler.ROUTERTYPE_AWARE_SCHEDULER_ALIAS,
          constants.L3_AGENT_SCHEDULER_EXT_ALIAS,
          ha.HA_ALIAS])
+
+    def cleanup_after_test(self):
+        """Reset all class variables to their default values.
+        This is needed to avoid tests to pollute subsequent tests.
+        """
+        TestSchedulingHACapableL3RouterServicePlugin._router_schedulers = {}
+        TestSchedulingHACapableL3RouterServicePlugin._router_drivers = {}
+        (TestSchedulingHACapableL3RouterServicePlugin.
+         _namespace_router_type_id) = None
+        (TestSchedulingHACapableL3RouterServicePlugin.
+         _backlogged_routers) = set()
+        (TestSchedulingHACapableL3RouterServicePlugin.
+         _refresh_router_backlog) = True
 
 
 class L3RouterHostingDeviceHARandomSchedulerTestCase(
