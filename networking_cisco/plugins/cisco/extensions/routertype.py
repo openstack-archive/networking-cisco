@@ -164,20 +164,20 @@ class SchedulerNotFound(exceptions.NetworkNotFound):
 
 
 class RouterTypeAlreadyDefined(exceptions.NeutronException):
-    message = _("Router type %(type) already exists")
+    message = _("Router type %(type)s already exists")
 
 
 class NoSuchHostingDeviceTemplateForRouterType(exceptions.NeutronException):
-    message = _("No hosting device template with id %(type) exists")
+    message = _("No hosting device template with id %(type)s exists")
 
 
 class HostingDeviceTemplateUsedByRouterType(exceptions.NeutronException):
-    message = _("Router type %(type) already defined for Hosting device "
-                "template with id %(type)")
+    message = _("Router type %(type)s already defined for Hosting device "
+                "template with id %(type)s")
 
 
 class RouterTypeHasRouters(exceptions.NeutronException):
-    message = _("Router type %(type) cannot be deleted since routers "
+    message = _("Router type %(type)s cannot be deleted since routers "
                 "of that type exists")
 
 
