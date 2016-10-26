@@ -22,7 +22,7 @@ After=syslog.target network.target
 Type=simple
 User=cpnr
 Environment="OPTS1=--config-file"
-Environment="OPTS2=/etc/neutron/dhcp_agent.ini"
+Environment="OPTS2=/etc/cpnr/cisco_pnr.ini"
 Environment="OPTS3=--log-file"
 Environment="OPTS4=/var/log/cpnr/cpnr-dns-relay-agent.log"
 ExecStart=/usr/bin/cpnr-dns-relay $OPTS1  $OPTS2 $OPTS3 $OPTS4

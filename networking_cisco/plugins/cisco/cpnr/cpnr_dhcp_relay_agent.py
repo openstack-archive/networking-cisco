@@ -50,6 +50,9 @@ VSS = 151
 VSS_CONTROL = 152
 END = 255
 
+opt_cpnr_group = cfg.OptGroup(
+    name='cisco_pnr', title='Cisco Prime Network Registrar configuration')
+
 OPTS = [
     cfg.StrOpt('http_server',
                default="localhost:8080",
@@ -92,6 +95,16 @@ class DhcpRelayAgent(object):
 
     def __init__(self):
         self.conf = cfg.CONF
+        self.conf.register_group(opt_cpnr_group)
+        self.conf.register_opts(OPTS, opt_cpnr_group)
+        LOG.debug('(cisco_pnr) http_server: {}'.format(
+            self.conf.cisco_pnr.http_server))
+        LOG.debug('(cisco_pnr) external_interface: {}'.format(
+            self.conf.cisco_pnr.external_interface))
+        LOG.debug('(cisco_pnr) dhcp_server_addr: {}'.format(
+            self.conf.cisco_pnr.dhcp_server_addr))
+        LOG.debug('(cisco_pnr) dhcp_server_port: {}'.format(
+            self.conf.cisco_pnr.dhcp_server_port))
         self.ns_states = {}
         self.int_sockets_by_vpn = {}
         self.ext_sock = None
@@ -384,8 +397,6 @@ def main():
     except Exception:
         LOG.error(_LE('Failed to increase ulimit for DHCP relay'))
     eventlet.monkey_patch()
-    cfg.CONF.register_opts(OPTS, 'cisco_pnr')
-    cfg.CONF(project='neutron')
     config.setup_logging()
     if os.getuid() != 0:
         LOG.error(_LE('Must run dhcp relay as root'))
