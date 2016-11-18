@@ -12,22 +12,18 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from neutron.extensions import providernet as pr_net
 from oslo_log import log as logging
 from oslo_utils import excutils
 
 from networking_cisco._i18n import _LE
-
-from neutron.extensions import providernet as pr_net
-from neutron import manager
-
-from neutron_lib import constants as l3_constants
-
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.device_manager import config
 import networking_cisco.plugins.cisco.device_manager.plugging_drivers as plug
 
 LOG = logging.getLogger(__name__)
 
-DEVICE_OWNER_ROUTER_GW = l3_constants.DEVICE_OWNER_ROUTER_GW
+DEVICE_OWNER_ROUTER_GW = bc.constants.DEVICE_OWNER_ROUTER_GW
 
 
 class HwVLANTrunkingPlugDriver(plug.PluginSidePluggingDriver):
@@ -43,7 +39,7 @@ class HwVLANTrunkingPlugDriver(plug.PluginSidePluggingDriver):
         try:
             return self._plugin
         except AttributeError:
-            self._plugin = manager.NeutronManager.get_plugin()
+            self._plugin = bc.get_plugin()
             return self._plugin
 
     def create_hosting_device_resources(self, context, complementary_id,

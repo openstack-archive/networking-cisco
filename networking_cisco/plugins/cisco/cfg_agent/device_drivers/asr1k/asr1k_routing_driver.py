@@ -15,10 +15,10 @@
 import logging
 import netaddr
 
-from neutron_lib import constants
 from oslo_config import cfg
 
 from networking_cisco._i18n import _, _LE, _LI
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions as cfg_exc
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
     asr1k_cfg_syncer)
@@ -35,7 +35,7 @@ from networking_cisco.plugins.cisco.extensions import routerrole
 LOG = logging.getLogger(__name__)
 
 
-DEVICE_OWNER_ROUTER_GW = constants.DEVICE_OWNER_ROUTER_GW
+DEVICE_OWNER_ROUTER_GW = bc.constants.DEVICE_OWNER_ROUTER_GW
 ROUTER_ROLE_ATTR = routerrole.ROUTER_ROLE_ATTR
 ROUTER_ROLE_HA_REDUNDANCY = cisco_constants.ROUTER_ROLE_HA_REDUNDANCY
 ROUTER_ROLE_GLOBAL = cisco_constants.ROUTER_ROLE_GLOBAL
@@ -143,7 +143,7 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                 ext_interface = (self._get_interface_name_from_hosting_port(
                                  ex_gw_port))
                 self._create_sub_interface_disable(ext_interface)
-            internal_ports = ri.router.get(constants.INTERFACE_KEY, [])
+            internal_ports = ri.router.get(bc.constants.INTERFACE_KEY, [])
             for port in internal_ports:
                 internal_interface = (
                         self._get_interface_name_from_hosting_port(port))
@@ -488,7 +488,7 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
 
     @staticmethod
     def _port_is_hsrp(port):
-        hsrp_types = [constants.DEVICE_OWNER_ROUTER_HA_INTF]
+        hsrp_types = [bc.constants.DEVICE_OWNER_ROUTER_HA_INTF]
         return port['device_owner'] in hsrp_types
 
     @staticmethod

@@ -27,7 +27,7 @@ from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2.common import exceptions as ml2_exc
 from neutron.plugins.ml2 import driver_api as api
 
-from networking_cisco import backwards_compatibility as bc_attr
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     constants)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
@@ -66,7 +66,7 @@ class CiscoN1kvExtensionDriver(api.ExtensionDriver):
         tenant_id = context.tenant_id or data.get('tenant_id')
         default_policy_profile_name = (cfg.CONF.ml2_cisco_n1kv.
                                        default_policy_profile)
-        if not bc_attr.is_attr_set(policy_profile_attr):
+        if not bc.is_attr_set(policy_profile_attr):
             policy_profile_attr = default_policy_profile_name
         with context.session.begin(subtransactions=True):
             try:
@@ -118,8 +118,8 @@ class CiscoN1kvExtensionDriver(api.ExtensionDriver):
         prov_net_type = data.get(providernet.NETWORK_TYPE)
         net_prof_attr = data.get(constants.N1KV_PROFILE)
         tenant_id = context.tenant_id
-        if not bc_attr.is_attr_set(net_prof_attr):
-            if not bc_attr.is_attr_set(prov_net_type):
+        if not bc.is_attr_set(net_prof_attr):
+            if not bc.is_attr_set(prov_net_type):
                 network_type = cfg.CONF.ml2.tenant_network_types[0]
             else:
                 network_type = prov_net_type

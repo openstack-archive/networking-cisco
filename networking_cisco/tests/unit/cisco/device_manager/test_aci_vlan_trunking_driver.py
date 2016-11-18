@@ -20,16 +20,16 @@ from oslo_utils import fileutils
 from oslo_utils import uuidutils
 import webob.exc
 
-from neutron.common import constants as l3_constants
 from neutron.common import test_lib
 from neutron import context
 from neutron.extensions import providernet as pr_net
-from neutron import manager
+from neutron.plugins.common import constants as service_constants
 from neutron.tests.unit.extensions import test_l3
 
+from networking_cisco import backwards_compatibility as bc
+from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.device_manager.plugging_drivers import (
     aci_vlan_trunking_driver as aci_vlan)
-
 from networking_cisco.plugins.cisco.extensions import routerrole
 from networking_cisco.tests.unit.cisco.l3 import (
     test_l3_router_appliance_plugin)
@@ -255,11 +255,11 @@ class TestAciVLANTrunkingPlugDriverBase(
 
     def test_no_driver(self):
         self.plugging_driver._apic_driver = None
-        self.l3_plugin._core_plugin.mechanism_manager.mech_drivers = {}
+        self.core_plugin.mechanism_manager.mech_drivers = {}
         # TODO(thbachman): couldn't get assertRaises to work here,
         # so used this construct instead
         try:
-            self.plugging_driver.apic_driver
+            self.plugging_driver.apic_driver()
             self.assertTrue(False)
         except aci_vlan.AciDriverNoAciDriverInstalledOrConfigured:
             self.assertTrue(True)
@@ -297,11 +297,14 @@ class TestAciVLANTrunkingPlugDriverGbp(
         self.mock_gbp_plugin = mock.MagicMock()
         self.mock_gbp_plugin.policy_driver_manager.policy_drivers = {
             'apic': self.mock_gbp_driver}
-        self._l3_plugins = manager.NeutronManager.get_service_plugins()
-        self._l3_plugins['GROUP_POLICY'] = self.mock_gbp_plugin
-        self._real_get_plugins = manager.NeutronManager.get_service_plugins
-        manager.NeutronManager.get_service_plugins = mock.MagicMock(
-            return_value=self._l3_plugins)
+        g_p_mock = mock.MagicMock()
+        plugins = {'CORE': self.core_plugin,
+                   'GROUP_POLICY': self.mock_gbp_plugin,
+                   service_constants.L3_ROUTER_NAT: self.l3_plugin,
+                   cisco_constants.DEVICE_MANAGER: self.core_plugin}
+        g_p_mock.side_effect = lambda svc='CORE': plugins.get(svc)
+        mock.patch('networking_cisco.backwards_compatibility.get_plugin',
+                   g_p_mock).start()
         plug = aci_vlan.AciVLANTrunkingPlugDriver()
         plug.apic_driver.gbp_plugin.get_l3p_id_from_router_id = mock.Mock(
             return_value='somerouterid')
@@ -317,7 +320,7 @@ class TestAciVLANTrunkingPlugDriverGbp(
         else:
             test_lib.test_config['config_files'] = self._old_config_files
 
-        manager.NeutronManager.get_service_plugins = self._real_get_plugins
+#        manager.NeutronManager.get_service_plugins = self._real_get_plugins
         super(TestAciVLANTrunkingPlugDriverGbp, self).tearDown()
 
     def _stub_vlan(self, net, vrf, vrf_tenant):
@@ -351,7 +354,7 @@ class TestAciVLANTrunkingPlugDriverGbp(
                     hosting_info = {}
                     fake_port_db_obj = FakePortDb('fakeuuid',
                         sn1['network_id'],
-                        l3_constants.DEVICE_OWNER_ROUTER_INTF, r1['id'])
+                        bc.constants.DEVICE_OWNER_ROUTER_INTF, r1['id'])
                     fake_port_db_obj.hosting_info['segmentation_id'] = 50
                     hosting_device = {'id':
                         '00000000-0000-0000-0000-000000000002'}
@@ -379,7 +382,7 @@ class TestAciVLANTrunkingPlugDriverGbp(
                                  tenant_id=sn1['tenant_id']) as router1:
                     r1 = router1['router']
                     fake_port_db_obj = FakePortDb('fakeuuid', ext_net_id,
-                        l3_constants.DEVICE_OWNER_ROUTER_GW, r1['id'])
+                        bc.constants.DEVICE_OWNER_ROUTER_GW, r1['id'])
                     fake_port_db_obj.hosting_info['segmentation_id'] = 40
                     hosting_device = {'id':
                         '00000000-0000-0000-0000-000000000002'}
@@ -432,7 +435,7 @@ class TestAciVLANTrunkingPlugDriverGbp(
                 r1 = router1['router']
                 hosting_info = {}
                 fake_port_db_obj = FakePortDb('fakeuuid', sn1['network_id'],
-                    l3_constants.DEVICE_OWNER_ROUTER_GW, r1['id'])
+                    bc.constants.DEVICE_OWNER_ROUTER_GW, r1['id'])
                 fake_port_db_obj.hosting_info['segmentation_id'] = 40
                 hosting_device = {'id': '00000000-0000-0000-0000-000000000002'}
                 tenant_id = 'tenant_uuid1'
@@ -465,7 +468,7 @@ class TestAciVLANTrunkingPlugDriverGbp(
                     hosting_info = {}
                     fake_port_db_obj = FakePortDb('fakeuuid',
                         sn1['network_id'],
-                        l3_constants.DEVICE_OWNER_ROUTER_INTF,
+                        bc.constants.DEVICE_OWNER_ROUTER_INTF,
                         r1['id'])
                     hosting_device = {'id':
                                       '00000000-0000-0000-0000-000000000002'}
@@ -500,7 +503,7 @@ class TestAciVLANTrunkingPlugDriverGbp(
                 hosting_info = {}
                 fake_port_db_obj = FakePortDb('fakeuuid',
                     sn1['network_id'],
-                    l3_constants.DEVICE_OWNER_ROUTER_GW,
+                    bc.constants.DEVICE_OWNER_ROUTER_GW,
                     dummy_router['id'])
                 hosting_device = {'id':
                                   '00000000-0000-0000-0000-000000000002'}
@@ -661,7 +664,7 @@ class TestAciVLANTrunkingPlugDriverGbp(
                 fake_port_db_obj = FakePortDb(
                     'some_dummy_id',
                     sn1['network_id'],
-                    l3_constants.DEVICE_OWNER_ROUTER_GW,
+                    bc.constants.DEVICE_OWNER_ROUTER_GW,
                     'dummy_id'
                 )
                 hosting_device = {'id': '00000000-0000-0000-0000-000000000002'}
@@ -695,7 +698,7 @@ class TestAciVLANTrunkingPlugDriverGbp(
                 fake_port_db_obj = FakePortDb(
                     'some_dummy_id',
                     sn1['network_id'],
-                    l3_constants.DEVICE_OWNER_ROUTER_GW,
+                    bc.constants.DEVICE_OWNER_ROUTER_GW,
                     'dummy_id'
                 )
                 hosting_device = {'id': '00000000-0000-0000-0000-000000000002'}
@@ -795,7 +798,7 @@ class TestAciVLANTrunkingPlugDriverNeutron(TestAciVLANTrunkingPlugDriverGbp):
                     r1 = router1['router']
                     hosting_info = {}
                     fake_port_db_obj = FakePortDb('fakeuuid', ext_net_id,
-                        l3_constants.DEVICE_OWNER_ROUTER_GW, r1['id'])
+                        bc.constants.DEVICE_OWNER_ROUTER_GW, r1['id'])
                     fake_port_db_obj.hosting_info['segmentation_id'] = 40
                     hosting_device = {'id':
                                       '00000000-0000-0000-0000-000000000002'}
@@ -834,7 +837,7 @@ class TestAciVLANTrunkingPlugDriverNeutron(TestAciVLANTrunkingPlugDriverGbp):
                     r1 = router1['router']
                     hosting_info = {}
                     fake_port_db_obj = FakePortDb('fakeuuid', ext_net_id,
-                        l3_constants.DEVICE_OWNER_ROUTER_GW, r1['id'])
+                        bc.constants.DEVICE_OWNER_ROUTER_GW, r1['id'])
                     fake_port_db_obj.hosting_info['segmentation_id'] = 40
                     hosting_device = {'id':
                                       '00000000-0000-0000-0000-000000000002'}
@@ -867,7 +870,7 @@ class TestAciVLANTrunkingPlugDriverNeutron(TestAciVLANTrunkingPlugDriverGbp):
                     r1 = router1['router']
                     hosting_info = {}
                     fake_port_db_obj = FakePortDb('fakeuuid', ext_net_id,
-                        l3_constants.DEVICE_OWNER_ROUTER_GW, r1['id'])
+                        bc.constants.DEVICE_OWNER_ROUTER_GW, r1['id'])
                     fake_port_db_obj.hosting_info['segmentation_id'] = 40
                     hosting_device = {'id':
                         '00000000-0000-0000-0000-000000000002'}
@@ -893,7 +896,7 @@ class TestAciVLANTrunkingPlugDriverNeutron(TestAciVLANTrunkingPlugDriverGbp):
                                  tenant_id=sn1['tenant_id']) as router1:
                     r1 = router1['router']
                     fake_port_db_obj = FakePortDb('fakeuuid', ext_net_id,
-                        l3_constants.DEVICE_OWNER_ROUTER_GW, r1['id'])
+                        bc.constants.DEVICE_OWNER_ROUTER_GW, r1['id'])
                     fake_port_db_obj.hosting_info['segmentation_id'] = 40
                     hosting_device = {'id':
                         '00000000-0000-0000-0000-000000000002'}
@@ -944,6 +947,6 @@ class TestAciVLANTrunkingPlugDriverNeutron(TestAciVLANTrunkingPlugDriverGbp):
             p1 = port1['port']
             with self.router() as router1:
                 r1 = router1['router']
-                p1['device_owner'] = l3_constants.DEVICE_OWNER_ROUTER_INTF
+                p1['device_owner'] = bc.constants.DEVICE_OWNER_ROUTER_INTF
                 self.assertIsNone(drv.allocate_hosting_port(ctx,
                     r1['id'], p1, None, None))

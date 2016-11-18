@@ -22,12 +22,11 @@ from neutron.plugins.ml2 import driver_api as api
 from neutron.plugins.ml2 import driver_context
 from neutron.plugins.ml2 import models
 
-from neutron_lib import constants as n_constants
-
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log as logging
 
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.apic import apic_model
 from networking_cisco.plugins.ml2.drivers.cisco.apic import apic_sync
 from networking_cisco.plugins.ml2.drivers.cisco.apic import config
@@ -158,7 +157,7 @@ class APICMechanismDriver(api.MechanismDriver):
         # Check if a compute port
         if context.host:
             self._perform_path_port_operations(context, port)
-        if port.get('device_owner') == n_constants.DEVICE_OWNER_ROUTER_GW:
+        if port.get('device_owner') == bc.constants.DEVICE_OWNER_ROUTER_GW:
             self._perform_gw_port_operations(context, port)
 
     def _delete_contract(self, context):
@@ -219,7 +218,7 @@ class APICMechanismDriver(api.MechanismDriver):
         # Check if a compute port
         if context.host:
             self._delete_path_if_last(context)
-        if port.get('device_owner') == n_constants.DEVICE_OWNER_ROUTER_GW:
+        if port.get('device_owner') == bc.constants.DEVICE_OWNER_ROUTER_GW:
             self._delete_contract(context)
 
     @sync_init

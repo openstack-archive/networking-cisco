@@ -16,16 +16,15 @@
 from oslo_log import log as logging
 from oslo_service import loopingcall
 
-from networking_cisco._i18n import _LW
-from networking_cisco.plugins.ml2.drivers.cisco.apic import constants
-from networking_cisco.plugins.ml2.drivers.cisco.apic import exceptions as aexc
-
 from neutron import context
-from neutron import manager
 from neutron.plugins.ml2 import db as l2_db
 from neutron.plugins.ml2 import driver_context
 
-from neutron_lib import constants as n_constants
+from networking_cisco._i18n import _LW
+from networking_cisco import backwards_compatibility as bc
+from networking_cisco.plugins.ml2.drivers.cisco.apic import constants
+from networking_cisco.plugins.ml2.drivers.cisco.apic import exceptions as aexc
+
 
 LOG = logging.getLogger(__name__)
 
@@ -33,7 +32,7 @@ LOG = logging.getLogger(__name__)
 class SynchronizerBase(object):
 
     def __init__(self, driver, interval=None):
-        self.core_plugin = manager.NeutronManager.get_plugin()
+        self.core_plugin = bc.get_plugin()
         self.driver = driver
         self.interval = interval
 
@@ -112,7 +111,7 @@ class ApicRouterSynchronizer(SynchronizerBase):
     def _sync_router(self):
         ctx = context.get_admin_context()
         # Sync Router Interfaces
-        filters = {'device_owner': [n_constants.DEVICE_OWNER_ROUTER_INTF]}
+        filters = {'device_owner': [bc.constants.DEVICE_OWNER_ROUTER_INTF]}
         ports = [x for x in self.core_plugin.get_ports(ctx, filters=filters)]
         for interface in ports:
             try:

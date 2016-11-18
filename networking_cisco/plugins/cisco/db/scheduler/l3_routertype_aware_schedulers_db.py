@@ -25,7 +25,7 @@ from neutron.db import l3_agentschedulers_db
 from neutron.db import models_v2
 from neutron.db import portbindings_db as p_binding
 
-from networking_cisco import backwards_compatibility as bc_attr
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.device_manager import hd_models
 from networking_cisco.plugins.cisco.db.l3 import l3_models
@@ -191,12 +191,12 @@ class L3RouterTypeAwareSchedulerDbMixin(
 
     def _ensure_router_scheduling_compliant(self, router):
         auto_schedule = router.pop(routertypeawarescheduler.AUTO_SCHEDULE_ATTR,
-                                   bc_attr.ATTR_NOT_SPECIFIED)
-        if auto_schedule is bc_attr.ATTR_NOT_SPECIFIED:
+                                   bc.constants.ATTR_NOT_SPECIFIED)
+        if auto_schedule is bc.constants.ATTR_NOT_SPECIFIED:
             auto_schedule = cfg.CONF.routing.auto_schedule
         share_host = router.pop(routertypeawarescheduler.SHARE_HOST_ATTR,
-                                bc_attr.ATTR_NOT_SPECIFIED)
-        if share_host is bc_attr.ATTR_NOT_SPECIFIED:
+                                bc.constants.ATTR_NOT_SPECIFIED)
+        if share_host is bc.constants.ATTR_NOT_SPECIFIED:
             share_host = cfg.CONF.routing.share_hosting_device
         return auto_schedule, share_host
 

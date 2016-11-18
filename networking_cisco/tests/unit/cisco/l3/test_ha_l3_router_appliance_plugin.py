@@ -28,11 +28,8 @@ from neutron import context
 from neutron.db import l3_db
 from neutron.extensions import extraroute
 from neutron.extensions import l3
-from neutron import manager
 from neutron.plugins.common import constants as service_constants
 from neutron.tests import fake_notifier
-
-from neutron_lib import constants as l3_constants
 
 from networking_cisco import backwards_compatibility as bc
 import networking_cisco.plugins
@@ -58,7 +55,7 @@ L3_PLUGIN_KLASS = (
     "TestApplianceHAL3RouterServicePlugin")
 extensions_path = networking_cisco.plugins.__path__[0] + '/cisco/extensions'
 
-DEVICE_OWNER_ROUTER_INTF = l3_constants.DEVICE_OWNER_ROUTER_INTF
+DEVICE_OWNER_ROUTER_INTF = bc.constants.DEVICE_OWNER_ROUTER_INTF
 
 
 def _sort_routes(routes):
@@ -169,7 +166,7 @@ class HAL3RouterTestsMixin(object):
         self.assertEqual(p_e['network_id'], external_net_id)
         self.assertEqual(p_e['fixed_ips'][0]['subnet_id'], external_subnet_id)
         self.assertEqual(p_e['device_owner'],
-                         l3_constants.DEVICE_OWNER_ROUTER_GW)
+                         bc.constants.DEVICE_OWNER_ROUTER_GW)
 
 
 class HAL3RouterApplianceVMTestCase(
@@ -506,13 +503,13 @@ class HAL3RouterApplianceVMTestCase(
             self.assertEqual(p_e['fixed_ips'][0]['subnet_id'],
                              external_subnet_id)
             self.assertEqual(p_e['device_owner'],
-                             l3_constants.DEVICE_OWNER_ROUTER_GW)
+                             bc.constants.DEVICE_OWNER_ROUTER_GW)
         if internal_net_id:
             self.assertEqual(p_i['network_id'], internal_net_id)
             self.assertEqual(p_i['fixed_ips'][0]['subnet_id'],
                              internal_subnet_id)
             self.assertEqual(p_i['device_owner'],
-                             l3_constants.DEVICE_OWNER_ROUTER_INTF)
+                             bc.constants.DEVICE_OWNER_ROUTER_INTF)
 
     def _ha_router_port_test(self, subnet, router, port, ha_spec=None,
                              additional_tests_function=None):
@@ -1237,7 +1234,7 @@ class HAL3RouterApplianceVMTestCase(
                     200,
                     s['subnet']['network_id'],
                     tenant_id=r['router']['tenant_id'],
-                    device_owner=l3_constants.DEVICE_OWNER_ROUTER_GW)
+                    device_owner=bc.constants.DEVICE_OWNER_ROUTER_GW)
                 port_list = self.deserialize('json', port_res)
                 # Need to change to 3 as there are two ports for the
                 # redundancy routers
@@ -1329,7 +1326,7 @@ class HAL3RouterApplianceVMTestCase(
                     200,
                     s_ext_1['subnet']['network_id'],
                     tenant_id=r['tenant_id'],
-                    device_owner=l3_constants.DEVICE_OWNER_ROUTER_GW)
+                    device_owner=bc.constants.DEVICE_OWNER_ROUTER_GW)
                 gw_port_list = self.deserialize('json', port_res)
                 # There are one gw port on the user visible router and two gw
                 # ports on the redundancy routers
@@ -1339,7 +1336,7 @@ class HAL3RouterApplianceVMTestCase(
                     200,
                     s_priv['subnet']['network_id'],
                     tenant_id=r['tenant_id'],
-                    device_owner=l3_constants.DEVICE_OWNER_ROUTER_INTF)
+                    device_owner=bc.constants.DEVICE_OWNER_ROUTER_INTF)
                 port_list = self.deserialize('json', port_res)
                 # There are one interface VIP port and one extra port (for
                 # interface ip) on the user visible router and two ports on
@@ -1470,8 +1467,7 @@ class HAL3RouterApplianceVMTestCase(
             self._routes_update_cleanup(p1['id'], None, r['id'], [])
 
     def test__notify_subnetpool_address_scope_update(self):
-        l3_plugin = manager.NeutronManager.get_service_plugins()[
-            service_constants.L3_ROUTER_NAT]
+        l3_plugin = bc.get_plugin(service_constants.L3_ROUTER_NAT)
 
         tenant_id = _uuid()
         with mock.patch.object(
@@ -1552,7 +1548,7 @@ class L3CfgAgentHARouterApplianceTestCase(
                     context.get_admin_context(), None)
                 self.assertEqual(3, len(routers))
                 for router in routers:
-                    interfaces = router[l3_constants.INTERFACE_KEY]
+                    interfaces = router[bc.constants.INTERFACE_KEY]
                     self.assertEqual(1, len(interfaces))
                     subnets = interfaces[0]['subnets']
                     self.assertEqual(1, len(subnets))
@@ -1585,7 +1581,7 @@ class L3CfgAgentHARouterApplianceTestCase(
                     # One interface for the user visible router and one each
                     # for the two redundancy routers
                     for r in routers:
-                        interfaces = r.get(l3_constants.INTERFACE_KEY, [])
+                        interfaces = r.get(bc.constants.INTERFACE_KEY, [])
                         self.assertEqual(1, len(interfaces))
 
     # Overloaded test function that needs to be modified to run
@@ -1763,7 +1759,7 @@ class L3CfgAgentHARouterApplianceTestCase(
                 # list of redundancy routers
                 rr_ids = [rr['id'] for rr in r[ha.DETAILS][
                     ha.REDUNDANCY_ROUTERS]]
-                r_fips = r.get(l3_constants.FLOATINGIP_KEY, [])
+                r_fips = r.get(bc.constants.FLOATINGIP_KEY, [])
                 self.assertEqual(len(r_fips), len(fips_dict))
                 for r_fip in r_fips:
                     self.assertEqual(r_fip, fips_dict[r_fip['id']])
@@ -1776,9 +1772,9 @@ class L3CfgAgentHARouterApplianceTestCase(
                     self.assertNotIn(r['id'], rr_ids)
                 # adding the router gw port to the list of internal router port
                 # since we want to run the identical tests for all of them
-                r[l3_constants.INTERFACE_KEY].append(r['gw_port'])
+                r[bc.constants.INTERFACE_KEY].append(r['gw_port'])
                 self._validate_router_interface_ha_info(
-                    ports, r[l3_constants.INTERFACE_KEY],
+                    ports, r[bc.constants.INTERFACE_KEY],
                     ha_groups_dict)
             return routers
 

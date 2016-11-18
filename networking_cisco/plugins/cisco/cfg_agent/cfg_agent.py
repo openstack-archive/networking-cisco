@@ -28,20 +28,19 @@ from oslo_service import periodic_task
 from oslo_service import service
 from oslo_utils import importutils
 
-from networking_cisco._i18n import _, _LE, _LI, _LW
-
 from neutron.agent.common import config
 from neutron.agent.linux import external_process
 from neutron.agent.linux import interface
 from neutron.agent import rpc as agent_rpc
 from neutron.common import config as common_config
-from neutron.common import constants
 from neutron.common import rpc as n_rpc
 from neutron.common import topics
 from neutron import context as n_context
 from neutron import manager
 from neutron import service as neutron_service
 
+from networking_cisco._i18n import _, _LE, _LI, _LW
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cfg_agent import device_status
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
@@ -51,6 +50,8 @@ LOG = logging.getLogger(__name__)
 # Constants for agent registration.
 REGISTRATION_RETRY_DELAY = 2
 MAX_REGISTRATION_ATTEMPTS = 30
+
+ISO8601_TIME_FORMAT = bc.constants.ISO8601_TIME_FORMAT
 
 
 class CiscoDeviceManagementApi(object):
@@ -439,7 +440,7 @@ class CiscoCfgAgentWithStateReport(CiscoCfgAgent):
         else:
             self.agent_state.pop('configurations', None)
             self.agent_state['local_time'] = datetime.now().strftime(
-                constants.ISO8601_TIME_FORMAT)
+                ISO8601_TIME_FORMAT)
             LOG.debug("State report: %s", self.agent_state)
         self.send_agent_report(self.agent_state, self.context)
 
@@ -459,7 +460,7 @@ class CiscoCfgAgentWithStateReport(CiscoCfgAgent):
         configurations['service_agents'] = service_agents
         self.agent_state['configurations'] = configurations
         self.agent_state['local_time'] = datetime.now().strftime(
-            constants.ISO8601_TIME_FORMAT)
+            ISO8601_TIME_FORMAT)
 
     def send_agent_report(self, report, context):
         """Send the agent report via RPC."""

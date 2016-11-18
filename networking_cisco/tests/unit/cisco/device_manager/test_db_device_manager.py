@@ -17,19 +17,18 @@ import os
 import contextlib
 import mock
 
+from neutron.api import extensions as api_ext
+from neutron.common import config
+from neutron import context as n_context
+from neutron.plugins.common import constants as svc_constants
+from neutron.tests.unit.db import test_db_base_plugin_v2
 from oslo_config import cfg
 from oslo_utils import importutils
 import six
 import webob.exc
 
-from neutron.api import extensions as api_ext
-from neutron.common import config
-from neutron import context as n_context
-from neutron.manager import NeutronManager
-from neutron.plugins.common import constants as svc_constants
-from neutron.tests.unit.db import test_db_base_plugin_v2
-
 import networking_cisco
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
 from networking_cisco.plugins.cisco.db.device_manager import (
@@ -292,14 +291,13 @@ class TestDeviceManagerDBPlugin(
 
         self._mock_l3_admin_tenant()
         self._create_mgmt_nw_for_tests(self.fmt)
-        self._devmgr = NeutronManager.get_service_plugins()[
-            c_constants.DEVICE_MANAGER]
+        self._devmgr = bc.get_plugin(c_constants.DEVICE_MANAGER)
         # in unit tests we don't use keystone so we mock that session
         self._devmgr._svc_vm_mgr_obj = service_vm_lib.ServiceVMManager(
             True, None, None, None, '', keystone_session=mock.MagicMock())
         self._mock_svc_vm_create_delete(self._devmgr)
         self._other_tenant_id = device_manager_test_support._uuid()
-        self._devmgr._core_plugin = NeutronManager.get_plugin()
+        self._devmgr._core_plugin = bc.get_plugin()
 
     def tearDown(self):
         self._test_remove_all_hosting_devices()
@@ -1039,8 +1037,8 @@ class TestDeviceManagerDBPlugin(
                         template_id=hdt_id,
                         management_port_id=mgmt_port['port']['id'],
                         auto_delete=auto_delete, no_delete=no_delete) as hd:
-                    with mock.patch('neutron.manager.NeutronManager.'
-                                    'get_service_plugins'):
+                    with mock.patch('networking_cisco.backwards_compatibility.'
+                                    'get_plugin'):
                         hd_id = hd['hosting_device']['id']
                         m2 = mock.MagicMock()
                         self._devmgr.agent_notifiers = {
@@ -1052,7 +1050,7 @@ class TestDeviceManagerDBPlugin(
                             'hosting_devices']
                         self.assertEqual(expected_num_remaining,
                                          len(result_hds))
-                        l3mock = (NeutronManager.get_service_plugins().get().
+                        l3mock = (bc.get_plugin().
                                   handle_non_responding_hosting_devices)
                         l3mock.assert_called_once_with(mock.ANY, mock.ANY,
                                                        {hd_id: {}})

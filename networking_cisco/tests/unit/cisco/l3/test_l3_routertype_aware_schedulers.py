@@ -13,10 +13,19 @@
 #    under the License.
 
 import copy
-
 import mock
 import unittest
 
+from neutron.api.rpc.agentnotifiers import l3_rpc_agent_api
+from neutron.common import test_lib
+from neutron import context as n_context
+from neutron.extensions import agent
+from neutron.extensions import l3
+from neutron.plugins.common import constants as plugin_consts
+from neutron.tests import fake_notifier
+from neutron.tests.unit.db import test_agentschedulers_db
+from neutron.tests.unit.extensions import test_l3
+from neutron.tests.unit.scheduler import test_l3_agent_scheduler
 from oslo_config import cfg
 from oslo_db import exception as db_exc
 from oslo_utils import importutils
@@ -24,20 +33,7 @@ from oslo_utils import uuidutils
 from sqlalchemy import exc as inner_db_exc
 from webob import exc
 
-from neutron.api.rpc.agentnotifiers import l3_rpc_agent_api
-from neutron.common import constants
-from neutron.common import test_lib
-from neutron import context as n_context
-from neutron.extensions import agent
-from neutron.extensions import l3
-from neutron import manager
-from neutron.plugins.common import constants as plugin_consts
-from neutron.tests import fake_notifier
-from neutron.tests.unit.db import test_agentschedulers_db
-from neutron.tests.unit.extensions import test_l3
-from neutron.tests.unit.scheduler import test_l3_agent_scheduler
-from neutron_lib import constants as lib_constants
-
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import cisco_constants as c_const
 from networking_cisco.plugins.cisco.db.l3 import ha_db
 from networking_cisco.plugins.cisco.db.scheduler import (
@@ -72,6 +68,8 @@ _uuid = uuidutils.generate_uuid
 HOSTING_DEVICE_ATTR = routerhostingdevice.HOSTING_DEVICE_ATTR
 HARDWARE_CATEGORY = ciscohostingdevicemanager.HARDWARE_CATEGORY
 AGENT_TYPE_L3_CFG = c_const.AGENT_TYPE_L3_CFG
+NEUTRON_VERSION = bc.NEUTRON_VERSION
+NEUTRON_NEWTON_VERSION = bc.NEUTRON_NEWTON_VERSION
 
 
 class TestSchedulingL3RouterApplianceExtensionManager(
@@ -101,11 +99,11 @@ class TestSchedulingCapableL3RouterServicePlugin(
         l3_router_test_support.TestL3RouterServicePlugin.
         supported_extension_aliases +
         [routertypeawarescheduler.ROUTERTYPE_AWARE_SCHEDULER_ALIAS,
-         constants.L3_AGENT_SCHEDULER_EXT_ALIAS])
+         bc.constants.L3_AGENT_SCHEDULER_EXT_ALIAS])
 
     def __init__(self):
         self.agent_notifiers.update(
-            {lib_constants.AGENT_TYPE_L3: l3_rpc_agent_api.L3AgentNotifyAPI(),
+            {bc.constants.AGENT_TYPE_L3: l3_rpc_agent_api.L3AgentNotifyAPI(),
              c_const.AGENT_TYPE_L3_CFG:
              l3_router_rpc_cfg_agent_api.L3RouterCfgAgentNotifyAPI(self)})
         self.router_scheduler = importutils.import_object(
@@ -160,9 +158,8 @@ class L3RoutertypeAwareL3AgentSchedulerTestCase(
                               c_const.NAMESPACE_ROUTER_TYPE, group='routing')
 
         self.adminContext = n_context.get_admin_context()
-        self.plugin = manager.NeutronManager.get_plugin()
-        self.l3_plugin = manager.NeutronManager.get_service_plugins().get(
-            plugin_consts.L3_ROUTER_NAT)
+        self.plugin = bc.get_plugin()
+        self.l3_plugin = bc.get_plugin(plugin_consts.L3_ROUTER_NAT)
         # work-around to make some tests in super class, which assumes core
         # plugin does the l3 routing, run correctly
         self.plugin.router_scheduler = (
@@ -187,14 +184,14 @@ class L3RoutertypeAwareL3AgentSchedulerTestCase(
                                      external_gw=None):
         # Parent test class run tests that use this function with L3 agent
         # notifier set to None so we do the same.
-        self.l3_plugin.agent_notifiers[lib_constants.AGENT_TYPE_L3] = None
+        self.l3_plugin.agent_notifiers[bc.constants.AGENT_TYPE_L3] = None
         super(L3RoutertypeAwareL3AgentSchedulerTestCase,
               self)._test_add_router_to_l3_agent()
 
     def test_add_router_to_l3_agent_dvr_to_snat(self):
         # Parent test class run tests that use this function with L3 agent
         # notifier set to None so we do the same.
-        self.l3_plugin.agent_notifiers[lib_constants.AGENT_TYPE_L3] = None
+        self.l3_plugin.agent_notifiers[bc.constants.AGENT_TYPE_L3] = None
         super(L3RoutertypeAwareL3AgentSchedulerTestCase,
               self).test_add_router_to_l3_agent_dvr_to_snat()
 
@@ -213,8 +210,14 @@ class L3RoutertypeAwareL3AgentSchedulerTestCase(
             # router 4
             self._make_router(self.fmt, _uuid(), 'router2', arg_list=arg_list,
                               **kwargs)['router']
-            routers = self.l3_plugin.router_scheduler._get_unscheduled_routers(
-                self.adminContext, self.l3_plugin)
+            if NEUTRON_VERSION.version[0] <= NEUTRON_NEWTON_VERSION.version[0]:
+                routers = (
+                    self.l3_plugin.router_scheduler._get_unscheduled_routers(
+                        self.adminContext, self.l3_plugin))
+            else:
+                routers = (
+                    self.l3_plugin.router_scheduler._get_unscheduled_routers(
+                        self.l3_plugin, self.adminContext))
             r_ids = set(r['id'] for r in routers)
             self.assertEqual(2, len(r_ids))
             for r in [r2, r3]:
@@ -1293,7 +1296,7 @@ class TestSchedulingHACapableL3RouterServicePlugin(
         TestSchedulingCapableL3RouterServicePlugin.
         supported_extension_aliases +
         [routertypeawarescheduler.ROUTERTYPE_AWARE_SCHEDULER_ALIAS,
-         constants.L3_AGENT_SCHEDULER_EXT_ALIAS,
+         bc.constants.L3_AGENT_SCHEDULER_EXT_ALIAS,
          ha.HA_ALIAS])
 
     def cleanup_after_test(self):
@@ -1356,7 +1359,7 @@ class L3RouterHostingDeviceBaseSchedulerTestCase(
 
     def _update_hosting_device_statuses(self, hosting_devices, statuses):
         adm_ctxt = n_context.get_admin_context()
-        core_plugin = manager.NeutronManager.get_plugin()
+        core_plugin = bc.get_plugin()
         for (hosting_device, status) in zip(hosting_devices, statuses):
             hd = hosting_device['hosting_device']
             core_plugin.update_hosting_device(

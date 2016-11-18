@@ -16,19 +16,18 @@
 from oslo_log import log as logging
 import oslo_messaging
 
-from neutron.common import constants
 from neutron.common import rpc as n_rpc
 from neutron.common import topics
 from neutron.common import utils
-from neutron import manager
 
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.extensions import ciscocfgagentscheduler
 
 LOG = logging.getLogger(__name__)
 
 
-L3AGENT_SCHED = constants.L3_AGENT_SCHEDULER_EXT_ALIAS
+L3AGENT_SCHED = bc.constants.L3_AGENT_SCHEDULER_EXT_ALIAS
 CFGAGENT_SCHED = ciscocfgagentscheduler.CFG_AGENT_SCHEDULER_ALIAS
 CFG_AGENT_L3_ROUTING = cisco_constants.CFG_AGENT_L3_ROUTING
 
@@ -48,8 +47,7 @@ class L3RouterCfgAgentNotifyAPI(object):
         A single notification can contain multiple routers.
         """
         admin_context = context.is_admin and context or context.elevated()
-        dmplugin = manager.NeutronManager.get_service_plugins().get(
-            cisco_constants.DEVICE_MANAGER)
+        dmplugin = bc.get_plugin(cisco_constants.DEVICE_MANAGER)
         if (hosting_device is not None and utils.is_extension_supported(
                 dmplugin, CFGAGENT_SCHED)):
             agents = dmplugin.get_cfg_agents_for_hosting_devices(
@@ -71,8 +69,7 @@ class L3RouterCfgAgentNotifyAPI(object):
                             shuffle_agents):
         """Notify individual Cisco cfg agents."""
         admin_context = context.is_admin and context or context.elevated()
-        dmplugin = manager.NeutronManager.get_service_plugins().get(
-            cisco_constants.DEVICE_MANAGER)
+        dmplugin = bc.get_plugin(cisco_constants.DEVICE_MANAGER)
         for router in routers:
             if (router['hosting_device'] is not None and
                     utils.is_extension_supported(dmplugin, CFGAGENT_SCHED)):

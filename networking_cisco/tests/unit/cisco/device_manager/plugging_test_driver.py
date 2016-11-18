@@ -17,13 +17,11 @@ import eventlet
 from oslo_log import log as logging
 from sqlalchemy.sql import expression as expr
 
-from networking_cisco._i18n import _LE, _LI, _LW
-
-from neutron.api.v2 import attributes
 from neutron.db import models_v2
-
 from neutron_lib import exceptions as n_exc
 
+from networking_cisco._i18n import _LE, _LI, _LW
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.device_manager.plugging_drivers import (
     n1kv_ml2_trunking_driver)
 
@@ -47,7 +45,7 @@ class TestPluggingDriver(n1kv_ml2_trunking_driver.N1kvML2TrunkingPlugDriver):
                 'admin_state_up': True,
                 'name': 'mgmt',
                 'network_id': mgmt_context['mgmt_nw_id'],
-                'mac_address': attributes.ATTR_NOT_SPECIFIED,
+                'mac_address': bc.constants.ATTR_NOT_SPECIFIED,
                 'fixed_ips': self._mgmt_subnet_spec(context, mgmt_context),
                 'device_id': "",
                 # Use device_owner attribute to ensure we can query for these

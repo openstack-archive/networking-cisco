@@ -23,11 +23,12 @@ import time
 import uuid
 
 from neutron.common import config
-from neutron.common import exceptions
+from neutron_lib import exceptions
 from oslo_config import cfg
 from oslo_log import log as logging
 
 from networking_cisco._i18n import _, _LE, _LW
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cpnr.cpnr_client import UnexpectedError
 from networking_cisco.plugins.cisco.cpnr import debug_stats
 from networking_cisco.plugins.cisco.cpnr import netns
@@ -85,8 +86,9 @@ class DnsRelayAgent(object):
         self.conf = cfg.CONF
         self.conf.register_group(opt_cpnr_group)
         self.conf.register_opts(OPTS, opt_cpnr_group)
-        LOG.debug('(cisco_pnr) http_server: {}'.format(
-            self.conf.cisco_pnr.http_server))
+        if bc.NEUTRON_VERSION < bc.NEUTRON_NEWTON_VERSION:
+            LOG.debug('(cisco_pnr) http_server: {}'.format(
+                self.conf.cisco_pnr.http_server))
         LOG.debug('(cisco_pnr) external_interface: {}'.format(
             self.conf.cisco_pnr.external_interface))
         LOG.debug('(cisco_pnr) dhcp_server_addr: {}'.format(

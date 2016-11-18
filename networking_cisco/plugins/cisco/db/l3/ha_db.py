@@ -24,18 +24,15 @@ from sqlalchemy.orm import exc
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import expression as expr
 
-from networking_cisco._i18n import _, _LW
-
-from neutron.common import exceptions as n_exc
 from neutron.common import utils
 from neutron.db import l3_db
 from neutron.db import model_base
 from neutron.db import models_v2
 from neutron.extensions import l3
+from neutron_lib import exceptions as n_exc
 
-from neutron_lib import constants as l3_constants
-
-from networking_cisco import backwards_compatibility as bc_attr
+from networking_cisco._i18n import _, _LW
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.common import utils as cisco_utils
 from networking_cisco.plugins.cisco.extensions import ha
@@ -54,12 +51,12 @@ MAX_VRRP_GROUPS = 4094
 MAX_HSRP_GROUPS = 4094
 MAX_GLBP_GROUPS = 1023
 
-is_attr_set = bc_attr.is_attr_set
-ATTR_NOT_SPECIFIED = bc_attr.ATTR_NOT_SPECIFIED
+is_attr_set = bc.is_attr_set
+ATTR_NOT_SPECIFIED = bc.constants.ATTR_NOT_SPECIFIED
 EXTERNAL_GW_INFO = l3.EXTERNAL_GW_INFO
-DEVICE_OWNER_ROUTER_GW = l3_constants.DEVICE_OWNER_ROUTER_GW
-DEVICE_OWNER_ROUTER_INTF = l3_constants.DEVICE_OWNER_ROUTER_INTF
-DEVICE_OWNER_ROUTER_HA_INTF = l3_constants.DEVICE_OWNER_ROUTER_HA_INTF
+DEVICE_OWNER_ROUTER_GW = bc.constants.DEVICE_OWNER_ROUTER_GW
+DEVICE_OWNER_ROUTER_INTF = bc.constants.DEVICE_OWNER_ROUTER_INTF
+DEVICE_OWNER_ROUTER_HA_INTF = bc.constants.DEVICE_OWNER_ROUTER_HA_INTF
 ROUTER_ROLE_HA_REDUNDANCY = cisco_constants.ROUTER_ROLE_HA_REDUNDANCY
 
 DEFAULT_MASTER_PRIORITY = 100
@@ -820,7 +817,7 @@ class HA_db_mixin(object):
             if modified_interfaces:
                 router['gw_port'] = interface_port
         modified_interfaces = []
-        for itfc in router.get(l3_constants.INTERFACE_KEY, []):
+        for itfc in router.get(bc.constants.INTERFACE_KEY, []):
             interface_port = self._populate_port_ha_information(
                 e_context, itfc, router['id'], hags, user_router_id,
                 modified_interfaces)
@@ -831,9 +828,9 @@ class HA_db_mixin(object):
                 router['status'] = cisco_constants.ROUTER_INFO_INCOMPLETE
                 return
         if modified_interfaces:
-            router[l3_constants.INTERFACE_KEY] = modified_interfaces
+            router[bc.constants.INTERFACE_KEY] = modified_interfaces
         if fips:
-            router[l3_constants.FLOATINGIP_KEY] = fips
+            router[bc.constants.FLOATINGIP_KEY] = fips
 
     def _populate_port_ha_information(self, context, port, router_id, hags,
                                       user_router_id, modified_interfaces):
@@ -914,7 +911,7 @@ class HA_db_mixin(object):
         port = {'port': {
             'tenant_id': '',  # intentionally not set
             'network_id': network_id,
-            'mac_address': bc_attr.ATTR_NOT_SPECIFIED,
+            'mac_address': ATTR_NOT_SPECIFIED,
             'fixed_ips': fixed_ips,
             'device_id': device_id,
             'device_owner': port_type,
@@ -1001,11 +998,11 @@ class HA_db_mixin(object):
             RouterPort.router_id, models_v2.IPAllocation.ip_address).join(
             models_v2.Port, models_v2.IPAllocation).filter(
             models_v2.Port.network_id == internal_port['network_id'],
-            RouterPort.port_type.in_(l3_constants.ROUTER_INTERFACE_OWNERS),
+            RouterPort.port_type.in_(bc.constants.ROUTER_INTERFACE_OWNERS),
             models_v2.IPAllocation.subnet_id == internal_subnet['id']
         ).join(gw_port, gw_port.device_id == RouterPort.router_id).filter(
             gw_port.network_id == external_network_id,
-            gw_port.device_owner == l3_constants.DEVICE_OWNER_ROUTER_GW
+            gw_port.device_owner == bc.constants.DEVICE_OWNER_ROUTER_GW
         ).distinct()
 
         # Ensure that redundancy routers (in a ha group) are not returned,

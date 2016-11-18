@@ -19,10 +19,9 @@ from oslo_config import cfg
 import oslo_messaging
 from oslo_utils import uuidutils
 
-from neutron.common import constants as l3_constants
 from neutron.tests import base
 
-from networking_cisco import backwards_compatibility as bc_attr
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cfg_agent import cfg_agent
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
 from networking_cisco.plugins.cisco.cfg_agent.service_helpers import (
@@ -71,7 +70,7 @@ def prepare_router_data(enable_snat=None, num_internal_ports=1):
         'id': router_id,
         'status': 'ACTIVE',
         'admin_state_up': True,
-        l3_constants.INTERFACE_KEY: int_ports,
+        bc.constants.INTERFACE_KEY: int_ports,
         'routes': [],
         'gw_port': ex_gw_port,
         'hosting_device': hosting_device,
@@ -125,7 +124,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
     def setUp(self):
         super(TestBasicRoutingOperations, self).setUp()
         self.conf = cfg.ConfigOpts()
-        self.conf.register_opts(bc_attr.core_opts)
+        self.conf.register_opts(bc.core_opts)
         self.conf.register_opts(cfg_agent.OPTS, "cfg_agent")
         self.ex_gw_port = {'id': _uuid(),
                            'network_id': _uuid(),
@@ -248,7 +247,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.routing_helper._enable_router_interface.assert_any_call(
             ri, ex_gw_port)
         self.routing_helper._enable_router_interface.assert_any_call(
-            ri, router[l3_constants.INTERFACE_KEY][0])
+            ri, router[bc.constants.INTERFACE_KEY][0])
         self.assertFalse(self.routing_helper._disable_router_interface.called)
         self._reset_mocks()
 
@@ -277,7 +276,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         # remap floating IP to a new fixed ip
         fake_floatingips2 = copy.deepcopy(fake_floatingips1)
         fake_floatingips2['floatingips'][0]['fixed_ip_address'] = '7.7.7.8'
-        router[l3_constants.FLOATINGIP_KEY] = fake_floatingips2['floatingips']
+        router[bc.constants.FLOATINGIP_KEY] = fake_floatingips2['floatingips']
 
         # Process again and check that this time only the process_floating_ips
         # was only called.
@@ -289,7 +288,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.assertFalse(self.routing_helper._external_gateway_added.called)
         self._reset_mocks()
         # remove just the floating ips
-        del router[l3_constants.FLOATINGIP_KEY]
+        del router[bc.constants.FLOATINGIP_KEY]
         # Process again and check that this time also only the
         # process_floating_ips and external_network remove was called
         self.routing_helper._process_router(ri)
@@ -304,7 +303,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
             self._test_router_admin_port_state(router, ri, ex_gw_port)
 
         # now no ports so state is torn down
-        del router[l3_constants.INTERFACE_KEY]
+        del router[bc.constants.INTERFACE_KEY]
         del router['gw_port']
         # Update router_info object
         ri.router = router
@@ -379,7 +378,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
                           self.routing_helper._process_router,
                           ri)
         self.assertNotIn(
-            router[l3_constants.INTERFACE_KEY][0], ri.internal_ports)
+            router[bc.constants.INTERFACE_KEY][0], ri.internal_ports)
 
         # The unexpected exception has been fixed manually
         self.routing_helper._internal_network_added.side_effect = None
@@ -388,7 +387,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         # port to ri.internal_ports
         self.routing_helper._process_router(ri)
         self.assertIn(
-            router[l3_constants.INTERFACE_KEY][0], ri.internal_ports)
+            router[bc.constants.INTERFACE_KEY][0], ri.internal_ports)
 
     def test_process_router_internal_network_added_raises_HAMissingError(self):
         router, ports = prepare_router_data()
@@ -401,7 +400,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.routing_helper._process_router(ri)
         self.assertIn(ri.router_id, self.routing_helper.updated_routers)
         self.assertNotIn(
-            router[l3_constants.INTERFACE_KEY][0], ri.internal_ports)
+            router[bc.constants.INTERFACE_KEY][0], ri.internal_ports)
         # The unexpected exception has been fixed manually
         self.routing_helper._internal_network_added.side_effect = None
 
@@ -409,7 +408,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         # port to ri.internal_ports
         self.routing_helper._process_router(ri)
         self.assertIn(
-            router[l3_constants.INTERFACE_KEY][0], ri.internal_ports)
+            router[bc.constants.INTERFACE_KEY][0], ri.internal_ports)
 
     def test_process_router_internal_network_removed_unexpected_error(self):
         router, ports = prepare_router_data()
@@ -421,13 +420,13 @@ class TestBasicRoutingOperations(base.BaseTestCase):
 
         self.routing_helper._internal_network_removed.side_effect = mock.Mock(
             side_effect=RuntimeError)
-        router[l3_constants.INTERFACE_KEY][0]['admin_state_up'] = False
+        router[bc.constants.INTERFACE_KEY][0]['admin_state_up'] = False
         # The above port is set to down state, remove it.
         self.assertRaises(RuntimeError,
                           self.routing_helper._process_router,
                           ri)
         self.assertIn(
-            router[l3_constants.INTERFACE_KEY][0], ri.internal_ports)
+            router[bc.constants.INTERFACE_KEY][0], ri.internal_ports)
 
         # The unexpected exception has been fixed manually
         self.routing_helper._internal_network_removed.side_effect = None
@@ -437,7 +436,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.routing_helper._process_router(ri)
         # We were able to remove the port from ri.internal_ports
         self.assertNotIn(
-            router[l3_constants.INTERFACE_KEY][0], ri.internal_ports)
+            router[bc.constants.INTERFACE_KEY][0], ri.internal_ports)
 
     def test_routers_with_admin_state_down(self):
         self.plugin_api.get_external_network_id.return_value = None
@@ -679,7 +678,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
                        'id': 'floating_ip_id',
                        'port_id': port_id,
                        'status': 'ACTIVE', }
-        router[l3_constants.FLOATINGIP_KEY] = [floating_ip]
+        router[bc.constants.FLOATINGIP_KEY] = [floating_ip]
         ri = routing_svc_helper.RouterInfo(router['id'], router=router)
 
         # Default add action
@@ -688,7 +687,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
             ri, ex_gw_port, floating_ip_address, fixed_ip_address)
 
         if action == 'remove':
-            router[l3_constants.FLOATINGIP_KEY] = []
+            router[bc.constants.FLOATINGIP_KEY] = []
             self.routing_helper._process_router_floating_ips(ri, ex_gw_port)
             driver.floating_ip_removed.assert_called_with(
                 ri, ri.ex_gw_port, floating_ip_address, fixed_ip_address)
@@ -697,7 +696,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
             driver.reset_mock()
             floating_ip_2 = copy.deepcopy(floating_ip)
             floating_ip_2['fixed_ip_address'] = fixed_ip_address_2
-            ri.router[l3_constants.FLOATINGIP_KEY] = [floating_ip_2]
+            ri.router[bc.constants.FLOATINGIP_KEY] = [floating_ip_2]
 
             self.routing_helper._process_router_floating_ips(ri, ex_gw_port)
             driver.floating_ip_added.assert_called_with(
@@ -749,7 +748,7 @@ class TestDeviceSyncOperations(base.BaseTestCase):
     def setUp(self):
         super(TestDeviceSyncOperations, self).setUp()
         self.conf = cfg.ConfigOpts()
-        self.conf.register_opts(bc_attr.core_opts)
+        self.conf.register_opts(bc.core_opts)
         self.conf.register_opts(cfg_agent.OPTS, "cfg_agent")
         self.ex_gw_port = {'id': _uuid(),
                            'network_id': _uuid(),

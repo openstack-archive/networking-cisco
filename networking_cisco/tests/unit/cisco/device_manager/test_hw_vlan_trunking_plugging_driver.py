@@ -21,8 +21,7 @@ from neutron import context
 from neutron.extensions import providernet as pr_net
 from neutron.tests.unit.extensions import test_l3
 
-from neutron_lib import constants as l3_constants
-
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.device_manager.plugging_drivers.\
     hw_vlan_trunking_driver import HwVLANTrunkingPlugDriver
 from networking_cisco.tests.unit.cisco.l3 import (
@@ -146,7 +145,7 @@ class TestHwVLANTrunkingPlugDriver(
         fake_port_db_obj = mock.MagicMock()
         fake_port_db_obj.hosting_info = mock.MagicMock()
         fake_port_db_obj.hosting_info.segmentation_id = 50
-        fake_port_db_obj.device_owner = l3_constants.DEVICE_OWNER_ROUTER_INTF
+        fake_port_db_obj.device_owner = bc.constants.DEVICE_OWNER_ROUTER_INTF
         hosting_device = {'id': '00000000-0000-0000-0000-000000000002'}
         tenant_id = 'tenant_uuid1'
         ctx = context.Context('', tenant_id, is_admin=True)
@@ -162,7 +161,7 @@ class TestHwVLANTrunkingPlugDriver(
         fake_port_db_obj = mock.MagicMock()
         fake_port_db_obj.hosting_info = mock.MagicMock()
         fake_port_db_obj.hosting_info.segmentation_id = 40
-        fake_port_db_obj.device_owner = l3_constants.DEVICE_OWNER_ROUTER_GW
+        fake_port_db_obj.device_owner = bc.constants.DEVICE_OWNER_ROUTER_GW
         hosting_device = {'id': '00000000-0000-0000-0000-000000000002'}
         tenant_id = 'tenant_uuid1'
         ctx = context.Context('', tenant_id, is_admin=True)

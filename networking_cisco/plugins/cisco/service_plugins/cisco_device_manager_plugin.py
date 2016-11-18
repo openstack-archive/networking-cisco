@@ -13,14 +13,13 @@
 #    under the License.
 #
 
+from neutron.common import rpc as n_rpc
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import importutils
 
-from neutron.common import rpc as n_rpc
-from neutron import manager
-
+from networking_cisco import backwards_compatibility as bc
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
@@ -89,5 +88,5 @@ class CiscoDeviceManagerPlugin(dev_mgr_db.HostingDeviceManagerMixin,
         try:
             return self._plugin
         except AttributeError:
-            self._plugin = manager.NeutronManager.get_plugin()
+            self._plugin = bc.get_plugin()
             return self._plugin

@@ -21,8 +21,7 @@ from neutron.extensions import portbindings
 from neutron.plugins.ml2 import driver_api as api
 from neutron.tests.unit import testlib_api
 
-from neutron_lib import constants as n_const
-
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import (
     mech_cisco_ucsm as md)
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import config as conf
@@ -49,7 +48,7 @@ NETWORK_ID_1 = 1001
 NETWORK_NAME = 'test-network'
 VLAN_ID_1 = 100
 VLAN_ID_2 = 101
-PORT_STATE_ACTIVE = n_const.PORT_STATUS_ACTIVE
+PORT_STATE_ACTIVE = bc.constants.PORT_STATUS_ACTIVE
 NETWORK_TYPE = 'vlan'
 NETWORK_ID = 'test-network'
 PORT_NAME = 'port1'
@@ -127,7 +126,7 @@ class FakePortContext(object):
             'id': port_id,
             'name': name,
             # set for _is_supported_deviceowner() to return True
-            'device_owner': n_const.DEVICE_OWNER_DHCP,
+            'device_owner': bc.constants.DEVICE_OWNER_DHCP,
             portbindings.HOST_ID: HOST1,
             portbindings.VNIC_TYPE: vnic_type,
             portbindings.PROFILE: profile
@@ -257,8 +256,8 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         """Verifies detection of supported set of device owners for ports."""
         port_context = self._create_port_context_normal()
         port = port_context._port
-        supported_owners = [n_const.DEVICE_OWNER_ROUTER_HA_INTF,
-                            n_const.DEVICE_OWNER_DHCP,
+        supported_owners = [bc.constants.DEVICE_OWNER_ROUTER_HA_INTF,
+                            bc.constants.DEVICE_OWNER_DHCP,
                             'compute:nova']
         for owner in supported_owners:
             port['device_owner'] = owner
@@ -268,12 +267,12 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         """Verifies detection of unsupported device owners for ports."""
         port_context = self._create_port_context_normal()
         port = port_context._port
-        unsupported_owners = [n_const.DEVICE_OWNER_ROUTER_INTF,
-                              n_const.DEVICE_OWNER_ROUTER_GW,
-                              n_const.DEVICE_OWNER_FLOATINGIP,
-                              n_const.DEVICE_OWNER_ROUTER_SNAT,
-                              n_const.DEVICE_OWNER_LOADBALANCER,
-                              n_const.DEVICE_OWNER_LOADBALANCERV2,
+        unsupported_owners = [bc.constants.DEVICE_OWNER_ROUTER_INTF,
+                              bc.constants.DEVICE_OWNER_ROUTER_GW,
+                              bc.constants.DEVICE_OWNER_FLOATINGIP,
+                              bc.constants.DEVICE_OWNER_ROUTER_SNAT,
+                              bc.constants.DEVICE_OWNER_LOADBALANCER,
+                              bc.constants.DEVICE_OWNER_LOADBALANCERV2,
                               'controller:foobar']
         for owner in unsupported_owners:
             port['device_owner'] = owner
@@ -283,17 +282,17 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         """Verifies detection of supported status values for ports."""
         port_context = self._create_port_context_normal()
         port = port_context._port
-        port['status'] = n_const.PORT_STATUS_ACTIVE
+        port['status'] = bc.constants.PORT_STATUS_ACTIVE
         self.assertTrue(self.mech_driver._is_status_active(port))
 
     def test_port_unsupported_status(self):
         """Verifies detection of unsupported status values for ports."""
         port_context = self._create_port_context_normal()
         port = port_context._port
-        unsupported_states = [n_const.PORT_STATUS_BUILD,
-                              n_const.PORT_STATUS_DOWN,
-                              n_const.PORT_STATUS_ERROR,
-                              n_const.PORT_STATUS_NOTAPPLICABLE]
+        unsupported_states = [bc.constants.PORT_STATUS_BUILD,
+                              bc.constants.PORT_STATUS_DOWN,
+                              bc.constants.PORT_STATUS_ERROR,
+                              bc.constants.PORT_STATUS_NOTAPPLICABLE]
         for state in unsupported_states:
             port['status'] = state
             self.assertFalse(self.mech_driver._is_status_active(port))

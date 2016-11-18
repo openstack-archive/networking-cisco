@@ -13,7 +13,8 @@
 #    under the License.
 
 from neutron.agent.linux import dhcp
-from neutron_lib import constants as const
+
+from networking_cisco import backwards_compatibility as bc
 
 
 fake_tenant_id = 'aaaaaaaa-aaaa-aaaa-aaaaaaaaaaaa'
@@ -116,12 +117,13 @@ fake_ipv6_port = dhcp.DictModel(dict(id='12345678-1234-aaaa-123456789000',
                                 network_id='12345678-1234-5678-1234567890ab',
                                 fixed_ips=[fake_fixed_ipv6]))
 
-fake_meta_port = dhcp.DictModel(dict(id='12345678-1234-aaaa-1234567890ab',
-                                mac_address='aa:bb:cc:dd:ee:ff',
-                                network_id='12345678-1234-5678-1234567890ab',
-                                device_owner=const.DEVICE_OWNER_ROUTER_INTF,
-                                device_id='forzanapoli',
-                                fixed_ips=[fake_meta_fixed_ip]))
+fake_meta_port = dhcp.DictModel(
+    dict(id='12345678-1234-aaaa-1234567890ab',
+         mac_address='aa:bb:cc:dd:ee:ff',
+         network_id='12345678-1234-5678-1234567890ab',
+         device_owner=bc.constants.DEVICE_OWNER_ROUTER_INTF,
+         device_id='forzanapoli',
+         fixed_ips=[fake_meta_fixed_ip]))
 
 
 FAKE_NETWORK_UUID = '12345678-1234-5678-1234567890ab'

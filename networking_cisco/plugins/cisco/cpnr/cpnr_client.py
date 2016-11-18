@@ -17,7 +17,7 @@
 # Cisco's CPNR (Cisco Prime Network Registrar) server
 #######################################################
 
-from neutron.common import exceptions
+from neutron_lib import exceptions
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
 import requests

@@ -12,19 +12,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo_config import cfg
-from oslo_utils import importutils
-
 from neutron.api.rpc.agentnotifiers import l3_rpc_agent_api
 from neutron.api.rpc.handlers import l3_rpc
-from neutron.common import constants as neutron_constants
 from neutron.common import rpc as n_rpc
 from neutron.common import topics
 from neutron.db import common_db_mixin
 #from neutron.db import l3_gwmode_db
-from neutron import manager
 from neutron.plugins.common import constants
+from oslo_config import cfg
+from oslo_utils import importutils
 
+from networking_cisco import backwards_compatibility as bc
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.l3 import ha_db
@@ -87,7 +85,7 @@ class CiscoRouterPlugin(common_db_mixin.CommonDbMixin,
         # RPC support
         self.topic = topics.L3PLUGIN
         self.conn = n_rpc.create_connection()
-        self.agent_notifiers[neutron_constants.AGENT_TYPE_L3] = (
+        self.agent_notifiers[bc.constants.AGENT_TYPE_L3] = (
             l3_rpc_agent_api.L3AgentNotifyAPI())
         self.agent_notifiers[cisco_constants.AGENT_TYPE_L3_CFG] = (
             l3_router_rpc_cfg_agent_api.L3RouterCfgAgentNotifyAPI(self))
@@ -119,12 +117,12 @@ class CiscoRouterPlugin(common_db_mixin.CommonDbMixin,
         """
         return super(CiscoRouterPlugin, self).create_floatingip(
             context, floatingip,
-            initial_status=neutron_constants.FLOATINGIP_STATUS_DOWN)
+            initial_status=bc.constants.FLOATINGIP_STATUS_DOWN)
 
     @property
     def _core_plugin(self):
         try:
             return self._plugin
         except AttributeError:
-            self._plugin = manager.NeutronManager.get_plugin()
+            self._plugin = bc.get_plugin()
             return self._plugin

@@ -14,11 +14,9 @@
 
 import netaddr
 
-from networking_cisco.plugins.cisco.common.htparser import HTParser
-
-from neutron_lib import constants
-
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import cisco_constants
+from networking_cisco.plugins.cisco.common.htparser import HTParser
 from networking_cisco.plugins.cisco.extensions import ha
 from networking_cisco.plugins.cisco.extensions import routerrole
 
@@ -62,7 +60,7 @@ class ConfigValidator(object):
                     interfaces = router['_interfaces']
                     for intf in interfaces:
                         if intf['device_owner'] == \
-                            constants.DEVICE_OWNER_ROUTER_INTF:
+                                bc.constants.DEVICE_OWNER_ROUTER_INTF:
                             intf_segment_id = \
                                 intf['hosting_info']['segmentation_id']
                             segment_nat_dict[gw_segment_id] = True

@@ -19,8 +19,8 @@ from oslo_db import exception as db_exc
 
 from neutron.extensions import l3
 from neutron.tests import base
-from neutron_lib import constants
 
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.l3.rpc import l3_router_cfg_agent_rpc_cb
 
 
@@ -117,7 +117,7 @@ class TestCfgAgentL3RouterCallbacks(base.BaseTestCase):
             self.contextMock, 'some_router_id', fip_statuses)
         calls = [mock.call(self.contextMock, fip_id, status),
                  mock.call(self.contextMock, fip_id,
-                           constants.FLOATINGIP_STATUS_DOWN)]
+                           bc.constants.FLOATINGIP_STATUS_DOWN)]
         self.l3_plugin.update_floatingip_status.assert_has_calls(calls)
         self.assertEqual(2, self.l3_plugin.update_floatingip_status.call_count)
 

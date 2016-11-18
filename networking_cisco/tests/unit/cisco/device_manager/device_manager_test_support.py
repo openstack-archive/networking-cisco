@@ -14,8 +14,14 @@
 
 import copy
 from datetime import datetime
-
 import mock
+
+from neutron.api.v2 import attributes
+from neutron.common import test_lib
+from neutron import context as n_context
+from neutron.db import agents_db
+from neutron.extensions import agent
+from neutron.tests.unit.extensions import test_l3
 from novaclient import exceptions as nova_exc
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -24,19 +30,9 @@ from oslo_utils import importutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
-from networking_cisco._i18n import _LE
-
-from neutron.api.v2 import attributes
-from neutron.common import constants as common_constants
-from neutron.common import test_lib
-from neutron import context as n_context
-from neutron.db import agents_db
-from neutron.extensions import agent
-from neutron import manager
-from neutron.tests.unit.extensions import test_l3
-from neutron_lib import constants as lib_constants
-
 import networking_cisco
+from networking_cisco._i18n import _LE
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco import plugins
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.device_manager import (
@@ -56,7 +52,7 @@ LOG = logging.getLogger(__name__)
 
 
 _uuid = uuidutils.generate_uuid
-ISO8601_TIME_FORMAT = common_constants.ISO8601_TIME_FORMAT
+ISO8601_TIME_FORMAT = bc.constants.ISO8601_TIME_FORMAT
 
 CORE_PLUGIN_KLASS = (
     'networking_cisco.tests.unit.cisco.device_manager'
@@ -72,7 +68,7 @@ class DeviceManagerTestSupportMixin(object):
 
     @property
     def _core_plugin(self):
-        return manager.NeutronManager.get_plugin()
+        return bc.get_plugin()
 
     def _mock_l3_admin_tenant(self):
         # Mock l3 admin tenant
@@ -191,8 +187,7 @@ class DeviceManagerTestSupportMixin(object):
 
     def _test_remove_all_hosting_devices(self):
         """Removes all hosting devices created during a test."""
-        devmgr = manager.NeutronManager.get_service_plugins()[
-            cisco_constants.DEVICE_MANAGER]
+        devmgr = bc.get_plugin(cisco_constants.DEVICE_MANAGER)
         context = n_context.get_admin_context()
         devmgr.delete_all_hosting_devices(context, True)
 
@@ -209,7 +204,7 @@ class DeviceManagerTestSupportMixin(object):
         self._cfg_agent_mock = mock.MagicMock()
         self._l3_cfg_agent_mock = mock.MagicMock()
         plugin.agent_notifiers = {
-            lib_constants.AGENT_TYPE_L3: self._l3_agent_mock,
+            bc.constants.AGENT_TYPE_L3: self._l3_agent_mock,
             cisco_constants.AGENT_TYPE_CFG: self._cfg_agent_mock,
             cisco_constants.AGENT_TYPE_L3_CFG: self._l3_cfg_agent_mock}
 
@@ -256,8 +251,7 @@ class DeviceManagerTestSupportMixin(object):
             'agent_type': cisco_constants.AGENT_TYPE_CFG}
         agent_callback = agents_db.AgentExtRpcCallback()
         dev_mgr_callback = devices_cfgagent_rpc_cb.DeviceMgrCfgRpcCallback(
-            manager.NeutronManager.get_service_plugins()[
-                cisco_constants.DEVICE_MANAGER])
+            bc.get_plugin(cisco_constants.DEVICE_MANAGER))
         if host_a_active is True:
             agent_callback.report_state(
                 self.adminContext,

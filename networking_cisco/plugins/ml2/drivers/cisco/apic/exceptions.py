@@ -13,9 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from networking_cisco._i18n import _
+from neutron_lib import exceptions as n_exc
 
-from neutron.common import exceptions as n_exc
+from networking_cisco._i18n import _
 
 
 class ReservedSynchronizationName(n_exc.BadRequest):

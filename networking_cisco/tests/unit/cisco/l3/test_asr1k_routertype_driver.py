@@ -19,8 +19,7 @@ from webob import exc
 from neutron import context
 from neutron.extensions import l3
 
-from neutron_lib import constants as l3_constants
-
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.l3 import ha_db
 from networking_cisco.plugins.cisco.extensions import ha
@@ -36,7 +35,7 @@ from networking_cisco.tests.unit.cisco.l3 import (
 
 _uuid = uuidutils.generate_uuid
 
-DEVICE_OWNER_ROUTER_INTF = l3_constants.DEVICE_OWNER_ROUTER_INTF
+DEVICE_OWNER_ROUTER_INTF = bc.constants.DEVICE_OWNER_ROUTER_INTF
 EXTERNAL_GW_INFO = l3.EXTERNAL_GW_INFO
 AGENT_TYPE_L3_CFG = cisco_constants.AGENT_TYPE_L3_CFG
 ROUTER_ROLE_GLOBAL = cisco_constants.ROUTER_ROLE_GLOBAL

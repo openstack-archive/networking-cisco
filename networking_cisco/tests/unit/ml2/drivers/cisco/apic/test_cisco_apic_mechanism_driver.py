@@ -23,8 +23,7 @@ from neutron.extensions import portbindings
 from neutron.plugins.ml2.drivers import type_vlan  # noqa
 from neutron.tests import base
 
-from neutron_lib import constants as n_constants
-
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.apic import (
     mechanism_apic as md)
 from networking_cisco.plugins.ml2.drivers.cisco.apic import constants as acst
@@ -287,7 +286,7 @@ class TestCiscoApicMechDriver(base.BaseTestCase,
                 'name': mocked.APIC_PORT,
                 'network_id': net_id}
         if gw:
-            port['device_owner'] = n_constants.DEVICE_OWNER_ROUTER_GW
+            port['device_owner'] = bc.constants.DEVICE_OWNER_ROUTER_GW
             port['device_id'] = mocked.APIC_ROUTER
         return FakePortContext(port, network)
 

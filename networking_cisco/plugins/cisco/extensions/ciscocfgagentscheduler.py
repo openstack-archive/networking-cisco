@@ -17,18 +17,17 @@ import abc
 from oslo_log import log as logging
 import webob.exc
 
-from networking_cisco._i18n import _, _LE
-
 from neutron.api import extensions
 from neutron.api.v2 import base
 from neutron.api.v2 import resource
 from neutron.common import rpc as n_rpc
 from neutron.extensions import agent
-from neutron import manager
 from neutron import policy
 from neutron import wsgi
 from neutron_lib import exceptions
 
+from networking_cisco._i18n import _, _LE
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.extensions import ciscohostingdevicemanager
 
@@ -66,8 +65,7 @@ HOSTING_DEVICE_CFG_AGENTS = HOSTING_DEVICE_CFG_AGENT + 's'
 
 class HostingDeviceSchedulerController(wsgi.Controller):
     def get_plugin(self):
-        plugin = manager.NeutronManager.get_service_plugins().get(
-            cisco_constants.DEVICE_MANAGER)
+        plugin = bc.get_plugin(cisco_constants.DEVICE_MANAGER)
         if not plugin:
             LOG.error(_LE('No Device manager service plugin registered to '
                           'handle hosting device scheduling'))
@@ -109,8 +107,7 @@ class HostingDeviceSchedulerController(wsgi.Controller):
 
 class CfgAgentsHandlingHostingDeviceController(wsgi.Controller):
     def get_plugin(self):
-        plugin = manager.NeutronManager.get_service_plugins().get(
-            cisco_constants.DEVICE_MANAGER)
+        plugin = bc.get_plugin(cisco_constants.DEVICE_MANAGER)
         if not plugin:
             LOG.error(_LE('No device manager service plugin registered to '
                           'handle hosting device scheduling'))

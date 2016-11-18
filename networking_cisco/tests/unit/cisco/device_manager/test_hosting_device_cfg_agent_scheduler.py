@@ -15,19 +15,18 @@
 import os
 
 import mock
-from oslo_config import cfg
-import six
-from webob import exc
-
 from neutron.api.v2 import attributes
 from neutron import context as n_context
-from neutron import manager
 from neutron.plugins.common import constants as svc_constants
 from neutron.tests import fake_notifier
 from neutron.tests.unit.db import test_agentschedulers_db
 from neutron.tests.unit.db import test_db_base_plugin_v2
+from oslo_config import cfg
+import six
+from webob import exc
 
 import networking_cisco
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import cisco_constants as c_const
 from networking_cisco.plugins.cisco.device_manager import service_vm_lib
 from networking_cisco.plugins.cisco.extensions import ciscocfgagentscheduler
@@ -37,6 +36,9 @@ from networking_cisco.tests.unit.cisco.device_manager import (
 from networking_cisco.tests.unit.cisco.device_manager import (
     test_db_device_manager)
 
+
+NEUTRON_VERSION = bc.NEUTRON_VERSION
+NEUTRON_NEWTON_VERSION = bc.NEUTRON_NEWTON_VERSION
 
 policy_path = (os.path.abspath(networking_cisco.__path__[0]) +
                '/../etc/policy.json')
@@ -129,11 +131,12 @@ class HostingDeviceConfigAgentSchedulerTestCaseBase(
 
         # Ensure we use policy definitions from our repo
         cfg.CONF.set_override('policy_file', policy_path, 'oslo_policy')
-        self.core_plugin = manager.NeutronManager.get_plugin()
+        self.core_plugin = bc.get_plugin()
         self.plugin = self.core_plugin
         self.setup_notification_driver()
 
-        cfg.CONF.set_override('allow_sorting', True)
+        if NEUTRON_VERSION.version[0] <= NEUTRON_NEWTON_VERSION.version[0]:
+            cfg.CONF.set_override('allow_sorting', True)
         self._define_keystone_authtoken()
 
         self._mock_l3_admin_tenant()

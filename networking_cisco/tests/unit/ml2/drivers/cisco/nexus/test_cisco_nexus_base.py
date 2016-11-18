@@ -26,6 +26,7 @@ import re
 import six
 import testtools
 
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -35,11 +36,11 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import exceptions
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import mech_cisco_nexus
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import nexus_db_v2
 
-from neutron.common import constants as n_const
 from neutron.extensions import portbindings
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import driver_api as api
 from neutron.tests.unit import testlib_api
+
 
 # Static variables used in testing
 NEXUS_IP_ADDRESS_1 = '1.1.1.1'
@@ -91,11 +92,11 @@ PORT_ID = 'fakePortID'
 
 DEVICE_OWNER_BAREMETAL = 'baremetal:none'
 DEVICE_OWNER_COMPUTE = 'compute:test'
-DEVICE_OWNER_DHCP = n_const.DEVICE_OWNER_DHCP
-DEVICE_OWNER_ROUTER_HA_INTF = n_const.DEVICE_OWNER_ROUTER_HA_INTF
+DEVICE_OWNER_DHCP = bc.constants.DEVICE_OWNER_DHCP
+DEVICE_OWNER_ROUTER_HA_INTF = bc.constants.DEVICE_OWNER_ROUTER_HA_INTF
 
 NEXUS_SSH_PORT = '22'
-PORT_STATE = n_const.PORT_STATUS_ACTIVE
+PORT_STATE = bc.constants.PORT_STATUS_ACTIVE
 NETWORK_TYPE = 'vlan'
 VLAN_TYPE_TRUNK = 'trunk'
 VLAN_TYPE_NATIVE = 'native'

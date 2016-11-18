@@ -32,8 +32,7 @@ from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2.common import exceptions as ml2_exc
 from neutron.plugins.ml2 import driver_api as api
 
-from neutron_lib import constants as n_const
-
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     constants as n1kv_const)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
@@ -265,8 +264,9 @@ class N1KVMechanismDriver(api.MechanismDriver):
         old_port = context.original
         # Perform port update on VSM only if a router or DHCP port is bound.
         if (not old_port['binding:host_id'] and
-                (port['device_owner'] in [n_const.DEVICE_OWNER_ROUTER_INTF,
-                                          n_const.DEVICE_OWNER_DHCP])):
+                (port['device_owner'] in [
+                    bc.constants.DEVICE_OWNER_ROUTER_INTF,
+                    bc.constants.DEVICE_OWNER_DHCP])):
             session = context._plugin_context.session
             binding = n1kv_db.get_policy_binding(port['id'], session)
             policy_profile = n1kv_db.get_policy_profile_by_uuid(
@@ -321,7 +321,7 @@ class N1KVMechanismDriver(api.MechanismDriver):
                 context.set_binding(segment[api.ID],
                                     self.vif_type,
                                     self.vif_details,
-                                    status=n_const.PORT_STATUS_ACTIVE)
+                                    status=bc.constants.PORT_STATUS_ACTIVE)
                 return
             else:
                 LOG.info(_LI("Port binding ignored for segment ID %(id)s, "

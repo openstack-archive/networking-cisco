@@ -17,15 +17,13 @@ import abc
 import six
 
 from neutron.api import extensions
-from neutron.api.v2 import attributes
 from neutron.api.v2 import base
-from neutron import manager
 from neutron.services import service_base as sb
-
 from neutron_lib.api import converters as conv
-from neutron_lib import constants as lib_constants
 
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import constants
+
 
 NETWORK_PROFILE = 'network_profile'
 NETWORK_PROFILES = NETWORK_PROFILE + 's'
@@ -36,7 +34,7 @@ RESOURCE_ATTRIBUTE_MAP = {
     NETWORK_PROFILES: {
         'id': {
             'allow_post': False, 'allow_put': False,
-            'validate': {'type:uuid': lib_constants.UUID_PATTERN},
+            'validate': {'type:uuid': bc.constants.UUID_PATTERN},
             'is_visible': True
         },
         'name': {
@@ -51,12 +49,12 @@ RESOURCE_ATTRIBUTE_MAP = {
         'sub_type': {
             'allow_post': True, 'allow_put': False,
             'is_visible': True,
-            'default': attributes.ATTR_NOT_SPECIFIED
+            'default': bc.constants.ATTR_NOT_SPECIFIED
         },
         'multicast_ip_range': {
             'allow_post': True, 'allow_put': True,
             'is_visible': True,
-            'default': attributes.ATTR_NOT_SPECIFIED
+            'default': bc.constants.ATTR_NOT_SPECIFIED
         },
         'multicast_ip_index': {
             'allow_post': False, 'allow_put': False,
@@ -65,12 +63,12 @@ RESOURCE_ATTRIBUTE_MAP = {
         'physical_network': {
             'allow_post': True, 'allow_put': False,
             'is_visible': True,
-            'default': attributes.ATTR_NOT_SPECIFIED
+            'default': bc.constants.ATTR_NOT_SPECIFIED
         },
         'tenant_id': {
             'allow_post': True, 'allow_put': False,
             'is_visible': False,
-            'default': attributes.ATTR_NOT_SPECIFIED
+            'default': bc.constants.ATTR_NOT_SPECIFIED
         },
         'add_tenants': {
             'allow_post': True, 'allow_put': True,
@@ -85,7 +83,7 @@ RESOURCE_ATTRIBUTE_MAP = {
     },
     NETWORK_PROFILE_BINDINGS: {
         'profile_id': {'allow_post': False, 'allow_put': False,
-                       'validate': {'type:regex': lib_constants.UUID_PATTERN},
+                       'validate': {'type:regex': bc.constants.UUID_PATTERN},
                        'is_visible': True},
         'tenant_id': {'allow_post': True, 'allow_put': False,
                       'is_visible': True},
@@ -119,8 +117,7 @@ class Network_profile(extensions.ExtensionDescriptor):
     def get_resources(cls):
         """Returns Extended Resources."""
         exts = []
-        plugin = (manager.NeutronManager.
-                  get_service_plugins()[constants.CISCO_N1KV_NET_PROFILE])
+        plugin = bc.get_plugin(constants.CISCO_N1KV_NET_PROFILE)
         resource_names = [NETWORK_PROFILE, NETWORK_PROFILE_BINDING]
         collection_names = [NETWORK_PROFILES, NETWORK_PROFILE_BINDINGS]
         for resource_name, collection_name in zip(resource_names,

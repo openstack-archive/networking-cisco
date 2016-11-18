@@ -18,10 +18,9 @@ from oslo_utils import uuidutils
 import testtools
 
 from neutron.agent.common import config
-from neutron.common import constants as l3_constants
 from neutron.tests import base
 
-from networking_cisco import backwards_compatibility as bc_attr
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cfg_agent import cfg_agent
 
 
@@ -55,7 +54,7 @@ def prepare_router_data(enable_snat=None, num_internal_ports=1):
 
     router = {
         'id': router_id,
-        l3_constants.INTERFACE_KEY: int_ports,
+        bc.constants.INTERFACE_KEY: int_ports,
         'routes': [],
         'gw_port': ex_gw_port,
         'hosting_device': hosting_device}
@@ -69,7 +68,7 @@ class TestCiscoCfgAgentWithStateReporting(base.BaseTestCase):
     def setUp(self):
         self.conf = cfg.ConfigOpts()
         config.register_agent_state_opts_helper(cfg.CONF)
-        self.conf.register_opts(bc_attr.core_opts)
+        self.conf.register_opts(bc.core_opts)
         self.conf.register_opts(cfg_agent.OPTS, "cfg_agent")
         cfg.CONF.set_override('report_interval', 0, 'AGENT')
         super(TestCiscoCfgAgentWithStateReporting, self).setUp()

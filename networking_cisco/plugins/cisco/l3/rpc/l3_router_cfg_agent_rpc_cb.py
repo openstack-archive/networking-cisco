@@ -20,7 +20,8 @@ import six
 from neutron import context as neutron_context
 from neutron.db import api as db_api
 from neutron.extensions import l3
-from neutron_lib import constants
+
+from networking_cisco import backwards_compatibility as bc
 
 LOG = logging.getLogger(__name__)
 
@@ -135,7 +136,7 @@ class L3RouterCfgRpcCallback(object):
             for fip_id in fips_to_disable:
                 LOG.debug("update_fip_statuses: disable: %s", fip_id)
                 self._l3plugin.update_floatingip_status(
-                    context, fip_id, constants.FLOATINGIP_STATUS_DOWN)
+                    context, fip_id, bc.constants.FLOATINGIP_STATUS_DOWN)
 
     @db_api.retry_db_errors
     def update_port_statuses_cfg(self, context, port_ids, status):

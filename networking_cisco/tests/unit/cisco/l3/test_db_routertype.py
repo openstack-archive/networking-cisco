@@ -21,17 +21,13 @@ from oslo_log import log as logging
 import six
 import webob.exc
 
-from networking_cisco._i18n import _LE
-
-from neutron.common import exceptions as n_exc
 from neutron import context as n_context
-from neutron import manager
 from neutron.plugins.common import constants
 from neutron.tests.unit.db import test_db_base_plugin_v2
-
-from neutron_lib import constants as n_const
+from neutron_lib import exceptions as n_exc
 
 import networking_cisco
+from networking_cisco._i18n import _LE
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
@@ -218,12 +214,12 @@ class RoutertypeTestCaseMixin(object):
                         'ports',
                         query_params='device_id=%s&device_owner=%s' % (
                             r['id'],
-                            n_const.DEVICE_OWNER_ROUTER_INTF))['ports']:
+                            bc.constants.DEVICE_OWNER_ROUTER_INTF))['ports']:
                     # get_ports can be mocked in some tests so we need to
                     # ensure we get a port that is indeed a router port.
                     try:
                         if (p.get('device_owner') ==
-                                n_const.DEVICE_OWNER_ROUTER_INTF and
+                                bc.constants.DEVICE_OWNER_ROUTER_INTF and
                                 'fixed_ips' in p and 'id' in p):
                             req = self.new_action_request(
                                 'routers', {'port_id': p['id']}, r['id'],
@@ -281,8 +277,7 @@ class TestRoutertypeDBPlugin(test_db_base_plugin_v2.NeutronDbPluginV2TestCase,
         super(TestRoutertypeDBPlugin, self).setUp(
             plugin=core_plugin, service_plugins=service_plugins,
             ext_mgr=ext_mgr)
-        self.l3_plugin = manager.NeutronManager.get_service_plugins()[
-            constants.L3_ROUTER_NAT]
+        self.l3_plugin = bc.get_plugin(constants.L3_ROUTER_NAT)
         # Ensure we use policy definitions from our repo
         cfg.CONF.set_override('policy_file', policy_path, 'oslo_policy')
 

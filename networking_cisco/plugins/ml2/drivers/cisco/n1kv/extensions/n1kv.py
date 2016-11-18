@@ -14,11 +14,10 @@
 #    under the License.
 
 
-from networking_cisco._i18n import _
-
 from neutron.api import extensions
-from neutron.api.v2 import attributes
 
+from networking_cisco._i18n import _
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import constants
 
 
@@ -27,12 +26,12 @@ EXTENDED_ATTRIBUTES_2_0 = {
     'ports': {PROFILE: {
         'allow_post': True,
         'allow_put': False,
-        'default': attributes.ATTR_NOT_SPECIFIED,
+        'default': bc.constants.ATTR_NOT_SPECIFIED,
         'is_visible': True}},
     'networks': {PROFILE: {
         'allow_post': True,
         'allow_put': False,
-        'default': attributes.ATTR_NOT_SPECIFIED,
+        'default': bc.constants.ATTR_NOT_SPECIFIED,
         'is_visible': True}}}
 
 

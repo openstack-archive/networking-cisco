@@ -20,9 +20,7 @@ from oslo_log import log as logging
 from oslo_utils import uuidutils
 
 from networking_cisco._i18n import _, _LE, _LI
-
-from neutron import manager
-
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
 
@@ -58,7 +56,7 @@ class ServiceVMManager(object):
         try:
             return self._plugin
         except AttributeError:
-            self._plugin = manager.NeutronManager.get_plugin()
+            self._plugin = bc.get_plugin()
             return self._plugin
 
     def nova_services_up(self):

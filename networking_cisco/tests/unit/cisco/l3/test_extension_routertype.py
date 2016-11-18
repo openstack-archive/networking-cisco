@@ -29,6 +29,8 @@ from neutron.tests.unit.extensions import base as test_extensions_base
 
 _uuid = uuidutils.generate_uuid
 _get_path = test_base._get_path
+NEUTRON_VERSION = bc.NEUTRON_VERSION
+NEUTRON_NEWTON_VERSION = bc.NEUTRON_NEWTON_VERSION
 
 
 class RouterTypeTestCase(test_extensions_base.ExtensionTestCase):
@@ -36,14 +38,21 @@ class RouterTypeTestCase(test_extensions_base.ExtensionTestCase):
 
     def setUp(self):
         super(RouterTypeTestCase, self).setUp()
-        # NOTE(bobmel): The routertype extension is for the router service. We
-        # therefore add 'router' to supported extensions of the core plugin
-        # used in these test. That way, NeutronManager will return that plugin
-        # as the l3 router service plugin.
+        if NEUTRON_VERSION.version[0] > NEUTRON_NEWTON_VERSION.version[0]:
+            plugin = ('networking_cisco.plugins.cisco.service_plugins.'
+                      'cisco_router_plugin.CiscoRouterPlugin')
+            service_type = bc.constants.L3
+        else:
+            # NOTE(bobmel): The routertype extension is for the router service.
+            # We therefore add 'router' to supported extensions of the core
+            # plugin used in these tests. That way, NeutronManager will return
+            # that plugin as the l3 router service plugin.
+            plugin = ('networking_cisco.plugins.cisco.extensions.routertype.'
+                      'RoutertypePluginBase')
+            service_type = None
         self._setUpExtension(
-            'networking_cisco.plugins.cisco.extensions.routertype.'
-            'RoutertypePluginBase',
-            None, routertype.RESOURCE_ATTRIBUTE_MAP, routertype.Routertype, '',
+            plugin, service_type,
+            routertype.RESOURCE_ATTRIBUTE_MAP, routertype.Routertype, '',
             supported_extension_aliases=['router',
                                          routertype.ROUTERTYPE_ALIAS])
 

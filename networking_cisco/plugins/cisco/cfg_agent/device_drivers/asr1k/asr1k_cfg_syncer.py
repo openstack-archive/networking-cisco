@@ -21,10 +21,8 @@ import xml.etree.ElementTree as ET
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from neutron_lib import constants
-
 from networking_cisco._i18n import _LI
-
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
     asr1k_snippets as asr_snippets)
 from networking_cisco.plugins.cisco.common import cisco_constants
@@ -243,7 +241,7 @@ class ConfigSyncer(object):
                     interfaces = router['_interfaces']
                     for intf in interfaces:
                         if intf['device_owner'] == \
-                            constants.DEVICE_OWNER_ROUTER_INTF:
+                            bc.constants.DEVICE_OWNER_ROUTER_INTF:
                             if is_port_v6(intf) is not True:
                                 intf_segment_id = \
                                     intf['hosting_info']['segmentation_id']
@@ -764,8 +762,7 @@ class ConfigSyncer(object):
             if '_interfaces' in router:
                 for intf in router['_interfaces']:
                     if intf['device_owner'] == \
-                        constants.DEVICE_OWNER_ROUTER_INTF:
-
+                            bc.constants.DEVICE_OWNER_ROUTER_INTF:
                         intf_segment_id = \
                             int(intf['hosting_info']['segmentation_id'])
                         if intf_segment_id == segment_id:
@@ -806,7 +803,7 @@ class ConfigSyncer(object):
                 intf_list = intf_segment_dict[segment_id]
                 for intf in intf_list:
                     if intf['device_owner'] == \
-                       constants.DEVICE_OWNER_ROUTER_INTF:
+                            bc.constants.DEVICE_OWNER_ROUTER_INTF:
                         subnet_cidr = intf['subnets'][0]['cidr']
                         db_subnet = netaddr.IPNetwork(subnet_cidr)
                         break
@@ -937,9 +934,9 @@ class ConfigSyncer(object):
                                 prefixlen):
 
         if is_external:
-            target_type = constants.DEVICE_OWNER_ROUTER_GW
+            target_type = bc.constants.DEVICE_OWNER_ROUTER_GW
         else:
-            target_type = constants.DEVICE_OWNER_ROUTER_INTF
+            target_type = bc.constants.DEVICE_OWNER_ROUTER_INTF
 
         for target_intf in intf_list:
             if target_intf['device_owner'] == target_type:

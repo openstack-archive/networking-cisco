@@ -25,17 +25,17 @@ from oslo_serialization import jsonutils
 from oslo_utils import excutils
 from oslo_utils import netutils
 
+from neutron.extensions import providernet
+from neutron.plugins.common import constants as p_const
+from neutron_lib import exceptions as n_exc
+
+from networking_cisco._i18n import _, _LE, _LI
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     constants as n1kv_const)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     exceptions as n1kv_exc)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import config  # noqa
 
-from networking_cisco._i18n import _, _LE, _LI
-
-from neutron.common import exceptions as n_exc
-from neutron.extensions import providernet
-from neutron.plugins.common import constants as p_const
 
 LOG = logging.getLogger(__name__)
 

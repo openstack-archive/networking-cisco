@@ -21,8 +21,8 @@ from oslo_config import cfg
 from oslo_utils import uuidutils
 
 from neutron.tests import base
-from neutron_lib import constants as l3_constants
 
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
     asr1k_routing_driver as driver)
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
@@ -92,7 +92,7 @@ class ASR1kRoutingDriver(base.BaseTestCase):
                                           'subnet_id': _uuid()}],
                            'subnets': [{'cidr': self.ex_gw_cidr,
                                         'gateway_ip': self.ex_gw_gateway_ip}],
-                           'device_owner': l3_constants.DEVICE_OWNER_ROUTER_GW,
+                           'device_owner': bc.constants.DEVICE_OWNER_ROUTER_GW,
                            'mac_address': 'ca:fe:de:ad:be:ef',
                            'admin_state_up': True,
                            'hosting_info':
@@ -138,7 +138,7 @@ class ASR1kRoutingDriver(base.BaseTestCase):
                                  'type': 'HSRP'}
         self.router = {
             'id': FAKE_ID,
-            l3_constants.INTERFACE_KEY: int_ports,
+            bc.constants.INTERFACE_KEY: int_ports,
             'enable_snat': True,
             'admin_state_up': True,
             'routes': [],

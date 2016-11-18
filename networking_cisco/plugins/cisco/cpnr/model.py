@@ -21,11 +21,11 @@ import uuid
 from oslo_config import cfg
 from oslo_log import log as logging
 
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cpnr import cpnr_client
 from networking_cisco.plugins.cisco.cpnr import dhcpopts
 from networking_cisco._i18n import _LE, _LW
 from neutron.agent.linux import dhcp
-from neutron_lib import constants
 
 LOG = logging.getLogger(__name__)
 RELOAD_TIMEOUT = 120
@@ -400,7 +400,7 @@ class Policy(object):
     @staticmethod
     def _iter_dhcp_ips(net, subnet):
         for port in net.ports:
-            if port.device_owner != constants.DEVICE_OWNER_DHCP:
+            if port.device_owner != bc.constants.DEVICE_OWNER_DHCP:
                 continue
             for ip in port.fixed_ips:
                 if ip.subnet_id != subnet.id:

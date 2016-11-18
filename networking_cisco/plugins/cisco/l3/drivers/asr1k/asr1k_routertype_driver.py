@@ -17,12 +17,10 @@ from oslo_utils import uuidutils
 from sqlalchemy.orm import exc
 
 from neutron.extensions import l3
-from neutron import manager
 from neutron.plugins.common import constants
-
-from neutron_lib import constants as l3_constants
 from neutron_lib import exceptions as n_exc
 
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.l3 import ha_db
 from networking_cisco.plugins.cisco.db.l3.l3_router_appliance_db import (
@@ -131,7 +129,7 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
         else:
             net_id = r_port_context.current['network_id']
         filters = {'network_id': [net_id],
-                   'device_owner': [l3_constants.DEVICE_OWNER_ROUTER_INTF]}
+                   'device_owner': [bc.constants.DEVICE_OWNER_ROUTER_INTF]}
         for port in self._core_plugin.get_ports(e_context,
                                                 filters=filters):
             router_id = port['device_id']
@@ -170,14 +168,14 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
 
     def ha_interface_ip_address_needed(self, context, router, port,
                                        ha_settings_db, ha_group_uuid):
-        if port['device_owner'] == l3_constants.DEVICE_OWNER_ROUTER_GW:
+        if port['device_owner'] == bc.constants.DEVICE_OWNER_ROUTER_GW:
             return False
         else:
             return True
 
     def generate_ha_group_id(self, context, router, port, ha_settings_db,
                              ha_group_uuid):
-        if port['device_owner'] == l3_constants.DEVICE_OWNER_ROUTER_GW:
+        if port['device_owner'] == bc.constants.DEVICE_OWNER_ROUTER_GW:
             ri_name = self._router_name(router['id'])[8:DEV_NAME_LEN]
             group_id = int(ri_name, 16) % TENANT_HSRP_GRP_RANGE
             group_id += TENANT_HSRP_GRP_OFFSET
@@ -293,7 +291,7 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
             ha_group_uuid = uuidutils.generate_uuid()
             group_id = self.generate_ha_group_id(
                 context, logical_global_router,
-                {'device_owner': l3_constants.DEVICE_OWNER_ROUTER_GW}, {},
+                {'device_owner': bc.constants.DEVICE_OWNER_ROUTER_GW}, {},
                 ha_group_uuid)
             subnet_id = logical_global_router[l3.EXTERNAL_GW_INFO][
                 'external_fixed_ips'][0]['subnet_id']
@@ -364,9 +362,8 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
 
     @property
     def _core_plugin(self):
-        return manager.NeutronManager.get_plugin()
+        return bc.get_plugin()
 
     @property
     def _l3_plugin(self):
-        return manager.NeutronManager.get_service_plugins().get(
-            constants.L3_ROUTER_NAT)
+        return bc.get_plugin(constants.L3_ROUTER_NAT)

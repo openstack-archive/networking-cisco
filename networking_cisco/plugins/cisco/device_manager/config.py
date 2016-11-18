@@ -22,7 +22,6 @@ import six
 
 from networking_cisco._i18n import _, _LE
 from networking_cisco import backwards_compatibility as bc
-from neutron.api.v2 import attributes
 
 LOG = logging.getLogger(__name__)
 
@@ -83,7 +82,7 @@ def verify_resource_dict(res_dict, is_create, attr_info):
 
     for attr, attr_vals in six.iteritems(attr_info):
         if (attr not in res_dict or
-                res_dict[attr] is bc.ATTR_NOT_SPECIFIED):
+                res_dict[attr] is bc.constants.ATTR_NOT_SPECIFIED):
             continue
         # Convert values if necessary
         if 'convert_to' in attr_vals:
@@ -93,8 +92,8 @@ def verify_resource_dict(res_dict, is_create, attr_info):
             continue
         for rule in attr_vals['validate']:
             _ensure_format(rule, attr, res_dict)
-            res = attributes.validators[rule](res_dict[attr],
-                                              attr_vals['validate'][rule])
+            res = bc.validators[rule](res_dict[attr],
+                                      attr_vals['validate'][rule])
             if res:
                 msg_dict = dict(attr=attr, reason=res)
                 msg = (_("Invalid input for %(attr)s. Reason: %(reason)s.") %

@@ -19,10 +19,10 @@ import mock
 from neutron.common import test_lib
 from neutron import context
 from neutron.extensions import providernet as pr_net
-from neutron import manager
 from neutron.plugins.common import constants as service_constants
 from neutron.tests.unit.extensions import test_l3
 
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.device_manager.plugging_drivers.\
     n1kv_ml2_trunking_driver import N1kvML2TrunkingPlugDriver
 from networking_cisco.plugins.cisco.device_manager.plugging_drivers.\
@@ -83,10 +83,8 @@ class TestN1kvTrunkingPluggingDriver(
         #TODO(bobmel): Fix bug in test_extensions.py and we can remove the
         # below call to setup_config()
         self.setup_config()
-        self.net_plugin = manager.NeutronManager.get_service_plugins().get(
-            constants.CISCO_N1KV_NET_PROFILE)
-        self.policy_plugin = manager.NeutronManager.get_service_plugins().get(
-            constants.CISCO_N1KV)
+        self.net_plugin = bc.get_plugin(constants.CISCO_N1KV_NET_PROFILE)
+        self.policy_plugin = bc.get_plugin(constants.CISCO_N1KV)
 
     def tearDown(self):
         if self._old_config_files is None:

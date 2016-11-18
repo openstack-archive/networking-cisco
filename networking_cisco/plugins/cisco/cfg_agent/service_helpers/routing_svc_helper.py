@@ -25,16 +25,13 @@ from oslo_utils import excutils
 from oslo_utils import importutils
 import six
 
-from neutron.common import constants as l3_constants
 from neutron.common import rpc as n_rpc
 from neutron.common import topics
 from neutron.common import utils as common_utils
 from neutron import context as n_context
 
-from networking_cisco._i18n import _
-from networking_cisco._i18n import _LE
-from networking_cisco._i18n import _LI
-from networking_cisco._i18n import _LW
+from networking_cisco._i18n import _, _LE, _LI, _LW
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers import driver_mgr
 from networking_cisco.plugins.cisco.cfg_agent import device_status
@@ -313,9 +310,9 @@ class RoutingServiceHelper(object):
             if ex_gw_port:
                 num_ex_gw_ports += 1
             num_interfaces += len(ri.router.get(
-                l3_constants.INTERFACE_KEY, []))
+                bc.constants.INTERFACE_KEY, []))
             num_floating_ips += len(ri.router.get(
-                l3_constants.FLOATINGIP_KEY, []))
+                bc.constants.FLOATINGIP_KEY, []))
             hd = ri.router['hosting_device']
             if hd:
                 num_hd_routers[hd['id']] += 1
@@ -620,7 +617,7 @@ class RoutingServiceHelper(object):
 
         :param port_ids: List of ports to update the status
         :param status: operational status to update
-                       (ex: l3_constants.PORT_STATUS_ACTIVE)
+                       (ex: bc.constants.PORT_STATUS_ACTIVE)
         """
         if not port_ids:
             return
@@ -713,7 +710,7 @@ class RoutingServiceHelper(object):
             ri.ha_info = ri.router.get('ha_info', None)
             gateway_set = ex_gw_port and not ri.ex_gw_port
             gateway_cleared = not ex_gw_port and ri.ex_gw_port
-            internal_ports = ri.router.get(l3_constants.INTERFACE_KEY, [])
+            internal_ports = ri.router.get(bc.constants.INTERFACE_KEY, [])
             # Once the gateway is set, then we know which VRF
             # this router belongs to. Keep track of it in our
             # lists of routers, organized as a dictionary by
@@ -738,7 +735,7 @@ class RoutingServiceHelper(object):
                 self._process_gateway_cleared(ri, ri.ex_gw_port)
 
             self._send_update_port_statuses(list_port_ids_up,
-                                            l3_constants.PORT_STATUS_ACTIVE)
+                                            bc.constants.PORT_STATUS_ACTIVE)
             if ex_gw_port:
                 self._process_router_floating_ips(ri, ex_gw_port)
 
@@ -779,7 +776,7 @@ class RoutingServiceHelper(object):
         """
 
         # fips that exist in neutron db (i.e., the desired "truth")
-        current_fips = ri.router.get(l3_constants.FLOATINGIP_KEY, [])
+        current_fips = ri.router.get(bc.constants.FLOATINGIP_KEY, [])
         # ids of fips that exist in neutron db
         current_fip_ids = {fip['id'] for fip in current_fips}
         # ids of fips that are configured in device
@@ -815,7 +812,7 @@ class RoutingServiceHelper(object):
                     ri, ri.ex_gw_port, configured_fip['floating_ip_address'],
                     configured_fip['fixed_ip_address'])
                 fip_statuses[configured_fip['id']] = (
-                    l3_constants.FLOATINGIP_STATUS_DOWN)
+                    bc.constants.FLOATINGIP_STATUS_DOWN)
                 LOG.debug("Add to fip_statuses DOWN id:%s fl_ip:%s fx_ip:%s",
                           configured_fip['id'],
                           configured_fip['floating_ip_address'],
@@ -833,7 +830,7 @@ class RoutingServiceHelper(object):
                     self._floating_ip_removed(ri, ri.ex_gw_port,
                                               floating_ip, configured_fixed_ip)
                     fip_statuses[configured_fip['id']] = (
-                        l3_constants.FLOATINGIP_STATUS_DOWN)
+                        bc.constants.FLOATINGIP_STATUS_DOWN)
                     fips_to_remove.append(configured_fip)
                     fips_to_add.append(new_fip)
 
@@ -848,7 +845,7 @@ class RoutingServiceHelper(object):
             # add fip to "cache" of fips configured in device
             ri.floating_ips.append(configured_fip)
             fip_statuses[configured_fip['id']] = (
-                l3_constants.FLOATINGIP_STATUS_ACTIVE)
+                bc.constants.FLOATINGIP_STATUS_ACTIVE)
             LOG.debug("Add to fip_statuses ACTIVE id:%s fl_ip:%s fx_ip:%s",
                       configured_fip['id'],
                       configured_fip['floating_ip_address'],
@@ -900,8 +897,8 @@ class RoutingServiceHelper(object):
                             "Skipping router removal"), router_id)
             return
         ri.router['gw_port'] = None
-        ri.router[l3_constants.INTERFACE_KEY] = []
-        ri.router[l3_constants.FLOATINGIP_KEY] = []
+        ri.router[bc.constants.INTERFACE_KEY] = []
+        ri.router[bc.constants.FLOATINGIP_KEY] = []
         try:
             hd = ri.router['hosting_device']
             # We proceed to removing the configuration from the device

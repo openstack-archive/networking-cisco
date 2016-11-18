@@ -14,16 +14,14 @@
 
 import re
 
+from neutron.extensions import l3
+from neutron.plugins.common import constants as svc_constants
+from neutron_lib import exceptions as n_exc
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from neutron.common import constants as l3_constants
-from neutron.common import exceptions as n_exc
-from neutron.extensions import l3
-from neutron import manager
-from neutron.plugins.common import constants as svc_constants
-
 from networking_cisco._i18n import _, _LI, _LE
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.device_manager.plugging_drivers import (
     hw_vlan_trunking_driver as hw_vlan)
 from networking_cisco.plugins.cisco.extensions import routerrole
@@ -36,8 +34,8 @@ APIC_SNAT_SUBNET = 'host-snat-pool-for-internal-use'
 APIC_SNAT_NET = 'host-snat-network-for-internal-use'
 EXTERNAL_GW_INFO = l3.EXTERNAL_GW_INFO
 UUID_REGEX = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
-DEVICE_OWNER_ROUTER_GW = l3_constants.DEVICE_OWNER_ROUTER_GW
-DEVICE_OWNER_ROUTER_INTF = l3_constants.DEVICE_OWNER_ROUTER_INTF
+DEVICE_OWNER_ROUTER_GW = bc.constants.DEVICE_OWNER_ROUTER_GW
+DEVICE_OWNER_ROUTER_INTF = bc.constants.DEVICE_OWNER_ROUTER_INTF
 ROUTER_ROLE_ATTR = routerrole.ROUTER_ROLE_ATTR
 
 
@@ -179,8 +177,7 @@ class AciVLANTrunkingPlugDriver(hw_vlan.HwVLANTrunkingPlugDriver):
     @property
     def l3_plugin(self):
         if not self._l3_plugin:
-            self._l3_plugin = manager.NeutronManager.get_service_plugins().get(
-                svc_constants.L3_ROUTER_NAT)
+            self._l3_plugin = bc.get_plugin(svc_constants.L3_ROUTER_NAT)
         return self._l3_plugin
 
     @property
@@ -195,13 +192,12 @@ class AciVLANTrunkingPlugDriver(hw_vlan.HwVLANTrunkingPlugDriver):
         """
         if not self._apic_driver:
             try:
-                self._apic_driver = (
-                    manager.NeutronManager.get_service_plugins()[
-                        'GROUP_POLICY'].policy_driver_manager.policy_drivers[
-                            'apic'].obj)
+                self._apic_driver = (bc.get_plugin(
+                    'GROUP_POLICY').policy_driver_manager.
+                                     policy_drivers['apic'].obj)
                 self._get_ext_net_name = self._get_ext_net_name_gbp
                 self._get_vrf_context = self._get_vrf_context_gbp
-            except KeyError:
+            except AttributeError:
                     LOG.info(_LI("GBP service plugin not present -- will "
                                  "try APIC ML2 plugin."))
             if not self._apic_driver:

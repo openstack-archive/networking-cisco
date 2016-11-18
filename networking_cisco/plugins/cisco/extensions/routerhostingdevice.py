@@ -13,7 +13,8 @@
 #    under the License.
 
 from neutron.api import extensions
-from neutron.api.v2 import attributes as attr
+
+from networking_cisco import backwards_compatibility as bc
 
 
 ROUTERHOSTINGDEVICE = 'routerhost'
@@ -23,7 +24,7 @@ HOSTING_DEVICE_ATTR = ROUTERHOSTINGDEVICE + ':hosting_device'
 EXTENDED_ATTRIBUTES_2_0 = {
     'routers': {
         HOSTING_DEVICE_ATTR: {'allow_post': False, 'allow_put': False,
-                              'default': attr.ATTR_NOT_SPECIFIED,
+                              'default': bc.constants.ATTR_NOT_SPECIFIED,
                               'is_visible': True},
     }
 }

@@ -19,8 +19,8 @@ import netaddr
 from oslo_utils import uuidutils
 
 from neutron.tests import base
-from neutron_lib import constants as l3_constants
 
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
     cisco_csr1kv_snippets as snippets)
 sys.modules['ncclient'] = mock.MagicMock()
@@ -81,7 +81,7 @@ class TestCSR1kvRouting(base.BaseTestCase):
 
         self.router = {
             'id': FAKE_ID,
-            l3_constants.INTERFACE_KEY: int_ports,
+            bc.constants.INTERFACE_KEY: int_ports,
             'enable_snat': True,
             'routes': [],
             'gw_port': self.ex_gw_port}

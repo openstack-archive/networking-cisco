@@ -41,12 +41,10 @@ from neutron.db import extraroute_db
 from neutron.db import l3_db
 from neutron.extensions import l3
 from neutron.extensions import providernet as pr_net
-from neutron import manager
 from neutron.plugins.common import constants as svc_constants
-from neutron_lib import constants as l3_constants
 from neutron_lib import exceptions as n_exc
 
-from networking_cisco import backwards_compatibility as bc_attr
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco._i18n import _, _LE, _LI, _LW
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.device_manager import hd_models
@@ -63,8 +61,8 @@ from networking_cisco.plugins.cisco.l3.drivers import driver_context
 LOG = logging.getLogger(__name__)
 
 EXTERNAL_GW_INFO = l3.EXTERNAL_GW_INFO
-FLOATINGIP_STATUS_ACTIVE = l3_constants.FLOATINGIP_STATUS_ACTIVE
-AGENT_TYPE_L3 = l3_constants.AGENT_TYPE_L3
+FLOATINGIP_STATUS_ACTIVE = bc.constants.FLOATINGIP_STATUS_ACTIVE
+AGENT_TYPE_L3 = bc.constants.AGENT_TYPE_L3
 AGENT_TYPE_L3_CFG = cisco_constants.AGENT_TYPE_L3_CFG
 VM_CATEGORY = ciscohostingdevicemanager.VM_CATEGORY
 L3_ROUTER_NAT = svc_constants.L3_ROUTER_NAT
@@ -263,9 +261,9 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         # Check if external gateway has changed so we may
         # have to update trunking
         old_ext_gw = (old_router_db.gw_port or {}).get('network_id')
-        new_ext_gw = r.get(EXTERNAL_GW_INFO, bc_attr.ATTR_NOT_SPECIFIED)
+        new_ext_gw = r.get(EXTERNAL_GW_INFO, bc.constants.ATTR_NOT_SPECIFIED)
         e_context = context.elevated()
-        if new_ext_gw != bc_attr.ATTR_NOT_SPECIFIED:
+        if new_ext_gw != bc.constants.ATTR_NOT_SPECIFIED:
             gateway_changed = old_ext_gw != (new_ext_gw or {}).get(
                 'network_id')
             self.add_type_and_hosting_device_info(
@@ -538,14 +536,9 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         The behavior of some floating IP APIs is slightly different
         when GBP workflow is used.
         """
-
         if self._is_gbp_workflow is None:
-            try:
-                if manager.NeutronManager.get_service_plugins()[
-                        'GROUP_POLICY']:
-                    self._is_gbp_workflow = True
-            except KeyError:
-                self._is_gbp_workflow = False
+            self._is_gbp_workflow = (True if bc.get_plugin('GROUP_POLICY')
+                                     else False)
         return self._is_gbp_workflow
 
     def create_floatingip(self, context, floatingip,
@@ -1127,8 +1120,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         This will be done when the router type driver api is revised.
         """
         e_context = n_context.get_admin_context()
-        l3plugin = manager.NeutronManager.get_service_plugins().get(
-                svc_constants.L3_ROUTER_NAT)
+        l3plugin = bc.get_plugin(svc_constants.L3_ROUTER_NAT)
         filters = {routerrole.ROUTER_ROLE_ATTR: [ROUTER_ROLE_GLOBAL]}
         global_routers = l3plugin.get_routers(e_context, filters=filters)
         if not global_routers:
@@ -1242,8 +1234,8 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
 
     def _ensure_create_routertype_compliant(self, context, router):
         router_type_name = router.pop(routertype.TYPE_ATTR,
-                                      bc_attr.ATTR_NOT_SPECIFIED)
-        if router_type_name is bc_attr.ATTR_NOT_SPECIFIED:
+                                      bc.constants.ATTR_NOT_SPECIFIED)
+        if router_type_name is bc.constants.ATTR_NOT_SPECIFIED:
             router_type_name = cfg.CONF.routing.default_router_type
         namespace_router_type_id = self.get_namespace_router_type_id(context)
         router_type_db = self.get_routertype_db_by_id_name(context,
@@ -1290,7 +1282,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         if routertype.TYPE_ATTR not in r:
             return
         router_type_name = r[routertype.TYPE_ATTR]
-        if router_type_name is bc_attr.ATTR_NOT_SPECIFIED:
+        if router_type_name is bc.constants.ATTR_NOT_SPECIFIED:
             router_type_name = cfg.CONF.routing.default_router_type
         router_type_id = self.get_routertype_by_id_name(context,
                                                         router_type_name)['id']
@@ -1326,12 +1318,11 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
 
     @property
     def _core_plugin(self):
-        return manager.NeutronManager.get_plugin()
+        return bc.get_plugin()
 
     @property
     def _dev_mgr(self):
-        return manager.NeutronManager.get_service_plugins().get(
-            cisco_constants.DEVICE_MANAGER)
+        return bc.get_plugin(cisco_constants.DEVICE_MANAGER)
 
     def _get_router_binding_info(self, context, id, load_hd_info=True):
         query = context.session.query(l3_models.RouterHostingDeviceBinding)
@@ -1412,7 +1403,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                     router['hosting_device'], plugging_driver):
                 router['status'] = cisco_constants.ROUTER_INFO_INCOMPLETE
                 return
-        for itfc in router.get(l3_constants.INTERFACE_KEY, []):
+        for itfc in router.get(bc.constants.INTERFACE_KEY, []):
             if not self._populate_hosting_info_for_port(
                     context, router['id'], itfc, router['hosting_device'],
                     plugging_driver):
@@ -1568,8 +1559,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
 def _notify_routers_callback(resource, event, trigger, **kwargs):
     context = kwargs['context']
     router_ids = kwargs['router_ids']
-    l3plugin = manager.NeutronManager.get_service_plugins().get(
-        svc_constants.L3_ROUTER_NAT)
+    l3plugin = bc.get_plugin(svc_constants.L3_ROUTER_NAT)
     if l3plugin and router_ids:
         l3plugin._notify_affected_routers(context, list(router_ids),
                                           'disassociate_floatingips')
@@ -1589,8 +1579,7 @@ def _notify_cfg_agent_port_update(resource, event, trigger, **kwargs):
         if original_device_owner.startswith('network'):
             router_id = original_port.get('device_id')
             context = kwargs.get('context')
-            l3plugin = manager.NeutronManager.get_service_plugins().get(
-                    svc_constants.L3_ROUTER_NAT)
+            l3plugin = bc.get_plugin(svc_constants.L3_ROUTER_NAT)
             if l3plugin and router_id:
                 l3plugin._notify_port_update_routers(context, router_id,
                                                      original_port,

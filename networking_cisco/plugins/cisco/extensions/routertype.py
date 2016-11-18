@@ -14,18 +14,20 @@
 
 import abc
 
-from networking_cisco._i18n import _
-
 from neutron.api import extensions
 from neutron.api.v2 import attributes as attr
 from neutron.api.v2 import resource_helper
 from neutron.plugins.common import constants
+from neutron_lib.api import converters as conv
 from neutron_lib import exceptions
 
-from neutron_lib.api import converters as conv
-
+from networking_cisco._i18n import _
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import utils
 
+
+NEUTRON_VERSION = bc.NEUTRON_VERSION
+NEUTRON_NEWTON_VERSION = bc.NEUTRON_NEWTON_VERSION
 
 ROUTERTYPE = 'routertype'
 ROUTERTYPE_ALIAS = ROUTERTYPE
@@ -85,7 +87,7 @@ EXTENDED_ATTRIBUTES_2_0 = {
     'routers': {
         TYPE_ATTR: {'allow_post': True, 'allow_put': True,
                     'validate': {'type:string': None},
-                    'default': attr.ATTR_NOT_SPECIFIED,
+                    'default': bc.constants.ATTR_NOT_SPECIFIED,
                     'is_visible': True},
     }
 }
@@ -133,7 +135,8 @@ class Routertype(extensions.ExtensionDescriptor):
         """Returns Ext Resources."""
         plural_mappings = resource_helper.build_plural_mappings(
             {}, RESOURCE_ATTRIBUTE_MAP)
-        attr.PLURALS.update(plural_mappings)
+        if NEUTRON_VERSION.version[0] <= NEUTRON_NEWTON_VERSION.version[0]:
+            attr.PLURALS.update(plural_mappings)
         return resource_helper.build_resource_info(plural_mappings,
                                                    RESOURCE_ATTRIBUTE_MAP,
                                                    constants.L3_ROUTER_NAT)

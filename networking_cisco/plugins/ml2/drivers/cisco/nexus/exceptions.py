@@ -15,9 +15,9 @@
 
 """Exceptions used by Cisco Nexus ML2 mechanism driver."""
 
-from networking_cisco._i18n import _
+from neutron_lib import exceptions
 
-from neutron.common import exceptions
+from networking_cisco._i18n import _
 
 
 class CredentialNotFound(exceptions.NeutronException):
