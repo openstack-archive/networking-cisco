@@ -12,6 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from neutron_lib import constants
+
+
 # Constants related to device manager
 # ===================================
 # Service type for device manager plugin
@@ -98,3 +101,12 @@ ROUTER_INFO_INCOMPLETE = "INFO_INCOMPLETE"
 # Values for network profile fields
 ADD_TENANTS = 'add_tenants'
 REMOVE_TENANTS = 'remove_tenants'
+
+# Owner identifier for auxiliary gateway ports of global routers
+#DEVICE_OWNER_GLOBAL_ROUTER_GW = (constants.DEVICE_OWNER_NETWORK_PREFIX +
+#                                 "global_router_gateway")
+DEVICE_OWNER_GLOBAL_ROUTER_GW = constants.DEVICE_OWNER_ROUTER_INTF
+AUXILIARY_GATEWAY_KEY = constants.INTERFACE_KEY
+
+# Dict key for above gateway ports in global router dicts
+GATEWAY_KEY = '_gateways'
