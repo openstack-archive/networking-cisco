@@ -29,3 +29,4 @@ setuptools*.egg/
 !/.pylintrc
 !/.testr.conf
 *.tar.gz
+releasenotes/build
