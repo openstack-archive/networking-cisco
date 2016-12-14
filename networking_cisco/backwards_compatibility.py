@@ -39,6 +39,9 @@ if NEUTRON_VERSION >= NEUTRON_NEWTON_VERSION:
     is_attr_set = validators.is_attr_set
     validators = validators.validators
     if NEUTRON_VERSION.version[0] == NEUTRON_NEWTON_VERSION.version[0]:
+        from neutron.api import extensions  # noqa
+        from neutron.db import model_base  # noqa
+
         def get_plugin(service=None):
             if service is None:
                 return manager.NeutronManager.get_plugin()
@@ -47,14 +50,18 @@ if NEUTRON_VERSION >= NEUTRON_NEWTON_VERSION:
                     service)
         n_c_attr_names = n_c._mg__my_globals
     else:
+        from neutron_lib.api import extensions
+        from neutron_lib.db import model_base
         from neutron_lib.plugins import directory
 
         get_plugin = directory.get_plugin
         n_c_attr_names = dir(n_c)
 # Pre Newton
 elif NEUTRON_VERSION < NEUTRON_NEWTON_VERSION:
+    from neutron.api import extensions  # noqa
     from neutron.api.v2 import attributes
     from neutron.common import config as base_config
+    from neutron.db import model_base  # noqa
     from neutron import manager
     setattr(constants, 'ATTR_NOT_SPECIFIED', getattr(attributes,
                                                      'ATTR_NOT_SPECIFIED'))
@@ -68,6 +75,8 @@ elif NEUTRON_VERSION < NEUTRON_NEWTON_VERSION:
         else:
             return manager.NeutronManager.get_service_plugins().get(service)
 core_opts = base_config.core_opts
+#extensions = extensions
+#model_base = model_base
 
 # Bring in the union of all constants in neutron.common.constants
 # and neutron_lib.constants. Handle any duplicates by using the

@@ -17,12 +17,13 @@ import sqlalchemy as sa
 from sqlalchemy import orm
 
 from neutron.db import api as db_api
-from neutron.db import model_base
 from neutron.db import models_v2
 from neutron.plugins.ml2 import models as models_ml2
 
+from networking_cisco import backwards_compatibility as bc
 
-class RouterContract(model_base.BASEV2, models_v2.HasTenant):
+
+class RouterContract(bc.model_base.BASEV2, models_v2.HasTenant):
 
     """Contracts created on the APIC.
 
@@ -37,7 +38,7 @@ class RouterContract(model_base.BASEV2, models_v2.HasTenant):
                           primary_key=True)
 
 
-class HostLink(model_base.BASEV2):
+class HostLink(bc.model_base.BASEV2):
 
     """Connectivity of host links."""
 
@@ -51,7 +52,7 @@ class HostLink(model_base.BASEV2):
     port = sa.Column(sa.String(32), nullable=False)
 
 
-class ApicName(model_base.BASEV2):
+class ApicName(bc.model_base.BASEV2):
     """Mapping of names created on the APIC."""
 
     __tablename__ = 'cisco_ml2_apic_names'

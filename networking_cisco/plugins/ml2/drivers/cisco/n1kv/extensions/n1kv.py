@@ -14,8 +14,6 @@
 #    under the License.
 
 
-from neutron.api import extensions
-
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import constants
@@ -35,7 +33,7 @@ EXTENDED_ATTRIBUTES_2_0 = {
         'is_visible': True}}}
 
 
-class N1kv(extensions.ExtensionDescriptor):
+class N1kv(bc.extensions.ExtensionDescriptor):
 
     @classmethod
     def get_name(cls):

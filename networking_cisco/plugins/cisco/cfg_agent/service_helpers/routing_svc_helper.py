@@ -17,7 +17,6 @@ import eventlet
 import netaddr
 import pprint as pp
 
-# from ncclient.transport import errors as ncc_errors
 from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging
@@ -25,6 +24,7 @@ from oslo_utils import excutils
 from oslo_utils import importutils
 import six
 
+from neutron.common import exceptions as n_exc
 from neutron.common import rpc as n_rpc
 from neutron.common import topics
 from neutron.common import utils as common_utils
@@ -47,6 +47,11 @@ LOG = logging.getLogger(__name__)
 
 N_ROUTER_PREFIX = 'nrouter-'
 ROUTER_ROLE_ATTR = routerrole.ROUTER_ROLE_ATTR
+
+# Number of routers to fetch from server at a time on resync.
+# Needed to reduce load on server side and to speed up resync on agent side.
+SYNC_ROUTERS_MAX_CHUNK_SIZE = 64
+SYNC_ROUTERS_MIN_CHUNK_SIZE = 8
 
 
 class RouterInfo(object):
@@ -123,6 +128,12 @@ class CiscoRoutingPluginApi(object):
         return cctxt.call(context, 'cfg_sync_routers', host=self.host,
                           router_ids=router_ids, hosting_device_ids=hd_ids)
 
+    def get_router_ids(self, context, router_ids=None, hd_ids=None):
+        """Make a remote process call to retrieve scheduled routers ids."""
+        cctxt = self.client.prepare(version='1.3')
+        return cctxt.call(context, 'get_cfg_router_ids', host=self.host,
+                          router_ids=router_ids, hosting_device_ids=hd_ids)
+
     def get_hardware_router_type_id(self, context):
         """Get the ID for the ASR1k hardware router type."""
         cctxt = self.client.prepare()
@@ -174,6 +185,7 @@ class RoutingServiceHelper(object):
         self.sync_devices = set()
         self.sync_devices_attempts = 0
         self.fullsync = True
+        self.sync_routers_chunk_size = SYNC_ROUTERS_MAX_CHUNK_SIZE
         self.topic = '%s.%s' % (c_constants.CFG_AGENT_L3_ROUTING, host)
 
         self.hardware_router_type = None
@@ -358,16 +370,68 @@ class RoutingServiceHelper(object):
         """
         try:
             if all_routers:
-                return self.plugin_rpc.get_routers(self.context)
+                router_ids = self.plugin_rpc.get_router_ids(self.context)
+                return self._fetch_router_chunk_data(router_ids)
+
             if router_ids:
-                return self.plugin_rpc.get_routers(self.context,
-                                                   router_ids=router_ids)
+                return self._fetch_router_chunk_data(router_ids)
+
             if device_ids:
                 return self.plugin_rpc.get_routers(self.context,
                                                    hd_ids=device_ids)
+        except oslo_messaging.MessagingTimeout:
+            if self.sync_routers_chunk_size > SYNC_ROUTERS_MIN_CHUNK_SIZE:
+                self.sync_routers_chunk_size = max(
+                    self.sync_routers_chunk_size / 2,
+                    SYNC_ROUTERS_MIN_CHUNK_SIZE)
+                LOG.error(_LE('Server failed to return info for routers in '
+                              'required time, decreasing chunk size to: %s'),
+                          self.sync_routers_chunk_size)
+            else:
+                LOG.error(_LE('Server failed to return info for routers in '
+                              'required time even with min chunk size: %s. '
+                              'It might be under very high load or '
+                              'just inoperable'),
+                          self.sync_routers_chunk_size)
+            raise
         except oslo_messaging.MessagingException:
             LOG.exception(_LE("RPC Error in fetching routers from plugin"))
-            self.fullsync = True
+            raise n_exc.AbortSyncRouters()
+
+        self.fullsync = True
+
+        LOG.debug("Periodic_sync_routers_task successfully completed")
+        # adjust chunk size after successful sync
+        if self.sync_routers_chunk_size < SYNC_ROUTERS_MAX_CHUNK_SIZE:
+            self.sync_routers_chunk_size = min(
+                self.sync_routers_chunk_size + SYNC_ROUTERS_MIN_CHUNK_SIZE,
+                SYNC_ROUTERS_MAX_CHUNK_SIZE)
+
+    def _fetch_router_chunk_data(self, router_ids=None):
+
+        """Fetch router data from the routing plugin in chunks.
+
+                :param router_ids: List of router_ids of routers to fetch
+                :return: List of router dicts of format:
+                         [ {router_dict1}, {router_dict2},.....]
+        """
+
+        curr_router = []
+        if len(router_ids) > self.sync_routers_chunk_size:
+            # fetch routers by chunks to reduce the load on server and
+            # to start router processing earlier
+            for i in range(0, len(router_ids),
+                           self.sync_routers_chunk_size):
+                routers = self.plugin_rpc.get_routers(
+                                self.context, (router_ids[i:i +
+                                               self.sync_routers_chunk_size]))
+                LOG.debug('Processing :%r', routers)
+                for r in routers:
+                    curr_router.append(r)
+        else:
+            curr_router = self.plugin_rpc.get_routers(
+                self.context, router_ids=router_ids)
+        return curr_router
 
     def _handle_sync_devices(self, routers):
         """

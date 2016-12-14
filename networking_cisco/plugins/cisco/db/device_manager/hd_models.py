@@ -16,11 +16,12 @@ import sqlalchemy as sa
 from sqlalchemy import orm
 
 from neutron.db import agents_db
-from neutron.db import model_base
 from neutron.db import models_v2
 
+from networking_cisco import backwards_compatibility as bc
 
-class HostingDeviceTemplate(model_base.BASEV2, models_v2.HasId,
+
+class HostingDeviceTemplate(bc.model_base.BASEV2, models_v2.HasId,
                             models_v2.HasTenant):
     """Represents a template for devices used to host service.
 
@@ -70,7 +71,8 @@ class HostingDeviceTemplate(model_base.BASEV2, models_v2.HasId,
     plugging_driver = sa.Column(sa.String(255), nullable=False)
 
 
-class HostingDevice(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
+class HostingDevice(bc.model_base.BASEV2, models_v2.HasId,
+                    models_v2.HasTenant):
     """Represents an appliance hosting Neutron router(s).
 
        When the hosting device is a Nova VM 'id' is uuid of that VM.
@@ -122,7 +124,7 @@ class HostingDevice(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
                             server_default=sa.sql.false())
 
 
-class SlotAllocation(model_base.BASEV2):
+class SlotAllocation(bc.model_base.BASEV2):
     """Tracks allocation of slots in hosting devices."""
     __tablename__ = 'cisco_slot_allocations'
 
@@ -144,7 +146,7 @@ class SlotAllocation(model_base.BASEV2):
     tenant_bound = sa.Column(sa.String(36))
 
 
-class HostedHostingPortBinding(model_base.BASEV2):
+class HostedHostingPortBinding(bc.model_base.BASEV2):
     """Represents binding of logical resource's port to its hosting port."""
     __tablename__ = 'cisco_port_mappings'
 

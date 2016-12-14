@@ -32,10 +32,17 @@ class L3RouterCfgRpcCallback(object):
     # 1.0 L3PluginCfgAgentApi BASE_RPC_API_VERSION
     # 1.1 Added 'update_floatingip_statuses' method
     # 1.2 Added 'cfg_sync_all_hosted_routers' method
-    target = oslo_messaging.Target(version='1.2')
+    target = oslo_messaging.Target(version='1.3')
 
     def __init__(self, l3plugin):
         self._l3plugin = l3plugin
+
+    def get_cfg_router_ids(self, context, host, router_ids=None,
+                       hosting_device_ids=None):
+        """Returns IDs of routers scheduled to l3 agent on <host>"""
+        return self._l3plugin.cfg_list_router_ids_on_host(context, host,
+                                                      router_ids,
+                                                      hosting_device_ids)
 
     # version 1.0 API
     @db_api.retry_db_errors

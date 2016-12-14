@@ -16,11 +16,12 @@
 
 import sqlalchemy as sa
 
-from neutron.db import model_base
 from neutron.db import models_v2
 
+from networking_cisco import backwards_compatibility as bc
 
-class NexusPortBinding(model_base.BASEV2):
+
+class NexusPortBinding(bc.model_base.BASEV2):
     """Represents a binding of VM's to nexus ports."""
 
     __tablename__ = "cisco_ml2_nexusport_bindings"
@@ -60,7 +61,7 @@ class NexusPortBinding(model_base.BASEV2):
         )
 
 
-class NexusNVEBinding(model_base.BASEV2):
+class NexusNVEBinding(bc.model_base.BASEV2):
     """Represents Network Virtualization Endpoint configuration."""
 
     __tablename__ = "cisco_ml2_nexus_nve"
@@ -75,7 +76,7 @@ class NexusNVEBinding(model_base.BASEV2):
                 (self.vni, self.switch_ip, self.device_id, self.mcast_group))
 
 
-class NexusVxlanAllocation(model_base.BASEV2):
+class NexusVxlanAllocation(bc.model_base.BASEV2):
 
     __tablename__ = 'ml2_nexus_vxlan_allocations'
 
@@ -85,7 +86,7 @@ class NexusVxlanAllocation(model_base.BASEV2):
                           server_default=sa.sql.false())
 
 
-class NexusMcastGroup(model_base.BASEV2, models_v2.HasId):
+class NexusMcastGroup(bc.model_base.BASEV2, models_v2.HasId):
 
     __tablename__ = 'ml2_nexus_vxlan_mcast_groups'
 

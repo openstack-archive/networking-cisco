@@ -12,7 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from neutron.api import extensions
 
 from networking_cisco import backwards_compatibility as bc
 
@@ -30,7 +29,7 @@ EXTENDED_ATTRIBUTES_2_0 = {
 }
 
 
-class Routerrole(extensions.ExtensionDescriptor):
+class Routerrole(bc.extensions.ExtensionDescriptor):
     """Extension class to introduce role information for routers.
 
     This class is used by Neutron's extension framework to add role attribute

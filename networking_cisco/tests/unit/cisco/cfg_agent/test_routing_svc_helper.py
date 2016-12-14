@@ -162,6 +162,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.plugin_api = mock.Mock()
         l3plugin_api_cls.return_value = self.plugin_api
         self.plugin_api.get_routers = mock.MagicMock()
+        self.plugin_api.get_router_ids = mock.MagicMock()
         self.looping_call_p = mock.patch(
             'oslo_service.loopingcall.FixedIntervalLoopingCall')
         self.looping_call_p.start()

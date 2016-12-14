@@ -16,12 +16,13 @@
 import sqlalchemy as sa
 from sqlalchemy import orm
 
-from neutron.db import model_base
 from neutron.db import models_v2
 from neutron.plugins.common import constants
 
+from networking_cisco import backwards_compatibility as bc
 
-class PolicyProfile(model_base.BASEV2):
+
+class PolicyProfile(bc.model_base.BASEV2):
 
     """
     Nexus1000V Policy Profiles
@@ -35,7 +36,7 @@ class PolicyProfile(model_base.BASEV2):
     vsm_ip = sa.Column(sa.String(16), nullable=False, primary_key=True)
 
 
-class NetworkProfile(model_base.BASEV2, models_v2.HasId):
+class NetworkProfile(bc.model_base.BASEV2, models_v2.HasId):
 
     """Nexus1000V Network Profiles created on the VSM."""
     __tablename__ = 'cisco_ml2_n1kv_network_profiles'
@@ -52,7 +53,7 @@ class NetworkProfile(model_base.BASEV2, models_v2.HasId):
     physical_network = sa.Column(sa.String(255))
 
 
-class N1kvPortBinding(model_base.BASEV2):
+class N1kvPortBinding(bc.model_base.BASEV2):
 
     """Represents binding of ports to policy profile."""
     __tablename__ = 'cisco_ml2_n1kv_port_bindings'
@@ -71,7 +72,7 @@ class N1kvPortBinding(model_base.BASEV2):
                             cascade='delete'))
 
 
-class N1kvNetworkBinding(model_base.BASEV2):
+class N1kvNetworkBinding(bc.model_base.BASEV2):
 
     """Represents binding of virtual network to network profiles."""
     __tablename__ = 'cisco_ml2_n1kv_network_bindings'
@@ -86,7 +87,7 @@ class N1kvNetworkBinding(model_base.BASEV2):
                            nullable=False)
 
 
-class N1kvVlanAllocation(model_base.BASEV2):
+class N1kvVlanAllocation(bc.model_base.BASEV2):
 
     """Represents allocation state of vlan_id on physical network."""
     __tablename__ = 'cisco_ml2_n1kv_vlan_allocations'
@@ -104,7 +105,7 @@ class N1kvVlanAllocation(model_base.BASEV2):
                                    nullable=False)
 
 
-class N1kvVxlanAllocation(model_base.BASEV2):
+class N1kvVxlanAllocation(bc.model_base.BASEV2):
 
     """Represents allocation state of vxlan_id."""
     __tablename__ = 'cisco_ml2_n1kv_vxlan_allocations'
@@ -119,7 +120,7 @@ class N1kvVxlanAllocation(model_base.BASEV2):
                                    nullable=False)
 
 
-class ProfileBinding(model_base.BASEV2):
+class ProfileBinding(bc.model_base.BASEV2):
 
     """
     Represents a binding of Network Profile

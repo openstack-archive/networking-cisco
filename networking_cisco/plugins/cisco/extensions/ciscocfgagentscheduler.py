@@ -123,7 +123,7 @@ class CfgAgentsHandlingHostingDeviceController(wsgi.Controller):
             request.context, kwargs['hosting_device_id'])
 
 
-class Ciscocfgagentscheduler(extensions.ExtensionDescriptor):
+class Ciscocfgagentscheduler(bc.extensions.ExtensionDescriptor):
     """Extension class supporting configuration agent scheduler."""
     @classmethod
     def get_name(cls):

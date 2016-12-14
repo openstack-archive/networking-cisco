@@ -15,10 +15,10 @@
 
 import sqlalchemy as sa
 
-from neutron.db import model_base
+from networking_cisco import backwards_compatibility as bc
 
 
-class PortProfile(model_base.BASEV2):
+class PortProfile(bc.model_base.BASEV2):
 
     """Port profiles created on the UCS Manager."""
 
@@ -30,7 +30,7 @@ class PortProfile(model_base.BASEV2):
     created_on_ucs = sa.Column(sa.Boolean(), nullable=False)
 
 
-class ServiceProfileTemplate(model_base.BASEV2):
+class ServiceProfileTemplate(bc.model_base.BASEV2):
 
     """Service Profile Templates modified on the UCS Manager."""
 
@@ -43,7 +43,7 @@ class ServiceProfileTemplate(model_base.BASEV2):
     updated_on_ucs = sa.Column(sa.Boolean(), nullable=False)
 
 
-class VnicTemplate(model_base.BASEV2):
+class VnicTemplate(bc.model_base.BASEV2):
 
     """Vnic Templates modified on the UCS Manager."""
 

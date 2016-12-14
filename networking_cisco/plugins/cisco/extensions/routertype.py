@@ -14,7 +14,6 @@
 
 import abc
 
-from neutron.api import extensions
 from neutron.api.v2 import attributes as attr
 from neutron.api.v2 import resource_helper
 from neutron.plugins.common import constants
@@ -93,7 +92,7 @@ EXTENDED_ATTRIBUTES_2_0 = {
 }
 
 
-class Routertype(extensions.ExtensionDescriptor):
+class Routertype(bc.extensions.ExtensionDescriptor):
     """Extension class to define different types of Neutron routers.
 
     This class is used by Neutron's extension framework to support

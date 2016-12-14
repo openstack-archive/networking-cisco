@@ -166,9 +166,8 @@ class L3RouterTypeAwareSchedulerDbMixin(
         else:
             return {'hosting_devices': []}
 
-    def list_active_sync_routers_on_hosting_devices(self, context, host,
-                                                    router_ids=None,
-                                                    hosting_device_ids=None):
+    def cfg_list_router_ids_on_host(self, context, host, router_ids=None,
+                                hosting_device_ids=None):
         agent = self._get_agent_by_type_and_host(context, AGENT_TYPE_CFG, host)
         if not agent.admin_state_up:
             return []
@@ -183,7 +182,14 @@ class L3RouterTypeAwareSchedulerDbMixin(
             query = query.filter(
                 l3_models.RouterHostingDeviceBinding.hosting_device_id.in_(
                     hosting_device_ids))
-        router_ids = [item[0] for item in query]
+        return [item[0] for item in query]
+
+    def list_active_sync_routers_on_hosting_devices(self, context, host,
+                                                    router_ids=None,
+                                                    hosting_device_ids=None):
+        router_ids = self.cfg_list_router_ids_on_host(context, host,
+                                                      router_ids,
+                                                      hosting_device_ids)
         if router_ids:
             return self.get_sync_data_ext(context, router_ids=router_ids)
         else:
