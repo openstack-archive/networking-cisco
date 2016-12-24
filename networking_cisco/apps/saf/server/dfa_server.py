@@ -1379,12 +1379,13 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         LOG.debug('request_vms_info: Getting VMs info for %s', agent)
         req = dict(host=payload.get('agent'))
         instances = self.get_vms_for_this_req(**req)
+        vm_info = []
         for vm in instances:
             if vm.ip.endswith(constants.IP_DHCP_WAIT):
                 ipaddr = vm.ip.replace(constants.IP_DHCP_WAIT, '')
             else:
                 ipaddr = vm.ip
-            vm_info = dict(status=vm.status,
+            vm_info.append(dict(status=vm.status,
                            vm_mac=vm.mac,
                            segmentation_id=vm.segmentation_id,
                            host=vm.host,
@@ -1395,12 +1396,11 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
                                     vm_uuid=vm.instance_id,
                                     gw_mac=vm.gw_mac,
                                     fwd_mod=vm.fwd_mod,
-                                    oui_id='cisco'))
-            try:
-                self.neutron_event.send_vm_info(vm.host,
-                                                str(vm_info))
-            except (rpc.MessagingTimeout, rpc.RPCException, rpc.RemoteError):
-                LOG.error(_LE('Failed to send VM info to agent.'))
+                                    oui_id='cisco')))
+        try:
+            self.neutron_event.send_vm_info(agent, str(vm_info))
+        except (rpc.MessagingTimeout, rpc.RPCException, rpc.RemoteError):
+            LOG.error(_LE('Failed to send VM info to agent.'))
 
     def request_uplink_info(self, payload):
         """Get the uplink from the database and send the info to the agent."""

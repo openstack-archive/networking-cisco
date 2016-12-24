@@ -26,3 +26,19 @@ VDP_FILTER_MACVID = 2
 VDP_FILTER_GIDVID = 3
 VDP_FILTER_GIDMACVID = 4
 VDP_SYNC_TIMEOUT = 15
+CALLBACK_THRESHOLD = 5
+
+verify_failure_reason = "vsi_id mismatch, queried %s, returned %s"
+retrieve_failure_reason = "Unable to retrieve failure, reply %s"
+mode_failure_reason = "Incorrect Reply,no mode information found: %s"
+filter_failure_reason = "Incorrect Reply,no filter information found: %s"
+multiple_filter_failure_reason = \
+    "Incorrect Reply,multiple filter information found: %s"
+format_failure_reason = "Reply not formatted correctly: %s"
+hints_failure_reason = "Incorrect Reply,no hints information found: %s"
+multiple_hints_failure_reason = \
+    "Incorrect Reply,multiple hints information found: %s"
+nonzero_hints_failure = "Non-zero hints, value %d"
+vsi_mismatch_failure_reason = "VSIID Reply mis-match req vsi %s reply vsi %s"
+mac_mismatch_failure_reason = \
+    "VSIID MAC Reply mis-match req mac %s reply mac %s"

@@ -63,11 +63,15 @@ MAX_VLAN_TAG = 4094
 
 VM_MSG_TYPE = 50
 UPLINK_MSG_TYPE = 51
+VM_BULK_SYNC_MSG_TYPE = 52
 
 UPLINK_DET_INTERVAL = 10
 ERR_PROC_INTERVAL = 20
 # IF 'down' is seen twice continuously
 UPLINK_DOWN_THRES = 3
+
+# Timer to check for the presence of flows
+FLOW_CHECK_INTERVAL = 60
 
 Q_UPL_PRIO = 1
 Q_VM_PRIO = 2
@@ -76,3 +80,23 @@ RES_SEGMENT = "SEGMENT"
 RES_VLAN = "VLAN"
 RES_IN_SUBNET = 'IN_SUB'
 RES_OUT_SUBNET = 'OUT_SUB'
+
+uplink_down_reason = "Uplink went down"
+uplink_undiscovered_reason = "Uplink not yet discovered"
+port_transition_bond_down_reason = \
+    "Physical port became port of bond interface, intermittent down"
+port_transition_bond_up_reason = \
+    "Physical port became port of bond interface, intermittent up"
+bridge_not_cfgd_reason = \
+    "Integ or Physical Bridge not created by Openstack. Bridge_list: " \
+    "%s Integ Br: %s Ext Br: %s"
+veth_not_cfgd_reason = \
+    "Integ or Physical Patch/Veth Ports not configured by Openstack. " \
+    "Ext Peer: %s Integ Peer: %s"
+invalid_uplink_ofport_reason = "Uplink OF port not detected on external bridge"
+lldp_ofport_not_detect_reason = \
+    "lldp veth port not detected on external bridge"
+invalid_peer_ofport_reason = \
+    "int or phy peer OF Port not detected on Int or Phy Bridge. " \
+    "Phy Peer: %s Int Peer: %s"
+evb_cfg_fail_reason = "Unable to cfg EVB"

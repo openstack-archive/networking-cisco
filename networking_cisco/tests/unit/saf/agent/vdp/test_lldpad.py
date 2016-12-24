@@ -20,8 +20,9 @@ import mock
 
 from neutron.tests import base
 
+from networking_cisco.apps.saf.agent.vdp import (
+    lldpad_constants as vdp_const)
 from networking_cisco.apps.saf.agent.vdp import lldpad
-from networking_cisco.apps.saf.agent.vdp import lldpad_constants as vdp_con
 from networking_cisco.apps.saf.common import dfa_sys_lib as utils
 
 try:
@@ -159,7 +160,7 @@ class LldpadDriverTest(base.BaseTestCase):
                          self.lldpad.vdp_vif_map[self.uuid].get('typeid_ver'))
         self.assertEqual(self.vsiid,
                          self.lldpad.vdp_vif_map[self.uuid].get('vsiid'))
-        self.assertEqual(vdp_con.VDP_FILTER_GIDMACVID,
+        self.assertEqual(vdp_const.VDP_FILTER_GIDMACVID,
                          self.lldpad.vdp_vif_map[self.uuid].get('filter_frmt'))
         self.assertEqual(self.gid,
                          self.lldpad.vdp_vif_map[self.uuid].get('gid'))
@@ -175,7 +176,7 @@ class LldpadDriverTest(base.BaseTestCase):
                                      "mgrid2 = 0\n\ttypeid = 0\n\t"
                                      "typeidver = 0\n\tuuid = 00000000-1111-"
                                      "2222-3333-444455556666\n\t"
-                                     "filter = 3003-00:12:22:33:44:55-0\n")
+                                     "filter = 3003-00:11:22:33:44:55-0\n")
         self.lldpad.send_vdp_query_msg = mock.Mock()
         vlan_ret = self.lldpad.send_vdp_vnic_up(port_uuid=self.uuid,
                                                 vsiid=self.vsiid,
@@ -185,8 +186,8 @@ class LldpadDriverTest(base.BaseTestCase):
                                                 gid=self.gid,
                                                 mac=self.mac,
                                                 new_network=True)
-        self._test_vnic_assert(expected_vlan, vlan_ret, self.filter_str, True,
-                               parent)
+        self._test_vnic_assert(expected_vlan, vlan_ret[0], self.filter_str,
+                               True, parent)
 
     def test_vdp_port_up_new_nwk_after_restart(self):
         '''Tests the case when a VM comes for a new network after restart '''
@@ -201,7 +202,7 @@ class LldpadDriverTest(base.BaseTestCase):
                                      "010504mode0005assoc06mgrid20001006typeid"
                                      "0001009typeidver0001004uuid00000000-1111"
                                      "-2222-3333-44445555666605hints0001006"
-                                     "filter001c3003-00:12:22:33:44:55-2000003"
+                                     "filter001c3003-00:11:22:33:44:55-2000003"
                                      "oui006105cisco07vm_name000bFW_SRVC_RTR07"
                                      "vm_uuid002467f338a6-0925-42aa-b2df-e8114"
                                      "e9fd0da09ipv4_addr00020l\n")
@@ -213,8 +214,464 @@ class LldpadDriverTest(base.BaseTestCase):
                                                 gid=self.gid,
                                                 mac=self.mac,
                                                 new_network=True)
-        self._test_vnic_assert(expected_vlan, vlan_ret, self.filter_str, True,
-                               parent, is_rest=1)
+        self._test_vnic_assert(expected_vlan, vlan_ret[0], self.filter_str,
+                               True, parent, is_rest=1)
+
+    def test_vdp_refresh_handler(self):
+        """Test for VDP refresh handler, with one VDI. """
+        vlan_vif = 3003
+        self.lldpad.vdp_vif_map = {
+            '00000000-1111-2222-3333-444455556666':
+            {'vsw_cb_data': None, 'vsw_cb_fn': None, 'vsiid_frmt': 5,
+             'typeid_ver': 0, 'mac': '00:11:22:33:44:55',
+             'vsiid': '00000000-1111-2222-3333-444455556666',
+             'vdp_vlan': vlan_vif, 'callback_count': 0, 'typeid': 0,
+             'fail_reason': None, 'gid': 20000, 'filter_frmt': 4, 'mgrid': 0}}
+        port_vif_map = self.lldpad.vdp_vif_map.get(
+            '00000000-1111-2222-3333-444455556666')
+        with mock.patch.object(self.lldpad, 'send_vdp_assoc',
+                               return_value=[vlan_vif, None]) as vdp_assoc:
+            self.lldpad._vdp_refrsh_hndlr()
+        vdp_assoc.assert_called_with(
+            vsiid=port_vif_map.get('vsiid'), mgrid=0, typeid=0, typeid_ver=0,
+            vsiid_frmt=port_vif_map.get('vsiid_frmt'),
+            filter_frmt=port_vif_map.get('filter_frmt'),
+            gid=port_vif_map.get('gid'), mac=port_vif_map.get('mac'),
+            vlan=0, oui_id='', oui_data='', sw_resp=True)
+        self.assertEqual(1, port_vif_map.get('callback_count'))
+
+    def test_vdp_refresh_handler_modf_vlan(self):
+        """Test for VDP refresh handler, when VLAN from VDP is changed. """
+        vlan_vif = 3003
+        vdp_vlan = 3004
+        self.lldpad.vdp_vif_map = {
+            '00000000-1111-2222-3333-444455556666':
+            {'vsw_cb_data': 'dummy_data', 'vsw_cb_fn': None, 'vsiid_frmt': 5,
+             'typeid_ver': 0, 'mac': '00:11:22:33:44:55',
+             'vsiid': '00000000-1111-2222-3333-444455556666',
+             'vdp_vlan': vlan_vif, 'callback_count': 0, 'typeid': 0,
+             'fail_reason': None, 'gid': 20000, 'filter_frmt': 4, 'mgrid': 0}}
+        port_vif_map = self.lldpad.vdp_vif_map.get(
+            '00000000-1111-2222-3333-444455556666')
+        with mock.patch.object(self.lldpad, 'send_vdp_assoc',
+                               return_value=[vdp_vlan, None]) as vdp_assoc:
+            port_vif_map['vsw_cb_fn'] = mock.MagicMock()
+            self.lldpad._vdp_refrsh_hndlr()
+        vdp_assoc.assert_called_with(
+            vsiid=port_vif_map.get('vsiid'), mgrid=0, typeid=0, typeid_ver=0,
+            vsiid_frmt=port_vif_map.get('vsiid_frmt'),
+            filter_frmt=port_vif_map.get('filter_frmt'),
+            gid=port_vif_map.get('gid'), mac=port_vif_map.get('mac'),
+            vlan=0, oui_id='', oui_data='', sw_resp=True)
+        self.assertEqual(0, port_vif_map.get('callback_count'))
+        port_vif_map['vsw_cb_fn'].assert_called_with('dummy_data', vdp_vlan,
+                                                     None)
+
+    def test_vdp_refresh_handler_modf_reason(self):
+        """Test for VDP refresh handler, when fail reason is changed. """
+        vlan_vif = 0
+        self.lldpad.vdp_vif_map = {
+            '00000000-1111-2222-3333-444455556666':
+            {'vsw_cb_data': 'dummy_data', 'vsw_cb_fn': None, 'vsiid_frmt': 5,
+             'typeid_ver': 0, 'mac': '00:11:22:33:44:55',
+             'vsiid': '00000000-1111-2222-3333-444455556666',
+             'vdp_vlan': vlan_vif, 'callback_count': 0, 'typeid': 0,
+             'fail_reason': "some reason", 'gid': 20000, 'filter_frmt': 4,
+             'mgrid': 0}}
+        port_vif_map = self.lldpad.vdp_vif_map.get(
+            '00000000-1111-2222-3333-444455556666')
+        with mock.patch.object(self.lldpad, 'send_vdp_assoc',
+                               return_value=[vlan_vif,
+                                             "any reason"]) as vdp_assoc:
+            port_vif_map['vsw_cb_fn'] = mock.MagicMock()
+            self.lldpad._vdp_refrsh_hndlr()
+        vdp_assoc.assert_called_with(
+            vsiid=port_vif_map.get('vsiid'), mgrid=0, typeid=0, typeid_ver=0,
+            vsiid_frmt=port_vif_map.get('vsiid_frmt'),
+            filter_frmt=port_vif_map.get('filter_frmt'),
+            gid=port_vif_map.get('gid'), mac=port_vif_map.get('mac'),
+            vlan=0, oui_id='', oui_data='', sw_resp=True)
+        self.assertEqual(0, port_vif_map.get('callback_count'))
+        port_vif_map['vsw_cb_fn'].assert_called_with(
+            'dummy_data', 0, "any reason")
+
+    def test_vdp_refresh_handler_cb_thresh_exceed(self):
+        """Test for refresh handler, when callback threshold has exceeded. """
+        vlan_vif = 3003
+        self.lldpad.vdp_vif_map = {
+            '00000000-1111-2222-3333-444455556666':
+            {'vsw_cb_data': 'dummy_data', 'vsw_cb_fn': None, 'vsiid_frmt': 5,
+             'typeid_ver': 0, 'mac': '00:11:22:33:44:55',
+             'vsiid': '00000000-1111-2222-3333-444455556666',
+             'vdp_vlan': vlan_vif, 'callback_count': 7, 'typeid': 0,
+             'fail_reason': None, 'gid': 20000, 'filter_frmt': 4, 'mgrid': 0}}
+        port_vif_map = self.lldpad.vdp_vif_map.get(
+            '00000000-1111-2222-3333-444455556666')
+        with mock.patch.object(self.lldpad, 'send_vdp_assoc',
+                               return_value=[vlan_vif, None]) as vdp_assoc:
+            port_vif_map['vsw_cb_fn'] = mock.MagicMock()
+            self.lldpad._vdp_refrsh_hndlr()
+        vdp_assoc.assert_called_with(
+            vsiid=port_vif_map.get('vsiid'), mgrid=0, typeid=0, typeid_ver=0,
+            vsiid_frmt=port_vif_map.get('vsiid_frmt'),
+            filter_frmt=port_vif_map.get('filter_frmt'),
+            gid=port_vif_map.get('gid'), mac=port_vif_map.get('mac'),
+            vlan=0, oui_id='', oui_data='', sw_resp=True)
+        self.assertEqual(0, port_vif_map.get('callback_count'))
+        port_vif_map['vsw_cb_fn'].assert_called_with(
+            'dummy_data', vlan_vif, None)
+
+    def test_vdp_failure_reason_valid(self):
+        """Test for case that parses the failure reason for valid case. """
+        reply = ("Response from VDP\n\tmode = deassoc\n\tmgrid2 = 0\n\t"
+                 "typeid = 0\n\ttypeidver = 0\n\t"
+                 "uuid = 7af441dd-253b-4772-8cf1-a4cfef18efe5\n\t"
+                 "Error returned by Bridge: Other Failures\n\t"
+                 "filter = 0-fa:16:3e:af:43:d9-0\n")
+        reason = self.lldpad.get_vdp_failure_reason(reply)
+        self.assertEqual("Error returned by Bridge: Other Failures", reason)
+
+    def test_vdp_failure_reason_invalid(self):
+        """Test for case that parses the failure reason for invalid case. """
+        reply = "\nReturn from vsievt -11"
+        expected_reason = vdp_const.retrieve_failure_reason % (reply)
+        reason = self.lldpad.get_vdp_failure_reason(reply)
+        self.assertEqual(expected_reason, reason)
+
+    def test_vdp_failure_reason_invalid_null(self):
+        """Test for case that parses the failure reason for null case. """
+        reply = ""
+        expected_reason = vdp_const.retrieve_failure_reason % (reply)
+        reason = self.lldpad.get_vdp_failure_reason(reply)
+        self.assertEqual(expected_reason, reason)
+
+    def test_filter_query_validity_incorrect_filter(self):
+        """Test for filter query, when there's no filter. """
+        reply = "\nReturn from vsievt -11"
+        expected_reason = vdp_const.filter_failure_reason % (reply)
+        result, reason = self.lldpad.check_filter_validity(reply, "filter")
+        self.assertFalse(result)
+        self.assertEqual(expected_reason, reason)
+
+    def test_filter_reply_validity_incorrect_filter(self):
+        """Test for filter reply, when there's no filter. """
+        reply = "\nReturn from vsievt -11"
+        expected_reason = vdp_const.filter_failure_reason % (reply)
+        result, reason = self.lldpad.check_filter_validity(reply, "filter = ")
+        self.assertFalse(result)
+        self.assertEqual(expected_reason, reason)
+
+    def test_filter_query_validity_multiple_filter(self):
+        """Test for filter query, when there are multiple filters. """
+        reply = ("M000080c4C3010000001509LLDPLeth5"
+                 "020000000304mode0005assoc06mgrid2"
+                 "0001006typeid0001009typeidver0001004"
+                 "uuid002400000000-1111-2222-3333-44445555"
+                 "6666\nR00C3010000001509LLDPLeth500000003"
+                 "010504mode0005assoc06mgrid20001006typeid"
+                 "0001009typeidver0001004uuid00000000-1111"
+                 "-2222-3333-44445555666605hints0001006"
+                 "filter001c3003-00:11:22:33:44:55-2000003"
+                 "filter001c3003-00:aa:22:33:44:55-2000003"
+                 "oui006105cisco07vm_name000bFW_SRVC_RTR07"
+                 "vm_uuid002467f338a6-0925-42aa-b2df-e8114"
+                 "e9fd0da09ipv4_addr00020l\n")
+        expected_reason = vdp_const.multiple_filter_failure_reason % (reply)
+        result, reason = self.lldpad.check_filter_validity(reply, "filter")
+        self.assertFalse(result)
+        self.assertEqual(expected_reason, reason)
+
+    def test_filter_reply_validity_multiple_filter(self):
+        """Test for filter reply, when there are multiple filters. """
+
+        reply = ("Response from VDP\n\tmode = assoc\n\t"
+                 "mgrid2 = 0\n\ttypeid = 0\n\t"
+                 "typeidver = 0\n\tuuid = 00000000-1111-"
+                 "2222-3333-444455556666\n\t"
+                 "filter = 3003-00:11:22:33:44:55-0\n"
+                 "filter = 3003-00:AA:22:33:44:55-0\n")
+        expected_reason = vdp_const.multiple_filter_failure_reason % (reply)
+        result, reason = self.lldpad.check_filter_validity(reply, "filter = ")
+        self.assertFalse(result)
+        self.assertEqual(expected_reason, reason)
+
+    def test_filter_query_validity(self):
+        """Test for filter query validity. Positive case. """
+        reply = ("M000080c4C3010000001509LLDPLeth5"
+                 "020000000304mode0005assoc06mgrid2"
+                 "0001006typeid0001009typeidver0001004"
+                 "uuid002400000000-1111-2222-3333-44445555"
+                 "6666\nR00C3010000001509LLDPLeth500000003"
+                 "010504mode0005assoc06mgrid20001006typeid"
+                 "0001009typeidver0001004uuid00000000-1111"
+                 "-2222-3333-44445555666605hints0001006"
+                 "filter001c3003-00:11:22:33:44:55-2000003"
+                 "oui006105cisco07vm_name000bFW_SRVC_RTR07"
+                 "vm_uuid002467f338a6-0925-42aa-b2df-e8114"
+                 "e9fd0da09ipv4_addr00020l\n")
+        expected_reason = None
+        result, reason = self.lldpad.check_filter_validity(reply, "filter")
+        self.assertTrue(result)
+        self.assertEqual(expected_reason, reason)
+
+    def test_filter_reply_validity(self):
+        """Test for filter reply validity. Positive case. """
+        reply = ("Response from VDP\n\tmode = assoc\n\t"
+                 "mgrid2 = 0\n\ttypeid = 0\n\t"
+                 "typeidver = 0\n\tuuid = 00000000-1111-"
+                 "2222-3333-444455556666\n\t"
+                 "filter = 3003-00:11:22:33:44:55-0\n")
+        expected_reason = None
+        result, reason = self.lldpad.check_filter_validity(reply, "filter = ")
+        self.assertTrue(result)
+        self.assertEqual(expected_reason, reason)
+
+    def test_mode_reply_invalid(self):
+        """Test for mode reply validity. Invalid case. """
+        reply = ("Response from VDP\n\t"
+                 "mgrid2 = 0\n\ttypeid = 0\n\t"
+                 "typeidver = 0\n\tuuid = 00000000-1111-"
+                 "2222-3333-444455556666\n\t"
+                 "filter = 3003-00:11:22:33:44:55-0\n")
+        expected_reason = vdp_const.mode_failure_reason % (reply)
+        vlan, reason = self.lldpad.get_vlan_from_associate_reply(
+            reply, "00000000-1111-2222-3333-444455556666", "00:11:22:33:44:55")
+        self.assertEqual(-1, vlan)
+        self.assertEqual(expected_reason, reason)
+
+    def test_mode_reply_deassoc(self):
+        """Test for mode reply when deassoc is sent. """
+        reply = ("Response from VDP\n\tmode = deassoc\n\tmgrid2 = 0\n\t"
+                 "typeid = 0\n\ttypeidver = 0\n\t"
+                 "uuid = 7af441dd-253b-4772-8cf1-a4cfef18efe5\n\t"
+                 "Error returned by Bridge: Other Failures\n\t"
+                 "filter = 0-fa:16:3e:af:43:d9-0\n")
+        expected_reason = "Error returned by Bridge: Other Failures"
+        vlan, reason = self.lldpad.get_vlan_from_associate_reply(
+            reply, "7af441dd-253b-4772-8cf1-a4cfef18efe5", "fa:16:3e:af:43:d9")
+        self.assertEqual(-1, vlan)
+        self.assertEqual(expected_reason, reason)
+
+    def test_vlan_reply_invalid(self):
+        """Test for invalid vlan reply. """
+        reply = ("Response from VDP\n\tmode = assoc\n\tmgrid2 = 0\n\t"
+                 "typeid = 0\n\ttypeidver = 0\n\t"
+                 "uuid = 7af441dd-253b-4772-8cf1-a4cfef18efe5\n\t"
+                 "filter = pat-fa:16:3e:af:43:d9-0\n")
+        expected_reason = vdp_const.format_failure_reason % (reply)
+        vlan, reason = self.lldpad.get_vlan_from_associate_reply(
+            reply, "7af441dd-253b-4772-8cf1-a4cfef18efe5", "fa:16:3e:af:43:d9")
+        self.assertEqual(-1, vlan)
+        self.assertEqual(expected_reason, reason)
+
+    # Have another case, where reply is there, but no hints
+    def test_incorrect_hints(self):
+        """Test for case when there's no hints in reply. """
+        reply = "\nReturn from vsievt -11"
+        expected_reason = vdp_const.hints_failure_reason % (reply)
+        result, reason = self.lldpad.check_hints(reply)
+        self.assertFalse(result)
+        self.assertEqual(expected_reason, reason)
+
+    def test_multiple_hints(self):
+        """Test for case, when there are multiple hints in query response. """
+        reply = ("M000080c4C3010000001509LLDPLeth5"
+                 "020000000304mode0005assoc06mgrid2"
+                 "0001006typeid0001009typeidver0001004"
+                 "uuid002400000000-1111-2222-3333-44445555"
+                 "6666\nR00C3010000001509LLDPLeth500000003"
+                 "010504mode0005assoc06mgrid20001006typeid"
+                 "0001009typeidver0001004uuid00000000-1111"
+                 "-2222-3333-44445555666605hints0001006"
+                 "05hints0001007filter001c3003-00:11:22:33:44:55-2000003"
+                 "oui006105cisco07vm_name000bFW_SRVC_RTR07"
+                 "vm_uuid002467f338a6-0925-42aa-b2df-e8114"
+                 "e9fd0da09ipv4_addr00020l\n")
+        expected_reason = vdp_const.multiple_hints_failure_reason % (reply)
+        result, reason = self.lldpad.check_hints(reply)
+        self.assertFalse(result)
+        self.assertEqual(expected_reason, reason)
+
+    def test_nonzero_hints(self):
+        """Test for non-zero hints. """
+        reply = ("M000080c4C3010000001509LLDPLeth5"
+                 "020000000304mode0005assoc06mgrid2"
+                 "0001006typeid0001009typeidver0001004"
+                 "uuid002400000000-1111-2222-3333-44445555"
+                 "6666\nR00C3010000001509LLDPLeth500000003"
+                 "010504mode0005assoc06mgrid20001006typeid"
+                 "0001009typeidver0001004uuid00000000-1111"
+                 "-2222-3333-44445555666605hints0001806"
+                 "filter001c3003-00:11:22:33:44:55-2000003"
+                 "oui006105cisco07vm_name000bFW_SRVC_RTR07"
+                 "vm_uuid002467f338a6-0925-42aa-b2df-e8114"
+                 "e9fd0da09ipv4_addr00020l\n")
+        expected_reason = vdp_const.nonzero_hints_failure % 8
+        result, reason = self.lldpad.check_hints(reply)
+        self.assertFalse(result)
+        self.assertEqual(expected_reason, reason)
+
+    def test_hints_exception(self):
+        """Test for incorrectly formatted hints. """
+        reply = ("M000080c4C3010000001509LLDPLeth5"
+                 "020000000304mode0005assoc06mgrid2"
+                 "0001006typeid0001009typeidver0001004"
+                 "uuid002400000000-1111-2222-3333-44445555"
+                 "6666\nR00C3010000001509LLDPLeth500000003"
+                 "010504mode0005assoc06mgrid20001006typeid"
+                 "0001009typeidver0001004uuid00000000-1111"
+                 "-2222-3333-44445555666605hints00ef806"
+                 "filter001c3003-00:11:22:33:44:55-2000003"
+                 "oui006105cisco07vm_name000bFW_SRVC_RTR07"
+                 "vm_uuid002467f338a6-0925-42aa-b2df-e8114"
+                 "e9fd0da09ipv4_addr00020l\n")
+        expected_reason = vdp_const.format_failure_reason % (reply)
+        result, reason = self.lldpad.check_hints(reply)
+        self.assertFalse(result)
+        self.assertEqual(expected_reason, reason)
+
+    def test_valid_hints(self):
+        """Test for valid hints case. """
+        reply = ("M000080c4C3010000001509LLDPLeth5"
+                 "020000000304mode0005assoc06mgrid2"
+                 "0001006typeid0001009typeidver0001004"
+                 "uuid002400000000-1111-2222-3333-44445555"
+                 "6666\nR00C3010000001509LLDPLeth500000003"
+                 "010504mode0005assoc06mgrid20001006typeid"
+                 "0001009typeidver0001004uuid00000000-1111"
+                 "-2222-3333-44445555666605hints0001006"
+                 "filter001c3003-00:11:22:33:44:55-2000003"
+                 "oui006105cisco07vm_name000bFW_SRVC_RTR07"
+                 "vm_uuid002467f338a6-0925-42aa-b2df-e8114"
+                 "e9fd0da09ipv4_addr00020l\n")
+        result, reason = self.lldpad.check_hints(reply)
+        self.assertTrue(result)
+        self.assertIsNone(reason)
+
+    def test_vlan_query_incorrect_filter(self):
+        """Test for incorrect filter in vlan query function. """
+        reply = "Mock reply"
+        with mock.patch.object(self.lldpad, 'check_hints',
+                               return_value=[True, None]),\
+            mock.patch.object(self.lldpad, 'check_filter_validity',
+                              return_value=[False, 'Some failure']):
+            result, reason = self.lldpad.get_vlan_from_query_reply(
+                reply, "00000000-1111-2222-3333-444455556666",
+                "00:11:22:33:44:55")
+        self.assertEqual(-1, result)
+
+    def test_vlan_query_vsiid_fail(self):
+        """Test for incorrect vsiid in vlan query function. """
+        reply = "Mock reply"
+        with mock.patch.object(self.lldpad, 'check_hints',
+                               return_value=[True, None]),\
+            mock.patch.object(self.lldpad, 'check_filter_validity',
+                              return_value=[True, None]),\
+            mock.patch.object(self.lldpad, 'crosscheck_query_vsiid_mac',
+                              return_value=[False, None]):
+            result, reason = self.lldpad.get_vlan_from_query_reply(
+                reply, "00000000-1111-2222-3333-444455556666",
+                "00:11:22:33:44:55")
+        self.assertEqual(-1, result)
+
+    def test_vlan_query_exception(self):
+        """Test for incorrectly formatted reply in vlan query function. """
+        reply = ("M000080c4C3010000001509LLDPLeth5"
+                 "020000000304mode0005assoc06mgrid2"
+                 "0001006typeid0001009typeidver0001004"
+                 "uuid002400000000-1111-2222-3333-44445555"
+                 "6666\nR00C3010000001509LLDPLeth500000003"
+                 "010504mode0005assoc06mgrid20001006typeid"
+                 "0001009typeidver0001004uuid00000000-1111"
+                 "-2222-3333-44445555666605hints0001006"
+                 "filter001ca003-00:11:22:33:44:55-2000003"
+                 "oui006105cisco07vm_name000bFW_SRVC_RTR07"
+                 "vm_uuid002467f338a6-0925-42aa-b2df-e8114"
+                 "e9fd0da09ipv4_addr00020l\n")
+        expected_reason = vdp_const.format_failure_reason % (reply)
+        with mock.patch.object(self.lldpad, 'check_hints',
+                               return_value=[True, None]),\
+            mock.patch.object(self.lldpad, 'check_filter_validity',
+                              return_value=[True, None]),\
+            mock.patch.object(self.lldpad, 'crosscheck_query_vsiid_mac',
+                              return_value=[True, None]):
+            result, reason = self.lldpad.get_vlan_from_query_reply(
+                reply, "00000000-1111-2222-3333-444455556666",
+                "00:11:22:33:44:55")
+        self.assertEqual(-1, result)
+        self.assertEqual(expected_reason, reason)
+
+    def test_crosscheck_query_mismatch_vsiid(self):
+        """Test VSI ID mismatch in reply. """
+        reply = ("M000080c4C3010000001509LLDPLeth5"
+                 "020000000304mode0005assoc06mgrid2"
+                 "0001006typeid0001009typeidver0001004"
+                 "uuid002400000000-1111-2222-3333-44445555"
+                 "6666\nR00C3010000001509LLDPLeth500000003"
+                 "010504mode0005assoc06mgrid20001006typeid"
+                 "0001009typeidver0001004uuid00000000-1111"
+                 "-2222-3333-44445555666605hints0001006"
+                 "filter001ca003-00:11:22:33:44:55-2000003"
+                 "oui006105cisco07vm_name000bFW_SRVC_RTR07"
+                 "vm_uuid002467f338a6-0925-42aa-b2df-e8114"
+                 "e9fd0da09ipv4_addr00020l\n")
+        expected_reason = vdp_const.vsi_mismatch_failure_reason % (
+            "000000ff-1111-2222-3333-444455556666",
+            "00000000-1111-2222-3333-444455556666")
+        result, reason = self.lldpad.crosscheck_query_vsiid_mac(
+            reply, "000000ff-1111-2222-3333-444455556666", "00:11:22:33:44:55")
+        self.assertFalse(result)
+        self.assertEqual(expected_reason, reason)
+
+    def test_crosscheck_reply_mismatch_vsiid(self):
+        """Test VSI ID mismatch in reply. """
+        reply = ("Response from VDP\n\tmode = assoc\n\t"
+                 "mgrid2 = 0\n\ttypeid = 0\n\t"
+                 "typeidver = 0\n\tuuid = 00000000-1111-"
+                 "2222-3333-444455556666\n\t"
+                 "filter = 3003-00:12:22:33:44:55-0\n")
+        expected_reason = vdp_const.vsi_mismatch_failure_reason % (
+            "000000ff-1111-2222-3333-444455556666",
+            "00000000-1111-2222-3333-444455556666")
+        result, reason = self.lldpad.crosscheck_reply_vsiid_mac(
+            reply, "000000ff-1111-2222-3333-444455556666", "00:11:22:33:44:55")
+        self.assertFalse(result)
+        self.assertEqual(expected_reason, reason)
+
+    def test_crosscheck_query_mismatch_mac(self):
+        """Test MAC mismatch in query. """
+        reply = ("M000080c4C3010000001509LLDPLeth5"
+                 "020000000304mode0005assoc06mgrid2"
+                 "0001006typeid0001009typeidver0001004"
+                 "uuid002400000000-1111-2222-3333-44445555"
+                 "6666\nR00C3010000001509LLDPLeth500000003"
+                 "010504mode0005assoc06mgrid20001006typeid"
+                 "0001009typeidver0001004uuid00000000-1111"
+                 "-2222-3333-44445555666605hints0001006"
+                 "filter001ca003-00:11:22:33:44:55-2000003"
+                 "oui006105cisco07vm_name000bFW_SRVC_RTR07"
+                 "vm_uuid002467f338a6-0925-42aa-b2df-e8114"
+                 "e9fd0da09ipv4_addr00020l\n")
+        expected_reason = vdp_const.mac_mismatch_failure_reason % (
+            "00:ff:22:33:44:55", "00:11:22:33:44:55")
+        result, reason = self.lldpad.crosscheck_query_vsiid_mac(
+            reply, "00000000-1111-2222-3333-444455556666", "00:ff:22:33:44:55")
+        self.assertFalse(result)
+        self.assertEqual(expected_reason, reason)
+
+    def test_crosscheck_reply_mismatch_mac(self):
+        """Test MAC mismatch in reply. """
+        reply = ("Response from VDP\n\tmode = assoc\n\t"
+                 "mgrid2 = 0\n\ttypeid = 0\n\t"
+                 "typeidver = 0\n\tuuid = 00000000-1111-"
+                 "2222-3333-444455556666\n\t"
+                 "filter = 3003-00:11:22:33:44:55-0\n")
+        expected_reason = vdp_const.mac_mismatch_failure_reason % (
+            "00:ff:22:33:44:55", "00:11:22:33:44:55")
+        result, reason = self.lldpad.crosscheck_reply_vsiid_mac(
+            reply, "00000000-1111-2222-3333-444455556666", "00:ff:22:33:44:55")
+        self.assertFalse(result)
+        self.assertEqual(expected_reason, reason)
 
     def test_vdp_port_up_new_nwk_invalid_vlan(self):
         '''
@@ -233,8 +690,8 @@ class LldpadDriverTest(base.BaseTestCase):
                                                 gid=self.gid,
                                                 mac=self.mac,
                                                 new_network=True)
-        self._test_vnic_assert(expected_vlan, vlan_ret, self.filter_str, True,
-                               parent)
+        self._test_vnic_assert(expected_vlan, vlan_ret[0], self.filter_str,
+                               True, parent)
 
     def test_vdp_port_up_old_nwk(self):
         '''Tests the case when a VM comes for an existing network '''
