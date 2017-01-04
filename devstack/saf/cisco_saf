@@ -174,20 +174,10 @@ function _copy_fabric_enabler_upstart_files {
     fi
 }
 
-
-# Restart keystone process
-function _restart_keystone_process {
-    # Restart keystone server. This is because of change in config file
-    stop_keystone
-    start_keystone
-}
-
-
 # Start fabric enabler processes
 function _start_fabric_enabler_processes {
     if is_ubuntu; then
         if is_service_enabled q-svc; then
-            _restart_keystone_process
             sudo start fabric-enabler-server
         fi
         if is_service_enabled q-agt; then
@@ -195,7 +185,6 @@ function _start_fabric_enabler_processes {
         fi
     elif is_fedora; then
         if is_service_enabled q-svc; then
-            _restart_keystone_process
             sudo systemctl start fabric-enabler-server.service
         fi
         if is_service_enabled q-agt; then

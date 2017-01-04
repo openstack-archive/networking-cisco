@@ -19,8 +19,10 @@ import socket
 
 from networking_cisco._i18n import _LE
 
-from keystoneclient.v3 import client
-from neutronclient.v2_0 import client as nc
+from keystoneauth1.identity import generic
+from keystoneauth1 import session
+from keystoneclient import client as k_client
+from neutronclient.v2_0 import client as n_client
 
 from networking_cisco.apps.saf.common import config
 from networking_cisco.apps.saf.common import constants
@@ -39,56 +41,59 @@ class EventsHandler(object):
         self._service = None
         self._service_name = ser_name
         self._clients = {}
+        self._nclient = None
         self._pq = pqueue
         self._create_pri = c_pri
         self._update_pri = c_pri
         self._delete_pri = d_pri
-        self._cfg = config.CiscoDFAConfig(ser_name).cfg
+        self._cfg = config.CiscoDFAConfig().cfg
         self._q_agent = constants.DFA_AGENT_QUEUE
         self._url = self._cfg.dfa_rpc.transport_url
         dfaq = self._cfg.dfa_notify.cisco_dfa_notify_queue % (
             {'service_name': ser_name})
-        notify_queue = self._cfg.DEFAULT.notification_topics.split(',')
+        notify_queue = dfaq
         self._notify_queue = dfaq if dfaq in notify_queue else None
-        self._token = self._cfg.DEFAULT.admin_token
-        if self._service_name == 'keystone':
-            endpoint = self._cfg.DEFAULT.admin_endpoint
-            admin_port = self._cfg.DEFAULT.admin_port
-            if endpoint:
-                self._endpoint_url = (endpoint + 'v3/') % (
-                    {'admin_port': admin_port if admin_port else '35357'})
-            else:
-                host = self._cfg.DEFAULT.admin_bind_host
-                proto = self._cfg.DEFAULT.auth_protocol
-                self._endpoint_url = '%(proto)s://%(host)s:%(port)s/v3/' % (
-                    {'proto': proto if proto else 'http',
-                     'host': host if host else 'localhost',
-                     'port': admin_port if admin_port else '35357'})
-            self._service = client.Client(token=self._cfg.DEFAULT.admin_token,
-                                          endpoint=self._endpoint_url)
-
         # Setup notification listener for the events.
         self._setup_notification_listener(self._notify_queue, self._url)
 
+        if ser_name != 'keystone':
+            return
+        user = self._cfg.keystone_authtoken.username
+        project = self._cfg.keystone_authtoken.project_name
+        passwd = self._cfg.keystone_authtoken.password
+        url = self._cfg.keystone_authtoken.auth_url
+        u_domain = self._cfg.keystone_authtoken.user_domain_name
+        p_domain = self._cfg.keystone_authtoken.project_domain_name
+
+        auth = generic.Password(auth_url=url,
+                                username=user,
+                                password=passwd,
+                                project_name=project,
+                                project_domain_name=p_domain,
+                                user_domain_name=u_domain)
+        sess = session.Session(auth=auth)
+
+        self._service = k_client.Client(session=sess)
+
     @property
     def nclient(self):
-        user = self._cfg.keystone_authtoken.username
-        tenant = self._cfg.keystone_authtoken.project_name
-        passw = self._cfg.keystone_authtoken.password
-        if self._cfg.keystone_authtoken.auth_url:
-            uri = self._cfg.keystone_authtoken.auth_url + '/v2.0'
-        else:
-            proto = self._cfg.keystone_authtoken.auth_protocol
-            auth_host = self._cfg.keystone_authtoken.auth_host
-            auth_port = self._cfg.keystone_authtoken.auth_port
-            uri = '%(proto)s://%(host)s:%(port)s/v2.0' % (
-                {'proto': proto if proto else 'http',
-                 'host': auth_host if auth_host else 'localhost',
-                 'port': auth_port if auth_port else '35357'})
-
-        if user and tenant and passw and uri:
-            return nc.Client(username=user, tenant_name=tenant, password=passw,
-                             auth_url=uri)
+        if self._nclient:
+            return self._nclient
+        user = self._cfg.neutron.username
+        project = self._cfg.neutron.project_name
+        passwd = self._cfg.neutron.password
+        url = self._cfg.neutron.auth_url
+        u_domain = self._cfg.keystone_authtoken.user_domain_name
+        p_domain = self._cfg.keystone_authtoken.project_domain_name
+        auth = generic.Password(auth_url=url,
+                                username=user,
+                                password=passwd,
+                                project_name=project,
+                                project_domain_name=p_domain,
+                                user_domain_name=u_domain)
+        sess = session.Session(auth=auth)
+        self._nclient = n_client.Client(session=sess)
+        return self._nclient
 
     def _setup_notification_listener(self, topic_name, url):
         """Setup notification listener for a service."""

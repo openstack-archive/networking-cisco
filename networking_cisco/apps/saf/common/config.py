@@ -31,12 +31,35 @@ from networking_cisco.apps.saf.server.services.firewall.native import (
     fw_constants as fw_const)
 
 
-default_neutron_opts = {
-    'DEFAULT': {
-        'admin_port': 35357,
-        'default_notification_level': 'INFO',
+default_keystone_opts = {
+    'keystone_authtoken': {
+        'username': 'admin',
+        'project_name': 'admin',
+        'user_domain_name': 'default',
+        'project_domain_name': 'default',
     },
 }
+
+default_neutron_opts = {
+    'neutron': {
+        'username': 'neutron',
+        'project_name': 'service',
+        'user_domain_name': 'default',
+        'project_domain_name': 'default',
+    },
+}
+
+default_nova_opts = {
+    'nova': {
+        'username': 'nova',
+        'project_name': 'service',
+        'user_domain_name': 'default',
+        'project_domain_name': 'default',
+        'region_name': 'RegionOne',
+        'api_version': '2.1',
+    },
+}
+
 
 default_dfa_agent_opts = {
     'dfa_agent': {
@@ -127,6 +150,8 @@ default_notify_opts = {
 default_opts_list = [
     default_log_opts,
     default_neutron_opts,
+    default_nova_opts,
+    default_keystone_opts,
     default_dfa_agent_opts,
     default_vdp_opts,
     default_sys_opts,

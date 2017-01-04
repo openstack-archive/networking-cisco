@@ -978,7 +978,8 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         LOG.debug("port_create_event : %s", vm_info)
 
         if (not port.get('binding:host_id') and
-                port.get('binding:vif_type').lower() == 'unbound'):
+            (not port.get('binding:vif_type') or
+             port.get('binding:vif_type').lower() == 'unbound')):
             # A port is created without binding host, vif_type,...
             # Keep the info in the database.
             self.add_vms_db(vm_info, constants.RESULT_SUCCESS)
@@ -1602,7 +1603,6 @@ def dfa_server():
 
     except KeyboardInterrupt:
         pass
-
 
 if __name__ == '__main__':
     sys.exit(dfa_server())
