@@ -124,8 +124,12 @@ class TestDFAServer(base.BaseTestCase):
         self.seg_Drvr = mock.patch(
             'networking_cisco.apps.saf.db.dfa_db_models.'
             'DfaSegmentTypeDriver').start()
+        self.topologyDb = mock.patch(
+            'networking_cisco.apps.saf.db.dfa_db_models.'
+            'TopologyDiscoveryDb').start()
 
         self.dfa_server = ds.DfaServer(self.cfg)
+        self.rpcb = ds.RpcCallBacks(self.dfa_server)
         mock.patch.object(self.dfa_server, '_get_segmentation_id',
                           return_value=12345).start()
         mock.patch.object(self.dfa_server.seg_drvr,
@@ -544,3 +548,138 @@ class TestDFAServer(base.BaseTestCase):
         cargs, ckwargs = call_args
         self.assertEqual(FAKE_PORT_ID, cargs[0])
         self.assertEqual("10.10.10.10", ckwargs.get("columns").get("ip"))
+
+    def test_is_mand_arg_present_true(self):
+        """Test the is_mand_arg_present function for True case. """
+        intf_dict = {'remote_port_id_mac': '00:11:22:33:44:55',
+                     'remote_system_name': 'N6K-1'}
+        ret = self.rpcb.is_mand_arg_present(intf_dict)
+        self.assertTrue(ret)
+
+    def test_is_mand_arg_present_false(self):
+        """Test the is_mand_arg_present function for False case. """
+        # Recheck this again, it should be an OR condition instead of and
+        # Check if both TLVs are received.
+        intf_dict = {}
+        ret = self.rpcb.is_mand_arg_present(intf_dict)
+        self.assertFalse(ret)
+
+    def test_save_topo_disc_params_exist_mand(self):
+        """Test the save_topo_disc_params function for exist, mandatory case.
+
+        This is for the case when config is already present in the DB and
+        mandatory TLV's are present in the new config. This is the uppdate
+        case.
+        """
+        host = 'host1'
+        interface = 'eth2'
+        with mock.patch.object(self.rpcb, 'is_mand_arg_present',
+                               return_value=True),\
+            mock.patch('oslo_serialization.jsonutils.loads') as jsut,\
+            mock.patch.object(self.rpcb.obj.topology_db,
+                              'add_update_topology_db') as add_upd_mock,\
+            mock.patch.object(self.rpcb.obj.topology_db, 'query_topology_db',
+                              return_value=[{}]):
+            jsut.return_value = {'host': host, 'protocol_interface': interface}
+            self.rpcb.save_topo_disc_params(None, None)
+        params = dict(columns={'heartbeat': None, 'host': host,
+                               'protocol_interface': interface})
+        add_upd_mock.assert_called_with(**params)
+
+    def test_save_topo_disc_params_exist_nomand(self):
+        """Test the save_topo_disc_.. function for exist, non-mandatory case.
+
+        This is for the case when config is already present in the DB and
+        mandatory TLV's are not present in the new config. This is the delete
+        case.
+        """
+        host = 'host1'
+        interface = 'eth2'
+        with mock.patch.object(self.rpcb, 'is_mand_arg_present',
+                               return_value=False),\
+            mock.patch('oslo_serialization.jsonutils.loads') as jsut,\
+            mock.patch.object(self.rpcb.obj.topology_db,
+                              'delete_topology_entry') as del_upd_mock,\
+            mock.patch.object(self.rpcb.obj.topology_db, 'query_topology_db',
+                              return_value=[{}]):
+            jsut.return_value = {'host': host, 'protocol_interface': interface}
+            self.rpcb.save_topo_disc_params(None, None)
+        params = {'host': host, 'protocol_interface': interface}
+        del_upd_mock.assert_called_with(**params)
+
+    def test_save_topo_disc_params_nonexist_mand(self):
+        """Test the save_topo_disc_.. function for non-exist, mandatory case.
+
+        This is for the case when config is not present in the DB and
+        mandatory TLV's are present in the new config. This is the add
+        case.
+        """
+        host = 'host1'
+        interface = 'eth2'
+        with mock.patch.object(self.rpcb, 'is_mand_arg_present',
+                               return_value=True),\
+            mock.patch('networking_cisco.apps.saf.common.utils.'
+                       'utc_time') as utc_mock,\
+            mock.patch('oslo_serialization.jsonutils.loads') as jsut,\
+            mock.patch.object(self.rpcb.obj.topology_db,
+                              'add_update_topology_db') as add_upd_mock,\
+            mock.patch.object(self.rpcb.obj.topology_db, 'query_topology_db',
+                              return_value=[]):
+            jsut.return_value = {'host': host, 'protocol_interface': interface}
+            utc_mock.return_value = 'Jan 1'
+            self.rpcb.save_topo_disc_params(None, None)
+        params = dict(columns={'created': 'Jan 1', 'heartbeat': 'Jan 1',
+                               'host': host, 'protocol_interface': interface})
+        add_upd_mock.assert_called_with(**params)
+
+    def test_save_topo_disc_params_nonexist_nonmand(self):
+        """Test the save_topo_disc_.. function for non-exist, non-mand case.
+
+        This is for the case when config is not present in the DB and
+        mandatory TLV's are not present in the new config. This is the no-op
+        case.
+        """
+        host = 'host1'
+        interface = 'eth2'
+        with mock.patch.object(self.rpcb, 'is_mand_arg_present',
+                               return_value=False),\
+            mock.patch('networking_cisco.apps.saf.common.utils.'
+                       'utc_time') as utc_mock,\
+            mock.patch('oslo_serialization.jsonutils.loads') as jsut,\
+            mock.patch.object(self.rpcb.obj.topology_db,
+                              'add_update_topology_db') as add_upd_mock,\
+            mock.patch.object(self.rpcb.obj.topology_db, 'query_topology_db',
+                              return_value=[]),\
+            mock.patch.object(self.rpcb.obj.topology_db,
+                              'delete_topology_entry') as del_upd_mock:
+            jsut.return_value = {'host': host, 'protocol_interface': interface}
+            utc_mock.return_value = 'Jan 1'
+            self.rpcb.save_topo_disc_params(None, None)
+        add_upd_mock.assert_not_called()
+        del_upd_mock.assert_not_called()
+
+    def test_save_topo_disc_params_none_nonexist_nonmand(self):
+        """Test the save_topo_disc_.. func for none, non-exist, non-mand case.
+
+        This is for the case when config is not present in the DB and
+        mandatory TLV's are not present in the new config. The output returned
+        is None. This is the no-op case.
+        """
+        host = 'host1'
+        interface = 'eth2'
+        with mock.patch.object(self.rpcb, 'is_mand_arg_present',
+                               return_value=False),\
+            mock.patch('networking_cisco.apps.saf.common.utils.'
+                       'utc_time') as utc_mock,\
+            mock.patch('oslo_serialization.jsonutils.loads') as jsut,\
+            mock.patch.object(self.rpcb.obj.topology_db,
+                              'add_update_topology_db') as add_upd_mock,\
+            mock.patch.object(self.rpcb.obj.topology_db, 'query_topology_db',
+                              return_value=None),\
+            mock.patch.object(self.rpcb.obj.topology_db,
+                              'delete_topology_entry') as del_upd_mock:
+            jsut.return_value = {'host': host, 'protocol_interface': interface}
+            utc_mock.return_value = 'Jan 1'
+            self.rpcb.save_topo_disc_params(None, None)
+        add_upd_mock.assert_not_called()
+        del_upd_mock.assert_not_called()

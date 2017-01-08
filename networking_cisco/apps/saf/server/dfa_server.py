@@ -140,6 +140,59 @@ class RpcCallBacks(object):
             else:
                 return False
 
+    def is_mand_arg_present(self, intf_dict):
+        """Check if mndatory parameters is present for LLDPAD.
+
+        Just checking for 2 parameters.
+        """
+        if intf_dict.get('remote_port_id_mac') is None and (
+           intf_dict.get('remote_system_name') is None):
+            return False
+        else:
+            return True
+
+    def _save_topo_disc_params(self, context, msg):
+        args = jsonutils.loads(msg)
+        agent = args.get('host')
+        protocol_interface = args.get('protocol_interface')
+        mand_arg = self.is_mand_arg_present(args)
+        params = {'host': agent, 'protocol_interface': protocol_interface}
+        configs = self.obj.topology_db.query_topology_db(
+            dict_convert=True, **params)
+        if configs:
+            # Update the topology database.
+            new_config = configs[0]
+            if mand_arg:
+                new_config.update(args)
+                new_config.update({'heartbeat':
+                                   utils.utc_time(args.get('heartbeat'))})
+                params = dict(columns=new_config)
+                self.obj.topology_db.add_update_topology_db(**params)
+                LOG.info(_LI("Updated topo discovery %s in DB"), new_config)
+            else:
+                params = {'host': agent,
+                          'protocol_interface': protocol_interface}
+                self.obj.topology_db.delete_topology_entry(**params)
+                LOG.info(_LI("Deleted topo discovery %s in DB"), new_config)
+        # Config not yet created
+        else:
+            if mand_arg:
+                args.update({'created': utils.utc_time(
+                    args.get('heartbeat'))})
+                args.update({'heartbeat': utils.utc_time(
+                    args.get('heartbeat'))})
+                params = dict(columns=args)
+                self.obj.topology_db.add_update_topology_db(**params)
+                LOG.info(_LI("Added topo discovery %s in DB"), args)
+        return True
+
+    def save_topo_disc_params(self, context, msg):
+        try:
+            return self._save_topo_disc_params(context, msg)
+        except Exception as exc:
+            LOG.error(_LE("Exception in RPC save_topo_disc_params %s"),
+                      str(exc))
+
     def set_static_ip_address(self, context, msg):
         """Process request for setting rules in iptables.
 
@@ -243,6 +296,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
             seg_id_min, seg_id_max, constants.RES_SEGMENT,
             cfg, reuse_timeout=seg_reuse_timeout)
 
+        self.topology_db = dfa_dbm.TopologyDiscoveryDb(cfg)
         # Create queue for exception returned by a thread.
         self._excpq = queue.Queue()
 

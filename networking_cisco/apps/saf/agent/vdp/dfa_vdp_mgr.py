@@ -23,6 +23,7 @@ from oslo_serialization import jsonutils
 from networking_cisco._i18n import _LE, _LI
 
 from networking_cisco.apps.saf.agent import detect_uplink as uplink_det
+from networking_cisco.apps.saf.agent.topo_disc import topo_disc
 from networking_cisco.apps.saf.agent.vdp import ovs_vdp
 from networking_cisco.apps.saf.common import constants
 from networking_cisco.apps.saf.common import dfa_logger as logging
@@ -163,6 +164,8 @@ class VdpMgr(object):
         self.vdp_mgr_lock = utils.lock()
         self.read_static_uplink()
         self.start()
+        self.topo_disc = topo_disc.TopoDisc(self.topo_disc_cb,
+                                            self.root_helper)
 
     def read_static_uplink(self):
         """Read the static uplink from file, if given."""
@@ -174,6 +177,9 @@ class VdpMgr(object):
                 self.static_uplink = True
                 self.static_uplink_port = port.strip()
                 return
+
+    def topo_disc_cb(self, intf, topo_disc_obj):
+        return self.save_topo_disc_params(intf, topo_disc_obj)
 
     def update_vm_result(self, port_uuid, result, lvid=None,
                          vdp_vlan=None, fail_reason=None):
@@ -299,6 +305,9 @@ class VdpMgr(object):
                              "%(ul)s and veth %(veth)s"),
                          {'ul': self.phy_uplink, 'veth': veth_intf})
                 self.save_uplink(uplink=self.phy_uplink, veth_intf=veth_intf)
+                self.topo_disc.uncfg_intf(self.phy_uplink)
+                self.topo_disc.cfg_intf(veth_intf,
+                                        phy_interface=self.phy_uplink)
         elif msg.get_status() == 'down':
             # Free the object fixme(padkrish)
             if phy_uplink in self.ovs_vdp_obj_dict:
@@ -307,6 +316,8 @@ class VdpMgr(object):
                 ovs_vdp.delete_uplink_and_flows(self.root_helper, self.br_ex,
                                                 phy_uplink)
             self.save_uplink()
+            self.topo_disc.uncfg_intf(self.veth_intf)
+            self.topo_disc.cfg_intf(phy_uplink)
 
     def process_queue(self):
         LOG.info(_LI("Entered process_q"))
@@ -391,6 +402,41 @@ class VdpMgr(object):
         except rpc.MessagingTimeout:
             LOG.error(_LE("RPC timeout: Failed to save link name on the "
                           "server"))
+
+    def _fill_topology_cfg(self, topo_dict):
+        """Fills the extra configurations in the topology. """
+        cfg_dict = {}
+        if topo_dict.bond_member_ports is not None:
+            cfg_dict.update({'bond_member_ports':
+                             topo_dict.bond_member_ports})
+        if topo_dict.bond_interface is not None:
+            cfg_dict.update({'bond_interface':
+                             topo_dict.bond_interface})
+        return cfg_dict
+
+    def save_topo_disc_params(self, intf, topo_disc_obj):
+        context = {}
+        topo_cfg = self._fill_topology_cfg(topo_disc_obj)
+        args = jsonutils.dumps(
+            {'host': self.host_id, 'protocol_interface': intf,
+             'heartbeat': time.ctime(),
+             'phy_interface': topo_disc_obj.phy_interface,
+             'remote_evb_cfgd': topo_disc_obj.remote_evb_cfgd,
+             'remote_evb_mode': topo_disc_obj.remote_evb_mode,
+             'remote_mgmt_addr': topo_disc_obj.remote_mgmt_addr,
+             'remote_system_desc': topo_disc_obj.remote_system_desc,
+             'remote_system_name': topo_disc_obj.remote_system_name,
+             'remote_port': topo_disc_obj.remote_port,
+             'remote_chassis_id_mac': topo_disc_obj.remote_chassis_id_mac,
+             'remote_port_id_mac': topo_disc_obj.remote_port_id_mac,
+             'configurations': jsonutils.dumps(topo_cfg)})
+        msg = self.rpc_clnt.make_msg('save_topo_disc_params', context,
+                                     msg=args)
+        try:
+            resp = self.rpc_clnt.call(msg)
+            return resp
+        except rpc.MessagingTimeout:
+            LOG.error("RPC timeout: Failed to send topo disc on the server")
 
     def uplink_bond_intf_process(self):
         """Process the case when uplink interface becomes part of a bond.
