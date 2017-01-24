@@ -72,8 +72,6 @@ else:
     setattr(constants, 'L3', getattr(svc_constants, 'L3_ROUTER_NAT'))
 
 core_opts = base_config.core_opts
-#extensions = extensions
-#model_base = model_base
 
 # Bring in the union of all constants in neutron.common.constants
 # and neutron_lib.constants. Handle any duplicates by using the

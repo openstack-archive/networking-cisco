@@ -19,7 +19,10 @@ from oslo_log import log as logging
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cfg_agent.service_helpers import (
     routing_svc_helper as helper)
+from networking_cisco.plugins.cisco.common import (cisco_constants as
+                                                   c_constants)
 from networking_cisco.plugins.cisco.extensions import routerrole
+
 
 ROUTER_ROLE_ATTR = routerrole.ROUTER_ROLE_ATTR
 LOG = logging.getLogger(__name__)
@@ -33,11 +36,15 @@ class RoutingServiceHelperAci(helper.RoutingServiceHelper):
         self._router_ids_by_vrf = {}
         self._router_ids_by_vrf_and_ext_net = {}
 
+    def _is_global_router(self, ri):
+        return (ri.router.get(ROUTER_ROLE_ATTR) ==
+            c_constants.ROUTER_ROLE_GLOBAL)
+
     def _process_new_ports(self, ri, new_ports, ex_gw_port, list_port_ids_up):
         # Only add internal networks if we have an
         # external gateway -- otherwise we have no parameters
         # to use to configure the interface (e.g. VRF, IP, etc.)
-        if ex_gw_port:
+        if ex_gw_port or self._is_global_router(ri):
             super(RoutingServiceHelperAci,
                   self)._process_new_ports(
                       ri, new_ports, ex_gw_port, list_port_ids_up)
@@ -51,7 +58,7 @@ class RoutingServiceHelperAci(helper.RoutingServiceHelper):
             # the relevant information (VRF and external network
             # parameters), which come from the GW port. Go ahead
             # and remove the interface from our internal state
-            if gw_port:
+            if gw_port or self._is_global_router(ri):
                 self._internal_network_removed(ri, p, gw_port)
             ri.internal_ports.remove(p)
 

@@ -82,6 +82,20 @@ CREATE_SUBINTERFACE_EXT_REGION_ID_WITH_ID = """
 """
 
 # ===================================================
+# Add secondary ip for additional subnets
+# $(config)interface GigabitEthernet 2.500
+# $(config)ip address 192.168.0.1 255.255.255.0 secondary
+# ===================================================
+SET_SUBINTERFACE_SECONDARY_IP = """
+<config>
+        <cli-config-data>
+            <cmd>interface %s</cmd>
+            <cmd>ip address %s %s secondary</cmd>
+        </cli-config-data>
+</config>
+"""
+
+# ===================================================
 # Enable HSRP on a Subinterface
 # $(config)interface GigabitEthernet0/0/0.314
 # $(config)vrf forwarding nrouter-e7d4y5
@@ -125,6 +139,20 @@ SET_INTC_ASR_HSRP_EXTERNAL = """
             <cmd>standby %s ip %s</cmd>
             <cmd>standby %s timers 1 3</cmd>
             <cmd>standby %s name neutron-hsrp-%s-%s</cmd>
+        </cli-config-data>
+</config>
+"""
+
+# ===================================================
+# Enable HSRP on a External Network Subinterface secondary IP
+# $(config)interface GigabitEthernet0/0/0.314
+# $(config)standby 1621 ip 10.0.3.1 secondary
+# ===================================================
+SET_INTC_ASR_SECONDARY_HSRP_EXTERNAL = """
+<config>
+        <cli-config-data>
+            <cmd>interface %s</cmd>
+            <cmd>standby %s ip %s secondary</cmd>
         </cli-config-data>
 </config>
 """

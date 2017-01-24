@@ -37,25 +37,43 @@ HOST = 'myhost'
 FAKE_ID = _uuid()
 
 
-def prepare_router_data(enable_snat=None, num_internal_ports=1):
+def prepare_router_data(enable_snat=None, num_internal_ports=1,
+                        num_subnets=1, is_global=False):
     router_id = _uuid()
+    ext_fixed_ips = []
+    ext_subnets = []
+    sn_ids = sorted([_uuid() for i in range(num_subnets)])
+    for i in range(num_subnets):
+        sn_id = sn_ids[i]
+        ext_fixed_ips.append({'ip_address': '19.4.%s.4' % i,
+                              'subnet_id': sn_id})
+        ext_subnets.append({'id': sn_id, 'cidr': '19.4.%s.0/24' % i,
+                            'gateway_ip': '19.4.%s.1' % i})
     ex_gw_port = {'id': _uuid(),
                   'network_id': _uuid(),
                   'admin_state_up': True,
-                  'fixed_ips': [{'ip_address': '19.4.4.4',
-                                 'subnet_id': _uuid()}],
-                  'subnets': [{'cidr': '19.4.4.0/24',
-                               'gateway_ip': '19.4.4.1'}]}
+                  'fixed_ips': ext_fixed_ips,
+                  'subnets': ext_subnets}
     int_ports = []
-    for i in range(num_internal_ports):
+    num_internal_subnets = 1 if is_global is False else num_subnets
+    for j in range(num_internal_ports):
+        k = 35 + j
+        int_fixed_ips = []
+        int_subnets = []
+        sn_ids = sorted([_uuid() for i in range(num_internal_subnets)])
+        for i in range(num_internal_subnets):
+            sn_id = sn_ids[i]
+            int_fixed_ips.append({'ip_address': '%s.4.%s.4' % (k, i),
+                                  'subnet_id': sn_id})
+            int_subnets.append({'id': sn_id, 'cidr': '%s.4.%s.0/24' % (k, i),
+                                'gateway_ip': '%s.4.%s.1' % (k, i)})
         int_ports.append({'id': _uuid(),
                           'network_id': _uuid(),
                           'admin_state_up': True,
-                          'fixed_ips': [{'ip_address': '35.4.%s.4' % i,
-                                         'subnet_id': _uuid()}],
+                          'fixed_ips': int_fixed_ips,
                           'mac_address': 'ca:fe:de:ad:be:ef',
-                          'subnets': [{'cidr': '35.4.%s.0/24' % i,
-                                       'gateway_ip': '35.4.%s.1' % i}]})
+                          'subnets': int_subnets})
+
     hosting_device = {'id': _uuid(),
                       "name": "CSR1kv_template",
                       "booting_time": 300,
@@ -72,10 +90,14 @@ def prepare_router_data(enable_snat=None, num_internal_ports=1):
         'admin_state_up': True,
         bc.constants.INTERFACE_KEY: int_ports,
         'routes': [],
-        'gw_port': ex_gw_port,
         'hosting_device': hosting_device,
-        'router_type': '',
-        routerrole.ROUTER_ROLE_ATTR: None}
+        'router_type': ''}
+    if is_global is True:
+        router['gw_port'] = None
+        router[routerrole.ROUTER_ROLE_ATTR] = c_constants.ROUTER_ROLE_GLOBAL
+    else:
+        router['gw_port'] = ex_gw_port
+        router[routerrole.ROUTER_ROLE_ATTR] = None
     if enable_snat is not None:
         router['enable_snat'] = enable_snat
     return router, int_ports
@@ -126,12 +148,13 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.conf = cfg.ConfigOpts()
         self.conf.register_opts(bc.core_opts)
         self.conf.register_opts(cfg_agent.OPTS, "cfg_agent")
+        sn_id = _uuid()
         self.ex_gw_port = {'id': _uuid(),
                            'network_id': _uuid(),
                            'admin_state_up': True,
                            'fixed_ips': [{'ip_address': '19.4.4.4',
-                                         'subnet_id': _uuid()}],
-                           'subnets': [{'cidr': '19.4.4.0/24',
+                                         'subnet_id': sn_id}],
+                           'subnets': [{'id': sn_id, 'cidr': '19.4.4.0/24',
                                         'gateway_ip': '19.4.4.1'}]}
         self.hosting_device = {'id': "100",
                                'name': "CSR1kv_template",
@@ -221,6 +244,27 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.assertRaises(SessionCloseError,
                           self.routing_helper._process_router, ri)
 
+    def test_process_router_throw_no_ip_address_on_subnet_error(self):
+        router, ports = prepare_router_data()
+        # change subnet_id to something that does not exist
+        router['gw_port']['subnets'][0]['id'] = 'fake_uuid'
+        ri = routing_svc_helper.RouterInfo(router['id'], router)
+        self.assertRaises(routing_svc_helper.IPAddressMissingException,
+                          self.routing_helper._process_router, ri)
+
+    def _test_process_router_throw_multiple_ipv4_subnets_error(self):
+        router, ports = prepare_router_data(num_subnets=2, is_global=True)
+        # make router a regular one which triggers the error condition
+        router[routerrole.ROUTER_ROLE_ATTR] = None
+        ri = routing_svc_helper.RouterInfo(router['id'], router)
+        return ri, router
+
+    def test_process_router_throw_multiple_ipv4_subnets_error(self):
+        ri, router = (
+            self._test_process_router_throw_multiple_ipv4_subnets_error())
+        self.assertRaises(routing_svc_helper.MultipleIPv4SubnetsException,
+                          self.routing_helper._process_router, ri)
+
     def _test_router_admin_port_state(self, router, ri, ex_gw_port):
         # change the router admin_state_up to false
         router['admin_state_up'] = False
@@ -252,9 +296,30 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.assertFalse(self.routing_helper._disable_router_interface.called)
         self._reset_mocks()
 
-    def test_process_router(self, test_admin_state=True):
-        router, ports = prepare_router_data()
-        #Setup mock for call to proceess floating ips
+    # msn means that the router has an external gateway with multiple subnets
+    def _test_process_msn_router(self, num_ext_subnets=3,
+                                 test_admin_state=True):
+
+        def _verify_ip_info(the_mock):
+            self.assertEqual(num_ext_subnets, len(the_mock.ip_infos))
+            self.assertTrue(the_mock.ip_infos[0]['is_primary'])
+            self.assertEqual('19.4.0.4/24', the_mock.ip_infos[0]['ip_cidr'])
+            for i in range(1, num_ext_subnets):
+                self.assertFalse(the_mock.ip_infos[i]['is_primary'])
+                self.assertEqual('19.4.%s.4/24' % i,
+                                 the_mock.ip_infos[i]['ip_cidr'])
+
+        # need these helpers to verify that ip_info is correct
+        def _ext_gw_added(ri, ex_gw_port):
+            self.routing_helper._external_gateway_added.ip_infos.append(
+                copy.deepcopy(ex_gw_port['ip_info']))
+
+        def _ext_gw_removed(ri, ex_gw_port):
+            self.routing_helper._external_gateway_removed.ip_infos.append(
+                copy.deepcopy(ex_gw_port['ip_info']))
+
+        router, ports = prepare_router_data(num_subnets=num_ext_subnets)
+        # Setup mock for call to process floating ips
         self.routing_helper._process_router_floating_ips = mock.Mock()
         fake_floatingips1 = {'floatingips': [
             {'id': _uuid(),
@@ -262,17 +327,18 @@ class TestBasicRoutingOperations(base.BaseTestCase):
              'fixed_ip_address': '7.7.7.7',
              'port_id': _uuid()}]}
         ri = routing_svc_helper.RouterInfo(router['id'], router=router)
+        self.routing_helper._external_gateway_added.ip_infos = []
+        self.routing_helper._external_gateway_added.side_effect = _ext_gw_added
         # Process with initial values
         self.routing_helper._process_router(ri)
         ex_gw_port = ri.router.get('gw_port')
         # Assert that process_floating_ips, internal_network & external network
         # added were all called with the right params
-        self.routing_helper._process_router_floating_ips.assert_called_with(
-            ri, ex_gw_port)
-        self.routing_helper._internal_network_added.assert_called_with(
+        (self.routing_helper._process_router_floating_ips
+            .assert_called_once_with(ri, ex_gw_port))
+        self.routing_helper._internal_network_added.assert_called_once_with(
             ri, ports[0], ex_gw_port)
-        self.routing_helper._external_gateway_added.assert_called_with(
-            ri, ex_gw_port)
+        _verify_ip_info(self.routing_helper._external_gateway_added)
         self._reset_mocks()
         # remap floating IP to a new fixed ip
         fake_floatingips2 = copy.deepcopy(fake_floatingips1)
@@ -283,8 +349,8 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         # was only called.
         self.routing_helper._process_router(ri)
         ex_gw_port = ri.router.get('gw_port')
-        self.routing_helper._process_router_floating_ips.assert_called_with(
-            ri, ex_gw_port)
+        (self.routing_helper._process_router_floating_ips
+            .assert_called_once_with(ri, ex_gw_port))
         self.assertFalse(self.routing_helper._internal_network_added.called)
         self.assertFalse(self.routing_helper._external_gateway_added.called)
         self._reset_mocks()
@@ -294,8 +360,8 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         # process_floating_ips and external_network remove was called
         self.routing_helper._process_router(ri)
         ex_gw_port = ri.router.get('gw_port')
-        self.routing_helper._process_router_floating_ips.assert_called_with(
-            ri, ex_gw_port)
+        (self.routing_helper._process_router_floating_ips
+            .assert_called_once_with(ri, ex_gw_port))
         self.assertFalse(self.routing_helper._internal_network_added.called)
         self.assertFalse(self.routing_helper._external_gateway_added.called)
         self._reset_mocks()
@@ -310,18 +376,79 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         ri.router = router
         # Keep a copy of the ex_gw_port before its gone after processing.
         ex_gw_port = ri.ex_gw_port
+        self.routing_helper._external_gateway_removed.ip_infos = []
+        self.routing_helper._external_gateway_removed.side_effect = (
+            _ext_gw_removed)
         # Process router and verify that internal and external network removed
         # were called and floating_ips_process was called
         self.routing_helper._process_router(ri)
         self.assertFalse(self.routing_helper.
                          _process_router_floating_ips.called)
         self.assertFalse(self.routing_helper._external_gateway_added.called)
-        self.assertTrue(self.routing_helper._internal_network_removed.called)
-        self.assertTrue(self.routing_helper._external_gateway_removed.called)
-        self.routing_helper._internal_network_removed.assert_called_with(
+        self.routing_helper._internal_network_removed.assert_called_once_with(
             ri, ports[0], ex_gw_port)
-        self.routing_helper._external_gateway_removed.assert_called_with(
-            ri, ex_gw_port)
+        _verify_ip_info(self.routing_helper._external_gateway_removed)
+
+    def test_process_router(self, test_admin_state=True):
+        self._test_process_msn_router(num_ext_subnets=1,
+                                      test_admin_state=test_admin_state)
+
+    def test_process_msn_router(self):
+        self._test_process_msn_router()
+
+    def _test_process_global_msn_router(self, num_ext_subnets=3):
+
+        def _verify_ip_info(the_mock):
+            self.assertEqual(num_ext_subnets, len(the_mock.ip_infos))
+            self.assertTrue(the_mock.ip_infos[0]['is_primary'])
+            self.assertEqual('35.4.0.4/24', the_mock.ip_infos[0]['ip_cidr'])
+            for i in range(1, num_ext_subnets):
+                self.assertFalse(the_mock.ip_infos[i]['is_primary'])
+                self.assertEqual('35.4.%s.4/24' % i,
+                                 the_mock.ip_infos[i]['ip_cidr'])
+
+        # need these helpers to verify that ip_info is correct
+        def _int_nw_added(ri, port, ex_gw_port):
+            self.assertIsNone(ex_gw_port)
+            self.routing_helper._internal_network_added.ip_infos.append(
+                copy.deepcopy(port['ip_info']))
+
+        router, ports = prepare_router_data(num_subnets=num_ext_subnets,
+                                            is_global=True)
+        # Setup mock for call to process floating ips
+        self.routing_helper._process_router_floating_ips = mock.Mock()
+        ri = routing_svc_helper.RouterInfo(router['id'], router=router)
+        self.routing_helper._internal_network_added.ip_infos = []
+        self.routing_helper._internal_network_added.side_effect = _int_nw_added
+        # Process with initial values
+        self.routing_helper._process_router(ri)
+        self.assertFalse(self.routing_helper.
+                         _process_router_floating_ips.called)
+        self.assertFalse(self.routing_helper._external_gateway_added.called)
+        _verify_ip_info(self.routing_helper._internal_network_added)
+        self._reset_mocks()
+
+        # now no ports so state is torn down
+        del router[bc.constants.INTERFACE_KEY]
+        # Update router_info object
+        ri.router = router
+
+        # Process router and verify that internal and external network removed
+        # were called and floating_ips_process was called
+        self.routing_helper._process_router(ri)
+        self.assertFalse(self.routing_helper.
+                         _process_router_floating_ips.called)
+        self.assertFalse(self.routing_helper._external_gateway_added.called)
+        self.assertFalse(self.routing_helper._external_gateway_removed.called)
+        self.assertFalse(self.routing_helper._internal_network_added.called)
+        self.routing_helper._internal_network_removed.assert_called_once_with(
+            ri, ports[0], None)
+
+    def test_process_global_router(self):
+        self._test_process_global_msn_router(num_ext_subnets=1,)
+
+    def test_process_global_msn_router(self):
+        self._test_process_global_msn_router()
 
     def test_routing_table_update(self):
         router = self.router

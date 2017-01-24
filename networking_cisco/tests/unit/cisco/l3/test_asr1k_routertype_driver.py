@@ -63,6 +63,9 @@ class Asr1kRouterTypeDriverTestCase(
     router_type = 'Nexus_ToR_Neutron_router'
 
     def _verify_global_router(self, role, hd_id, ext_net_ids):
+        # The 'ext_net_ids' argument is a dict where key is ext_net_id and
+        # value is a list of subnet_ids that the global router should be
+        # connected to
         if role == ROUTER_ROLE_LOGICAL_GLOBAL or hd_id is None:
             q_p = '%s=%s' % (ROUTER_ROLE_ATTR, role)
         else:
@@ -85,10 +88,18 @@ class Asr1kRouterTypeDriverTestCase(
                                    DEVICE_OWNER_GLOBAL_ROUTER_GW)
             aux_gw_ports = self._list('ports', query_params=q_p)['ports']
             self.assertEqual(len(ext_net_ids), len(aux_gw_ports))
-            ids = copy.copy(ext_net_ids)
+            ids = copy.deepcopy(ext_net_ids)
+            # check that there are ports on each external network
             for aux_gw_port in aux_gw_ports:
                 self.assertIn(aux_gw_port['network_id'], ids)
-                ids.remove(aux_gw_port['network_id'])
+                self.assertEqual(len(aux_gw_port['fixed_ips']),
+                                 len(ids[aux_gw_port['network_id']]))
+                # check that port has ip on correct subnets
+                for ips in aux_gw_port['fixed_ips']:
+                    self.assertIn(ips['subnet_id'],
+                                  ids[aux_gw_port['network_id']])
+                    ids[aux_gw_port['network_id']].remove(ips['subnet_id'])
+                ids.pop(aux_gw_port['network_id'])
             return router['id']
 
     def _verify_routers(self, router_ids, ext_net_ids, hd_id=None,
@@ -134,16 +145,21 @@ class Asr1kRouterTypeDriverTestCase(
                 self.network(tenant_id=tenant_id_2) as n_external_2:
             ext_net_1_id = n_external_1['network']['id']
             self._set_net_external(ext_net_1_id)
-            self._create_subnet(self.fmt, ext_net_1_id, cidr='10.0.1.0/24',
-                                tenant_id=tenant_id_1)
+            sn_1 = self._make_subnet(
+                self.fmt, n_external_1, '10.0.1.1', cidr='10.0.1.0/24',
+                tenant_id=tenant_id_1)['subnet']
+            ext_net_ids = {ext_net_1_id: [sn_1['id']]}
+            ext_gw_1 = {'network_id': ext_net_1_id}
             if same_ext_net is False:
                 ext_net_2_id = n_external_2['network']['id']
                 self._set_net_external(ext_net_2_id)
-                self._create_subnet(self.fmt, ext_net_2_id, cidr='10.0.2.0/24',
-                                    tenant_id=tenant_id_2)
+                sn_2 = self._make_subnet(
+                    self.fmt, n_external_2, '10.0.2.1', cidr='10.0.2.0/24',
+                    tenant_id=tenant_id_2)['subnet']
+                ext_gw_2_subnets = [sn_2['id']]
             else:
                 ext_net_2_id = ext_net_1_id
-            ext_gw_1 = {'network_id': ext_net_1_id}
+                ext_gw_2_subnets = [sn_1['id']]
             ext_gw_2 = {'network_id': ext_net_2_id}
             with self.router(
                     tenant_id=tenant_id_1, external_gateway_info=ext_gw_1,
@@ -153,14 +169,14 @@ class Asr1kRouterTypeDriverTestCase(
                 r1_after = self._show('routers', r1['id'])['router']
                 hd_id = r1_after[HOSTING_DEVICE_ATTR]
                 # should have one global router now
-                self._verify_routers({r1['id']}, {ext_net_1_id}, hd_id)
+                self._verify_routers({r1['id']}, ext_net_ids, hd_id)
                 with self.router(
                         tenant_id=tenant_id_2, external_gateway_info=ext_gw_1,
                         set_context=set_context) as router2:
                     r2 = router2['router']
                     self.l3_plugin._process_backlogged_routers()
                     # should still have only one global router
-                    self._verify_routers({r1['id'], r2['id']}, {ext_net_1_id},
+                    self._verify_routers({r1['id'], r2['id']}, ext_net_ids,
                                          hd_id)
                     with self.router(name='router2', tenant_id=tenant_id_2,
                                      external_gateway_info=ext_gw_2,
@@ -169,9 +185,9 @@ class Asr1kRouterTypeDriverTestCase(
                         self.l3_plugin._process_backlogged_routers()
                         # should still have only one global router but now with
                         # one extra auxiliary gateway port
+                        ext_net_ids[ext_net_2_id] = ext_gw_2_subnets
                         self._verify_routers(
-                            {r1['id'], r2['id'], r3['id']},
-                            {ext_net_1_id, ext_net_2_id}, hd_id)
+                            {r1['id'], r2['id'], r3['id']}, ext_net_ids, hd_id)
 
     # single tenant and single external network
     def test_create_gateway_router(self):
@@ -202,12 +218,89 @@ class Asr1kRouterTypeDriverTestCase(
         self._test_create_gateway_router(True, same_tenant=False,
                                          same_ext_net=False)
 
+    # msn - multiple subnets (on a single neutron external network)
+    def _test_create_msn_gateway_router(self, set_context=False,
+                                        same_tenant=True, same_ext_net=True):
+        tenant_id_1 = _uuid()
+        tenant_id_2 = tenant_id_1 if same_tenant is True else _uuid()
+        with self.network(tenant_id=tenant_id_1) as msn_n_external_1,\
+                self.network(tenant_id=tenant_id_2) as n_external_2:
+            msn_ext_net_1_id = msn_n_external_1['network']['id']
+            self._set_net_external(msn_ext_net_1_id)
+            sn_1 = self._make_subnet(
+                self.fmt, msn_n_external_1, '10.0.1.1', cidr='10.0.1.0/24',
+                tenant_id=tenant_id_1)['subnet']
+            sn_2 = self._make_subnet(
+                self.fmt, msn_n_external_1, '20.0.1.1', cidr='20.0.1.0/24',
+                tenant_id=tenant_id_1)['subnet']
+            ext_gw_1_subnets = [sn_1['id'], sn_2['id']]
+            ext_net_ids = {msn_ext_net_1_id: ext_gw_1_subnets}
+            ext_gw_1 = {
+                'network_id': msn_ext_net_1_id,
+                'external_fixed_ips': [{'subnet_id': sid}
+                                       for sid in ext_gw_1_subnets]}
+            if same_ext_net is False:
+                ext_net_2_id = n_external_2['network']['id']
+                self._set_net_external(ext_net_2_id)
+                sn_3 = self._make_subnet(
+                    self.fmt, n_external_2, '10.0.2.1', cidr='10.0.2.0/24',
+                    tenant_id=tenant_id_2)['subnet']
+                ext_gw_2_subnets = [sn_3['id']]
+                ext_gw_2 = {'network_id': ext_net_2_id,
+                            'external_fixed_ips': [{'subnet_id': sn_3['id']}]}
+            else:
+                ext_net_2_id = msn_ext_net_1_id
+                ext_gw_2_subnets = ext_gw_1_subnets
+                ext_gw_2 = ext_gw_1
+            with self.router(
+                    tenant_id=tenant_id_1, external_gateway_info=ext_gw_1,
+                    set_context=set_context) as router1:
+                r1 = router1['router']
+                self.l3_plugin._process_backlogged_routers()
+                r1_after = self._show('routers', r1['id'])['router']
+                hd_id = r1_after[HOSTING_DEVICE_ATTR]
+                # should have one global router now
+                self._verify_routers({r1['id']}, ext_net_ids, hd_id)
+                with self.router(
+                        tenant_id=tenant_id_2, external_gateway_info=ext_gw_1,
+                        set_context=set_context) as router2:
+                    r2 = router2['router']
+                    self.l3_plugin._process_backlogged_routers()
+                    # should still have only one global router
+                    self._verify_routers({r1['id'], r2['id']}, ext_net_ids,
+                                         hd_id)
+                    with self.router(name='router2', tenant_id=tenant_id_2,
+                                     external_gateway_info=ext_gw_2,
+                                     set_context=set_context) as router3:
+                        r3 = router3['router']
+                        self.l3_plugin._process_backlogged_routers()
+                        # should still have only one global router but now with
+                        # one extra auxiliary gateway port
+                        ext_net_ids[ext_net_2_id] = ext_gw_2_subnets
+                        self._verify_routers(
+                            {r1['id'], r2['id'], r3['id']},
+                            ext_net_ids, hd_id)
+
+    # single tenant and single external network with two subnets
+    def test_create_msn_gateway_router(self):
+        self._test_create_msn_gateway_router()
+
+    def test_create_msn_gateway_router_dt(self):
+        self._test_create_msn_gateway_router(same_tenant=False)
+
+    def test_create_msn_gateway_router_den(self):
+        self._test_create_msn_gateway_router(same_ext_net=False)
+
+    def test_create_msn_gateway_router_dt_den(self):
+        self._test_create_msn_gateway_router(same_tenant=False,
+                                             same_ext_net=False)
+
     def _test_create_router_adds_no_global_router(self, set_context=False):
         with self.router(set_context=set_context) as router:
             r = router['router']
             self.l3_plugin._process_backlogged_routers()
             # should have no global routers
-            self._verify_routers({r['id']}, set(), None)
+            self._verify_routers({r['id']}, {}, None)
 
     def test_create_router_adds_no_global_router(self):
         self._test_create_router_adds_no_global_router()
@@ -222,8 +315,10 @@ class Asr1kRouterTypeDriverTestCase(
         with self.network(tenant_id=tenant_id_1) as n_external_1:
             ext_net_1_id = n_external_1['network']['id']
             self._set_net_external(ext_net_1_id)
-            self._create_subnet(self.fmt, ext_net_1_id, cidr='10.0.1.0/24',
-                                tenant_id=tenant_id_1)
+            sn_1 = self._make_subnet(
+                self.fmt, n_external_1, '10.0.1.1', cidr='10.0.1.0/24',
+                tenant_id=tenant_id_1)['subnet']
+            ext_net_ids = {ext_net_1_id: [sn_1['id']]}
             ext_gw_1 = {'network_id': ext_net_1_id}
             with self.router(
                     tenant_id=tenant_id_1, external_gateway_info=ext_gw_1,
@@ -238,8 +333,7 @@ class Asr1kRouterTypeDriverTestCase(
                 # backlog processing will trigger one routers_updated
                 # notification containing r1 and r2
                 self.l3_plugin._process_backlogged_routers()
-                self._verify_routers({r1['id'], r2['id']}, {ext_net_1_id},
-                                     hd_id)
+                self._verify_routers({r1['id'], r2['id']}, ext_net_ids, hd_id)
 
     def test_create_router_adds_no_aux_gw_port_to_global_router(self):
         self._test_create_router_adds_no_aux_gw_port_to_global_router()
@@ -265,16 +359,21 @@ class Asr1kRouterTypeDriverTestCase(
                 self.network(tenant_id=tenant_id_2) as n_external_2:
             ext_net_1_id = n_external_1['network']['id']
         self._set_net_external(ext_net_1_id)
-        self._create_subnet(self.fmt, ext_net_1_id, cidr='10.0.1.0/24',
-                            tenant_id=tenant_id_1)
+        sn_1 = self._make_subnet(
+            self.fmt, n_external_1, '10.0.1.1', cidr='10.0.1.0/24',
+            tenant_id=tenant_id_1)['subnet']
+        ext_net_ids = {ext_net_1_id: [sn_1['id']]}
+        ext_gw_1 = {'network_id': ext_net_1_id}
         if same_ext_net is False:
             ext_net_2_id = n_external_2['network']['id']
             self._set_net_external(ext_net_2_id)
-            self._create_subnet(self.fmt, ext_net_2_id, cidr='10.0.2.0/24',
-                                tenant_id=tenant_id_2)
+            sn_2 = self._make_subnet(
+                self.fmt, n_external_2, '10.0.2.1', cidr='10.0.2.0/24',
+                tenant_id=tenant_id_2)['subnet']
+            ext_gw_2_subnets = [sn_2['id']]
         else:
             ext_net_2_id = ext_net_1_id
-        ext_gw_1 = {'network_id': ext_net_1_id}
+            ext_gw_2_subnets = [sn_1['id']]
         ext_gw_2 = {'network_id': ext_net_2_id}
         with self.router(tenant_id=tenant_id_1,
                          set_context=set_context) as router1, \
@@ -287,7 +386,6 @@ class Asr1kRouterTypeDriverTestCase(
             self.l3_plugin._process_backlogged_routers()
             # should have no global router yet
             r_ids = {r1['id'], r2['id']}
-            ext_net_ids = {ext_net_1_id}
             self._verify_routers(r_ids, ext_net_ids)
             r_spec = {'router': {l3.EXTERNAL_GW_INFO: ext_gw_1}}
             r1_after = self._update('routers', r1['id'], r_spec)['router']
@@ -298,7 +396,7 @@ class Asr1kRouterTypeDriverTestCase(
             self._update('routers', r2['id'], r_spec)['router']
             # should still have only one global router but now with
             # one extra auxiliary gateway port
-            ext_net_ids = {ext_net_1_id, ext_net_2_id}
+            ext_net_ids[ext_net_2_id] = ext_gw_2_subnets
             self._verify_routers(r_ids, ext_net_ids, hd_id, [1, 3])
 
     def test_update_router_set_gateway(self):
@@ -327,6 +425,90 @@ class Asr1kRouterTypeDriverTestCase(
         self._test_update_router_set_gateway(True, same_tenant=False,
                                              same_ext_net=False)
 
+    def _test_update_router_set_msn_gateway(
+            self, set_context=False, same_tenant=True, same_ext_net=True):
+        tenant_id_1 = _uuid()
+        tenant_id_2 = tenant_id_1 if same_tenant is True else _uuid()
+        with self.network(tenant_id=tenant_id_1) as msn_n_external_1, \
+                self.network(tenant_id=tenant_id_2) as n_external_2:
+            msn_ext_net_1_id = msn_n_external_1['network']['id']
+        self._set_net_external(msn_ext_net_1_id)
+        sn_1 = self._make_subnet(
+            self.fmt, msn_n_external_1, '10.0.1.1', cidr='10.0.1.0/24',
+            tenant_id=tenant_id_1)['subnet']
+        sn_2 = self._make_subnet(
+            self.fmt, msn_n_external_1, '20.0.1.1', cidr='20.0.1.0/24',
+            tenant_id=tenant_id_1)['subnet']
+        ext_net_ids = {msn_ext_net_1_id: [sn_1['id'], sn_2['id']]}
+        ext_gw_1 = {
+            'network_id': msn_ext_net_1_id,
+            'external_fixed_ips': [{'subnet_id': sn_1['id']}]}
+        if same_ext_net is False:
+            ext_net_2_id = n_external_2['network']['id']
+            self._set_net_external(ext_net_2_id)
+            sn_3 = self._make_subnet(
+                self.fmt, n_external_2, '10.0.2.1', cidr='10.0.2.0/24',
+                tenant_id=tenant_id_2)['subnet']
+            ext_gw_2_subnets = [sn_3['id']]
+            ext_gw_2 = {'network_id': ext_net_2_id,
+                        'external_fixed_ips': [{'subnet_id': sn_3['id']}]}
+        else:
+            ext_net_2_id = msn_ext_net_1_id
+            ext_gw_2_subnets = ext_net_ids[msn_ext_net_1_id]
+            ext_gw_2 = ext_gw_1
+        with self.router(tenant_id=tenant_id_1,
+                         set_context=set_context) as router1, \
+                self.router(name='router2', tenant_id=tenant_id_2,
+                            set_context=set_context) as router2:
+            r1 = router1['router']
+            r2 = router2['router']
+            # backlog processing will trigger one routers_updated
+            # notification containing r1 and r2
+            self.l3_plugin._process_backlogged_routers()
+            # should have no global router yet
+            r_ids = {r1['id'], r2['id']}
+            self._verify_routers(r_ids, ext_net_ids)
+            r_spec = {'router': {l3.EXTERNAL_GW_INFO: ext_gw_1}}
+            r1_after = self._update('routers', r1['id'], r_spec)['router']
+            res_ips = r1_after[l3.EXTERNAL_GW_INFO]['external_fixed_ips']
+            self.assertEqual(1, len(res_ips))
+            self.assertEqual(sn_1['id'], res_ips[0]['subnet_id'])
+            hd_id = r1_after[HOSTING_DEVICE_ATTR]
+            # should now have one global router
+            self._verify_routers(r_ids, ext_net_ids, hd_id, [1])
+            ext_gw_1_2 = {'network_id': msn_ext_net_1_id,
+                          'external_fixed_ips': [{'subnet_id': sn_1['id']},
+                                                 {'subnet_id': sn_2['id']}]}
+            r_spec = {'router': {l3.EXTERNAL_GW_INFO: ext_gw_1_2}}
+            r1_final = self._update('routers', r1['id'], r_spec)['router']
+            res_ips = r1_final[l3.EXTERNAL_GW_INFO]['external_fixed_ips']
+            self.assertEqual(2, len(res_ips))
+            self.assertIn(res_ips[0]['subnet_id'],
+                          ext_net_ids[msn_ext_net_1_id])
+            self.assertIn(res_ips[1]['subnet_id'],
+                          ext_net_ids[msn_ext_net_1_id])
+            # should now have one global router
+            self._verify_routers(r_ids, ext_net_ids, hd_id, [1])
+            r_spec = {'router': {l3.EXTERNAL_GW_INFO: ext_gw_2}}
+            self._update('routers', r2['id'], r_spec)['router']
+            # should still have only one global router but now with
+            # one extra auxiliary gateway port
+            ext_net_ids[ext_net_2_id] = ext_gw_2_subnets
+            self._verify_routers(r_ids, ext_net_ids, hd_id, [1, 3])
+
+    def test_update_router_set_msn_gateway(self):
+        self._test_update_router_set_msn_gateway()
+
+    def test_update_router_set_msn_gateway_dt(self):
+        self._test_update_router_set_msn_gateway(same_tenant=False)
+
+    def test_update_router_set_msn_gateway_den(self):
+        self._test_update_router_set_msn_gateway(same_ext_net=False)
+
+    def test_update_router_set_msn_gateway_dt_den(self):
+        self._test_update_router_set_msn_gateway(same_tenant=False,
+                                                 same_ext_net=False)
+
     def _test_router_update_unset_gw_or_delete(
             self, set_context=False, same_tenant=True, same_ext_net=True,
             update_operation=True):
@@ -336,16 +518,22 @@ class Asr1kRouterTypeDriverTestCase(
                 self.network(tenant_id=tenant_id_1) as n_external_2:
             ext_net_1_id = n_external_1['network']['id']
             self._set_net_external(ext_net_1_id)
-            self._create_subnet(self.fmt, ext_net_1_id, cidr='10.0.1.0/24',
-                                tenant_id=tenant_id_1)
+            sn_1 = self._make_subnet(
+                self.fmt, n_external_1, '10.0.1.1', cidr='10.0.1.0/24',
+                tenant_id=tenant_id_1)['subnet']
+            ext_net_ids = {ext_net_1_id: [sn_1['id']]}
+            ext_gw_1 = {'network_id': ext_net_1_id}
             if same_ext_net is False:
                 ext_net_2_id = n_external_2['network']['id']
                 self._set_net_external(ext_net_2_id)
-                self._create_subnet(self.fmt, ext_net_2_id, cidr='10.0.2.0/24',
-                                    tenant_id=tenant_id_2)
+                sn_2 = self._make_subnet(
+                    self.fmt, n_external_2, '10.0.2.1', cidr='10.0.2.0/24',
+                    tenant_id=tenant_id_2)['subnet']
+                ext_gw_2_subnets = [sn_2['id']]
             else:
                 ext_net_2_id = ext_net_1_id
-            ext_gw_1 = {'network_id': ext_net_1_id}
+                ext_gw_2_subnets = [sn_1['id']]
+            ext_net_ids[ext_net_2_id] = ext_gw_2_subnets
             ext_gw_2 = {'network_id': ext_net_2_id}
             with self.router(tenant_id=tenant_id_1,
                              external_gateway_info=ext_gw_1,
@@ -361,7 +549,6 @@ class Asr1kRouterTypeDriverTestCase(
                 r1_after = self._show('routers', r1['id'])['router']
                 hd_id = r1_after[HOSTING_DEVICE_ATTR]
                 r_ids = {r1['id'], r2['id']}
-                ext_net_ids = {ext_net_1_id, ext_net_2_id}
                 # should have one global router now
                 self._verify_routers(r_ids, ext_net_ids, hd_id, [0, 1])
                 if update_operation is True:
@@ -370,8 +557,9 @@ class Asr1kRouterTypeDriverTestCase(
                 else:
                     self._delete('routers', r1['id'])
                     r_ids = {r2['id']}
-                ext_net_ids = {ext_net_2_id}
                 # should still have one global router
+                if same_ext_net is False:
+                    ext_net_ids.pop(ext_net_1_id)
                 self._verify_routers(r_ids, ext_net_ids, hd_id, [0, 1])
                 if update_operation is True:
                     self._update('routers', r2['id'], r_spec)
@@ -379,6 +567,7 @@ class Asr1kRouterTypeDriverTestCase(
                     self._delete('routers', r2['id'])
                     r_ids = {}
                 # should have no global router now
+                ext_net_ids.pop(ext_net_2_id, None)
                 self._verify_routers(r_ids, ext_net_ids)
 
     def test_router_update_unset_gw(self):
@@ -406,6 +595,88 @@ class Asr1kRouterTypeDriverTestCase(
     def test_router_update_unset_gw_non_admin_dt_den(self):
         self._test_router_update_unset_gw_or_delete(True, same_tenant=False,
                                                     same_ext_net=False)
+
+    def _test_router_update_unset_msn_gw(
+            self, set_context=False, same_tenant=True, same_ext_net=True):
+        tenant_id_1 = _uuid()
+        tenant_id_2 = tenant_id_1 if same_tenant is True else _uuid()
+        with self.network(tenant_id=tenant_id_1) as msn_n_external_1, \
+                self.network(tenant_id=tenant_id_1) as n_external_2:
+            msn_ext_net_1_id = msn_n_external_1['network']['id']
+            self._set_net_external(msn_ext_net_1_id)
+            sn_1 = self._make_subnet(
+                self.fmt, msn_n_external_1, '10.0.1.1', cidr='10.0.1.0/24',
+                tenant_id=tenant_id_1)['subnet']
+            sn_2 = self._make_subnet(
+                self.fmt, msn_n_external_1, '20.0.1.1', cidr='20.0.1.0/24',
+                tenant_id=tenant_id_1)['subnet']
+            ext_gw_1_subnets = [sn_1['id'], sn_2['id']]
+            ext_net_ids = {msn_ext_net_1_id: ext_gw_1_subnets}
+            ext_gw_1 = {
+                'network_id': msn_ext_net_1_id,
+                'external_fixed_ips': [{'subnet_id': sid}
+                                       for sid in ext_gw_1_subnets]}
+            if same_ext_net is False:
+                ext_net_2_id = n_external_2['network']['id']
+                self._set_net_external(ext_net_2_id)
+                sn_3 = self._make_subnet(
+                    self.fmt, n_external_2, '10.0.2.1', cidr='10.0.2.0/24',
+                    tenant_id=tenant_id_2)['subnet']
+                ext_gw_2_subnets = [sn_3['id']]
+                ext_gw_2 = {'network_id': ext_net_2_id,
+                            'external_fixed_ips': [{'subnet_id': sn_3['id']}]}
+            else:
+                ext_net_2_id = msn_ext_net_1_id
+                ext_gw_2_subnets = ext_gw_1_subnets
+                ext_gw_2 = ext_gw_1
+            ext_net_ids[ext_net_2_id] = ext_gw_2_subnets
+            with self.router(tenant_id=tenant_id_1,
+                             external_gateway_info=ext_gw_1,
+                             set_context=set_context) as router1,\
+                    self.router(name='router2', tenant_id=tenant_id_2,
+                                external_gateway_info=ext_gw_2,
+                                set_context=set_context) as router2:
+                r1 = router1['router']
+                r2 = router2['router']
+                # backlog processing will trigger one routers_updated
+                # notification containing r1 and r2
+                self.l3_plugin._process_backlogged_routers()
+                r1_after = self._show('routers', r1['id'])['router']
+                hd_id = r1_after[HOSTING_DEVICE_ATTR]
+                r_ids = {r1['id'], r2['id']}
+                # should have one global router now
+                self._verify_routers(r_ids, ext_net_ids, hd_id, [0, 1])
+                ext_gw_1['external_fixed_ips'] = [{'subnet_id': sn_1['id']}]
+                r_spec = {'router': {l3.EXTERNAL_GW_INFO: ext_gw_1}}
+                r1_after_2 = self._update('routers', r1['id'],
+                                          r_spec)['router']
+                res_ips = r1_after_2[l3.EXTERNAL_GW_INFO]['external_fixed_ips']
+                self.assertEqual(1, len(res_ips))
+                self.assertEqual(sn_1['id'], res_ips[0]['subnet_id'])
+                # should still have one global router
+                self._verify_routers(r_ids, ext_net_ids, hd_id, [0, 1])
+                r_spec = {'router': {l3.EXTERNAL_GW_INFO: None}}
+                self._update('routers', r1['id'], r_spec)
+                # should still have one global router
+                if same_ext_net is False:
+                    ext_net_ids.pop(msn_ext_net_1_id)
+                self._verify_routers(r_ids, ext_net_ids, hd_id, [0, 1])
+                self._update('routers', r2['id'], r_spec)
+                # should have no global router now
+                self._verify_routers(r_ids, ext_net_ids)
+
+    def test_router_update_unset_msn_gw(self):
+        self._test_router_update_unset_msn_gw()
+
+    def test_router_update_unset_msn_gw_dt(self):
+        self._test_router_update_unset_msn_gw(same_tenant=False)
+
+    def test_router_update_unset_msn_gw_den(self):
+        self._test_router_update_unset_msn_gw(same_ext_net=False)
+
+    def test_router_update_unset_msn_gw_dt_den(self):
+        self._test_router_update_unset_msn_gw(same_tenant=False,
+                                              same_ext_net=False)
 
     def _test_delete_gateway_router(self, set_context=False, same_tenant=True,
                                     same_ext_net=True):
@@ -436,6 +707,80 @@ class Asr1kRouterTypeDriverTestCase(
     def test_delete_gateway_router_non_admin_dt_den(self):
         self._test_delete_gateway_router(True, same_tenant=False,
                                          same_ext_net=False)
+
+    def _test_delete_msn_gateway_router(self, set_context=False,
+                                        same_tenant=True, same_ext_net=True):
+        tenant_id_1 = _uuid()
+        tenant_id_2 = tenant_id_1 if same_tenant is True else _uuid()
+        with self.network(tenant_id=tenant_id_1) as msn_n_external_1, \
+                self.network(tenant_id=tenant_id_1) as n_external_2:
+            msn_ext_net_1_id = msn_n_external_1['network']['id']
+            self._set_net_external(msn_ext_net_1_id)
+            sn_1 = self._make_subnet(
+                self.fmt, msn_n_external_1, '10.0.1.1', cidr='10.0.1.0/24',
+                tenant_id=tenant_id_1)['subnet']
+            sn_2 = self._make_subnet(
+                self.fmt, msn_n_external_1, '20.0.1.1', cidr='20.0.1.0/24',
+                tenant_id=tenant_id_1)['subnet']
+            ext_gw_1_subnets = [sn_1['id'], sn_2['id']]
+            ext_net_ids = {msn_ext_net_1_id: ext_gw_1_subnets}
+            ext_gw_1 = {
+                'network_id': msn_ext_net_1_id,
+                'external_fixed_ips': [{'subnet_id': sid}
+                                       for sid in ext_gw_1_subnets]}
+            if same_ext_net is False:
+                ext_net_2_id = n_external_2['network']['id']
+                self._set_net_external(ext_net_2_id)
+                sn_3 = self._make_subnet(
+                    self.fmt, n_external_2, '10.0.2.1', cidr='10.0.2.0/24',
+                    tenant_id=tenant_id_2)['subnet']
+                ext_gw_2_subnets = [sn_3['id']]
+                ext_gw_2 = {'network_id': ext_net_2_id,
+                            'external_fixed_ips': [{'subnet_id': sn_3['id']}]}
+            else:
+                ext_net_2_id = msn_ext_net_1_id
+                ext_gw_2_subnets = ext_gw_1_subnets
+                ext_gw_2 = ext_gw_1
+            ext_net_ids[ext_net_2_id] = ext_gw_2_subnets
+            with self.router(tenant_id=tenant_id_1,
+                             external_gateway_info=ext_gw_1,
+                             set_context=set_context) as router1,\
+                    self.router(name='router2', tenant_id=tenant_id_2,
+                                external_gateway_info=ext_gw_2,
+                                set_context=set_context) as router2:
+                r1 = router1['router']
+                r2 = router2['router']
+                # backlog processing will trigger one routers_updated
+                # notification containing r1 and r2
+                self.l3_plugin._process_backlogged_routers()
+                r1_after = self._show('routers', r1['id'])['router']
+                hd_id = r1_after[HOSTING_DEVICE_ATTR]
+                r_ids = {r1['id'], r2['id']}
+                # should have one global router now
+                self._verify_routers(r_ids, ext_net_ids, hd_id, [0, 1])
+                self._delete('routers', r1['id'])
+                r_ids = {r2['id']}
+                # should still have one global router
+                if same_ext_net is False:
+                    ext_net_ids.pop(msn_ext_net_1_id)
+                self._verify_routers(r_ids, ext_net_ids, hd_id, [0, 1])
+                self._delete('routers', r2['id'])
+                r_ids = {}
+                # should have no global router now
+                self._verify_routers(r_ids, ext_net_ids)
+
+    def test_delete_msn_gateway_router(self):
+        self._test_delete_msn_gateway_router()
+
+    def test_delete_msn_gateway_router_dt(self):
+        self._test_delete_msn_gateway_router(same_tenant=False)
+
+    def test_delete_msn_gateway_router_den(self):
+        self._test_delete_msn_gateway_router(same_ext_net=False)
+
+    def test_delete_msn_gateway_router_dt_den(self):
+        self._test_delete_msn_gateway_router(same_tenant=False,
+                                             same_ext_net=False)
 
     def _test_router_interface_add_refused_for_unsupported_topology(
             self, num_expected_ports=2, set_context=False, same_tenant=True):
@@ -518,6 +863,9 @@ class Asr1kHARouterTypeDriverTestCase(
 
     def _verify_routers(self, router_ids, ext_net_ids, hd_id=None,
                         call_indices=None):
+        # The 'ext_net_ids' argument is a dict where key is ext_net_id and
+        # value is a list of subnet_ids that the global router should be
+        # connected to
         # tenant routers
         q_p = '%s=None' % ROUTER_ROLE_ATTR
         r_ids = {r['id'] for r in self._list(
@@ -574,6 +922,9 @@ class L3CfgAgentAsr1kRouterTypeDriverTestCase(
         super(L3CfgAgentAsr1kRouterTypeDriverTestCase, self).tearDown()
 
     def _verify_global_router(self, role, hd_id, ext_net_ids):
+        # The 'ext_net_ids' argument is a dict where key is ext_net_id and
+        # value is a list of subnet_ids that the global router should be
+        # connected to
         if hd_id is None:
             q_p = '%s=%s' % (ROUTER_ROLE_ATTR, role)
         else:
@@ -593,10 +944,17 @@ class L3CfgAgentAsr1kRouterTypeDriverTestCase(
                                DEVICE_OWNER_GLOBAL_ROUTER_GW)
         aux_gw_ports = self._list('ports', query_params=q_p)['ports']
         self.assertEqual(len(ext_net_ids), len(aux_gw_ports))
-        ids = copy.copy(ext_net_ids)
+        ids = copy.deepcopy(ext_net_ids)
         for aux_gw_port in aux_gw_ports:
             self.assertIn(aux_gw_port['network_id'], ids)
-            ids.remove(aux_gw_port['network_id'])
+            self.assertEqual(len(aux_gw_port['fixed_ips']),
+                             len(ids[aux_gw_port['network_id']]))
+            # check that port has ip on correct subnets
+            for ips in aux_gw_port['fixed_ips']:
+                self.assertIn(ips['subnet_id'],
+                              ids[aux_gw_port['network_id']])
+                ids[aux_gw_port['network_id']].remove(ips['subnet_id'])
+            ids.pop(aux_gw_port['network_id'])
         return router
 
     def _verify_ha_settings(self, router, expected_ha):
@@ -628,6 +986,9 @@ class L3CfgAgentAsr1kRouterTypeDriverTestCase(
                              ha_port['fixed_ips'][0]['ip_address'])
 
     def _verify_sync_data(self, router, router_ids, ext_net_ids):
+        # The 'ext_net_ids' argument is a dict where key is ext_net_id and
+        # value is a list of subnet_ids that the global router should be
+        # connected to
         hd_id = router[HOSTING_DEVICE_ATTR]
         id_r_ha_backup = router[ha.DETAILS][ha.REDUNDANCY_ROUTERS][0]['id']
         router_ha_backup = self._show('routers', id_r_ha_backup)['router']
@@ -675,21 +1036,34 @@ class L3CfgAgentAsr1kRouterTypeDriverTestCase(
                  'allocated_vlan': 5})
             tenant_id_1 = _uuid()
             tenant_id_2 = tenant_id_1 if same_tenant is True else _uuid()
-            with self.network(tenant_id=tenant_id_1) as n_external_1, \
+            with self.network(tenant_id=tenant_id_1) as msn_n_external_1, \
                     self.network(tenant_id=tenant_id_1) as n_external_2:
-                ext_net_1_id = n_external_1['network']['id']
-            self._set_net_external(ext_net_1_id)
-            self._create_subnet(self.fmt, ext_net_1_id, cidr='10.0.1.0/24',
-                                tenant_id=tenant_id_1)
+                msn_ext_net_1_id = msn_n_external_1['network']['id']
+            self._set_net_external(msn_ext_net_1_id)
+            sn_1 = self._make_subnet(
+                self.fmt, msn_n_external_1, '10.0.1.1', cidr='10.0.1.0/24',
+                tenant_id=tenant_id_1)['subnet']
+            sn_2 = self._make_subnet(
+                self.fmt, msn_n_external_1, '20.0.1.1', cidr='20.0.1.0/24',
+                tenant_id=tenant_id_1)['subnet']
+            ext_net_ids = {msn_ext_net_1_id: [sn_1['id'], sn_2['id']]}
+            ext_gw_1 = {
+                'network_id': msn_ext_net_1_id,
+                'external_fixed_ips': [{'subnet_id': sn_1['id']}]}
             if same_ext_net is False:
                 ext_net_2_id = n_external_2['network']['id']
                 self._set_net_external(ext_net_2_id)
-                self._create_subnet(self.fmt, ext_net_2_id, cidr='10.0.2.0/24',
-                                    tenant_id=tenant_id_2)
+                sn_3 = self._make_subnet(
+                    self.fmt, n_external_2, '10.0.2.1', cidr='10.0.2.0/24',
+                    tenant_id=tenant_id_2)['subnet']
+                ext_gw_2_subnets = [sn_3['id']]
+                ext_gw_2 = {'network_id': ext_net_2_id,
+                            'external_fixed_ips': [{'subnet_id': sn_3['id']}]}
             else:
-                ext_net_2_id = ext_net_1_id
-            ext_gw_1 = {'network_id': ext_net_1_id}
-            ext_gw_2 = {'network_id': ext_net_2_id}
+                ext_net_2_id = msn_ext_net_1_id
+                ext_gw_2_subnets = ext_net_ids[msn_ext_net_1_id]
+                ext_gw_2 = ext_gw_1
+            ext_net_ids[ext_net_2_id] = ext_gw_2_subnets
             with self.router(tenant_id=tenant_id_1,
                              external_gateway_info=ext_gw_1,
                              set_context=set_context) as router1, \
@@ -705,7 +1079,6 @@ class L3CfgAgentAsr1kRouterTypeDriverTestCase(
                 self.l3_plugin._process_backlogged_routers()
                 r1_after = self._show('routers', r1['id'])['router']
                 r_ids = [r1['id'], r2['id'], r3['id']]
-                ext_net_ids = {ext_net_1_id, ext_net_2_id}
                 self._verify_sync_data(r1_after, r_ids, ext_net_ids)
 
     def test_l3_cfg_agent_query_global_router_info(self):

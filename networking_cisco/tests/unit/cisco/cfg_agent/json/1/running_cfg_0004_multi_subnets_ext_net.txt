@@ -1,0 +1,61 @@
+! Last configuration change at 08:58:07 UTC Fri Mar 03 2017 by stack
+!
+vrf definition Mgmt-intf
+ !
+ address-family ipv4
+ exit-address-family
+ !
+ address-family ipv6
+ exit-address-family
+ !
+vrf definition nrouter-085eba
+ !
+ address-family ipv4
+ exit-address-family
+ !
+ address-family ipv6
+ exit-address-family
+ !
+!
+interface GigabitEthernet/1/0/2.1086
+ description OPENSTACK_NEUTRON_INTF
+ encapsulation dot1Q 1086
+ ip address 10.0.3.3 255.255.255.0
+ ip nat inside
+ standby 1064 ip 10.0.3.1
+ standby 1064 name neutron-hsrp-1064-1086
+ standby 1064 priority 97
+ standby 1064 timers 1 3
+ standby delay minimum 30 reload 60
+ standby version 2
+ vrf forwarding nrouter-085eba
+!
+interface GigabitEthernet/2/0/3.1056
+ description OPENSTACK_NEUTRON_EXTERNAL_INTF
+ encapsulation dot1Q 1056
+ ip address 172.16.6.47 255.255.255.224 secondary
+ ip address 172.17.7.37 255.255.255.224
+ ip nat outside
+ standby 1064 ip 172.16.6.46 secondary
+ standby 1064 ip 172.17.7.36
+ standby 1064 name neutron-hsrp-1064-1056
+ standby 1064 priority 100
+ standby 1064 timers 1 3
+ standby delay minimum 30 reload 60
+ standby version 2
+!
+interface GigabitEthernet0
+ ip address 10.0.100.6 255.255.255.0
+ negotiation auto
+ vrf forwarding Mgmt-intf
+!
+ip access-list standard neutron_acl_1086_121bf217
+ permit 10.0.3.0 0.0.0.255
+!
+ip nat inside source list neutron_acl_1086_121bf217 pool nrouter-085eba_nat_pool vrf nrouter-085eba overload
+ip nat pool nrouter-085eba_nat_pool 172.16.6.44 172.16.6.44 netmask 255.255.255.224
+ip nat pool nrouter-085eba_nat_pool 172.17.7.34 172.17.7.34 netmask 255.255.255.224
+!
+ip route vrf nrouter-085eba 0.0.0.0 0.0.0.0 GigabitEthernet/2/0/3.1056 172.16.6.33
+ip route vrf nrouter-085eba 0.0.0.0 0.0.0.0 GigabitEthernet/2/0/3.1056 172.17.7.33
+!

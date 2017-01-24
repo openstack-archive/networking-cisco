@@ -430,8 +430,13 @@ class HA_db_mixin(object):
         # Now add gw to redundancy routers
         rr_ids = []
         for r_b_db in router_db.redundancy_bindings:
-            spec = {EXTERNAL_GW_INFO: copy.copy(router[EXTERNAL_GW_INFO])}
-            spec[EXTERNAL_GW_INFO].pop('external_fixed_ips', None)
+            spec = {EXTERNAL_GW_INFO: copy.deepcopy(router[EXTERNAL_GW_INFO])}
+            if spec[EXTERNAL_GW_INFO]['external_fixed_ips']:
+                # Ensure ip addresses are not specified as they cannot be
+                # same as visible router's ip addresses.
+                for e_fixed_ip in spec[EXTERNAL_GW_INFO]['external_fixed_ips']:
+                    e_fixed_ip.pop('ip_address', None)
+            #spec[EXTERNAL_GW_INFO].pop('external_fixed_ips', None)
             spec[ha.ENABLED] = False
             self._update_router_no_notify(
                 context, r_b_db.redundancy_router_id, {'router': spec})
@@ -682,7 +687,7 @@ class HA_db_mixin(object):
         return r_ha_g
 
     def _get_fixed_ips_subnets(self, fixed_ips):
-        subnets = copy.copy(fixed_ips)
+        subnets = copy.deepcopy(fixed_ips)
         for s in subnets:
             s.pop('ip_address', None)
         return subnets

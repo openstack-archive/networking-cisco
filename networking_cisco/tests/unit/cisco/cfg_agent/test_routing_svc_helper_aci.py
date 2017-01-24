@@ -80,9 +80,19 @@ class TestBasicRoutingOperationsAci(helper.TestBasicRoutingOperations):
         self.driver = self._mock_driver_and_hosting_device(
             self.routing_helper)
 
+    def test_process_router_throw_multiple_ipv4_subnets_error(self):
+        ri, router = (
+            self._test_process_router_throw_multiple_ipv4_subnets_error())
+        router['gw_port'] = {'id': ''}
+        self.assertRaises(svc_helper.MultipleIPv4SubnetsException,
+                          self.routing_helper._process_router, ri)
+
     def test_process_router(self):
         super(TestBasicRoutingOperationsAci,
               self).test_process_router(test_admin_state=False)
+
+    def test_process_msn_router(self):
+        self._test_process_msn_router(test_admin_state=False)
 
     def test_process_router_2_rids_1_vrf(self):
         driver = self._mock_driver_and_hosting_device(self.routing_helper)

@@ -12,8 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import copy
-
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import uuidutils
@@ -27,7 +25,7 @@ from neutron.extensions import l3
 from neutron_lib import constants as l3_constants
 from neutron_lib import exceptions as n_exc
 
-from networking_cisco._i18n import _
+from networking_cisco._i18n import _, _LW
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.l3 import ha_db
@@ -197,6 +195,48 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
             group_id += EXT_HSRP_GRP_OFFSET
             return group_id
 
+    def pre_backlog_processing(self, context):
+        filters = {routerrole.ROUTER_ROLE_ATTR: [ROUTER_ROLE_GLOBAL]}
+        global_routers = self._l3_plugin.get_routers(context, filters=filters)
+        if not global_routers:
+            LOG.debug("There are no global routers")
+            return
+        for gr in global_routers:
+            filters = {
+                HOSTING_DEVICE_ATTR: [gr[HOSTING_DEVICE_ATTR]],
+                routerrole.ROUTER_ROLE_ATTR: [ROUTER_ROLE_HA_REDUNDANCY, None]
+            }
+            invert_filters = {'gw_port_id': [None]}
+            num_rtrs = self._l3_plugin.get_routers_count_extended(
+                context, filters=filters, invert_filters=invert_filters)
+            LOG.debug("Global router %(name)s[%(id)s] with hosting_device "
+                      "%(hd)s has %(num)d routers with gw_port set on that "
+                      "device",
+                      {'name': gr['name'], 'id': gr['id'],
+                       'hd': gr[HOSTING_DEVICE_ATTR], 'num': num_rtrs, })
+            if num_rtrs == 0:
+                LOG.warning(
+                    _LW("Global router:%(name)s[id:%(id)s] is present for "
+                        "hosting device:%(hd)s but there are no tenant or "
+                        "redundancy routers with gateway set on that hosting "
+                        "device. Proceeding to delete global router."),
+                    {'name': gr['name'], 'id': gr['id'],
+                     'hd': gr[HOSTING_DEVICE_ATTR]})
+                self._delete_global_router(context, gr['id'])
+                filters = {
+                    #TODO(bmelande): Filter on routertype of global router
+                    #routertype.TYPE_ATTR: [routertype_id],
+                    routerrole.ROUTER_ROLE_ATTR: [ROUTER_ROLE_LOGICAL_GLOBAL]}
+                log_global_routers = self._l3_plugin.get_routers(
+                    context, filters=filters)
+                if log_global_routers:
+                    log_global_router_id = log_global_routers[0]['id']
+                    self._delete_global_router(context, log_global_router_id,
+                                               logical=True)
+
+    def post_backlog_processing(self, context):
+        pass
+
     # ---------------- Create workflow functions -----------------
 
     def _conditionally_add_global_router(self, context, tenant_router):
@@ -238,7 +278,7 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
             'device_id': [global_router['id']],
             'device_owner': [port_type]}
         connected_nets = {
-            p['network_id'] for p in
+            p['network_id']: p['fixed_ips'] for p in
             self._core_plugin.get_ports(context, filters=filters)}
         if ext_net_id in connected_nets:
             # already connected to the external network so we're done
@@ -255,7 +295,8 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
             port_type=DEVICE_OWNER_GLOBAL_ROUTER_GW):
         # When a global router is connected to an external network then a
         # special type of gateway port is created on that network. Such a
-        # port is called auxiliary gateway ports. A (logical) global router
+        # port is called auxiliary gateway ports. It has an ip address on
+        # each subnet of the external network. A (logical) global router
         # never has a traditional Neutron gateway port.
         filters = {
             'device_id': [tenant_router['id']],
@@ -264,7 +305,7 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
         # the CIDR of that port's subnet
         gw_port = self._core_plugin.get_ports(context,
                                               filters=filters)[0]
-        fixed_ips = self._get_fixed_ips_subnets(gw_port['fixed_ips'])
+        fixed_ips = self._get_fixed_ips_subnets(context, gw_port)
         global_router_id = global_router['id']
         with context.session.begin(subtransactions=True):
             aux_gw_port = self._core_plugin.create_port(context, {
@@ -352,10 +393,9 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
             context.session.add(r_ha_s_db)
         return logical_global_router
 
-    def _get_fixed_ips_subnets(self, fixed_ips):
-        subnets = copy.copy(fixed_ips)
-        for s in subnets:
-            s.pop('ip_address', None)
+    def _get_fixed_ips_subnets(self, context, gw_port):
+        nw = self._core_plugin.get_network(context, gw_port['network_id'])
+        subnets = [{'subnet_id': s} for s in nw['subnets']]
         return subnets
 
     def _provision_port_ha(self, context, ha_port, router, ha_binding_db=None):
@@ -401,6 +441,10 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
         hd_to_gr_dict = {r[HOSTING_DEVICE_ATTR]: r for r in global_routers}
         if global_routers:
             global_router_id = global_routers[0]['id']
+            if not tenant_router or not tenant_router[l3.EXTERNAL_GW_INFO]:
+                # let l3 plugin's periodic backlog processing take care of the
+                # clean up of the global router
+                return
             ext_net_id = tenant_router[l3.EXTERNAL_GW_INFO]['network_id']
             routertype_id = tenant_router[routertype.TYPE_ATTR]
             hd_id = tenant_router[HOSTING_DEVICE_ATTR]
@@ -444,7 +488,8 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
                 (num_rtrs == 0 and update_operation is True)):
             # there are no tenant routers *on ext_net_id* that are serviced by
             # this global router so it's aux gw port can be deleted
-            self._delete_auxiliary_gateway_port(context, router_id, ext_net_id)
+            self._delete_auxiliary_gateway_ports(context, router_id,
+                                                 ext_net_id)
             return True
         return False
 
@@ -463,8 +508,8 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
         if num_global_rtrs == 0:
             # there are no global routers *on ext_net_id* that are serviced by
             # this logical global router so it's aux gw VIP port can be deleted
-            self._delete_auxiliary_gateway_port(context, log_global_router_id,
-                                                ext_net_id)
+            self._delete_auxiliary_gateway_ports(context, log_global_router_id,
+                                                 ext_net_id)
         filters[routerrole.ROUTER_ROLE_ATTR] = [ROUTER_ROLE_GLOBAL]
         total_num_global_rtrs = self._l3_plugin.get_routers_count(
             context, filters=filters)
@@ -474,7 +519,7 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
             self._delete_global_router(context, log_global_router_id, True)
         return False
 
-    def _delete_auxiliary_gateway_port(
+    def _delete_auxiliary_gateway_ports(
             self, context, router_id, net_id=None,
             port_type=DEVICE_OWNER_GLOBAL_ROUTER_GW):
         filters = {
@@ -491,7 +536,7 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
 
     def _delete_global_router(self, context, global_router_id, logical=False):
         # ensure we clean up any stale auxiliary gateway ports
-        self._delete_auxiliary_gateway_port(context, global_router_id)
+        self._delete_auxiliary_gateway_ports(context, global_router_id)
         try:
             if logical is True:
                 # We use parent class method as no special operations beyond

@@ -18,12 +18,15 @@ from oslo_utils import excutils
 
 from networking_cisco._i18n import _LE
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.device_manager import config
 import networking_cisco.plugins.cisco.device_manager.plugging_drivers as plug
 
 LOG = logging.getLogger(__name__)
 
 DEVICE_OWNER_ROUTER_GW = bc.constants.DEVICE_OWNER_ROUTER_GW
+GLOBAL_ROUTER_ROLES = [cisco_constants.ROUTER_ROLE_GLOBAL,
+                       cisco_constants.ROUTER_ROLE_LOGICAL_GLOBAL]
 
 
 class HwVLANTrunkingPlugDriver(plug.PluginSidePluggingDriver):
@@ -66,7 +69,7 @@ class HwVLANTrunkingPlugDriver(plug.PluginSidePluggingDriver):
     def extend_hosting_port_info(self, context, port_db, hosting_device,
                                  hosting_info):
         hosting_info['segmentation_id'] = port_db.hosting_info.segmentation_id
-        is_external = (port_db.device_owner == DEVICE_OWNER_ROUTER_GW)
+        is_external = (port_db.networks.external is not None)
         hosting_info['physical_interface'] = self._get_interface_info(
             hosting_device['id'], port_db.network_id, is_external)
 

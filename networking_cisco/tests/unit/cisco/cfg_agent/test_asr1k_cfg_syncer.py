@@ -12,16 +12,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
+
 import mock
 from neutron.tests import base
 from oslo_config import cfg
+from oslo_serialization import jsonutils
 
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
     asr1k_cfg_syncer)
-
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
     asr1k_routing_driver as driver)
-
 from networking_cisco.plugins.cisco.common.htparser import HTParser
 
 
@@ -1261,6 +1262,93 @@ NEUTRON_DB = [
         "tenant_id": "ecf8697e8dc04fef8be7c7f9c3594de9"
     },
     {
+        "_interfaces": [
+            {
+                "admin_state_up": True,
+                "allowed_address_pairs": [],
+                "binding:host_id": "asr1k-k7-controller-1-R2",
+                "binding:profile": {},
+                "binding:vif_details": {
+                    "ovs_hybrid_plug": True,
+                    "port_filter": True
+                },
+                "binding:vif_type": "ovs",
+                "binding:vnic_type": "normal",
+                "device_id": "213fd355-78c3-44cc-bd6e-492b9ade2602",
+                "device_owner": "network:router_interface",
+                "extra_dhcp_opts": [],
+                "extra_subnets": [],
+                "fixed_ips": [
+                    {
+                        "ip_address": "172.16.0.105",
+                        "prefixlen": 16,
+                        "subnet_id": "8f9c885d-a2ad-4fff-8127-2d4b3af6015b"
+                    }
+                ],
+                "ha_info": {
+                    "group": "1064",
+                    "ha_port": {
+                        "admin_state_up": True,
+                        "allowed_address_pairs": [],
+                        "binding:host_id": "",
+                        "binding:profile": {},
+                        "binding:vif_details": {},
+                        "binding:vif_type": "unbound",
+                        "binding:vnic_type": "normal",
+                        "device_id": "a2617b46-78ef-49ba-95b5-0f3ff90f1f91",
+                        "device_owner": "network:router_interface",
+                        "extra_dhcp_opts": [],
+                        "extra_subnets": [],
+                        "fixed_ips": [{
+                            "ip_address": "172.16.0.104",
+                            "prefixlen": 16,
+                            "subnet_id": "8f9c885d-a2ad-4fff-8127-2d4b3af6015b"
+                        }],
+                        "id": "b768491c-4b76-492f-a0ee-56bc50867a07",
+                        "mac_address": "fa:16:3e:77:ae:bb",
+                        "name": "",
+                        "network_id": "7a38a5fd-3ad9-4952-ab08-4def22407269",
+                        "security_groups": [],
+                        "status": "DOWN",
+                        "subnets": [
+                            {
+                                "cidr": "172.16.0.0/16",
+                                "gateway_ip": "172.16.0.1",
+                                "id": "8f9c885d-a2ad-4fff-8127-2d4b3af6015b",
+                                "ipv6_ra_mode": None
+                            }
+                        ],
+                        "tenant_id": ""
+                    },
+                    "other_config": "",
+                    "timers_config": "",
+                    "tracking_config": "",
+                    "type": "HSRP"
+                },
+                "hosting_info": {
+                    "hosting_mac": "fa:16:3e:97:ec:f2",
+                    "hosting_port_id": "527b7bc0-d6ba-4d07-932a-60e96da86173",
+                    "hosting_port_name": "",
+                    "physical_interface": "Port-channel10",
+                    "segmentation_id": 3000
+                },
+                "id": "527b7bc0-d6ba-4d07-932a-60e96da86173",
+                "mac_address": "fa:16:3e:97:ec:f2",
+                "name": "",
+                "network_id": "7a38a5fd-3ad9-4952-ab08-4def22407269",
+                "security_groups": [],
+                "status": "ACTIVE",
+                "subnets": [
+                    {
+                        "cidr": "172.16.0.0/16",
+                        "gateway_ip": "172.16.0.1",
+                        "id": "8f9c885d-a2ad-4fff-8127-2d4b3af6015b",
+                        "ipv6_ra_mode": None
+                    }
+                ],
+                "tenant_id": ""
+            }
+        ],
         "admin_state_up": True,
         "cisco_ha:details": {
             "priority": 100,
@@ -1291,94 +1379,7 @@ NEUTRON_DB = [
             ],
             "network_id": "7a38a5fd-3ad9-4952-ab08-4def22407269"
         },
-        "gw_port": {
-            "admin_state_up": True,
-            "allowed_address_pairs": [],
-            "binding:host_id": "asr1k-k7-controller-1-R2",
-            "binding:profile": {},
-            "binding:vif_details": {
-                "ovs_hybrid_plug": True,
-                "port_filter": True
-            },
-            "binding:vif_type": "ovs",
-            "binding:vnic_type": "normal",
-            "device_id": "213fd355-78c3-44cc-bd6e-492b9ade2602",
-            "device_owner": "network:router_gateway",
-            "extra_dhcp_opts": [],
-            "extra_subnets": [],
-            "fixed_ips": [
-                {
-                    "ip_address": "172.16.0.105",
-                    "prefixlen": 16,
-                    "subnet_id": "8f9c885d-a2ad-4fff-8127-2d4b3af6015b"
-                }
-            ],
-            "ha_info": {
-                "group": "1064",
-                "ha_port": {
-                    "admin_state_up": True,
-                    "allowed_address_pairs": [],
-                    "binding:host_id": "",
-                    "binding:profile": {},
-                    "binding:vif_details": {},
-                    "binding:vif_type": "unbound",
-                    "binding:vnic_type": "normal",
-                    "device_id": "a2617b46-78ef-49ba-95b5-0f3ff90f1f91",
-                    "device_owner": "network:router_gateway",
-                    "extra_dhcp_opts": [],
-                    "extra_subnets": [],
-                    "fixed_ips": [
-                        {
-                            "ip_address": "172.16.0.104",
-                            "prefixlen": 16,
-                            "subnet_id": "8f9c885d-a2ad-4fff-8127-2d4b3af6015b"
-                        }
-                    ],
-                    "id": "b768491c-4b76-492f-a0ee-56bc50867a07",
-                    "mac_address": "fa:16:3e:77:ae:bb",
-                    "name": "",
-                    "network_id": "7a38a5fd-3ad9-4952-ab08-4def22407269",
-                    "security_groups": [],
-                    "status": "DOWN",
-                    "subnets": [
-                        {
-                            "cidr": "172.16.0.0/16",
-                            "gateway_ip": "172.16.0.1",
-                            "id": "8f9c885d-a2ad-4fff-8127-2d4b3af6015b",
-                            "ipv6_ra_mode": None
-                        }
-                    ],
-                    "tenant_id": ""
-                },
-                "other_config": "",
-                "timers_config": "",
-                "tracking_config": "",
-                "type": "HSRP"
-            },
-            "hosting_info": {
-                "hosting_mac": "fa:16:3e:97:ec:f2",
-                "hosting_port_id": "527b7bc0-d6ba-4d07-932a-60e96da86173",
-                "hosting_port_name": "",
-                "physical_interface": "Port-channel10",
-                "segmentation_id": 3000
-            },
-            "id": "527b7bc0-d6ba-4d07-932a-60e96da86173",
-            "mac_address": "fa:16:3e:97:ec:f2",
-            "name": "",
-            "network_id": "7a38a5fd-3ad9-4952-ab08-4def22407269",
-            "security_groups": [],
-            "status": "ACTIVE",
-            "subnets": [
-                {
-                    "cidr": "172.16.0.0/16",
-                    "gateway_ip": "172.16.0.1",
-                    "id": "8f9c885d-a2ad-4fff-8127-2d4b3af6015b",
-                    "ipv6_ra_mode": None
-                }
-            ],
-            "tenant_id": ""
-        },
-        "gw_port_id": "527b7bc0-d6ba-4d07-932a-60e96da86173",
+        "gw_port_id": None,
         "hosting_device": {
             "admin_state_up": True,
             "booting_time": 360,
@@ -1432,9 +1433,8 @@ class ASR1kCfgSyncer(base.BaseTestCase):
         self.hosting_device_info = {
             'id': '00000000-0000-0000-0000-000000000003'}
         self.driver = mock.Mock()
-        self.config_syncer = asr1k_cfg_syncer.ConfigSyncer(self.router_db_info,
-                                                      self.driver,
-                                                      self.hosting_device_info)
+        self.config_syncer = asr1k_cfg_syncer.ConfigSyncer(
+            self.router_db_info, self.driver, self.hosting_device_info)
 
     def test_delete_invalid_cfg_empty_routers_list(self):
         """
@@ -1655,3 +1655,51 @@ class ASR1kCfgSyncer(base.BaseTestCase):
                                                      parsed_cfg)
 
         self.assertEqual([], invalid_cfg)
+
+    def _test_clean_router_multi_ext_net(self, routers_dict_filename,
+                                         running_cfg_filename, hd_id,
+                                         expected_invalid_cfg=None):
+        if expected_invalid_cfg is None:
+            expected_invalid_cfg = []
+        path = os.path.dirname(os.path.abspath(__file__)) + '/'
+        with open(path + routers_dict_filename) as routers_dict_file:
+            r_dict_txt = routers_dict_file.read()
+            routers_dict = jsonutils.loads(r_dict_txt)
+            with open(path + running_cfg_filename) as running_config_file:
+                running_cfg = running_config_file.read()
+                hosting_device_info = {'id': hd_id}
+                config_syncer = asr1k_cfg_syncer.ConfigSyncer(
+                    routers_dict, self.driver, hosting_device_info)
+                config_syncer.get_running_config = mock.Mock(
+                    return_value=running_cfg)
+                invalid_cfg = config_syncer.delete_invalid_cfg()
+                self.assertEqual(expected_invalid_cfg, invalid_cfg)
+
+    def test_clean_router_with_two_subnet_gw(self):
+        self._test_clean_router_multi_ext_net(
+            'json/1/router_dicts_multi_subnets_ext_net.json',
+            'json/1/running_cfg_0005_multi_subnets_ext_net.txt',
+            '00000000-0000-0000-0000-000000000005')
+
+    def test_clean_ha_backup_router_with_two_subnet_gw(self):
+        self._test_clean_router_multi_ext_net(
+            'json/1/router_dicts_multi_subnets_ext_net.json',
+            'json/1/running_cfg_0004_multi_subnets_ext_net.txt',
+            '00000000-0000-0000-0000-000000000004')
+
+    def test_clean_routers_with_two_subnet_gw_and_single_subnet_gw(self):
+        self._test_clean_router_multi_ext_net(
+                'json/2/router_dicts_multi_subnets_ext_net_and_'
+                'single_subnet_ext_net.json',
+                'json/2/running_cfg_0005_multi_subnets_ext_net_and_'
+                'single_subnet_ext_net.txt',
+                '00000000-0000-0000-0000-000000000005')
+
+    def test_clean_ha_backup_routers_with_two_subnet_gw_and_single_subnet_gw(
+            self):
+        self._test_clean_router_multi_ext_net(
+            'json/2/router_dicts_multi_subnets_ext_net_and_'
+            'single_subnet_ext_net.json',
+            'json/2/running_cfg_0004_multi_subnets_ext_net_and_'
+            'single_subnet_ext_net.txt',
+            '00000000-0000-0000-0000-000000000004')
