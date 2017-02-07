@@ -352,7 +352,7 @@ class TestModel(base.BaseTestCase):
                                 '18:28:00:01:28:00:00:02'),
                             ('dhcp-lease-time',
                              str(cfg.CONF.dhcp_lease_duration)),
-                            ('domain-name', cfg.CONF.dhcp_domain)]
+                            ('domain-name', cfg.CONF.dns_domain)]
         policy_list_pnr_format = [dhcpopts.format_for_pnr(name, val)
                                   for name, val in fake_policy_opts]
         expected = {'OptionItem': policy_list_pnr_format}

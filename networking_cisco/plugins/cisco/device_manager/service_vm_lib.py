@@ -70,12 +70,7 @@ class ServiceVMManager(object):
             services = self._nclient.services.list()
         # There are several individual Nova client exceptions but they have
         # no other common base than Exception, hence the long list.
-        except (nova_exc.UnsupportedVersion, nova_exc.CommandError,
-                nova_exc.AuthorizationFailure, nova_exc.NoUniqueMatch,
-                nova_exc.AuthSystemNotFound, nova_exc.NoTokenLookupException,
-                nova_exc.EndpointNotFound, nova_exc.AmbiguousEndpoints,
-                nova_exc.ConnectionRefused, nova_exc.ClientException,
-                Exception) as e:
+        except Exception as e:
             LOG.error(_LE('Failure determining running Nova services: %s'), e)
             return False
         return not bool(required.difference(
@@ -87,12 +82,7 @@ class ServiceVMManager(object):
             status = self._nclient.servers.get(vm_id).status
         # There are several individual Nova client exceptions but they have
         # no other common base than Exception, hence the long list.
-        except (nova_exc.UnsupportedVersion, nova_exc.CommandError,
-                nova_exc.AuthorizationFailure, nova_exc.NoUniqueMatch,
-                nova_exc.AuthSystemNotFound, nova_exc.NoTokenLookupException,
-                nova_exc.EndpointNotFound, nova_exc.AmbiguousEndpoints,
-                nova_exc.ConnectionRefused, nova_exc.ClientException,
-                Exception) as e:
+        except Exception as e:
             LOG.error(_LE('Failed to get status of service VM instance '
                           '%(id)s, due to %(err)s'), {'id': vm_id, 'err': e})
             status = c_constants.SVM_ERROR
@@ -142,12 +132,7 @@ class ServiceVMManager(object):
                 config_drive=(files != {}))
         # There are several individual Nova client exceptions but they have
         # no other common base than Exception, therefore the long list.
-        except (nova_exc.UnsupportedVersion, nova_exc.CommandError,
-                nova_exc.AuthorizationFailure, nova_exc.NoUniqueMatch,
-                nova_exc.AuthSystemNotFound, nova_exc.NoTokenLookupException,
-                nova_exc.EndpointNotFound, nova_exc.AmbiguousEndpoints,
-                nova_exc.ConnectionRefused, nova_exc.ClientException,
-                Exception) as e:
+        except Exception as e:
             LOG.error(_LE('Failed to create service VM instance: %s'), e)
             return
         return {'id': server.id}
@@ -165,12 +150,7 @@ class ServiceVMManager(object):
             return True
         # There are several individual Nova client exceptions but they have
         # no other common base than Exception, therefore the long list.
-        except (nova_exc.UnsupportedVersion, nova_exc.CommandError,
-                nova_exc.AuthorizationFailure, nova_exc.NoUniqueMatch,
-                nova_exc.AuthSystemNotFound, nova_exc.NoTokenLookupException,
-                nova_exc.EndpointNotFound, nova_exc.AmbiguousEndpoints,
-                nova_exc.ConnectionRefused, nova_exc.ClientException,
-                Exception) as e:
+        except Exception as e:
             LOG.error(_LE('Failed to delete service VM instance %(id)s, '
                           'due to %(err)s'), {'id': vm_id, 'err': e})
             return False

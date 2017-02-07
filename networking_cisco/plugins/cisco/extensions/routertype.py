@@ -16,7 +16,6 @@ import abc
 
 from neutron.api.v2 import attributes as attr
 from neutron.api.v2 import resource_helper
-from neutron.plugins.common import constants
 from neutron_lib.api import converters as conv
 from neutron_lib import exceptions
 
@@ -138,7 +137,7 @@ class Routertype(bc.extensions.ExtensionDescriptor):
             attr.PLURALS.update(plural_mappings)
         return resource_helper.build_resource_info(plural_mappings,
                                                    RESOURCE_ATTRIBUTE_MAP,
-                                                   constants.L3_ROUTER_NAT)
+                                                   bc.constants.L3)
 
     def get_extended_resources(self, version):
         if version == "2.0":

@@ -19,7 +19,6 @@ import mock
 from neutron.common import test_lib
 from neutron import context
 from neutron.extensions import providernet as pr_net
-from neutron.plugins.common import constants as service_constants
 from neutron.tests.unit.extensions import test_l3
 
 from networking_cisco import backwards_compatibility as bc
@@ -57,7 +56,7 @@ class TestN1kvTrunkingPluggingDriver(
         service_plugins = {
             constants.CISCO_N1KV: POLICY_PROFILE_PLUGIN,
             constants.CISCO_N1KV_NET_PROFILE: NETWORK_PROFILE_PLUGIN,
-            service_constants.L3_ROUTER_NAT: L3_PLUGIN_KLASS}
+            bc.constants.L3: L3_PLUGIN_KLASS}
 
         ml2_cisco_opts = {
             'n1kv_vsm_ips': ['127.0.0.1'],

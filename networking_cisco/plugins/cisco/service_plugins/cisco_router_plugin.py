@@ -18,7 +18,6 @@ from neutron.common import rpc as n_rpc
 from neutron.common import topics
 from neutron.db import common_db_mixin
 #from neutron.db import l3_gwmode_db
-from neutron.plugins.common import constants
 from oslo_config import cfg
 from oslo_utils import importutils
 
@@ -97,7 +96,7 @@ class CiscoRouterPlugin(common_db_mixin.CommonDbMixin,
         self.conn.consume_in_threads()
 
     def get_plugin_type(self):
-        return constants.L3_ROUTER_NAT
+        return bc.constants.L3
 
     def get_plugin_description(self):
         return ("Cisco Router Service Plugin for basic L3 forwarding"

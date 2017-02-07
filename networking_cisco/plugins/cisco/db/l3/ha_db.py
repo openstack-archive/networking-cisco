@@ -124,8 +124,8 @@ class RouterHASetting(bc.model_base.BASEV2):
                       default=ha.HA_ACTIVE, server_default=ha.HA_ACTIVE)
 
 
-class RouterHAGroup(bc.model_base.BASEV2, models_v2.HasId,
-                    models_v2.HasTenant):
+class RouterHAGroup(bc.model_base.BASEV2, bc.model_base.HasId,
+                    bc.HasProject):
     """Represents an HA group as used in VRRP, HSRP, and GLBP."""
     __tablename__ = 'cisco_router_ha_groups'
 

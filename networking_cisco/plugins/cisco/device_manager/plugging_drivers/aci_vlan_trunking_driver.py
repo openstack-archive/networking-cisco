@@ -15,7 +15,6 @@
 import re
 
 from neutron.extensions import l3
-from neutron.plugins.common import constants as svc_constants
 from neutron_lib import exceptions as n_exc
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -177,7 +176,7 @@ class AciVLANTrunkingPlugDriver(hw_vlan.HwVLANTrunkingPlugDriver):
     @property
     def l3_plugin(self):
         if not self._l3_plugin:
-            self._l3_plugin = bc.get_plugin(svc_constants.L3_ROUTER_NAT)
+            self._l3_plugin = bc.get_plugin(bc.constants.L3)
         return self._l3_plugin
 
     @property

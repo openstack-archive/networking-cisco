@@ -36,7 +36,7 @@ class PolicyProfile(bc.model_base.BASEV2):
     vsm_ip = sa.Column(sa.String(16), nullable=False, primary_key=True)
 
 
-class NetworkProfile(bc.model_base.BASEV2, models_v2.HasId):
+class NetworkProfile(bc.model_base.BASEV2, bc.model_base.HasId):
 
     """Nexus1000V Network Profiles created on the VSM."""
     __tablename__ = 'cisco_ml2_n1kv_network_profiles'

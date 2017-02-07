@@ -22,7 +22,6 @@ import six
 import webob.exc
 
 from neutron import context as n_context
-from neutron.plugins.common import constants
 from neutron.tests.unit.db import test_db_base_plugin_v2
 from neutron_lib import exceptions as n_exc
 
@@ -277,7 +276,7 @@ class TestRoutertypeDBPlugin(test_db_base_plugin_v2.NeutronDbPluginV2TestCase,
         super(TestRoutertypeDBPlugin, self).setUp(
             plugin=core_plugin, service_plugins=service_plugins,
             ext_mgr=ext_mgr)
-        self.l3_plugin = bc.get_plugin(constants.L3_ROUTER_NAT)
+        self.l3_plugin = bc.get_plugin(bc.constants.L3)
         # Ensure we use policy definitions from our repo
         cfg.CONF.set_override('policy_file', policy_path, 'oslo_policy')
 

@@ -23,7 +23,7 @@ from neutron.plugins.ml2 import models as models_ml2
 from networking_cisco import backwards_compatibility as bc
 
 
-class RouterContract(bc.model_base.BASEV2, models_v2.HasTenant):
+class RouterContract(bc.model_base.BASEV2, bc.HasProject):
 
     """Contracts created on the APIC.
 

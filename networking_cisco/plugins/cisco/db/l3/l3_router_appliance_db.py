@@ -41,7 +41,6 @@ from neutron.db import extraroute_db
 from neutron.db import l3_db
 from neutron.extensions import l3
 from neutron.extensions import providernet as pr_net
-from neutron.plugins.common import constants as svc_constants
 from neutron_lib import exceptions as n_exc
 
 from networking_cisco import backwards_compatibility as bc
@@ -65,7 +64,7 @@ FLOATINGIP_STATUS_ACTIVE = bc.constants.FLOATINGIP_STATUS_ACTIVE
 AGENT_TYPE_L3 = bc.constants.AGENT_TYPE_L3
 AGENT_TYPE_L3_CFG = cisco_constants.AGENT_TYPE_L3_CFG
 VM_CATEGORY = ciscohostingdevicemanager.VM_CATEGORY
-L3_ROUTER_NAT = svc_constants.L3_ROUTER_NAT
+L3_ROUTER_NAT = bc.constants.L3
 HOSTING_DEVICE_ATTR = routerhostingdevice.HOSTING_DEVICE_ATTR
 ROUTER_ROLE_GLOBAL = cisco_constants.ROUTER_ROLE_GLOBAL
 ROUTER_ROLE_HA_REDUNDANCY = cisco_constants.ROUTER_ROLE_HA_REDUNDANCY
@@ -1120,7 +1119,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         This will be done when the router type driver api is revised.
         """
         e_context = n_context.get_admin_context()
-        l3plugin = bc.get_plugin(svc_constants.L3_ROUTER_NAT)
+        l3plugin = bc.get_plugin(L3_ROUTER_NAT)
         filters = {routerrole.ROUTER_ROLE_ATTR: [ROUTER_ROLE_GLOBAL]}
         global_routers = l3plugin.get_routers(e_context, filters=filters)
         if not global_routers:
@@ -1559,7 +1558,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
 def _notify_routers_callback(resource, event, trigger, **kwargs):
     context = kwargs['context']
     router_ids = kwargs['router_ids']
-    l3plugin = bc.get_plugin(svc_constants.L3_ROUTER_NAT)
+    l3plugin = bc.get_plugin(L3_ROUTER_NAT)
     if l3plugin and router_ids:
         l3plugin._notify_affected_routers(context, list(router_ids),
                                           'disassociate_floatingips')
@@ -1579,7 +1578,7 @@ def _notify_cfg_agent_port_update(resource, event, trigger, **kwargs):
         if original_device_owner.startswith('network'):
             router_id = original_port.get('device_id')
             context = kwargs.get('context')
-            l3plugin = bc.get_plugin(svc_constants.L3_ROUTER_NAT)
+            l3plugin = bc.get_plugin(L3_ROUTER_NAT)
             if l3plugin and router_id:
                 l3plugin._notify_port_update_routers(context, router_id,
                                                      original_port,

@@ -181,7 +181,7 @@ class L3RouterApplianceTestCaseBase(
         cfg.CONF.set_override('policy_file', policy_path, 'oslo_policy')
 
         self.core_plugin = bc.get_plugin()
-        self.l3_plugin = bc.get_plugin(service_constants.L3_ROUTER_NAT)
+        self.l3_plugin = bc.get_plugin(bc.constants.L3)
 
         self.setup_notification_driver()
 
@@ -736,7 +736,7 @@ class L3RouterApplianceGbpTestCase(test_l3.L3NatTestCaseMixin,
         with mock.patch.object(bc, 'get_plugin') as get_plugin:
             get_plugin.side_effect = lambda svc='CORE': {
                 'CORE': self.core_plugin, 'GROUP_POLICY': object(),
-                service_constants.L3_ROUTER_NAT: self}[svc]
+                bc.constants.L3: self}[svc]
             yield get_plugin
 
     def test_is_gbp_workflow(self):

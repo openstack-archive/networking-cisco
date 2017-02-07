@@ -26,54 +26,51 @@ from neutron import version
 
 NEUTRON_VERSION = StrictVersion(str(version.version_info))
 NEUTRON_NEWTON_VERSION = StrictVersion('9.0.0')
+NEUTRON_OCATA_VERSION = StrictVersion('10.0.0')
 
 n_c = __import__('neutron.common.constants', fromlist=['common.constants'])
 constants = __import__('neutron_lib.constants', fromlist=['constants'])
 
-# 9.0.0 is Newton
+
 if NEUTRON_VERSION >= NEUTRON_NEWTON_VERSION:
     from neutron.conf import common as base_config
-    from neutron import manager
     from neutron_lib.api import validators
-
     is_attr_set = validators.is_attr_set
     validators = validators.validators
-    if NEUTRON_VERSION.version[0] == NEUTRON_NEWTON_VERSION.version[0]:
-        from neutron.api import extensions  # noqa
-        from neutron.db import model_base  # noqa
-
-        def get_plugin(service=None):
-            if service is None:
-                return manager.NeutronManager.get_plugin()
-            else:
-                return manager.NeutronManager.get_service_plugins().get(
-                    service)
-        n_c_attr_names = n_c._mg__my_globals
-    else:
-        from neutron_lib.api import extensions
-        from neutron_lib.db import model_base
-        from neutron_lib.plugins import directory
-
-        get_plugin = directory.get_plugin
-        n_c_attr_names = dir(n_c)
-# Pre Newton
-elif NEUTRON_VERSION < NEUTRON_NEWTON_VERSION:
-    from neutron.api import extensions  # noqa
+    n_c_attr_names = getattr(n_c, "_mg__my_globals", None)
+else:
     from neutron.api.v2 import attributes
     from neutron.common import config as base_config
-    from neutron.db import model_base  # noqa
-    from neutron import manager
-    setattr(constants, 'ATTR_NOT_SPECIFIED', getattr(attributes,
-                                                     'ATTR_NOT_SPECIFIED'))
+    n_c_attr_names = n_c.my_globals
     is_attr_set = attributes.is_attr_set
     validators = attributes.validators
-    n_c_attr_names = n_c.my_globals
+    setattr(constants, 'ATTR_NOT_SPECIFIED', getattr(attributes,
+                                                     'ATTR_NOT_SPECIFIED'))
+
+if NEUTRON_VERSION >= NEUTRON_OCATA_VERSION:
+    from neutron_lib.api import extensions
+    from neutron_lib.db import model_base
+    from neutron_lib.plugins import directory
+
+    get_plugin = directory.get_plugin
+    n_c_attr_names = dir(n_c)
+    HasProject = model_base.HasProject
+else:
+    from neutron.api import extensions  # noqa
+    from neutron.db import model_base  # noqa
+    from neutron.db import models_v2
+    from neutron import manager
+    from neutron.plugins.common import constants as svc_constants
 
     def get_plugin(service=None):
         if service is None:
             return manager.NeutronManager.get_plugin()
         else:
             return manager.NeutronManager.get_service_plugins().get(service)
+
+    HasProject = models_v2.HasTenant
+    setattr(constants, 'L3', getattr(svc_constants, 'L3_ROUTER_NAT'))
+
 core_opts = base_config.core_opts
 #extensions = extensions
 #model_base = model_base

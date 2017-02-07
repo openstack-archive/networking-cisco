@@ -24,7 +24,6 @@ from keystoneclient.v2_0 import client as k_client
 from keystoneclient.v3 import client
 from neutron.common import utils
 from neutron import context as neutron_context
-from neutron.plugins.common import constants as svc_constants
 from neutron_lib import exceptions as n_exc
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -554,7 +553,7 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
         hosting_info = dict((id, {}) for id in hosting_device_ids)
         #TODO(bobmel): Modify so service plugins register themselves
         try:
-            l3plugin = bc.get_plugin(svc_constants.L3_ROUTER_NAT)
+            l3plugin = bc.get_plugin(bc.constants.L3)
             l3plugin.handle_non_responding_hosting_devices(
                 context, hosting_devices, hosting_info)
         except AttributeError:

@@ -21,7 +21,6 @@ from neutron.common import test_lib
 from neutron import context as n_context
 from neutron.extensions import agent
 from neutron.extensions import l3
-from neutron.plugins.common import constants as plugin_consts
 from neutron.tests import fake_notifier
 from neutron.tests.unit.db import test_agentschedulers_db
 from neutron.tests.unit.extensions import test_l3
@@ -159,7 +158,7 @@ class L3RoutertypeAwareL3AgentSchedulerTestCase(
 
         self.adminContext = n_context.get_admin_context()
         self.plugin = bc.get_plugin()
-        self.l3_plugin = bc.get_plugin(plugin_consts.L3_ROUTER_NAT)
+        self.l3_plugin = bc.get_plugin(bc.constants.L3)
         # work-around to make some tests in super class, which assumes core
         # plugin does the l3 routing, run correctly
         self.plugin.router_scheduler = (

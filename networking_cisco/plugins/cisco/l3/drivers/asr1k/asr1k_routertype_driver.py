@@ -23,7 +23,6 @@ from sqlalchemy.sql import expression as expr
 from neutron.db import l3_db
 from neutron.db import models_v2
 from neutron.extensions import l3
-from neutron.plugins.common import constants
 
 from neutron_lib import constants as l3_constants
 from neutron_lib import exceptions as n_exc
@@ -566,4 +565,4 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
 
     @property
     def _l3_plugin(self):
-        return bc.get_plugin(constants.L3_ROUTER_NAT)
+        return bc.get_plugin(bc.constants.L3)

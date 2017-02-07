@@ -274,7 +274,7 @@ class ClientEntry(object):
         data = {'clientClassName': 'openstack-client-class',
                 'name': name,
                 'hostName': hostname,
-                'domainName': cfg.CONF.dhcp_domain,
+                'domainName': cfg.CONF.dns_domain,
                 'reservedAddresses': addrs,
                 'embeddedPolicy': policy.data,
                 'userDefined': netportid}
@@ -335,7 +335,7 @@ class Policy(object):
         if static_routes:
             options.append(('classless-static-routes', static_routes))
         extra_options = {'dhcp-lease-time': str(cfg.CONF.dhcp_lease_duration),
-                         'domain-name': cfg.CONF.dhcp_domain}
+                         'domain-name': cfg.CONF.dns_domain}
         for option in extra_options.items():
             options.append(option)
 
@@ -456,7 +456,7 @@ class ForwardZone(object):
     def from_neutron(cls, network):
         email = cfg.CONF.cisco_pnr.admin_email.replace('@', '.') + '.'
         viewid = View.net_to_view_id(network.id)
-        data = {'origin': cfg.CONF.dhcp_domain + '.',
+        data = {'origin': cfg.CONF.dns_domain + '.',
                 'nameservers': {'stringItem': ['localhost.']},
                 'ns': 'localhost.',
                 'person': email,
@@ -550,7 +550,7 @@ class Host(object):
     def from_neutron(cls, network, addr):
         viewid = View.net_to_view_id(network.id)
         data = {'name': cls.addr_to_hostname(addr),
-                'zoneOrigin': cfg.CONF.dhcp_domain + '.',
+                'zoneOrigin': cfg.CONF.dns_domain + '.',
                 'addrs': {'stringItem': [addr]}}
         return cls(data, viewid)
 

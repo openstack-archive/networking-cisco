@@ -16,13 +16,12 @@ import sqlalchemy as sa
 from sqlalchemy import orm
 
 from neutron.db import l3_db
-from neutron.db import models_v2
 
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.db.device_manager import hd_models
 
 
-class RouterType(bc.model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
+class RouterType(bc.model_base.BASEV2, bc.model_base.HasId, bc.HasProject):
     """Represents Neutron router types.
 
     A router type is associated with a with hosting device template.

@@ -16,8 +16,6 @@
 
 import sqlalchemy as sa
 
-from neutron.db import models_v2
-
 from networking_cisco import backwards_compatibility as bc
 
 
@@ -86,7 +84,7 @@ class NexusVxlanAllocation(bc.model_base.BASEV2):
                           server_default=sa.sql.false())
 
 
-class NexusMcastGroup(bc.model_base.BASEV2, models_v2.HasId):
+class NexusMcastGroup(bc.model_base.BASEV2, bc.model_base.HasId):
 
     __tablename__ = 'ml2_nexus_vxlan_mcast_groups'
 

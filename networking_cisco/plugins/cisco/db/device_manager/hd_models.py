@@ -21,8 +21,8 @@ from neutron.db import models_v2
 from networking_cisco import backwards_compatibility as bc
 
 
-class HostingDeviceTemplate(bc.model_base.BASEV2, models_v2.HasId,
-                            models_v2.HasTenant):
+class HostingDeviceTemplate(bc.model_base.BASEV2, bc.model_base.HasId,
+                            bc.HasProject):
     """Represents a template for devices used to host service.
 
        Such devices may be physical or virtual.
@@ -71,8 +71,8 @@ class HostingDeviceTemplate(bc.model_base.BASEV2, models_v2.HasId,
     plugging_driver = sa.Column(sa.String(255), nullable=False)
 
 
-class HostingDevice(bc.model_base.BASEV2, models_v2.HasId,
-                    models_v2.HasTenant):
+class HostingDevice(bc.model_base.BASEV2, bc.model_base.HasId,
+                    bc.HasProject):
     """Represents an appliance hosting Neutron router(s).
 
        When the hosting device is a Nova VM 'id' is uuid of that VM.

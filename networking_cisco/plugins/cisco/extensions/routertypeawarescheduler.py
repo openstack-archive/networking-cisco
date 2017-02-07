@@ -19,7 +19,6 @@ from neutron.api.v2 import base
 from neutron.api.v2 import resource
 from neutron.common import rpc as n_rpc
 from neutron.extensions import l3
-from neutron.plugins.common import constants as svc_constants
 from neutron import policy
 from neutron import wsgi
 from neutron_lib.api import converters as conv
@@ -76,7 +75,7 @@ SHARE_HOST_ATTR = ROUTERTYPE_AWARE_SCHEDULER_ALIAS + ':share_hosting_device'
 
 class RouterHostingDeviceSchedulerController(wsgi.Controller):
     def get_plugin(self):
-        plugin = bc.get_plugin(svc_constants.L3_ROUTER_NAT)
+        plugin = bc.get_plugin(bc.constants.L3)
         if not plugin:
             LOG.error(_LE('No L3 router service plugin registered to '
                           'handle routertype-aware scheduling'))
@@ -115,7 +114,7 @@ class RouterHostingDeviceSchedulerController(wsgi.Controller):
 
 class HostingDevicesHostingRouterController(wsgi.Controller):
     def get_plugin(self):
-        plugin = bc.get_plugin(svc_constants.L3_ROUTER_NAT)
+        plugin = bc.get_plugin(bc.constants.L3)
         if not plugin:
             LOG.error(_LE('No L3 router service plugin registered to '
                           'handle routertype-aware scheduling'))
