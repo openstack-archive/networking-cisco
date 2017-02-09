@@ -12,8 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from neutron.db.migration.models import head
-
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.db.device_manager import (  # noqa
     hd_models)
 from networking_cisco.plugins.cisco.db.l3 import (  # noqa
@@ -31,4 +30,4 @@ from networking_cisco.plugins.ml2.drivers.cisco.ucsm import (  # noqa
 
 
 def get_metadata():
-    return head.model_base.BASEV2.metadata
+    return bc.model_base.BASEV2.metadata

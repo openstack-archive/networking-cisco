@@ -22,11 +22,11 @@ from sqlalchemy import event
 
 from neutron.db.migration.alembic_migrations import external
 from neutron.db.migration.models import head  # noqa
-from neutron.db import model_base
+
+from networking_cisco import backwards_compatibility as bc
 
 from networking_cisco.db.migration import alembic_migrations
 from networking_cisco.db.migration.models import head  # noqa
-
 
 MYSQL_ENGINE = None
 
@@ -40,7 +40,7 @@ neutron_config = config.neutron_config
 logging_config.fileConfig(config.config_file_name)
 
 # set the target for 'autogenerate' support
-target_metadata = model_base.BASEV2.metadata
+target_metadata = bc.model_base.BASEV2.metadata
 
 
 def set_mysql_engine():
@@ -51,7 +51,7 @@ def set_mysql_engine():
 
     global MYSQL_ENGINE
     MYSQL_ENGINE = (mysql_engine or
-                    model_base.BASEV2.__table_args__['mysql_engine'])
+                    bc.model_base.BASEV2.__table_args__['mysql_engine'])
 
 
 def include_object(object, name, type_, reflected, compare_to):
