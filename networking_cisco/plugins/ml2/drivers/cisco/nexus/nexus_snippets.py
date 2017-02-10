@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2016 Cisco Systems, Inc.
+# Copyright (c) 2013-2017 Cisco Systems, Inc.
 # All rights reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -31,10 +31,6 @@ EXEC_CONF_SNIPPET = """
 
 EXEC_GET_INTF_SNIPPET = """
     <cmd>show running-config interface %s %s</cmd>
-"""
-
-EXEC_GET_VERSION_SNIPPET = """
-    <cmd>show version</cmd>
 """
 
 EXEC_GET_INVENTORY_SNIPPET = """

@@ -115,21 +115,89 @@ class TestCiscoNexusVxlanDeviceConfig(object):
 
     test_configs = collections.OrderedDict(sorted(test_configs.items()))
 
-    # The following contains desired Nexus output for some basic config above.
-    add_port_driver_result = (
-        [test_cisco_nexus_base.RESULT_ADD_NVE_INTERFACE.
-            format(1, 70000, '255.1.1.1'),
-        test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
-            format(267, 70000),
-        test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-            format('ethernet', '1\/10', 267)])
 
-    delete_port_driver_result = (
-        [test_cisco_nexus_base.RESULT_DEL_NVE_INTERFACE.
-            format(1, 70000, 267),
-        test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-            format('ethernet', '1\/10', 267),
-        test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)])
+class TestCiscoNexusVxlanResults(
+    test_cisco_nexus_base.TestCiscoNexusBaseResults):
+
+    """Unit tests driver results for Cisco ML2 Nexus."""
+
+    test_results = {
+
+        # The following contains desired Nexus output for
+        # some basic config above.
+        'add_port_driver_result': (
+            [test_cisco_nexus_base.RESULT_ADD_NVE_INTERFACE.
+                format(1, 70000, '255.1.1.1'),
+            test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
+                format(267, 70000),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', 267)]),
+
+        'delete_port_driver_result': (
+            [test_cisco_nexus_base.RESULT_DEL_NVE_INTERFACE.
+                format(1, 70000, 267),
+            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/10', 267),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)]),
+
+        'add_port2_driver_result': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
+                format(267, 70000),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/20', 267)]),
+
+        'delete_port2_driver_result': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/20', 267)]),
+
+        'add_port_driver_result3': (
+            [test_cisco_nexus_base.RESULT_ADD_NVE_INTERFACE.
+                format(1, 70000, '255.1.1.1'),
+            test_cisco_nexus_base.RESULT_ADD_NVE_INTERFACE.
+                format(1, 70000, '255.1.1.1'),
+            test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
+                format(267, 70000),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', 267),
+            test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
+                format(267, 70000),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/2', 267),
+            test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
+                format(267, 70000),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/3', 267)]),
+
+        'delete_port_driver_result3': (
+            [test_cisco_nexus_base.RESULT_DEL_NVE_INTERFACE.
+                format(1, 70000, 267),
+             test_cisco_nexus_base.RESULT_DEL_NVE_INTERFACE.
+                format(1, 70000, 267),
+            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/10', 267),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267),
+            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/2', 267),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267),
+            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/3', 267)]),
+
+        'add_port_driver_result2': (
+            [test_cisco_nexus_base.RESULT_ADD_NVE_INTERFACE.
+                format(1, 70001, '255.1.1.1'),
+            test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
+                format(265, 70001),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/20', 265)]),
+
+        'delete_port_driver_result2': (
+            [test_cisco_nexus_base.RESULT_DEL_NVE_INTERFACE.
+                format(1, 70001, 265),
+            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/20', 265),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)])
+
+    }
 
 
 class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
@@ -144,6 +212,7 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
         super(TestCiscoNexusVxlanDevice, self).setUp()
         self.mock_ncclient.reset_mock()
         self.addCleanup(self._clear_nve_db)
+        self.results = TestCiscoNexusVxlanResults()
 
     def _clear_nve_db(self):
         nexus_db_v2.remove_all_nexusnve_bindings()
@@ -193,23 +262,16 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
     def test_nexus_vxlan_one_network_two_hosts(self):
         """Tests creation and deletion of two new virtual Ports."""
 
-        add_port2_driver_result = (
-            [test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
-                format(267, 70000),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/20', 267)])
-
-        delete_port2_driver_result = (
-            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/20', 267)])
-
         self._basic_create_verify_port_vlan(
             'test_vxlan_config1',
-            self.add_port_driver_result)
+            self.results.get_test_results(
+                'add_port_driver_result'))
 
         self._create_port(
             self.test_configs['test_vxlan_config2'])
-        self._verify_results(add_port2_driver_result)
+        self._verify_results(
+            self.results.get_test_results(
+                'add_port2_driver_result'))
 
         bindings = nexus_db_v2.get_nexusvlan_binding(
                        test_cisco_nexus_base.VLAN_ID_1,
@@ -222,11 +284,14 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
 
         self._basic_delete_verify_port_vlan(
             'test_vxlan_config2',
-            delete_port2_driver_result, nbr_of_bindings=1)
+            self.results.get_test_results(
+                'delete_port2_driver_result'),
+            nbr_of_bindings=1)
 
         self._basic_delete_verify_port_vlan(
             'test_vxlan_config1',
-            self.delete_port_driver_result)
+            self.results.get_test_results(
+                'delete_port_driver_result'))
 
     def test_nexus_missing_vxlan_fields(self):
         """Test handling of a VXLAN NexusMissingRequiredFields exception.
@@ -324,44 +389,13 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
     def test_nexus_vxlan_one_network(self):
         """Test processing for creating one VXLAN segment."""
 
-        add_port_driver_result3 = (
-            [test_cisco_nexus_base.RESULT_ADD_NVE_INTERFACE.
-                format(1, 70000, '255.1.1.1'),
-            test_cisco_nexus_base.RESULT_ADD_NVE_INTERFACE.
-                format(1, 70000, '255.1.1.1'),
-            test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
-                format(267, 70000),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/10', 267),
-            test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
-                format(267, 70000),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/2', 267),
-            test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
-                format(267, 70000),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/3', 267)])
-
-        delete_port_driver_result3 = (
-            [test_cisco_nexus_base.RESULT_DEL_NVE_INTERFACE.
-                format(1, 70000, 267),
-             test_cisco_nexus_base.RESULT_DEL_NVE_INTERFACE.
-                format(1, 70000, 267),
-            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/10', 267),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267),
-            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/2', 267),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267),
-            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/3', 267)])
-
         # Since test_vxlan_config3 & test_vxlan_config4 share
         # the same host name they both get processed in the
         # next call.
         self._basic_create_verify_port_vlan(
             'test_vxlan_config3',
-            add_port_driver_result3)
+            self.results.get_test_results(
+                'add_port_driver_result3'))
 
         for switch_ip, nbr_bind in [
             (test_cisco_nexus_base.NEXUS_IP_ADDRESS_1, 1),
@@ -378,7 +412,8 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
         # next call.
         self._basic_delete_verify_port_vlan(
             'test_vxlan_config3',
-            delete_port_driver_result3)
+            self.results.get_test_results(
+                'delete_port_driver_result3'))
 
         for switch_ip in [
             test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
@@ -399,29 +434,17 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
     def test_nexus_vxlan_two_network(self):
         """Test processing for creating one VXLAN segment."""
 
-        add_port_driver_result2 = (
-            [test_cisco_nexus_base.RESULT_ADD_NVE_INTERFACE.
-                format(1, 70001, '255.1.1.1'),
-            test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
-                format(265, 70001),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/20', 265)])
-
-        delete_port_driver_result2 = (
-            [test_cisco_nexus_base.RESULT_DEL_NVE_INTERFACE.
-                format(1, 70001, 265),
-            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/20', 265),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)])
-
         self._basic_create_verify_port_vlan(
             'test_vxlan_config5',
-            self.add_port_driver_result)
+            self.results.get_test_results(
+                'add_port_driver_result'))
 
         self._create_port(
             self.test_configs['test_vxlan_config6'],
             override_netid=888)
-        self._verify_results(add_port_driver_result2)
+        self._verify_results(
+            self.results.get_test_results(
+                'add_port_driver_result2'))
 
         binding = nexus_db_v2.get_nve_switch_bindings(
             test_cisco_nexus_base.NEXUS_IP_ADDRESS_1)
@@ -433,11 +456,14 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
 
         self._basic_delete_verify_port_vlan(
             'test_vxlan_config6',
-            delete_port_driver_result2, nbr_of_bindings=1)
+            self.results.get_test_results(
+                'delete_port_driver_result2'),
+            nbr_of_bindings=1)
 
         self._basic_delete_verify_port_vlan(
             'test_vxlan_config5',
-            self.delete_port_driver_result)
+            self.results.get_test_results(
+                'delete_port_driver_result'))
 
         try:
             binding = nexus_db_v2.get_nve_switch_bindings(

@@ -45,6 +45,11 @@ ml2_cisco_opts = [
     cfg.BoolOpt('host_key_checks', default=False,
                 help=_("Enable strict host key checks when "
                        "connecting to Nexus switches")),
+    cfg.StrOpt('nexus_driver',
+               default='ncclient',
+               help=_("Choice of Nexus Config Driver to be loaded from "
+                      "the networking_cisco.ml2.nexus_driver namespace.")),
+
 ]
 
 

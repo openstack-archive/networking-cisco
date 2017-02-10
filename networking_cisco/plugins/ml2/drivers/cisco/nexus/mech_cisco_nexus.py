@@ -30,6 +30,7 @@ from oslo_utils import excutils
 
 from networking_cisco import backwards_compatibility as bc
 
+from neutron.common import utils as neutron_utils
 from neutron.extensions import portbindings
 from neutron.plugins.common import constants as p_const
 
@@ -49,8 +50,6 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     exceptions as excep)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_db_v2 as nxos_db)
-from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
-    nexus_network_driver)
 
 LOG = logging.getLogger(__name__)
 
@@ -156,6 +155,16 @@ class CiscoNexusCfgMonitor(object):
             return
 
         nve_bindings = nxos_db.get_nve_switch_bindings(switch_ip)
+
+        # If configured to set global VXLAN values and
+        # there exists VXLAN data base entries, then configure
+        # the "interface nve" entry on the switch.
+        if (len(nve_bindings) > 0 and
+           cfg.CONF.ml2_cisco.vxlan_global_config):
+            LOG.debug("Nexus: Replay NVE Interface")
+            loopback = self._mdriver.get_nve_loopback(switch_ip)
+            self._driver.enable_vxlan_feature(switch_ip,
+                const.NVE_INT_NUM, loopback)
 
         for x in nve_bindings:
             try:
@@ -271,6 +280,21 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
     """Cisco Nexus ML2 Mechanism Driver."""
 
+    def _load_nexus_cfg_driver(self):
+        """Load Nexus Config driver.
+        :raises SystemExit of 1 if driver cannot be loaded
+        """
+
+        try:
+            loaded_class = neutron_utils.load_class_by_alias_or_classname(
+                'networking_cisco.ml2.nexus_driver',
+                conf.cfg.CONF.ml2_cisco.nexus_driver)
+            return loaded_class()
+        except ImportError:
+            LOG.error(_LE("Error loading Nexus Config driver '%s'"),
+                      conf.cfg.CONF.ml2_cisco.nexus_driver)
+            raise SystemExit(1)
+
     def initialize(self):
         # Create ML2 device dictionary from ml2_conf.ini entries.
         conf.ML2MechCiscoConfig()
@@ -278,10 +302,11 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         # Extract configuration parameters from the configuration file.
         self._nexus_switches = conf.ML2MechCiscoConfig.nexus_dict
         LOG.debug("nexus_switches found = %s", self._nexus_switches)
+
         # Save dynamic switch information
         self._switch_state = {}
 
-        self.driver = nexus_network_driver.CiscoNexusDriver()
+        self.driver = self._load_nexus_cfg_driver()
 
         # This method is only called once regardless of number of
         # api/rpc workers defined.
@@ -1059,6 +1084,10 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 nxos_db.add_nexusnve_binding(vni, switch_ip, device_id,
                                              mcast_group)
 
+    def get_nve_loopback(self, switch_ip):
+        return self._nexus_switches.get(
+            (switch_ip, 'nve_src_intf'), '0')
+
     def _configure_nve_member(self, vni, device_id, mcast_group, host_id):
         """Add "member vni" configuration to the NVE interface.
 
@@ -1075,8 +1104,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 nve_bindings = nxos_db.get_nve_switch_bindings(switch_ip)
                 if len(nve_bindings) == 1:
                     LOG.debug("Nexus: create NVE interface")
-                    loopback = self._nexus_switches.get(
-                                        (switch_ip, 'nve_src_intf'), '0')
+                    loopback = self.get_nve_loopback(switch_ip)
                     self.driver.enable_vxlan_feature(switch_ip,
                         const.NVE_INT_NUM, loopback)
 
@@ -1177,7 +1205,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 nexus_port, vni, is_native)
         elif auto_create:
             LOG.debug("Nexus: create vlan %s", vlan_name)
-            self.driver.create_vlan_segment(switch_ip, vlan_id,
+            self.driver.create_vlan(switch_ip, vlan_id,
                                     vlan_name, vni)
         elif auto_trunk:
             LOG.debug("Nexus: trunk vlan %s", vlan_name)
@@ -1234,10 +1262,20 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
     def _restore_port_binding(self,
                              switch_ip, pvlan_ids,
-                             port, is_native):
+                             port, native_vlan):
         """Restores a set of vlans for a given port."""
 
         intf_type, nexus_port = self.split_interface_name(port)
+
+        # If native_vlan is configured, this is isolated since
+        # two configs (native + trunk) must be sent for this vlan only.
+        if native_vlan != 0:
+            self.driver.send_enable_vlan_on_trunk_int(
+                switch_ip, native_vlan,
+                intf_type, nexus_port, True)
+            # If this is the only vlan
+            if len(pvlan_ids) == 1:
+                return
 
         concat_vlans = ''
         compressed_vlans = self._get_compressed_vlan_list(pvlan_ids)
@@ -1252,14 +1290,14 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             if len(concat_vlans) >= const.CREATE_PORT_VLAN_LENGTH:
                 self.driver.send_enable_vlan_on_trunk_int(
                     switch_ip, concat_vlans,
-                    intf_type, nexus_port, is_native)
+                    intf_type, nexus_port, False)
                 concat_vlans = ''
 
         # Send remaining vlans if any
         if len(concat_vlans):
             self.driver.send_enable_vlan_on_trunk_int(
                     switch_ip, concat_vlans,
-                    intf_type, nexus_port, is_native)
+                    intf_type, nexus_port, False)
 
     def _restore_vxlan_entries(self, switch_ip, vlans):
         """Restore vxlan entries on a Nexus switch."""
@@ -1267,24 +1305,30 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         count = 1
         conf_str = ''
         vnsegment_sent = 0
+        path_str, conf_str = self.driver.start_create_vlan()
         # At this time, this will only configure vni information when needed
         while vnsegment_sent < const.CREATE_VLAN_BATCH and vlans:
             vlan_id, vni, vlan_name = vlans.pop(0)
             # Add it to the batch
-            conf_str += self.driver.get_create_vlan(
-                            switch_ip, vlan_id, vni)
+            conf_str = self.driver.get_create_vlan(
+                switch_ip, vlan_id, vni, conf_str)
+            # batch size has been met
             if (count == const.CREATE_VLAN_SEND_SIZE):
-                self.driver.send_edit_string(switch_ip, conf_str)
+                conf_str = self.driver.end_create_vlan(conf_str)
+                self.driver.send_edit_string(switch_ip, path_str, conf_str)
                 vnsegment_sent += count
                 conf_str = ''
                 count = 1
             else:
                 count += 1
 
+        # batch size was not met
         if conf_str:
             vnsegment_sent += count
-            self.driver.send_edit_string(switch_ip, conf_str)
+            conf_str = self.driver.end_create_vlan(conf_str)
+            self.driver.send_edit_string(switch_ip, path_str, conf_str)
             conf_str = ''
+
         LOG.debug("Switch %s VLAN vn-segment replay summary: %d",
                   switch_ip, vnsegment_sent)
 
@@ -1391,7 +1435,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         prev_vlan = -1
         prev_vni = -1
         prev_port = None
-        prev_is_native = False
+        prev_native_vlan = 0
         starttime = time.time()
 
         port_bindings.sort(key=lambda x: (x.port_id, x.vlan_id, x.vni))
@@ -1422,6 +1466,8 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                         vlans.add((port.vlan_id, port.vni, vlan_name))
                     if auto_trunk:
                         pvlans.add(port.vlan_id)
+                    if port.is_native:
+                        prev_native_vlan = port.vlan_id
             else:
                 # Different port - write out interface trunk on previous port
                 if prev_port:
@@ -1433,22 +1479,24 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 vlan_count = 0
                 if pvlans:
                     self._restore_port_binding(
-                        switch_ip, pvlans, prev_port, prev_is_native)
+                        switch_ip, pvlans, prev_port, prev_native_vlan)
                     pvlans.clear()
+                    prev_native_vlan = 0
                 # Start tracking new port
                 if auto_create:
                     vlans.add((port.vlan_id, port.vni, vlan_name))
                 if auto_trunk:
                     pvlans.add(port.vlan_id)
                 prev_port = port.port_id
-                prev_is_native = port.is_native
+                if port.is_native:
+                    prev_native_vlan = port.vlan_id
 
         if pvlans:
             LOG.debug("Switch %s port %s replay summary: unique vlan "
                       "count %d, duplicate port entries %d",
                       switch_ip, port.port_id, vlan_count, duplicate_port)
             self._restore_port_binding(
-                switch_ip, pvlans, prev_port, prev_is_native)
+                switch_ip, pvlans, prev_port, prev_native_vlan)
 
         LOG.debug("Replayed total %d ports for Switch %s",
                   interface_count + 1, switch_ip)

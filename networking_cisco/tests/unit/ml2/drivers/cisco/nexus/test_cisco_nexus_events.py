@@ -34,7 +34,7 @@ CONNECT_ERROR = 'Unable to connect to Nexus'
 
 class TestCiscoNexusDeviceConfig(object):
 
-    """Unit tests for Cisco ML2 Nexus device driver."""
+    """Unit tests Config for Cisco ML2 Nexus device driver."""
 
     test_configs = {
         'test_config1':
@@ -185,20 +185,105 @@ class TestCiscoNexusDeviceConfig(object):
 
     test_configs = collections.OrderedDict(sorted(test_configs.items()))
 
-    # The following contains desired Nexus output for some basic config above.
-    duplicate_add_port_driver_result = (
-        [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
-        test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-            format('ethernet', '1\/10', 267)])
 
-    duplicate_delete_port_driver_result = (
-        [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-            format('ethernet', '1\/10', 267),
-        test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)])
+class TestCiscoNexusDeviceResults(
+    test_cisco_nexus_base.TestCiscoNexusBaseResults):
+
+    """Unit tests driver results for Cisco ML2 Nexus."""
+
+    test_results = {
+
+        'duplicate_add_port_driver_result': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', 267)]),
+
+        'duplicate_del_port_driver_result': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/10', 267),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)]),
+
+        'add_port2_driver_result': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(265),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/20', 265)]),
+
+        'delete_port2_driver_result': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+            format('ethernet', '1\/20', 265),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)]),
+
+        'add_port2_driver_result2': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/20', 267)]),
+
+        'delete_port2_driver_result2': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+            format('ethernet', '1\/20', 267)]),
+
+        'add_port2_driver_result3': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(268),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('portchannel', '2', 268),
+            test_cisco_nexus_base.RESULT_ADD_VLAN.format(268),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('portchannel', '2', 268)]),
+
+        'delete_port2_driver_result3': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+            format('portchannel', '2', 268),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(268),
+            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('portchannel', '2', 268),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(268)]),
+
+        'add_port_channel_driver_result': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(268),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('portchannel', '2', 268)]),
+
+        'delete_port_channel_driver_result': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('portchannel', '2', 268),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(268)]),
+
+        'dual_add_port_driver_result': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(269),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/3', 269),
+            test_cisco_nexus_base.RESULT_ADD_VLAN.format(269),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('portchannel', '2', 269)]),
+
+        'dual_delete_port_driver_result': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/3', 269),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(269),
+            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('portchannel', '2', 269)]),
+
+        'migrate_add_host2_driver_result': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/20', 267)]),
+
+        'add_port_driver_result': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', 267)]),
+
+        'del_port_driver_result': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/10', 267),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)]),
+
+    }
 
 
 class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase,
-                           TestCiscoNexusDeviceConfig):
+                           TestCiscoNexusDeviceConfig,
+                           TestCiscoNexusDeviceResults):
 
     """Unit tests for Cisco ML2 Nexus device driver."""
 
@@ -208,13 +293,15 @@ class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase,
         cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
         super(TestCiscoNexusDevice, self).setUp()
         self.mock_ncclient.reset_mock()
+        self.results = TestCiscoNexusDeviceResults()
 
     def test_create_delete_duplicate_ports(self):
         """Tests creation and deletion of two new virtual Ports."""
 
         self._basic_create_verify_port_vlan(
             'test_config1',
-            self.duplicate_add_port_driver_result)
+            self.results.get_test_results('duplicate_add_port_driver_result')
+        )
 
         self._create_port(
             self.test_configs['test_config3'])
@@ -245,14 +332,15 @@ class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase,
 
         self._basic_delete_verify_port_vlan(
             'test_config3',
-            self.duplicate_delete_port_driver_result)
+            self.results.get_test_results('duplicate_del_port_driver_result'))
 
     def test_create_delete_duplicate_port_transaction(self):
         """Tests creation and deletion same port transaction."""
 
         self._basic_create_verify_port_vlan(
             'test_config1',
-            self.duplicate_add_port_driver_result)
+            self.results.get_test_results('duplicate_add_port_driver_result')
+        )
 
         self.assertEqual(
             1, len(nexus_db_v2.get_nexusport_switch_bindings(
@@ -260,7 +348,9 @@ class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase,
 
         self._create_port(
             self.test_configs['test_config1'])
-        self._verify_results(self.duplicate_add_port_driver_result)
+        self._verify_results(
+            self.results.get_test_results('duplicate_add_port_driver_result')
+        )
 
         self.assertEqual(
             1, len(nexus_db_v2.get_nexusport_switch_bindings(
@@ -272,32 +362,24 @@ class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase,
 
         self._basic_delete_verify_port_vlan(
             'test_config1',
-            self.duplicate_delete_port_driver_result,
+            self.results.get_test_results('duplicate_del_port_driver_result'),
             nbr_of_bindings=0)
 
         self._basic_delete_verify_port_vlan(
             'test_config1',
-            self.duplicate_delete_port_driver_result)
+            self.results.get_test_results('duplicate_del_port_driver_result'))
 
     def test_create_delete_same_switch_diff_hosts_diff_vlan(self):
         """Test create/delete two Ports, same switch/diff host & vlan."""
 
-        add_port2_driver_result = (
-            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(265),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/20', 265)])
-        delete_port2_driver_result = (
-            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-            format('ethernet', '1\/20', 265),
-        test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)])
-
         self._basic_create_verify_port_vlan(
             'test_config1',
-            self.duplicate_add_port_driver_result)
+            self.results.get_test_results('duplicate_add_port_driver_result'))
 
         self._create_port(
             self.test_configs['test_config2'])
-        self._verify_results(add_port2_driver_result)
+        self._verify_results(
+            self.results.get_test_results('add_port2_driver_result'))
 
         # Verify there are 2 port configs
         bindings = nexus_db_v2.get_nexusport_switch_bindings(
@@ -310,31 +392,24 @@ class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase,
 
         self._basic_delete_verify_port_vlan(
             'test_config2',
-            delete_port2_driver_result,
+            self.results.get_test_results('delete_port2_driver_result'),
             nbr_of_bindings=1)
 
         self._basic_delete_verify_port_vlan(
             'test_config1',
-            self.duplicate_delete_port_driver_result)
+            self.results.get_test_results('duplicate_del_port_driver_result'))
 
     def test_create_delete_same_switch_diff_hosts_same_vlan(self):
         """Test create/delete two Ports, same switch & vlan/diff host."""
 
-        add_port2_driver_result = (
-            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/20', 267)])
-        delete_port2_driver_result = (
-            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-            format('ethernet', '1\/20', 267)])
-
         self._basic_create_verify_port_vlan(
             'test_config4',
-            self.duplicate_add_port_driver_result)
+            self.results.get_test_results('add_port_driver_result'))
 
         self._create_port(
             self.test_configs['test_config5'])
-        self._verify_results(add_port2_driver_result)
+        self._verify_results(
+            self.results.get_test_results('add_port2_driver_result2'))
 
         # Verify there are 2 port configs
         bindings = nexus_db_v2.get_nexusport_switch_bindings(
@@ -347,34 +422,19 @@ class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase,
 
         self._basic_delete_verify_port_vlan(
             'test_config5',
-            delete_port2_driver_result,
+            self.results.get_test_results('delete_port2_driver_result2'),
             nbr_of_bindings=1)
 
         self._basic_delete_verify_port_vlan(
             'test_config4',
-            self.duplicate_delete_port_driver_result)
+            self.results.get_test_results('del_port_driver_result'))
 
     def test_create_delete_diff_switch_same_host(self):
         """Test create/delete of two Ports, diff switch/same host."""
 
-        add_port2_driver_result = (
-            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(268),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('portchannel', '2', 268),
-            test_cisco_nexus_base.RESULT_ADD_VLAN.format(268),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('portchannel', '2', 268)])
-        delete_port2_driver_result = (
-            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-            format('portchannel', '2', 268),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(268),
-            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('portchannel', '2', 268),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(268)])
-
         self._basic_create_verify_port_vlan(
             'test_config_portchannel2',
-            add_port2_driver_result)
+            self.results.get_test_results('add_port2_driver_result3'))
 
         # Verify there are 2 port configs. One per switch.
         bindings = nexus_db_v2.get_nexusport_switch_bindings(
@@ -392,60 +452,35 @@ class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase,
         # first port removal.
         self._basic_delete_verify_port_vlan(
             'test_config_portchannel2',
-            delete_port2_driver_result)
+            self.results.get_test_results('delete_port2_driver_result3'))
 
     def test_create_delete_portchannel(self):
         """Tests creation of a port over a portchannel."""
 
-        duplicate_add_port_driver_result = (
-            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(268),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('portchannel', '2', 268)])
-
-        duplicate_delete_port_driver_result = (
-            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('portchannel', '2', 268),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(268)])
-
         self._create_delete_port(
             'test_config_portchannel',
-            duplicate_add_port_driver_result,
-            duplicate_delete_port_driver_result)
+            self.results.get_test_results('add_port_channel_driver_result'),
+            self.results.get_test_results('delete_port_channel_driver_result'))
 
     def test_create_delete_dual(self):
         """Tests creation and deletion of dual ports for single server"""
 
-        duplicate_add_port_driver_result = (
-            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(269),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/3', 269),
-            test_cisco_nexus_base.RESULT_ADD_VLAN.format(269),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('portchannel', '2', 269)])
-
-        duplicate_delete_port_driver_result = (
-            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/3', 269),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(269),
-            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('portchannel', '2', 269)])
-
         self._basic_create_verify_port_vlan(
             'test_config_dual',
-            duplicate_add_port_driver_result,
+            self.results.get_test_results('dual_add_port_driver_result'),
             nbr_of_bindings=2)
 
         self._basic_delete_verify_port_vlan(
             'test_config_dual',
-            duplicate_delete_port_driver_result)
+            self.results.get_test_results('dual_delete_port_driver_result'))
 
     def test_create_delete_dhcp(self):
         """Tests creation and deletion of ports with device_owner of dhcp."""
 
         self._create_delete_port(
             'test_config_dhcp',
-            self.duplicate_add_port_driver_result,
-            self.duplicate_delete_port_driver_result)
+            self.results.get_test_results('duplicate_add_port_driver_result'),
+            self.results.get_test_results('duplicate_del_port_driver_result'))
 
     def test_create_delete_router_ha_intf(self):
         """Tests creation and deletion of ports with device_owner
@@ -454,8 +489,95 @@ class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase,
 
         self._create_delete_port(
             'test_config_router_ha_intf',
-            self.duplicate_add_port_driver_result,
-            self.duplicate_delete_port_driver_result)
+            self.results.get_test_results('duplicate_add_port_driver_result'),
+            self.results.get_test_results('duplicate_del_port_driver_result'))
+
+    def test_nexus_vm_migration(self):
+        """Verify VM (live) migration.
+
+        Simulate the following:
+        Nova informs neutron of live-migration with port-update(new host).
+        This should trigger two update_port_pre/postcommit() calls.
+
+        The first one should only change the current host_id and remove the
+        binding resulting in the mechanism drivers receiving:
+          PortContext.original['binding:host_id']: previous value
+          PortContext.original_top_bound_segment: previous value
+          PortContext.current['binding:host_id']: current (new) value
+          PortContext.top_bound_segment: None
+
+        The second one binds the new host resulting in the mechanism
+        drivers receiving:
+          PortContext.original['binding:host_id']: previous value
+          PortContext.original_top_bound_segment: None
+          PortContext.current['binding:host_id']: previous value
+          PortContext.top_bound_segment: new value
+        """
+
+        self._basic_create_verify_port_vlan(
+            'test_config1',
+            self.results.get_test_results('duplicate_add_port_driver_result'))
+        binding = nexus_db_v2.get_nexusvm_bindings(
+            test_cisco_nexus_base.VLAN_ID_1,
+            test_cisco_nexus_base.INSTANCE_1)[0]
+        self.assertEqual(
+            test_cisco_nexus_base.NEXUS_PORT_1,
+            binding.port_id)
+
+        port_context = self._generate_port_context(
+            self.test_configs['test_config_migrate'],
+            unbind_port=True)
+        port_cfg = self.test_configs['test_config1']
+        port_context.set_orig_port(
+            port_cfg.instance_id,
+            port_cfg.host_name,
+            port_cfg.device_owner,
+            port_cfg.profile,
+            port_cfg.vnic_type,
+            test_cisco_nexus_base.NETID)
+
+        self._cisco_mech_driver.create_port_postcommit(port_context)
+        self._cisco_mech_driver.update_port_precommit(port_context)
+        self._cisco_mech_driver.update_port_postcommit(port_context)
+
+        # Verify that port entry has been deleted.
+        self.assertRaises(
+            exceptions.NexusPortBindingNotFound,
+            nexus_db_v2.get_nexusvm_bindings,
+            test_cisco_nexus_base.VLAN_ID_1,
+            test_cisco_nexus_base.INSTANCE_1)
+
+        # Clean all the ncclient mock_calls to clear exception
+        # and other mock_call history.
+        self.mock_ncclient.reset_mock()
+
+        self._basic_create_verify_port_vlan(
+            'test_config_migrate',
+            self.results.get_test_results('migrate_add_host2_driver_result'))
+
+        # Verify that port entry has been added using new host name.
+        # Use port_id to verify that 2nd host name was used.
+        binding = nexus_db_v2.get_nexusvm_bindings(
+            test_cisco_nexus_base.VLAN_ID_1,
+            test_cisco_nexus_base.INSTANCE_1)[0]
+        self.assertEqual(
+            test_cisco_nexus_base.NEXUS_PORT_2,
+            binding.port_id)
+
+
+class TestCiscoNexusDeviceFailure(test_cisco_nexus_base.TestCiscoNexusBase,
+                           TestCiscoNexusDeviceConfig,
+                           TestCiscoNexusDeviceResults):
+
+    """Negative Unit tests for Cisco ML2 Nexus device driver."""
+
+    def setUp(self):
+        """Sets up mock ncclient, and switch and credentials dictionaries."""
+
+        cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
+        super(TestCiscoNexusDeviceFailure, self).setUp()
+        self.mock_ncclient.reset_mock()
+        self.results = TestCiscoNexusDeviceResults()
 
     def test_connect_failure(self):
         """Verifies exception handling during ncclient connect. """
@@ -743,7 +865,7 @@ class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase,
 
         # Mock to keep track of number of close_session calls.
         ncclient_close = mock.patch.object(
-            nexus_network_driver.CiscoNexusDriver,
+            nexus_network_driver.CiscoNexusSshDriver,
             '_close_session').start()
 
         # Clear out call_count changes during initialization activity
@@ -752,15 +874,15 @@ class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase,
         # Verify that ncclient is not closed by default.
         self._basic_create_verify_port_vlan(
             'test_config1',
-            self.duplicate_add_port_driver_result)
+            self.results.get_test_results('duplicate_add_port_driver_result'))
         assert not ncclient_close.called
 
         self._basic_delete_verify_port_vlan(
             'test_config1',
-            self.duplicate_delete_port_driver_result)
+            self.results.get_test_results('duplicate_del_port_driver_result'))
 
         # Patch to close ncclient session.
-        mock.patch.object(nexus_network_driver.CiscoNexusDriver,
+        mock.patch.object(nexus_network_driver.CiscoNexusSshDriver,
                           '_get_close_ssh_session',
                           return_value=True).start()
 
@@ -770,7 +892,8 @@ class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase,
         # after trunk interface calls.
         self._basic_create_verify_port_vlan(
             'test_config1',
-            self.duplicate_add_port_driver_result)
+            self.results.get_test_results(
+                'duplicate_add_port_driver_result'))
         self.assertEqual(2, ncclient_close.call_count)
 
     def test_nexus_extended_vlan_range_failure(self):
@@ -801,88 +924,53 @@ class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase,
         # is called in _create_port_valid_exception and caching enabled
         self.assertEqual(0, self.mock_ncclient.connect.call_count)
 
-    def test_nexus_vm_migration(self):
-        """Verify VM (live) migration.
 
-        Simulate the following:
-        Nova informs neutron of live-migration with port-update(new host).
-        This should trigger two update_port_pre/postcommit() calls.
+class TestCiscoNexusInitResults(
+    test_cisco_nexus_base.TestCiscoNexusBaseResults):
 
-        The first one should only change the current host_id and remove the
-        binding resulting in the mechanism drivers receiving:
-          PortContext.original['binding:host_id']: previous value
-          PortContext.original_top_bound_segment: previous value
-          PortContext.current['binding:host_id']: current (new) value
-          PortContext.top_bound_segment: None
+    """Unit tests driver results for Cisco ML2 Nexus."""
 
-        The second one binds the new host resulting in the mechanism
-        drivers receiving:
-          PortContext.original['binding:host_id']: previous value
-          PortContext.original_top_bound_segment: None
-          PortContext.current['binding:host_id']: previous value
-          PortContext.top_bound_segment: new value
-        """
-        migrate_add_host2_driver_result = (
-            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/20', 267)])
+    test_results = {
+        # set 1 - switch 1.1.1.1 sets eth 1/10 & 1/20 to None
+        # set 2 - switch 8.8.8.8 sets eth 1/10 & 1/20 to None
+        # set 3 - switch 4.4.4.4 sets eth 1/3 & portchannel 2 to None
+        # set 4 - switch 2.2.2.2 sets portchannel 2 to None
+        # set 5 - switch 6.6.6.6 sets portchannel 2 to None
+        # set 6 - switch 7.7.7.7 sets portchannel 2 to None
+        'duplicate_init_port_driver_result1': (
+            [test_cisco_nexus_base.RESULT_INTERFACE.
+                format('ethernet', '1\/10', 'None'),
+            test_cisco_nexus_base.RESULT_INTERFACE.
+                format('ethernet', '1\/10', 'None'),
+            test_cisco_nexus_base.RESULT_INTERFACE.
+                format('ethernet', '1\/3', 'None'),
+            test_cisco_nexus_base.RESULT_INTERFACE.
+                format('portchannel', '2', 'None'),
+            test_cisco_nexus_base.RESULT_INTERFACE.
+                format('portchannel', '2', 'None'),
+            test_cisco_nexus_base.RESULT_INTERFACE.
+                format('portchannel', '2', 'None')]),
 
-        self._basic_create_verify_port_vlan(
-            'test_config1',
-            self.duplicate_add_port_driver_result)
-        binding = nexus_db_v2.get_nexusvm_bindings(
-            test_cisco_nexus_base.VLAN_ID_1,
-            test_cisco_nexus_base.INSTANCE_1)[0]
-        self.assertEqual(
-            test_cisco_nexus_base.NEXUS_PORT_1,
-            binding.port_id)
-
-        port_context = self._generate_port_context(
-            self.test_configs['test_config_migrate'],
-            unbind_port=True)
-        port_cfg = self.test_configs['test_config1']
-        port_context.set_orig_port(
-            port_cfg.instance_id,
-            port_cfg.host_name,
-            port_cfg.device_owner,
-            port_cfg.profile,
-            port_cfg.vnic_type,
-            test_cisco_nexus_base.NETID)
-
-        self._cisco_mech_driver.create_port_postcommit(port_context)
-        self._cisco_mech_driver.update_port_precommit(port_context)
-        self._cisco_mech_driver.update_port_postcommit(port_context)
-
-        # Verify that port entry has been deleted.
-        self.assertRaises(
-            exceptions.NexusPortBindingNotFound,
-            nexus_db_v2.get_nexusvm_bindings,
-            test_cisco_nexus_base.VLAN_ID_1,
-            test_cisco_nexus_base.INSTANCE_1)
-
-        # Clean all the ncclient mock_calls to clear exception
-        # and other mock_call history.
-        self.mock_ncclient.reset_mock()
-
-        self._basic_create_verify_port_vlan(
-            'test_config_migrate',
-            migrate_add_host2_driver_result)
-
-        # Verify that port entry has been added using new host name.
-        # Use port_id to verify that 2nd host name was used.
-        binding = nexus_db_v2.get_nexusvm_bindings(
-            test_cisco_nexus_base.VLAN_ID_1,
-            test_cisco_nexus_base.INSTANCE_1)[0]
-        self.assertEqual(
-            test_cisco_nexus_base.NEXUS_PORT_2,
-            binding.port_id)
+        # Only one entry to match for last 3 so make None
+        # so count matches in _verify_results
+        'duplicate_init_port_driver_result2': (
+            [test_cisco_nexus_base.RESULT_INTERFACE.
+                format('ethernet', '1\/20', 'None'),
+            test_cisco_nexus_base.RESULT_INTERFACE.
+                format('ethernet', '1\/20', 'None'),
+            test_cisco_nexus_base.RESULT_INTERFACE.
+                format('portchannel', '2', 'None'),
+            None,
+            None,
+            None])
+    }
 
 
 class TestCiscoNexusDeviceInit(test_cisco_nexus_base.TestCiscoNexusBase,
                                TestCiscoNexusDeviceConfig):
     """Verifies interface vlan allowed none is set when missing."""
 
-    def _mock_init(self):
+    def mock_init(self):
         # Prevent default which returns
         # 'switchport trunk allowed vlan none'
         # in get interface calls so Nexus driver
@@ -896,44 +984,60 @@ class TestCiscoNexusDeviceInit(test_cisco_nexus_base.TestCiscoNexusBase,
 
         cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
         super(TestCiscoNexusDeviceInit, self).setUp()
+        self.results = TestCiscoNexusInitResults()
 
     def test_verify_initialization(self):
 
-        # set 1 - switch 1.1.1.1 sets eth 1/10 & 1/20 to None
-        # set 2 - switch 8.8.8.8 sets eth 1/10 & 1/20 to None
-        # set 3 - switch 4.4.4.4 sets eth 1/3 & portchannel 2 to None
-        # set 4 - switch 2.2.2.2 sets portchannel 2 to None
-        # set 5 - switch 6.6.6.6 sets portchannel 2 to None
-        # set 6 - switch 7.7.7.7 sets portchannel 2 to None
-        duplicate_init_port_driver_result1 = (
-            [test_cisco_nexus_base.RESULT_INTERFACE.
-                format('ethernet', '1\/10', 'None'),
-            test_cisco_nexus_base.RESULT_INTERFACE.
-                format('ethernet', '1\/10', 'None'),
-            test_cisco_nexus_base.RESULT_INTERFACE.
-                format('ethernet', '1\/3', 'None'),
-            test_cisco_nexus_base.RESULT_INTERFACE.
-                format('portchannel', '2', 'None'),
-            test_cisco_nexus_base.RESULT_INTERFACE.
-                format('portchannel', '2', 'None'),
-            test_cisco_nexus_base.RESULT_INTERFACE.
-                format('portchannel', '2', 'None')])
+        self._verify_results(
+            self.results.get_test_results(
+                'duplicate_init_port_driver_result1'))
+        self._verify_results(
+            self.results.get_test_results(
+                'duplicate_init_port_driver_result2'))
 
-        # Only one entry to match for last 3 so make None
-        # so count matches in _verify_results
-        duplicate_init_port_driver_result2 = (
-            [test_cisco_nexus_base.RESULT_INTERFACE.
-                format('ethernet', '1\/20', 'None'),
-            test_cisco_nexus_base.RESULT_INTERFACE.
-                format('ethernet', '1\/20', 'None'),
-            test_cisco_nexus_base.RESULT_INTERFACE.
-                format('portchannel', '2', 'None'),
-            None,
-            None,
-            None])
 
-        self._verify_results(duplicate_init_port_driver_result1)
-        self._verify_results(duplicate_init_port_driver_result2)
+class TestCiscoNexusBaremetalResults(
+    test_cisco_nexus_base.TestCiscoNexusBaseResults):
+
+    """Unit tests driver results for Cisco ML2 Nexus."""
+
+    test_results = {
+        'add_port_ethernet_driver_result': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', 267)]),
+
+        'delete_port_ethernet_driver_result': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/10', 267),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)]),
+
+        'add_port_channel_driver_result': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('port-channel', '469', 267)]),
+
+        'delete_port_channel_driver_result': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('port-channel', '469', 267),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)]),
+
+        'add_port_ethernet_native_driver_result': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(265),
+            (test_cisco_nexus_base.RESULT_ADD_NATIVE_INTERFACE.
+            format('ethernet', '1\/10', 265) +
+            '[\x00-\x7f]+' +
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', 265))]),
+
+        'delete_port_ethernet_native_driver_result': (
+            [(test_cisco_nexus_base.RESULT_DEL_NATIVE_INTERFACE.
+                format('ethernet', '1\/10') +
+            '[\x00-\x7f]+' +
+            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/10', 265)),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)])
+    }
 
 
 class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
@@ -995,69 +1099,14 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
                 test_cisco_nexus_base.BAREMETAL_VNIC),
     }
 
-    simple_add_port_ethernet_driver_result = (
-        [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
-        test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-            format('ethernet', '1\/10', 267)])
-
-    simple_delete_port_ethernet_driver_result = (
-        [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-            format('ethernet', '1\/10', 267),
-        test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)])
-
-    simple_add_port_channel_driver_result = (
-        [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
-        test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-            format('port-channel', '469', 267)])
-
-    simple_delete_port_channel_driver_result = (
-        [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-            format('port-channel', '469', 267),
-        test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)])
-
-    simple_add_port_ethernet_native_driver_result = (
-        [test_cisco_nexus_base.RESULT_ADD_VLAN.format(265),
-        (test_cisco_nexus_base.RESULT_ADD_NATIVE_INTERFACE.
-            format('ethernet', '1\/10', 265) +
-        '[\x00-\x7f]+' +
-        test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-            format('ethernet', '1\/10', 265))])
-
-    simple_delete_port_ethernet_native_driver_result = (
-        [(test_cisco_nexus_base.RESULT_DEL_NATIVE_INTERFACE.
-            format('ethernet', '1\/10') +
-        '[\x00-\x7f]+' +
-        test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-            format('ethernet', '1\/10', 265)),
-        test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)])
-
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
 
         cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
         super(TestCiscoNexusBaremetalDevice, self).setUp()
+        self.results = TestCiscoNexusBaremetalResults()
 
-    def test_create_delete_basic_ethernet_port(self):
-        """Basic creation and deletion test of 1 ethernet port."""
-
-        # nbr_of_bindings includes reserved port binding
-        self._basic_create_verify_port_vlan(
-            'test_config1',
-            self.simple_add_port_ethernet_driver_result, 2)
-
-        # Clean all the ncclient mock_calls so we can evaluate
-        # results of delete operations.
-        self.mock_ncclient.reset_mock()
-
-        # nbr_of_bindings includes reserved port binding
-        self._basic_delete_verify_port_vlan(
-            'test_config1',
-            self.simple_delete_port_ethernet_driver_result,
-            nbr_of_bindings=1)
-
-    def test_create_delete_basic_port_channel(self):
-        """Basic creation and deletion test of 1 port-channel."""
-
+    def _init_port_channel(self):
         # this is to prevent interface initialization from occurring
         # which adds unnecessary noise to the results.
         data_xml = {'connect.return_value.get.return_value.data_xml':
@@ -1065,10 +1114,15 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
                     'channel-group 469 mode active'}
         self.mock_ncclient.configure_mock(**data_xml)
 
+    def test_create_delete_basic_ethernet_port(self):
+        """Basic creation and deletion test of 1 ethernet port."""
+
         # nbr_of_bindings includes reserved port binding
         self._basic_create_verify_port_vlan(
             'test_config1',
-            self.simple_add_port_channel_driver_result, 2)
+            self.results.get_test_results(
+                'add_port_ethernet_driver_result'),
+            2)
 
         # Clean all the ncclient mock_calls so we can evaluate
         # results of delete operations.
@@ -1077,7 +1131,30 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
         # nbr_of_bindings includes reserved port binding
         self._basic_delete_verify_port_vlan(
             'test_config1',
-            self.simple_delete_port_channel_driver_result,
+            self.results.get_test_results(
+                'delete_port_ethernet_driver_result'),
+            nbr_of_bindings=1)
+
+    def test_create_delete_basic_port_channel(self):
+        """Basic creation and deletion test of 1 port-channel."""
+
+        self._init_port_channel()
+        # nbr_of_bindings includes reserved port binding
+        self._basic_create_verify_port_vlan(
+            'test_config1',
+            self.results.get_test_results(
+                'add_port_channel_driver_result'),
+            2)
+
+        # Clean all the ncclient mock_calls so we can evaluate
+        # results of delete operations.
+        self.mock_ncclient.reset_mock()
+
+        # nbr_of_bindings includes reserved port binding
+        self._basic_delete_verify_port_vlan(
+            'test_config1',
+            self.results.get_test_results(
+                'delete_port_channel_driver_result'),
             nbr_of_bindings=1)
 
     def test_create_delete_basic_eth_port_is_native(self):
@@ -1086,7 +1163,9 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
         # nbr_of_bindings includes reserved port binding
         self._basic_create_verify_port_vlan(
             'test_config_native',
-            self.simple_add_port_ethernet_native_driver_result, 2)
+            self.results.get_test_results(
+                'add_port_ethernet_native_driver_result'),
+            2)
 
         # Clean all the ncclient mock_calls so we can evaluate
         # results of delete operations.
@@ -1095,7 +1174,8 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
         # nbr_of_bindings includes reserved port binding
         self._basic_delete_verify_port_vlan(
             'test_config_native',
-            self.simple_delete_port_ethernet_native_driver_result,
+            self.results.get_test_results(
+                'delete_port_ethernet_native_driver_result'),
             nbr_of_bindings=1)
 
     def test_create_delete_switch_ip_not_defined(self):
@@ -1140,7 +1220,8 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
         # nbr_of_bindings includes reserved port binding
         self._basic_create_verify_port_vlan(
             '',
-            self.simple_add_port_ethernet_driver_result, 2,
+            self.results.get_test_results(
+                'add_port_ethernet_driver_result'), 2,
             other_test=local_test_configs['test_config1'])
 
         # Clean all the ncclient mock_calls so we can evaluate
@@ -1150,7 +1231,8 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
         # nbr_of_bindings includes reserved port binding
         self._basic_delete_verify_port_vlan(
             '',
-            self.simple_delete_port_ethernet_driver_result,
+            self.results.get_test_results(
+                'delete_port_ethernet_driver_result'),
             nbr_of_bindings=1,
             other_test=local_test_configs['test_config1'])
 
