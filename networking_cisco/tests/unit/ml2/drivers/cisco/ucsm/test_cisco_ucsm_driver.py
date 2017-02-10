@@ -92,6 +92,8 @@ vnic_template_dict = {
     ('2.2.2.2', 'physnet2'): ('org-root/org-Test-Sub', 'Test'),
 }
 
+PORT_PROFILE_1 = 'OS-PP-100'
+
 
 class FakeNetworkContext(api.NetworkContext):
 
@@ -163,6 +165,34 @@ class FakePortContext(object):
         self._port['status'] = status
 
 
+class FakeUcsmHandle(object):
+    """Ucsm connection handle for testing purposes only."""
+
+    def __init__(self, port_profile):
+        self._port_profile = port_profile
+        self._times_called = 0
+
+    def StartTransaction(self):
+        return True
+
+    def GetManagedObject(self, class_path, class_id,
+                         pp_dict):
+        self._times_called += 1
+
+        if self._times_called == 1:
+            return None
+        elif self._times_called == 2:
+            raise Exception("Port profile still in use by VMs.")
+        else:
+            return self._port_profile
+
+    def RemoveManagedObject(self, p_profile):
+        self._port_profile = None
+
+    def CompleteTransaction(self):
+        return
+
+
 class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
                               mocked.ConfigMixin):
 
@@ -189,6 +219,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         self.vif_type = const.VIF_TYPE_802_QBH
         self.db = ucsm_db.UcsmDbModel()
         self.ucsm_driver = ucsm_network_driver.CiscoUcsmDriver()
+        self.ucsm_driver.ucsm_db = ucsm_db.UcsmDbModel()
         self.ucsm_config = conf.UcsmConfig()
 
     def _create_network_context(self):
@@ -838,3 +869,55 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         host_id3 = 'compute3'
         hostname = self.mech_driver._get_host_id(host_id3)
         self.assertEqual(host_id3, hostname)
+
+    def test_port_profile_delete_table_add(self):
+        """Verifies that add and get of 1 PP to delete table works."""
+        self.db.add_port_profile_to_delete_table('OS-PP-100', '10.10.10.10')
+        self.assertTrue(self.db.has_port_profile_to_delete('OS-PP-100',
+            '10.10.10.10'))
+
+    def test_pp_delete_table_add_multiple(self):
+        """Verifies that add and get of multiple PPs to delete table works."""
+        self.db.add_port_profile_to_delete_table("OS-PP-100", "10.10.10.10")
+        self.db.add_port_profile_to_delete_table("OS-PP-200", "10.10.10.10")
+        all_pps = self.db.get_all_port_profiles_to_delete()
+        for pp in all_pps:
+            self.assertEqual("10.10.10.10", pp.device_id)
+
+    def test_remove_port_profile_from_table(self):
+        """Verifies that removing entry from PP delete table works."""
+        self.db.add_port_profile_to_delete_table("OS-PP-100", "10.10.10.10")
+        self.db.remove_port_profile_to_delete("OS-PP-100", "10.10.10.10")
+        self.assertFalse(self.db.has_port_profile_to_delete("OS-PP-100",
+            "10.10.10.10"))
+
+    def test_remove_non_existent_port_profile_from_table(self):
+        self.assertIsNone(self.db.remove_port_profile_to_delete(
+            "OS-PP-100", "10.10.10.10"))
+
+    def test_port_profile_delete_on_ucsm(self):
+        """Verifies that the PP delete retry logic."""
+        handle = FakeUcsmHandle(PORT_PROFILE_1)
+
+        self.ucsm_driver.ucsmsdk = mock.Mock()
+
+        self.ucsm_driver.ucsmsdk.VnicProfile.ClassId.return_value = "PP"
+        self.ucsm_driver.ucsmsdk.VnicProfile.NAME = PORT_PROFILE_1
+        self.ucsm_driver.ucsmsdk.VnicProfile.DN = "/org-root"
+
+        # 1st call to delete_port_profile is designed to not find
+        # the PP on the UCSM
+        self.ucsm_driver._delete_port_profile(
+            handle, PORT_PROFILE_1, UCSM_IP_ADDRESS_1)
+
+        # No entry added to the PP delete table
+        self.assertFalse(self.ucsm_driver.ucsm_db.has_port_profile_to_delete(
+            PORT_PROFILE_1, UCSM_IP_ADDRESS_1))
+
+        # 2nd call to delete_port_profile is designed to raise exception
+        self.ucsm_driver._delete_port_profile(
+            handle, PORT_PROFILE_1, UCSM_IP_ADDRESS_1)
+
+        # Failed delete results in entry being created in the PP delete table
+        self.assertTrue(self.ucsm_driver.ucsm_db.has_port_profile_to_delete(
+            PORT_PROFILE_1, UCSM_IP_ADDRESS_1))

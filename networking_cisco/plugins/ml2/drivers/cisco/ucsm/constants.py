@@ -53,3 +53,6 @@ SP_TEMPLATE_PREFIX = "/ls-"
 VNIC_TEMPLATE_PARENT_DN = "org-root/lan-conn-templ-"
 VNIC_TEMPLATE_PREFIX = "/lan-conn-templ-"
 TRANSPORT = "ethernet"
+
+DEFAULT_PP_DELETE_TIME = (10 * 60)
+MAX_PP_DELETE_RETRY_COUNT = 3

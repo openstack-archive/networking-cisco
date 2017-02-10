@@ -54,3 +54,13 @@ class VnicTemplate(bc.model_base.BASEV2):
     device_id = sa.Column(sa.String(64), nullable=False, primary_key=True)
     physnet = sa.Column(sa.String(32), nullable=False)
     updated_on_ucs = sa.Column(sa.Boolean(), nullable=False)
+
+
+class PortProfileDelete(bc.model_base.BASEV2):
+
+    """Port profiles to be deleted on the UCS Manager."""
+
+    __tablename__ = 'ml2_ucsm_delete_port_profiles'
+
+    profile_id = sa.Column(sa.String(64), nullable=False, primary_key=True)
+    device_id = sa.Column(sa.String(64), nullable=False, primary_key=True)

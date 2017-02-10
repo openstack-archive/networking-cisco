@@ -21,7 +21,6 @@ from networking_cisco._i18n import _
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import constants as const
 
 LOG = logging.getLogger(__name__)
-DEPRECATION_MESSAGE = "This will be removed in the N cycle."
 
 """ Cisco UCS Manager ML2 Mechanism driver specific configuration.
 
@@ -337,10 +336,7 @@ class UcsmConfig(object):
         self.multivlan_trunk_dict[key] = vlans
 
     def get_sriov_multivlan_trunk_config(self, network):
-        if network in self.multivlan_trunk_dict:
-            return self.multivlan_trunk_dict[network]
-        else:
-            return None
+        return self.multivlan_trunk_dict.get(network, [])
 
     def get_sriov_qos_policy(self, ucsm_ip):
         if cfg.CONF.ml2_cisco_ucsm.sriov_qos_policy:

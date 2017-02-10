@@ -13,20 +13,23 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from collections import defaultdict
 import six
+import sys
+from threading import Timer
 
 from contextlib import contextmanager
+from neutron.extensions import portbindings
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 
 from networking_cisco._i18n import _LE, _LI, _LW
-
-from neutron.extensions import portbindings
-
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import config
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import constants as const
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import exceptions as cexc
+from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucsm_db
+
 
 LOG = logging.getLogger(__name__)
 
@@ -42,9 +45,34 @@ class CiscoUcsmDriver(object):
                                            portbindings.VNIC_MACVTAP]
         self.supported_pci_devs = config.parse_pci_vendor_config()
         self.ucsm_conf = config.UcsmConfig()
+        self.ucsm_db = ucsm_db.UcsmDbModel()
         self.ucsm_host_dict = {}
         self.ucsm_sp_dict = {}
+        self._disable_ssl_cert_check()
         self._create_host_and_sp_dicts_from_config()
+
+        Timer(const.DEFAULT_PP_DELETE_TIME,
+            self._delayed_delete_port_profile, ()).start()
+        LOG.debug('Starting periodic Port Profile delete timer for %d',
+            const.DEFAULT_PP_DELETE_TIME)
+
+    def _disable_ssl_cert_check(self):
+        """Disable SSL certificate checks.
+
+        Starting from Python version 2.7.9, SSL class performs certificate
+        checks by default. UcsSdk is currently unable to handle these
+        SSL certificate checks. This method disables this behavior. Once
+        support for SSL certificates is added to ucssdk, this method can be
+        removed.
+        """
+        if sys.version_info >= (2, 6):
+            from functools import partial
+            import ssl
+            ssl.wrap_socket = partial(ssl.wrap_socket,
+                ssl_version=ssl.PROTOCOL_TLSv1)
+            if sys.version_info >= (2, 7, 9):
+                ssl._create_default_https_context = (
+                    ssl._create_unverified_context)
 
     def check_vnic_type_and_vendor_info(self, vnic_type, profile):
         """Checks if this vnic_type and vendor device info are supported.
@@ -255,6 +283,10 @@ class CiscoUcsmDriver(object):
         cl_profile_dest = (const.PORT_PROFILESETDN + const.VNIC_PATH_PREFIX +
                            profile_name + const.CLIENT_PROFILE_PATH_PREFIX +
                            cl_profile_name)
+
+        # Remove this Port Profile from the delete DB table if it was
+        # addded there due to a previous delete.
+        self.ucsm_db.remove_port_profile_to_delete(profile_name, ucsm_ip)
 
         # Check if direct or macvtap mode
         if vnic_type == portbindings.VNIC_DIRECT:
@@ -642,36 +674,70 @@ class CiscoUcsmDriver(object):
             raise cexc.UcsmConfigFailed(config=vlan_id,
                                         ucsm_ip=ucsm_ip, exc=e)
 
-    def _delete_port_profile(self, handle, port_profile, ucsm_ip):
+    def _delayed_delete_port_profile(self):
+        pp_delete_dict = defaultdict(list)
+        Timer(const.DEFAULT_PP_DELETE_TIME,
+            self._delayed_delete_port_profile, ()).start()
+        all_pps = self.ucsm_db.get_all_port_profiles_to_delete()
+        for pp in all_pps:
+            pp_delete_dict[pp.device_id].append(pp.profile_id)
+
+        # Connect to each UCSM IP and try to delete Port profiles
+        for ucsm_ip in pp_delete_dict.keys():
+            with self.ucsm_connect_disconnect(ucsm_ip) as handle:
+                for pp in pp_delete_dict.get(ucsm_ip):
+                    LOG.debug('Deleting PP %s from UCSM %s', pp,
+                        ucsm_ip)
+                    try:
+                        self._delete_port_profile_from_ucsm(handle,
+                                                            pp, ucsm_ip)
+                        # Remove this Port Profile from the delete DB table
+                        # if it was addded there due to a previous delete.
+                        LOG.debug('Removing PP %s from delete table after '
+                                  'successful delete', pp)
+                        self.ucsm_db.remove_port_profile_to_delete(pp, ucsm_ip)
+                    except Exception:
+                        #do nothing
+                        LOG.debug('Could not delete PP %s from UCSM %s',
+                            pp, ucsm_ip)
+
+    def _delete_port_profile_from_ucsm(self, handle, port_profile, ucsm_ip):
         """Deletes Port Profile from UCS Manager."""
         port_profile_dest = (const.PORT_PROFILESETDN + const.VNIC_PATH_PREFIX +
                              port_profile)
+        handle.StartTransaction()
 
-        try:
-            handle.StartTransaction()
+        # Find port profile on the UCS Manager
+        p_profile = handle.GetManagedObject(
+            None,
+            self.ucsmsdk.VnicProfile.ClassId(),
+            {self.ucsmsdk.VnicProfile.NAME: port_profile,
+            self.ucsmsdk.VnicProfile.DN: port_profile_dest})
 
-            # Find port profile on the UCS Manager
-            p_profile = handle.GetManagedObject(
-                None,
-                self.ucsmsdk.VnicProfile.ClassId(),
-                {self.ucsmsdk.VnicProfile.NAME: port_profile,
-                self.ucsmsdk.VnicProfile.DN: port_profile_dest})
-
-            if not p_profile:
-                LOG.warning(_LW('UCS Manager network driver did not find '
-                                'Port Profile %s to delete.'),
-                            port_profile)
-                return
-
+        if p_profile:
             handle.RemoveManagedObject(p_profile)
-            handle.CompleteTransaction()
+        else:
+            LOG.warning(_LW('UCS Manager network driver did not find '
+                            'Port Profile %s to delete.'),
+                        port_profile)
+
+        handle.CompleteTransaction()
+
+    def _delete_port_profile(self, handle, port_profile, ucsm_ip):
+        """Calls method to delete Port Profile from UCS Manager.
+           If exception is raised by UCSM, then the PP is added to
+           a DB table. The delete timer thread, tried to delete all
+           PPs added to this table when it wakes up.
+           """
+        try:
+            self._delete_port_profile_from_ucsm(handle, port_profile, ucsm_ip)
 
         except Exception as e:
-            # Raise a Neutron exception. Include a description of
-            # the original  exception.
-            raise cexc.UcsmConfigDeleteFailed(config=port_profile,
-                                              ucsm_ip=ucsm_ip,
-                                              exc=e)
+            # Add the Port Profile that we could not delete to the Port Profile
+            # delete table. A periodic task will attempt to delete it.
+            LOG.debug('Received Port Profile delete exception %s', e)
+            self.ucsm_db.add_port_profile_to_delete_table(port_profile,
+                                                          ucsm_ip)
 
     def _remove_vlan_from_all_service_profiles(self, handle, vlan_id, ucsm_ip):
         """Deletes VLAN Profile config from server's ethernet ports."""
@@ -790,7 +856,7 @@ class CiscoUcsmDriver(object):
 
     def _remove_vlan_from_vnic_templates(self, handle, vlan_id, ucsm_ip):
         """Removes VLAN from all VNIC templates that have it enabled."""
-        vnic_template_info = self.ucsm_conf.get_vnic_templates_for_ucsm_ip(
+        vnic_template_info = self.ucsm_conf.get_vnic_template_for_ucsm_ip(
             ucsm_ip)
         vlan_name = self.make_vlan_name(vlan_id)
 
@@ -867,8 +933,9 @@ class CiscoUcsmDriver(object):
                                                                 vlan_id,
                                                                 ucsm_ip)
                 self._delete_vlan_profile(handle, vlan_id, ucsm_ip)
-                for vlan_id in trunk_vlans:
-                    self._delete_vlan_profile(handle, vlan_id, ucsm_ip)
+                if trunk_vlans:
+                    for vlan_id in trunk_vlans:
+                        self._delete_vlan_profile(handle, vlan_id, ucsm_ip)
 
     def _handle_ucsm_exception(self, exception_type, profile_type,
                                profile_name, ucsm_ip):
