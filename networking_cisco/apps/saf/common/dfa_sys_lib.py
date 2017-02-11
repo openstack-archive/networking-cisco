@@ -240,6 +240,17 @@ class OVSBridge(BaseOVS):
             return res.strip().split("\n")
         return []
 
+    def dump_flows_for(self, **kwargs):
+        retval = None
+        flow_str = ",".join(
+            "=".join([key, str(val)]) for key, val in kwargs.items())
+
+        flows = self.run_ofctl("dump-flows", [flow_str])
+        if flows:
+            retval = '\n'.join(item for item in flows.splitlines()
+                               if 'NXST' not in item)
+        return retval
+
     def __exit__(self, exc_type, exc_value, exc_tb):
         self.destroy()
 
@@ -340,3 +351,40 @@ def _build_flow_expr_str(flow_dict, cmd):
         flow_expr_arr.append(actions)
 
     return ','.join(flow_expr_arr)
+
+
+def get_bond_intf(intf):
+    bond_dir = '/proc/net/bonding/'
+    dir_exist = os.path.exists(bond_dir)
+    if not dir_exist:
+        return
+    base_dir = '/sys/class/net'
+    for subdir in os.listdir(bond_dir):
+        file_name = '/'.join((base_dir, subdir, 'bonding', 'slaves'))
+        file_exist = os.path.exists(file_name)
+        if file_exist:
+            with open(file_name, 'r') as fd:
+                slave_val = fd.read().strip('\n')
+                if intf in slave_val:
+                    return subdir
+
+
+def is_intf_bond(intf):
+    bond_dir = '/proc/net/bonding/'
+    dir_exist = os.path.exists(bond_dir)
+    if not dir_exist or not intf:
+        return False
+    bond_file = '/'.join((bond_dir, intf))
+    return os.path.exists(bond_file)
+
+
+def get_member_ports(intf):
+    if not is_intf_bond(intf):
+        return
+    base_dir = '/sys/class/net'
+    file_name = '/'.join((base_dir, intf, 'bonding', 'slaves'))
+    file_exist = os.path.exists(file_name)
+    if file_exist:
+        with open(file_name, 'r') as fd:
+            slave_val = fd.read().strip('\n')
+            return slave_val

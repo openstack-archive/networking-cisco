@@ -48,20 +48,27 @@ class RpcCallBacks(object):
         self._vdpd = vdpd
         self._iptd = ipt_drvr
 
+    def _enqueue_event(self, vm):
+        oui = vm.get('oui')
+        if oui and oui.get('ip_addr') != '0.0.0.0' and self._iptd:
+            rule_info = dict(mac=vm.get('vm_mac'),
+                             ip=oui.get('ip_addr'),
+                             port=vm.get('port_uuid'),
+                             status=vm.get('status'))
+            self._iptd.enqueue_event(rule_info)
+
     def send_vm_info(self, context, msg):
         vm_info = eval(msg)
-        LOG.debug('Received %(vm_info)s for %(instance)s', (
-            {'vm_info': vm_info, 'instance': vm_info.get('inst_name')}))
+        LOG.debug('Received vm_info: %s', vm_info)
         # Call VDP/LLDPad API to send the info
         self._vdpd.vdp_vm_event(vm_info)
 
         # Enqueue the vm info for updating iptables.
-        oui = vm_info.get('oui')
-        if oui and oui.get('ip_addr') != '0.0.0.0' and self._iptd:
-            rule_info = dict(mac=vm_info.get('vm_mac'), ip=oui.get('ip_addr'),
-                             port=vm_info.get('port_uuid'),
-                             status=vm_info.get('status'))
-            self._iptd.enqueue_event(rule_info)
+        if isinstance(vm_info, list):
+            for vm in vm_info:
+                self._enqueue_event(vm)
+        else:
+            self._enqueue_event(vm_info)
 
     def update_ip_rule(self, context, msg):
         rule_info = eval(msg)
@@ -149,6 +156,11 @@ class DfaAgent(object):
         except rpc.MessagingTimeout:
             LOG.error(_LE("RPC timeout: Request for uplink info failed."))
 
+    def is_uplink_received(self):
+        """Finds if uplink information is received and processed. """
+
+        return self._vdpm.is_uplink_received()
+
     def setup_rpc(self):
         """Setup RPC server for dfa agent."""
 
@@ -233,7 +245,8 @@ def main():
 
             # If the agent comes up for the fist time (could be after crash),
             # ask for the uplink info.
-            if dfa_agent._need_uplink_info:
+            if dfa_agent._need_uplink_info or (
+               not dfa_agent.is_uplink_received()):
                 dfa_agent.request_uplink_info()
 
             for trd in dfa_agent.agent_task_list:
