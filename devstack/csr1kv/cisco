@@ -432,7 +432,7 @@ cat > $vsm_xml_file <<-EOF
             <boot dev='hd'/>
         </os>
 
-        <features> <acpi/> <apic/> <pae/> </features>
+        <features> <acpi/> <pae/> </features>
 
         <clock offset='localtime'/>
         <on_poweroff>destroy</on_poweroff>

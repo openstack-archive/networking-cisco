@@ -19,8 +19,6 @@ from networking_cisco.plugins.cisco.db.l3 import (  # noqa
     ha_db)
 from networking_cisco.plugins.cisco.db.l3 import (  # noqa
     l3_models)
-from networking_cisco.plugins.ml2.drivers.cisco.apic import (  # noqa
-    apic_model)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (  # noqa
     n1kv_models)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (  # noqa
