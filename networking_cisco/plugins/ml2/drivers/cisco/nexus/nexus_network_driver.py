@@ -277,13 +277,16 @@ class CiscoNexusDriver(object):
         hostkey_verify = cfg.CONF.ml2_cisco.host_key_checks
         try:
             # With new ncclient version, we can pass device_params...
-            man = self.ncclient.connect(host=nexus_host,
-                                        port=nexus_ssh_port,
-                                        username=nexus_user,
-                                        password=nexus_password,
-                                        hostkey_verify=hostkey_verify,
-                                        timeout=30,
-                                        device_params={"name": "nexus"})
+            man = self.ncclient.connect(
+                host=nexus_host,
+                port=nexus_ssh_port,
+                username=nexus_user,
+                password=nexus_password,
+                hostkey_verify=hostkey_verify,
+                timeout=30,
+                device_params={
+                    "name": "nexus",
+                    'ssh_subsystem_name': 'xmlagent'})
         except Exception as e:
             # Raise a Neutron exception. Include a description of
             # the original ncclient exception.
