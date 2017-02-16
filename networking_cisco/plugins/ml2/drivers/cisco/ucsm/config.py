@@ -274,6 +274,21 @@ class UcsmConfig(object):
                 sp_template_info_list.append(value)
         return sp_template_info_list
 
+    def add_sp_template_config_for_host(self, host, ucsm_ip,
+                                        sp_template_path,
+                                        sp_template):
+        value = (ucsm_ip, sp_template_path, sp_template)
+        self.sp_template_dict[host] = value
+        self.sp_template_mode = True
+
+    def update_sp_template_config(self, host_id, ucsm_ip,
+                                  sp_template_with_path):
+        sp_template_info = sp_template_with_path.rsplit('/', 1)
+        LOG.debug('SP Template path: %s SP Template: %s',
+            sp_template_info[0], sp_template_info[1])
+        self.add_sp_template_config_for_host(
+            host_id, ucsm_ip, sp_template_info[0], sp_template_info[1])
+
     def _parse_vnic_template_list(self, ucsm_ip, vnic_template_config):
         vnic_template_mapping = []
         for vnic_template_temp in vnic_template_config:

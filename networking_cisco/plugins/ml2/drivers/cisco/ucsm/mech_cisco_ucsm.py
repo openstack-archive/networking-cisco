@@ -94,7 +94,6 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                          'UCS Manager.'), host_id)
             return
 
-        LOG.debug('UCSM IP: %s', str(ucsm_ip))
         if not self.driver.check_vnic_type_and_vendor_info(vnic_type,
                                                            profile):
             # This is a neutron virtio port.
@@ -117,7 +116,7 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                 else:
                     LOG.debug('VNIC Template not configured for '
                               'physnet %s', physnet)
-                    return
+                return
             # In the absence of VNIC Templates, VLAN is directly added
             # to vNIC(s) on the SP Template.
             # Check if SP Template config has been provided. If so, find
