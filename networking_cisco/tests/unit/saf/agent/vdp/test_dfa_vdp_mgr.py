@@ -16,6 +16,8 @@
 
 import collections
 
+from oslo_serialization import jsonutils
+
 import mock
 
 from neutron.tests import base
@@ -24,6 +26,7 @@ from networking_cisco.apps.saf.agent.vdp import dfa_vdp_mgr
 from networking_cisco.apps.saf.agent.vdp import ovs_vdp
 from networking_cisco.apps.saf.common import constants
 from networking_cisco.apps.saf.common import dfa_sys_lib as utils
+from networking_cisco.apps.saf.common import utils as common_utils
 
 try:
     OrderedDict = collections.OrderedDict
@@ -54,6 +57,9 @@ class DfaVdpMgrTest(base.BaseTestCase):
         self.execute = mock.patch.object(
             utils, "execute", spec=utils.execute).start()
         mock.patch('time.sleep').start()
+        self.topo_disc = mock.patch(
+            'networking_cisco.apps.saf.agent.topo_disc.topo_disc.'
+            'TopoDisc').start()
         self._test_dfa_mgr_init()
 
     def _test_dfa_mgr_init(self):
@@ -122,7 +128,11 @@ class DfaVdpMgrTest(base.BaseTestCase):
         with mock.patch('networking_cisco.apps.saf.agent.'
                         'vdp.ovs_vdp.OVSNeutronVdp') as ovs_vdp_fn, \
             mock.patch.object(self.dfa_vdp_mgr, 'save_uplink') as (
-                save_uplink_fn):
+                save_uplink_fn), \
+            mock.patch.object(
+                self.dfa_vdp_mgr.topo_disc, 'uncfg_intf') as uncfg_intf_fn, \
+            mock.patch.object(
+                self.dfa_vdp_mgr.topo_disc, 'cfg_intf') as cfg_intf_fn:
             self.dfa_vdp_mgr.process_uplink_event(msg, self.uplink)
         veth_val = self.dfa_vdp_mgr.ovs_vdp_obj_dict[
             self.uplink].get_lldp_local_bridge_port()
@@ -131,6 +141,11 @@ class DfaVdpMgrTest(base.BaseTestCase):
                                       self.dfa_vdp_mgr.vdp_vlan_change_cb)
         save_uplink_fn.assert_called_with(
             uplink=self.uplink, veth_intf=veth_val)
+        uncfg_intf_fn.assert_called_with(self.uplink)
+        cfg_intf_fn.assert_called_with(
+            self.dfa_vdp_mgr.ovs_vdp_obj_dict[
+                self.uplink].get_lldp_local_bridge_port(),
+            phy_interface=self.uplink)
 
     def test_process_up_uplink_event_lldp_fail(self):
         """Test routine when a uplink is detected and lldp is down. """
@@ -145,8 +160,6 @@ class DfaVdpMgrTest(base.BaseTestCase):
             ovs_vdp_fn.return_value.get_uplink_fail_reason.return_value = (
                 'Some Reason')
             self.dfa_vdp_mgr.process_uplink_event(msg, self.uplink)
-        self.dfa_vdp_mgr.ovs_vdp_obj_dict[
-            self.uplink].get_lldp_local_bridge_port()
         ovs_vdp_fn.assert_called_with(self.uplink, self.br_integ, self.br_ex,
                                       self.root_helper,
                                       self.dfa_vdp_mgr.vdp_vlan_change_cb)
@@ -161,13 +174,21 @@ class DfaVdpMgrTest(base.BaseTestCase):
         del_flow = mock.patch.object(
             ovs_vdp, "delete_uplink_and_flows",
             spec=ovs_vdp.delete_uplink_and_flows).start()
-        with mock.patch.object(self.dfa_vdp_mgr, 'save_uplink') as sav_fn:
+        with mock.patch.object(self.dfa_vdp_mgr, 'save_uplink') as sav_fn, \
+            mock.patch.object(
+                self.dfa_vdp_mgr.topo_disc, 'uncfg_intf') as uncfg_intf_fn, \
+            mock.patch.object(
+                self.dfa_vdp_mgr.topo_disc, 'cfg_intf') as cfg_intf_fn:
             parent = mock.MagicMock()
             parent.attach_mock(del_flow, 'delete_uplink_and_flows')
+            parent.attach_mock(uncfg_intf_fn, 'uncfg_intf')
+            parent.attach_mock(cfg_intf_fn, 'cfg_intf')
             self.dfa_vdp_mgr.process_uplink_event(msg, self.uplink)
         expected_call = [mock.call.delete_uplink_and_flows(self.root_helper,
                                                            self.br_ex,
-                                                           self.uplink)]
+                                                           self.uplink),
+                         mock.call.uncfg_intf(None),
+                         mock.call.cfg_intf(self.uplink)]
         parent.assert_has_calls(expected_call)
         sav_fn.assert_called_with()
 
@@ -178,11 +199,17 @@ class DfaVdpMgrTest(base.BaseTestCase):
         self.dfa_vdp_mgr.ovs_vdp_obj_dict = {}
         self.dfa_vdp_mgr.ovs_vdp_obj_dict[self.uplink] = mock.Mock()
         with mock.patch.object(self.dfa_vdp_mgr.ovs_vdp_obj_dict[self.uplink],
-                               'clear_obj_params') as neut_vdp_clear_fn, \
-                mock.patch.object(self.dfa_vdp_mgr, 'save_uplink') as sav_fn:
+                               'clear_obj_params') as vdp_clear_fn, \
+            mock.patch.object(self.dfa_vdp_mgr, 'save_uplink') as sav_fn, \
+            mock.patch.object(
+                self.dfa_vdp_mgr.topo_disc, 'uncfg_intf') as uncfg_intf_fn, \
+            mock.patch.object(
+                self.dfa_vdp_mgr.topo_disc, 'cfg_intf') as cfg_intf_fn:
             self.dfa_vdp_mgr.process_uplink_event(msg, self.uplink)
-        neut_vdp_clear_fn.assert_called_with()
+        vdp_clear_fn.assert_called_with()
         sav_fn.assert_called_with()
+        uncfg_intf_fn.assert_called_with(None)
+        cfg_intf_fn.assert_called_with(self.uplink)
 
     def _test_process_vm_event_succ(self):
         '''Test routine for VM event process is successful '''
@@ -604,3 +631,36 @@ class DfaVdpMgrTest(base.BaseTestCase):
         self.assertTrue(self.dfa_vdp_mgr.restart_uplink_called)
         ovs_del_flow.assert_called_with(
             self.dfa_vdp_mgr.root_helper, self.dfa_vdp_mgr.br_ex, self.uplink)
+
+    def _get_topo_disc_arg(self):
+        """Fill the argument to topology discovery. """
+        return {'phy_interface': self.uplink, 'remote_evb_cfgd': True,
+                'remote_evb_mode': 'bridge', 'remote_mgmt_addr': '10.1.1.1',
+                'remote_system_desc': 'Cisco Test Os',
+                'remote_system_name': 'N6K-1', 'remote_port': 'e2/1',
+                'remote_chassis_id_mac': '00:11:22:33:44:55',
+                'remote_port_id_mac': '00:22:33:44:55:66'}
+
+    def _get_topo_dict_final(self):
+        """Fill the argument to topology discovery for final check. """
+        return {'host': None, 'protocol_interface': self.uplink,
+                'heartbeat': 'Jan 1',
+                'phy_interface': self.uplink, 'remote_evb_cfgd': True,
+                'remote_evb_mode': 'bridge',
+                'remote_mgmt_addr': '10.1.1.1',
+                'remote_system_desc': 'Cisco Test Os',
+                'remote_system_name': 'N6K-1', 'remote_port': 'e2/1',
+                'remote_chassis_id_mac': '00:11:22:33:44:55',
+                'remote_port_id_mac': '00:22:33:44:55:66',
+                'configurations': jsonutils.dumps({})}
+
+    def test_topo_disc_cb(self):
+        """Test the topology discovery CB function. """
+        topo_dict = self._get_topo_disc_arg()
+        topo_dict_final = self._get_topo_dict_final()
+        topo_obj = common_utils.Dict2Obj(topo_dict)
+        with mock.patch('time.ctime') as ctime_fn:
+            ctime_fn.return_value = 'Jan 1'
+            self.dfa_vdp_mgr.topo_disc_cb(self.uplink, topo_obj)
+        self.rpc_client.make_msg.assert_called_with(
+            'save_topo_disc_params', {}, msg=jsonutils.dumps(topo_dict_final))

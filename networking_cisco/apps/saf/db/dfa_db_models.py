@@ -369,6 +369,27 @@ class DfaAgentsDb(db.Base):
     configurations = sa.Column(sa.String(4095))
 
 
+class DfaTopologyDb(db.Base):
+    """Represents DFA Topology Discovery."""
+
+    __tablename__ = 'topology_discovery'
+
+    host = sa.Column(sa.String(255), primary_key=True)
+    protocol_interface = sa.Column(sa.String(48), primary_key=True)
+    phy_interface = sa.Column(sa.String(48))
+    created = sa.Column(sa.DateTime)
+    heartbeat = sa.Column(sa.DateTime)
+    remote_mgmt_addr = sa.Column(sa.String(32))
+    remote_system_name = sa.Column(sa.String(128))
+    remote_system_desc = sa.Column(sa.String(256))
+    remote_port_id_mac = sa.Column(sa.String(17))
+    remote_chassis_id_mac = sa.Column(sa.String(17))
+    remote_port = sa.Column(sa.String(48))
+    remote_evb_cfgd = sa.Column(sa.Boolean, nullable=False, default=False)
+    remote_evb_mode = sa.Column(sa.String(16))
+    configurations = sa.Column(sa.String(512))
+
+
 class DfaFwInfo(db.Base):
     """Represents Firewall info."""
 
@@ -1031,3 +1052,104 @@ class DfasubnetDriver(object):
             LOG.error(_LE("More than one enty found for sub %(sub)s."),
                       ({'sub': sub}))
         return None
+
+
+class TopologyDiscoveryDb(object):
+
+    """Topology Discovery Database API."""
+
+    def __init__(self, cfg):
+        """Configure database. """
+        super(TopologyDiscoveryDb, self).__init__()
+        db.configure_db(cfg)
+
+    def add_update_topology_db(self, **params):
+        """Add or update an entry to the topology DB. """
+        topo_dict = params.get('columns')
+        session = db.get_session()
+        host = topo_dict.get('host')
+        protocol_interface = topo_dict.get('protocol_interface')
+        with session.begin(subtransactions=True):
+            try:
+                # Check if entry exists.
+                session.query(DfaTopologyDb).filter_by(
+                    host=host, protocol_interface=protocol_interface).one()
+                session.query(DfaTopologyDb).filter_by(
+                    host=host, protocol_interface=protocol_interface).update(
+                    topo_dict)
+            except orm_exc.NoResultFound:
+                LOG.info(_LI("Creating new topology entry for host "
+                             "%(host)s on Interface %(intf)s"),
+                         {'host': host, 'intf': protocol_interface})
+                topo_disc = DfaTopologyDb(
+                    host=host, protocol_interface=protocol_interface,
+                    phy_interface=topo_dict.get('phy_interface'),
+                    created=topo_dict.get('created'),
+                    heartbeat=topo_dict.get('heartbeat'),
+                    remote_mgmt_addr=topo_dict.get('remote_mgmt_addr'),
+                    remote_system_name=topo_dict.get('remote_system_name'),
+                    remote_system_desc=topo_dict.get('remote_system_desc'),
+                    remote_port_id_mac=topo_dict.get('remote_port_id_mac'),
+                    remote_chassis_id_mac=topo_dict.get(
+                        'remote_chassis_id_mac'),
+                    remote_port=topo_dict.get('remote_port'),
+                    remote_evb_cfgd=topo_dict.get('remote_evb_cfgd'),
+                    remote_evb_mode=topo_dict.get('remote_evb_mode'),
+                    configurations=topo_dict.get('configurations'))
+                session.add(topo_disc)
+            except orm_exc.MultipleResultsFound:
+                LOG.error(_LE("More than one enty found for agent %(host)s."
+                              "Interface %(intf)s"),
+                          {'host': host, 'intf': protocol_interface})
+            except Exception as exc:
+                LOG.error(_LE("Exception in add_update_topology_db %s"), exc)
+
+    def _convert_topo_obj_dict(self, topology_objs):
+        """Convert topology object to dict. """
+        topo_lst = []
+        for topo_obj in topology_objs:
+            topo_dct = {
+                'host': topo_obj.host,
+                'protocol_interface': topo_obj.protocol_interface,
+                'phy_interface': topo_obj.phy_interface,
+                'created': topo_obj.created, 'heartbeat': topo_obj.heartbeat,
+                'remote_mgmt_addr': topo_obj.remote_mgmt_addr,
+                'remote_system_name': topo_obj.remote_system_name,
+                'remote_system_desc': topo_obj.remote_system_desc,
+                'remote_port_id_mac': topo_obj.remote_port_id_mac,
+                'remote_chassis_id_mac': topo_obj.remote_chassis_id_mac,
+                'remote_port': topo_obj.remote_port,
+                'remote_evb_cfgd': topo_obj.remote_evb_cfgd,
+                'remote_evb_mode': topo_obj.remote_evb_mode,
+                'configurations': topo_obj.configurations}
+            topo_lst.append(topo_dct)
+        return topo_lst
+
+    def query_topology_db(self, dict_convert=False, **req):
+        """Query an entry to the topology DB. """
+        session = db.get_session()
+        with session.begin(subtransactions=True):
+            try:
+                # Check if entry exists.
+                topo_disc = session.query(DfaTopologyDb).filter_by(**req).all()
+            except orm_exc.NoResultFound:
+                LOG.info(_LI("No Topology results found for %s"), req)
+                return None
+        if dict_convert:
+            return self._convert_topo_obj_dict(topo_disc)
+        return topo_disc
+
+    def delete_topology_entry(self, **req):
+        """Delete the entries from the topology DB. """
+        session = db.get_session()
+        with session.begin(subtransactions=True):
+            try:
+                rows = session.query(DfaTopologyDb).filter_by(**req).all()
+            except orm_exc.NoResultFound:
+                LOG.info(_LI("No Topology results found for %s"), req)
+                return
+            try:
+                for row in rows:
+                    session.delete(row)
+            except Exception as exc:
+                LOG.error(_LE("Exception raised %s"), str(exc))

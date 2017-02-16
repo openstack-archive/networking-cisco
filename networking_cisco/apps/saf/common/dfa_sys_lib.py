@@ -388,3 +388,46 @@ def get_member_ports(intf):
         with open(file_name, 'r') as fd:
             slave_val = fd.read().strip('\n')
             return slave_val
+
+
+def is_intf_up(intf):
+    """Function to check if a interface is up. """
+    intf_path = '/'.join(('/sys/class/net', intf))
+    intf_exist = os.path.exists(intf_path)
+    if not intf_exist:
+        LOG.error(_LE("Unable to get interface %(intf)s, Interface dir "
+                      "%(dir)s does not exist"),
+                  {'intf': intf, 'dir': intf_path})
+        return False
+    try:
+        oper_file = '/'.join((intf_path, 'operstate'))
+        with open(oper_file, 'r') as fd:
+            oper_state = fd.read().strip('\n')
+            if oper_state == 'up':
+                return True
+    except Exception as e:
+        LOG.error(_LE("Exception in reading %s"), str(e))
+    return False
+
+
+def get_all_run_phy_intf():
+    """Retrieve all physical interfaces that are operationally up. """
+    intf_list = []
+    base_dir = '/sys/class/net'
+    dir_exist = os.path.exists(base_dir)
+    if not dir_exist:
+        LOG.error(_LE("Unable to get interface list :Base dir %s does not "
+                      "exist"), base_dir)
+        return intf_list
+    dir_cont = os.listdir(base_dir)
+    for subdir in dir_cont:
+        dev_dir = base_dir + '/' + subdir + '/' + 'device'
+        dev_exist = os.path.exists(dev_dir)
+        if dev_exist:
+            oper_state = is_intf_up(subdir)
+            if oper_state is True:
+                    intf_list.append(subdir)
+        else:
+            LOG.info(_LI("Dev dir %s does not exist, not physical intf"),
+                     dev_dir)
+    return intf_list
