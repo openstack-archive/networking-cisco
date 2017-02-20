@@ -32,11 +32,14 @@ from networking_cisco.apps.saf.server.services.firewall.native import (
 
 FAKE_NETWORK_NAME = 'test_dfa_network'
 FAKE_NETWORK_ID = '949fdd05-a26a-4819-a829-9fc2285de6ff'
+FAKE_NETWORK_ID2 = '949fdd05-a26a-4819-a829-9fc2285de6fe'
 FAKE_CFG_PROF_ID = '8c30f360ffe948109c28ab56f69a82e1'
 FAKE_SEG_ID = 12345
 FAKE_PROJECT_NAME = 'test_dfa_project'
-FAKE_ORCH_ID = 'test_openstack'
+FAKE_ORCH_ID = 'openstack'
 FAKE_PROJECT_ID = 'aee5da7e699444889c662cf7ec1c8de7'
+FAKE_PROJECT_ID2 = 'aee5da7e699444889c662cf7ec1c8d8'
+FAKE_PROJECT_ID3 = 'aee5da7e699444889c662cf7ec1c8d9'
 FAKE_CFG_PROFILE_NAME = 'defaultNetworkL2Profile'
 FAKE_INSTANCE_NAME = 'test_dfa_instance'
 FAKE_SUBNET_ID = '1a3c5ee1-cb92-4fd8-bff1-8312ac295d64'
@@ -202,12 +205,12 @@ class TestDFAServer(base.BaseTestCase):
         self.dfa_server.update_project_entry.assert_called_with(pid, dciid,
                                                                 result)
 
-    def test_project_create_event(self):
+    def test_project_create_func(self):
         """Test case for project create event."""
 
         dciid = str(12345)
         proj_desc = 'Unit Test Project'
-        proj_info = {'resource_info': FAKE_PROJECT_ID}
+        proj_id = FAKE_PROJECT_ID2
         proj = mock.Mock()
         proj.name = FAKE_PROJECT_NAME
         proj.description = proj_desc
@@ -215,10 +218,11 @@ class TestDFAServer(base.BaseTestCase):
         self.dfa_server.keystone_event._service.projects.get.return_value = (
             proj)
 
-        self.dfa_server.project_create_event(proj_info)
+        self.dfa_server.project_create_func(proj_id)
         # Try it with DCI id
         proj.name = FAKE_PROJECT_NAME + ':dci_id:' + dciid
-        self.dfa_server.project_create_event(proj_info)
+        proj_id = FAKE_PROJECT_ID3
+        self.dfa_server.project_create_func(proj_id)
         expected_calls = [
             mock.call(FAKE_ORCH_ID, FAKE_PROJECT_NAME, part_name, None,
                       proj.description),
@@ -278,20 +282,20 @@ class TestDFAServer(base.BaseTestCase):
 
         self.dfa_server.del_project_db.assert_called_with(FAKE_PROJECT_ID)
 
-    def test_network_create_event(self):
+    def test_network_create_func(self):
         """Test case for network create event."""
 
-        network_info = {'network':
-                        {'name': FAKE_NETWORK_NAME,
-                         'tenant_id': FAKE_PROJECT_ID,
-                         'id': FAKE_NETWORK_ID}}
+        net = {'name': FAKE_NETWORK_NAME,
+               'tenant_id': FAKE_PROJECT_ID,
+               'id': FAKE_NETWORK_ID2}
         dcnmclnt = self.dfa_server.dcnm_client
         dcnmclnt.get_config_profile_for_network.return_value = (
             FAKE_CFG_PROFILE_NAME, FAKE_FWD_MODE)
-        self.dfa_server.network_create_event(network_info)
-        dfa_net = self.dfa_server.network[FAKE_NETWORK_ID]
-        expected_calls = [mock.call(FAKE_NETWORK_ID, dfa_net, 'openstack',
-                                    constants.RESULT_SUCCESS)]
+        self.dfa_server.get_network.return_value = None
+        self.dfa_server.network_create_func(net)
+        dfa_net = self.dfa_server.network[FAKE_NETWORK_ID2]
+        expected_calls = [mock.call(FAKE_NETWORK_ID2, dfa_net, 'openstack',
+                                    constants.SUBNET_PENDING)]
         self.assertEqual(expected_calls,
                          self.dfa_server.add_network_db.call_args_list)
 
@@ -301,9 +305,9 @@ class TestDFAServer(base.BaseTestCase):
         network_info = {'network':
                         {'name': FAKE_NETWORK_NAME,
                          'tenant_id': FAKE_PROJECT_ID,
-                         'id': FAKE_NETWORK_ID}}
+                         'id': FAKE_NETWORK_ID2}}
         subnet_info = {'subnet': {
-            'network_id': FAKE_NETWORK_ID,
+            'network_id': FAKE_NETWORK_ID2,
             'tenant_id': FAKE_PROJECT_ID,
             'allocation_pools': [
                 {'start': FAKE_DHCP_IP_START, 'end': FAKE_DHCP_IP_END}],
@@ -315,23 +319,27 @@ class TestDFAServer(base.BaseTestCase):
         dcnmclnt = self.dfa_server.dcnm_client
         dcnmclnt.get_config_profile_for_network.return_value = (
             FAKE_CFG_PROFILE_NAME, FAKE_FWD_MODE)
+        self.dfa_server.get_network.return_value = None
+
         self.dfa_server.network_create_event(network_info)
 
         fake_network = mock.Mock()
         fake_network.source = 'dcnm'
         fake_network.name = FAKE_NETWORK_NAME
+        fake_network.result = constants.SUBNET_PENDING
         self.dfa_server.get_network.return_value = fake_network
         self.dfa_server.subnet_create_event(subnet_info)
         self.assertFalse(self.dfa_server.dcnm_client.create_network.called)
 
         fake_network.source = 'openstack'
+        fake_network.result = constants.SUBNET_PENDING
         self.dfa_server.subnet_create_event(subnet_info)
         self.assertTrue(self.dfa_server.dcnm_client.create_network.called)
         create_call = self.dfa_server.dcnm_client.create_network.call_args
         arg1, arg2 = create_call
         self.assertTrue(arg1[0] == FAKE_PROJECT_NAME)
         self.assertTrue(
-            arg1[1].__dict__ == self.dfa_server.network[FAKE_NETWORK_ID])
+            arg1[1].__dict__ == self.dfa_server.network[FAKE_NETWORK_ID2])
         self.assertTrue(
             arg1[2].__dict__ == self.dfa_server.subnet[FAKE_SUBNET_ID])
 
@@ -453,9 +461,10 @@ class TestDFAServer(base.BaseTestCase):
         self.dfa_server.update_vm_db.assert_called_with(
             port_info['port']['id'], **params)
 
-    def test_port_delete_event(self):
+    def test_delete_vm_funciton(self):
         """Test case for port delete event."""
 
+        port_id = FAKE_PORT_ID
         vm = mock.Mock()
         vm.mac = FAKE_MAC_ADDR
         vm.port_id = FAKE_PORT_ID
@@ -469,6 +478,29 @@ class TestDFAServer(base.BaseTestCase):
         vm.host = FAKE_HOST_ID
         vm.name = FAKE_INSTANCE_NAME
         self.dfa_server.get_vm.return_value = vm
+
+        # Check the results.
+
+        # Check the output/calls
+        self.dfa_server.delete_vm_function(port_id, vm)
+        # Check the results.
+
+        self.dfa_server.delete_vm_db.assert_called_with(vm.port_id)
+
+    def test_send_vm_info(self):
+        """Test send_send_vm_info"""
+        vm = mock.Mock()
+        vm.mac = FAKE_MAC_ADDR
+        vm.port_id = FAKE_PORT_ID
+        vm.segmentation_id = self.segid
+        vm.network_id = FAKE_NETWORK_ID,
+        vm.port_id = FAKE_PORT_ID
+        vm.ip = FAKE_IP_ADDR
+        vm.gw_mac = FAKE_GW_ADDR
+        vm.instance_id = FAKE_DEVICE_ID
+        vm.fwd_mod = FAKE_FWD_MODE
+        vm.host = FAKE_HOST_ID
+        vm.name = FAKE_INSTANCE_NAME
         vm_info = dict(status='down', vm_mac=vm.mac,
                        segmentation_id=vm.segmentation_id,
                        host=vm.host, port_uuid=vm.port_id,
@@ -476,16 +508,12 @@ class TestDFAServer(base.BaseTestCase):
                        oui=dict(ip_addr=vm.ip, vm_name=vm.name,
                                 vm_uuid=vm.instance_id, gw_mac=vm.gw_mac,
                                 fwd_mod=vm.fwd_mod, oui_id='cisco'))
-        port_info = {'port_id': FAKE_PORT_ID}
-
-        # Check the output/calls
-        self.dfa_server.port_delete_event(port_info)
+        return_value = self.dfa_server.send_vm_info(vm_info)
         self.assertTrue(self.dfa_server.neutron_event.send_vm_info.called)
-        call_args = self.dfa_server.neutron_event.send_vm_info.call_args
-        cargs, ckwargs = call_args
-        self.assertTrue(cargs[0] == FAKE_HOST_ID)
-        self.assertTrue(str(vm_info) == cargs[1])
-        self.dfa_server.delete_vm_db.assert_called_with(vm.port_id)
+        cargs, ckwargs = self.dfa_server.neutron_event.send_vm_info.call_args
+        self.assertEqual(FAKE_HOST_ID, cargs[0])
+        self.assertEqual(str(vm_info), cargs[1])
+        self.assertEqual(True, return_value)
 
     def test_add_dhcp_port(self):
         """Test add dhcp port"""
@@ -505,7 +533,7 @@ class TestDFAServer(base.BaseTestCase):
         self.assertEqual(FAKE_HOST_ID, cargs[0])
         self.assertEqual(str(self.dfa_server.port[FAKE_PORT_ID]), cargs[1])
         self.assertEqual(self.dfa_server.port[FAKE_PORT_ID]["oui"]["vm_name"],
-                         "dhcp-10010-4")
+                         "dhcp10010_4")
         self.assertTrue(self.dfa_server.add_vms_db.called)
         call_args = self.dfa_server.add_vms_db.call_args
         cargs, ckwargs = call_args
@@ -526,28 +554,6 @@ class TestDFAServer(base.BaseTestCase):
         call_args = self.dfa_server.add_dhcp_port.call_args
         cargs, ckwargs = call_args
         self.assertEqual(FAKE_PORT_ID, cargs[0].get("id"))
-
-    def test_strip_wait_dhcp(self):
-        vm = mock.Mock
-        vm.mac = FAKE_MAC_ADDR
-        vm.port_id = FAKE_PORT_ID
-        vm.segmentation_id = self.segid
-        vm.network_id = FAKE_NETWORK_ID,
-        vm.port_id = FAKE_PORT_ID
-        vm.ip = "10.10.10.10W"
-        vm.gw_mac = FAKE_GW_ADDR
-        vm.instance_id = FAKE_DEVICE_ID
-        vm.fwd_mod = FAKE_FWD_MODE
-        vm.host = FAKE_HOST_ID
-        vm.name = FAKE_INSTANCE_NAME
-
-        self.dfa_server.strip_wait_dhcp(vm)
-
-        self.assertTrue(self.dfa_server.update_vm_db.called)
-        call_args = self.dfa_server.update_vm_db.call_args
-        cargs, ckwargs = call_args
-        self.assertEqual(FAKE_PORT_ID, cargs[0])
-        self.assertEqual("10.10.10.10", ckwargs.get("columns").get("ip"))
 
     def test_is_mand_arg_present_true(self):
         """Test the is_mand_arg_present function for True case. """
@@ -683,3 +689,18 @@ class TestDFAServer(base.BaseTestCase):
             self.rpcb.save_topo_disc_params(None, None)
         add_upd_mock.assert_not_called()
         del_upd_mock.assert_not_called()
+
+    def test_add_lbaas_port(self):
+        port_info = self._get_port_info()
+        port_id = port_info.get('port').get("id")
+        lb_id = "1111111111111111"
+        self.dfa_server.neutronclient.show_port.return_value = (port_info)
+        self.dfa_server.add_lbaas_port(port_id, lb_id)
+
+        # Check the output/calls
+        self.assertTrue(self.dfa_server.neutron_event.send_vm_info.called)
+        self.assertTrue(self.dfa_server.add_vms_db.called)
+        call_args = self.dfa_server.add_vms_db.call_args
+        cargs, ckwargs = call_args
+        self.assertEqual(self.dfa_server.port[FAKE_PORT_ID], cargs[0])
+        self.assertEqual(constants.RESULT_SUCCESS, cargs[1])

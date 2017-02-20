@@ -20,6 +20,7 @@ VM_INFO = 1000
 UPDATE_IP_RULE = 1001
 UPLINK_NAME = 1002
 
+DID_LEN = 36
 
 # RPC queue name on agent side.
 DFA_AGENT_QUEUE = 'dfa_agent'
@@ -33,9 +34,11 @@ RESULT_SUCCESS = 'SUCCESS'
 CREATE_FAIL = 'CREATE:FAIL'
 DELETE_FAIL = 'DELETE:FAIL'
 UPDATE_FAIL = 'UPDATE:FAIL'
+SUBNET_PENDING = 'SUBNET:PENDING'
 
-IP_DHCP_WAIT = "W"
 DHCP_PORT_CHECK = 3
+DHCP_PREFIX = 'dhcp'
+LBAAS_PREFIX = 'lbaas'
 
 MAIN_INTERVAL = 5
 
@@ -52,7 +55,7 @@ HB_INTERVAL = 30
 SEG_REUSE_TIMEOUT = 1
 
 # Default Orchestrator ID
-ORCHESTRATOR_ID = 'Openstack Controller'
+ORCHESTRATOR_ID = 'Openstack'
 
 # Special return value for an invalid OVS ofport
 INVALID_OFPORT = -1

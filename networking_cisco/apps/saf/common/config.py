@@ -147,6 +147,13 @@ default_notify_opts = {
     },
 }
 
+default_loadbalance_opts = {
+    'loadbalance': {
+        'lb_enabled': 'False',
+        'lb_native': 'True',
+    },
+}
+
 default_opts_list = [
     default_log_opts,
     default_neutron_opts,
@@ -158,6 +165,7 @@ default_opts_list = [
     default_dcnm_opts,
     default_notify_opts,
     default_firewall_opts,
+    default_loadbalance_opts,
 ]
 
 

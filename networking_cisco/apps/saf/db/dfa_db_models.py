@@ -552,20 +552,23 @@ class DfaDBMixin(object):
 
     def add_vms_db(self, vm_data, result):
         session = db.get_session()
-        with session.begin(subtransactions=True):
-            vm = DfaVmInfo(instance_id=vm_data['oui'].get('vm_uuid'),
-                           name=vm_data['oui'].get('vm_name'),
-                           status=vm_data.get('status'),
-                           network_id=vm_data.get('net_uuid'),
-                           port_id=vm_data.get('port_uuid'),
-                           ip=vm_data['oui'].get('ip_addr'),
-                           mac=vm_data.get('vm_mac'),
-                           segmentation_id=vm_data.get('segmentation_id'),
-                           fwd_mod=vm_data['oui'].get('fwd_mod'),
-                           gw_mac=vm_data['oui'].get('gw_mac'),
-                           host=vm_data.get('host'),
-                           result=result)
-            session.add(vm)
+        try:
+            with session.begin(subtransactions=True):
+                vm = DfaVmInfo(instance_id=vm_data['oui'].get('vm_uuid'),
+                               name=vm_data['oui'].get('vm_name'),
+                               status=vm_data.get('status'),
+                               network_id=vm_data.get('net_uuid'),
+                               port_id=vm_data.get('port_uuid'),
+                               ip=vm_data['oui'].get('ip_addr'),
+                               mac=vm_data.get('vm_mac'),
+                               segmentation_id=vm_data.get('segmentation_id'),
+                               fwd_mod=vm_data['oui'].get('fwd_mod'),
+                               gw_mac=vm_data['oui'].get('gw_mac'),
+                               host=vm_data.get('host'),
+                               result=result)
+                session.add(vm)
+        except Exception as exc:
+            LOG.warning("Exception %s occured, did not add" % exc.__class__)
 
     def delete_vm_db(self, port_id):
         session = db.get_session()
