@@ -13,11 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import type_nexus_vxlan
 
-import neutron.db.api as db
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import driver_api as api
 
@@ -39,7 +39,7 @@ class NexusVxlanTypeTest(testlib_api.SqlTestCase):
         self.driver.conf_mcast_ranges = MCAST_GROUP_RANGES
         self.driver.tunnel_ranges = VNI_RANGES
         self.driver.sync_allocations()
-        self.session = db.get_session()
+        self.context = bc.get_db_ref(bc.get_context())
 
     def vni_in_range(self, vni):
         # SegmentTypeDriver.allocate_partially_specified_segment allocates
@@ -47,7 +47,7 @@ class NexusVxlanTypeTest(testlib_api.SqlTestCase):
         return any(lower <= vni <= upper for (lower, upper) in VNI_RANGES)
 
     def test_allocate_tenant_segment(self):
-        segment = self.driver.allocate_tenant_segment(self.session)
+        segment = self.driver.allocate_tenant_segment(self.context)
         self.assertEqual(segment[api.NETWORK_TYPE], const.TYPE_NEXUS_VXLAN)
         self.assertEqual(segment[api.PHYSICAL_NETWORK], '224.0.0.1')
         self.assertTrue(self.vni_in_range(segment[api.SEGMENTATION_ID]))
@@ -55,7 +55,8 @@ class NexusVxlanTypeTest(testlib_api.SqlTestCase):
     def test_allocate_shared_mcast_group(self):
         segments = []
         for i in range(0, 6):
-            segments.append(self.driver.allocate_tenant_segment(self.session))
+            segments.append(self.driver.allocate_tenant_segment(
+                self.context))
         self.assertEqual(segments[0][api.NETWORK_TYPE],
                          const.TYPE_NEXUS_VXLAN)
         self.assertEqual(segments[0][api.PHYSICAL_NETWORK], '224.0.0.1')
@@ -70,11 +71,13 @@ class NexusVxlanTypeTest(testlib_api.SqlTestCase):
         segment = {api.NETWORK_TYPE: const.TYPE_NEXUS_VXLAN,
                    api.PHYSICAL_NETWORK: '224.0.0.1',
                    api.SEGMENTATION_ID: '5000'}
-        result = self.driver.reserve_provider_segment(self.session, segment)
-        alloc = self.driver.get_allocation(self.session,
-                                           result[api.SEGMENTATION_ID])
-        mcast_group = self.driver._get_mcast_group_for_vni(self.session,
-                                                           alloc.vxlan_vni)
+        result = self.driver.reserve_provider_segment(self.context, segment)
+        alloc = self.driver.get_allocation(
+            self.context,
+            result[api.SEGMENTATION_ID])
+        mcast_group = self.driver._get_mcast_group_for_vni(
+            self.context,
+            alloc.vxlan_vni)
         self.assertTrue(alloc.allocated)
         self.assertEqual(alloc.vxlan_vni, 5000)
         self.assertEqual(mcast_group, '224.0.0.1')
@@ -83,11 +86,13 @@ class NexusVxlanTypeTest(testlib_api.SqlTestCase):
         segment = {api.NETWORK_TYPE: const.TYPE_NEXUS_VXLAN,
                    api.PHYSICAL_NETWORK: '224.0.0.1'}
 
-        result = self.driver.reserve_provider_segment(self.session, segment)
-        alloc = self.driver.get_allocation(self.session,
-                                           result[api.SEGMENTATION_ID])
-        mcast_group = self.driver._get_mcast_group_for_vni(self.session,
-                                                           alloc.vxlan_vni)
+        result = self.driver.reserve_provider_segment(self.context, segment)
+        alloc = self.driver.get_allocation(
+            self.context,
+            result[api.SEGMENTATION_ID])
+        mcast_group = self.driver._get_mcast_group_for_vni(
+            self.context,
+            alloc.vxlan_vni)
         self.assertTrue(alloc.allocated)
         self.assertTrue(self.vni_in_range(alloc.vxlan_vni))
         self.assertEqual(mcast_group, '224.0.0.1')

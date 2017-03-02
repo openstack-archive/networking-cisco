@@ -368,6 +368,7 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
                                               'physnet')] = PHYSNET
             mech_instance.driver.nexus_switches = (
                 mech_instance._nexus_switches)
+            mech_instance.context = bc.get_context()
 
         mock.patch.object(mech_cisco_nexus.CiscoNexusMechanismDriver,
                           '__init__', new=new_nexus_init).start()
