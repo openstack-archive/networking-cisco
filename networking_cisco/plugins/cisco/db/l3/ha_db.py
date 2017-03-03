@@ -25,7 +25,6 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import expression as expr
 
 from neutron.common import utils
-from neutron.db import l3_db
 from neutron.db import models_v2
 from neutron.extensions import l3
 from neutron_lib import exceptions as n_exc
@@ -41,7 +40,7 @@ from networking_cisco.plugins.cisco.extensions import routertype
 LOG = logging.getLogger(__name__)
 
 
-RouterPort = l3_db.RouterPort
+RouterPort = bc.RouterPort
 
 HA_GROUP = 'group'
 HA_PORT = 'ha_port'
@@ -104,7 +103,7 @@ class RouterHASetting(bc.model_base.BASEV2):
                           sa.ForeignKey('routers.id', ondelete='CASCADE'),
                           primary_key=True)
     router = orm.relationship(
-        l3_db.Router,
+        bc.Router,
         backref=orm.backref('ha_settings', cascade='all', uselist=False))
     # 'ha_type' can be 'VRRP', 'HSRP', or 'GLBP'
     ha_type = sa.Column(sa.String(255))
@@ -174,7 +173,7 @@ class RouterRedundancyBinding(bc.model_base.BASEV2):
                                                    ondelete='CASCADE'),
                                      primary_key=True)
     redundancy_router = orm.relationship(
-        l3_db.Router,
+        bc.Router,
         primaryjoin='Router.id==RouterRedundancyBinding.redundancy_router_id',
         backref=orm.backref('redundancy_binding', cascade='save-update, merge',
                             passive_deletes='all', uselist=False))
@@ -187,7 +186,7 @@ class RouterRedundancyBinding(bc.model_base.BASEV2):
     user_router_id = sa.Column(sa.String(36),
                                sa.ForeignKey('routers.id'))
     user_router = orm.relationship(
-        l3_db.Router,
+        bc.Router,
         primaryjoin='Router.id==RouterRedundancyBinding.user_router_id',
         backref=orm.backref('redundancy_bindings',
                             order_by=priority, cascade='all'))

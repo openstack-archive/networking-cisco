@@ -51,6 +51,8 @@ else:
 
 if NEUTRON_VERSION >= NEUTRON_OCATA_VERSION:
     from neutron import context
+    from neutron.db.models import agent as agent_model
+    from neutron.db.models import l3 as l3_models
     from neutron_lib.api import extensions
     from neutron_lib.db import model_base
     from neutron_lib.plugins import directory
@@ -59,6 +61,9 @@ if NEUTRON_VERSION >= NEUTRON_OCATA_VERSION:
     n_c_attr_names = dir(n_c)
     HasProject = model_base.HasProject
     VXLAN_TUNNEL_TYPE = type_tunnel.ML2TunnelTypeDriver
+    Agent = agent_model.Agent
+    RouterPort = l3_models.RouterPort
+    Router = l3_models.Router
 
     def get_context():
         return context.Context()
@@ -70,7 +75,9 @@ if NEUTRON_VERSION >= NEUTRON_OCATA_VERSION:
         return context.session
 else:
     from neutron.api import extensions  # noqa
+    from neutron.db import agents_db
     from neutron.db import api as db_api
+    from neutron.db import l3_db
     from neutron.db import model_base  # noqa
     from neutron.db import models_v2
     from neutron import manager
@@ -85,6 +92,9 @@ else:
     HasProject = models_v2.HasTenant
     setattr(constants, 'L3', getattr(svc_constants, 'L3_ROUTER_NAT'))
     VXLAN_TUNNEL_TYPE = type_tunnel.TunnelTypeDriver
+    Agent = agents_db.Agent
+    RouterPort = l3_db.RouterPort
+    Router = l3_db.Router
 
     def get_context():
         return None

@@ -20,7 +20,6 @@ from oslo_utils import uuidutils
 from sqlalchemy.orm import exc
 from sqlalchemy.sql import expression as expr
 
-from neutron.db import l3_db
 from neutron.db import models_v2
 from neutron.extensions import l3
 
@@ -277,7 +276,7 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
                     'device_owner': port_type,
                     'admin_state_up': True,
                     'name': ''}})
-            router_port = l3_db.RouterPort(
+            router_port = bc.RouterPort(
                 port_id=aux_gw_port['id'],
                 router_id=global_router_id,
                 port_type=port_type)
@@ -510,11 +509,11 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
         # Determine number of routers (with routertype_id and router_role)
         # that act as gateway to ext_net_id and that are hosted on
         # hosting_device_id (if specified).
-        query = context.session.query(l3_db.Router)
+        query = context.session.query(bc.Router)
         if router_role in [None, ROUTER_ROLE_HA_REDUNDANCY]:
             # tenant router roles
             query = query.join(models_v2.Port,
-                               models_v2.Port.id == l3_db.Router.gw_port_id)
+                               models_v2.Port.id == bc.Router.gw_port_id)
             role_filter = expr.or_(
                 l3_models.RouterHostingDeviceBinding.role == expr.null(),
                 l3_models.RouterHostingDeviceBinding.role ==
@@ -522,12 +521,12 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
         else:
             # global and logical global routers
             query = query.join(models_v2.Port,
-                               models_v2.Port.device_owner == l3_db.Router.id)
+                               models_v2.Port.device_owner == bc.Router.id)
             role_filter = (
                 l3_models.RouterHostingDeviceBinding.role == router_role)
         query = query.join(
             l3_models.RouterHostingDeviceBinding,
-            l3_models.RouterHostingDeviceBinding.router_id == l3_db.Router.id)
+            l3_models.RouterHostingDeviceBinding.router_id == bc.Router.id)
         query = query.filter(
             role_filter,
             models_v2.Port.network_id == ext_net_id,

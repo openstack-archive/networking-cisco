@@ -15,7 +15,6 @@
 import sqlalchemy as sa
 from sqlalchemy import orm
 
-from neutron.db import agents_db
 from neutron.db import models_v2
 
 from networking_cisco import backwards_compatibility as bc
@@ -108,7 +107,7 @@ class HostingDevice(bc.model_base.BASEV2, bc.model_base.HasId,
     cfg_agent_id = sa.Column(sa.String(36),
                              sa.ForeignKey('agents.id'),
                              nullable=True)
-    cfg_agent = orm.relationship(agents_db.Agent)
+    cfg_agent = orm.relationship(bc.Agent)
     # Service VMs take time to boot so we store creation time
     # so we can give preference to older ones when scheduling
     created_at = sa.Column(sa.DateTime, nullable=False)

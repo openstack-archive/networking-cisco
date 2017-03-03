@@ -171,7 +171,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         return query
 
     db_base_plugin_v2.NeutronDbPluginV2.register_model_query_hook(
-        l3_db.Router,
+        bc.Router,
         "cisco_router_model_hook",
         '_cisco_router_model_hook',
         None,
@@ -694,9 +694,9 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
 
     def get_routers_count_extended(self, context, filters=None,
                                    invert_filters=None):
-        qry = self._get_collection_query(context, l3_db.Router,
+        qry = self._get_collection_query(context, bc.Router,
                                          filters)
-        qry = self._apply_invert_filters_to_query(qry, l3_db.Router,
+        qry = self._apply_invert_filters_to_query(qry, bc.Router,
                                                   invert_filters)
         return qry.count()
 
