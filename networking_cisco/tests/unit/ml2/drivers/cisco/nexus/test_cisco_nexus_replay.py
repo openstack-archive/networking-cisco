@@ -31,6 +31,106 @@ RP_HOST_NAME_DUAL = 'testdualhost'
 MAX_REPLAY_COUNT = 4
 
 
+class TestCiscoNexusReplayResults(
+    test_cisco_nexus_base.TestCiscoNexusBaseResults):
+
+    """Unit tests driver results for Cisco ML2 Nexus."""
+
+    test_results = {
+        'driver_result_unique_init': (
+            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', 'None')]),
+
+        'driver_result_unique_add1': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', 267)]),
+
+        'driver_result_unique_add2': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(265),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', 265)]),
+
+        'driver_result_unique_del1': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/10', 265),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)]),
+
+        'driver_result_unique_del2': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/10', 267),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)]),
+
+        'driver_result_unique_2vlan_replay': (
+            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', '265,267'),
+            test_cisco_nexus_base.RESULT_ADD_VLAN.format('265,267')]),
+
+        'dupl_vlan_result1_add': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', 267),
+            test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/20', 267)]),
+
+        'dupl_vlan_result2_add': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', 267),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/20', 267)]),
+
+        'dupl_vlan_result2_del': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/10', 267),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267),
+            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/20', 267)]),
+
+        'dupl_vlan_result_replay': (
+            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', 267),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/20', 267),
+            test_cisco_nexus_base.RESULT_ADD_VLAN.format(267)]),
+
+        'dupl_port_result_replay': (
+            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', 267),
+            test_cisco_nexus_base.RESULT_ADD_VLAN.format(267)]),
+
+        'switch_up_result_add': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(269),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/3', 269)]),
+
+        'switch_up_result_del': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/3', 269),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(269)]),
+
+        'switch_restore_result_add': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(269),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/3', 269)]),
+
+        'switch_restore_result_replay': (
+            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/2', 269),
+            test_cisco_nexus_base.RESULT_ADD_VLAN.format(269)]),
+
+        'switch_restore_result_del': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/3', 269),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(269),
+            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/2', 269),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(269)]),
+
+    }
+
+
 class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
     """Unit tests for Replay of Cisco ML2 Nexus data."""
     test_configs = {
@@ -143,30 +243,6 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
                 {},
                 test_cisco_nexus_base.NORMAL_VNIC),
     }
-    driver_result_unique_init = (
-        [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-            format('ethernet', '1\/10', 'None')])
-
-    driver_result_unique_add1 = (
-        [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
-        test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-            format('ethernet', '1\/10', 267)])
-
-    driver_result_unique_add2 = (
-        [test_cisco_nexus_base.RESULT_ADD_VLAN.format(265),
-        test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-            format('ethernet', '1\/10', 265)])
-
-    driver_result_unique_del1 = (
-        [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-            format('ethernet', '1\/10', 265),
-        test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)])
-
-    driver_result_unique_del2 = (
-        [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-            format('ethernet', '1\/10', 267),
-        test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)])
-
     test_configs = collections.OrderedDict(sorted(test_configs.items()))
 
     def setUp(self):
@@ -174,117 +250,103 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
 
         cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
         super(TestCiscoNexusReplay, self).setUp()
+        self.results = TestCiscoNexusReplayResults()
 
     def test_replay_unique_ports(self):
         """Provides replay data and result data for unique ports. """
 
-        first_add = {'driver_results': self.
-                     driver_result_unique_add1,
-                     'nbr_db_entries': 1}
-        second_add = {'driver_results': self.
-                      driver_result_unique_add2,
-                      'nbr_db_entries': 2}
-        first_del = {'driver_results': self.
-                     driver_result_unique_del1,
-                     'nbr_db_entries': 1}
-        second_del = {'driver_results': self.
-                      driver_result_unique_del2,
-                      'nbr_db_entries': 0}
-        driver_result_unique_2vlan_replay = (
-            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/10', '265,267'),
-            test_cisco_nexus_base.RESULT_ADD_VLAN.format('265,267')])
+        first_add = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_add1'),
+            'nbr_db_entries': 1}
+        second_add = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_add2'),
+            'nbr_db_entries': 2}
+        first_del = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_del1'),
+            'nbr_db_entries': 1}
+        second_del = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_del2'),
+            'nbr_db_entries': 0}
 
         self._process_replay(
             'test_replay_unique1',
             'test_replay_unique2',
-            self.driver_result_unique_init,
+            self.results.get_test_results(
+                'driver_result_unique_init'),
             first_add,
             second_add,
-            driver_result_unique_2vlan_replay,
+            self.results.get_test_results(
+                'driver_result_unique_2vlan_replay'),
             first_del,
             second_del)
 
     def test_replay_duplicate_vlan(self):
         """Provides replay data and result data for duplicate vlans. """
 
-        result1_add = (
-            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/10', 267),
-            test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/20', 267)])
-        first_add = {'driver_results': result1_add,
-                     'nbr_db_entries': 2}
+        first_add = {
+            'driver_results': self.results.get_test_results(
+                'dupl_vlan_result1_add'),
+            'nbr_db_entries': 2}
 
-        result2_add = (
-            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/10', 267),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/20', 267)])
         # TODO(caboucha)
         # 'driver_result': [], until the correct fix for
         # the following issue is resolved.
         # https://review.openstack.org/#/c/241216/
-        second_add = {'driver_results': result2_add,
-                      'nbr_db_entries': 4}
+        second_add = {
+            'driver_results': self.results.get_test_results(
+                'dupl_vlan_result2_add'),
+            'nbr_db_entries': 4}
 
         first_del = {'driver_results': [],
                      'nbr_db_entries': 2}
 
-        result2_del = (
-            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/10', 267),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267),
-            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/20', 267)])
-        second_del = {'driver_results': result2_del,
-                      'nbr_db_entries': 0}
-
-        result_replay = (
-            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/10', 267),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/20', 267),
-            test_cisco_nexus_base.RESULT_ADD_VLAN.format(267)])
+        second_del = {
+            'driver_results': self.results.get_test_results(
+                'dupl_vlan_result2_del'),
+            'nbr_db_entries': 0}
 
         self._process_replay('test_replay_duplvlan1',
                              'test_replay_duplvlan2',
                              [],
                              first_add, second_add,
-                             result_replay,
+                             self.results.get_test_results(
+                                 'dupl_vlan_result_replay'),
                              first_del, second_del)
 
     def test_replay_duplicate_ports(self):
         """Provides replay data and result data for duplicate ports. """
 
-        first_add = {'driver_results': self.driver_result_unique_add1,
-                     'nbr_db_entries': 1}
+        first_add = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_add1'),
+            'nbr_db_entries': 1}
 
         # TODO(caboucha)
         # 'driver_result': [], until the correct fix for
         # the following issue is resolved.
         # https://review.openstack.org/#/c/241216/
-        second_add = {'driver_results': self.driver_result_unique_add1,
-                      'nbr_db_entries': 2}
+        second_add = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_add1'),
+            'nbr_db_entries': 2}
         first_del = {'driver_results': [],
                      'nbr_db_entries': 1}
 
-        second_del = {'driver_results': self.driver_result_unique_del2,
-                      'nbr_db_entries': 0}
-
-        result_replay = (
-            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/10', 267),
-            test_cisco_nexus_base.RESULT_ADD_VLAN.format(267)])
+        second_del = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_del2'),
+            'nbr_db_entries': 0}
 
         self._process_replay('test_replay_duplport1',
                              'test_replay_duplport2',
                              [],
                              first_add, second_add,
-                             result_replay,
+                             self.results.get_test_results(
+                                 'dupl_port_result_replay'),
                              first_del, second_del)
 
     def test_replay_enable_vxlan_feature_failure(self):
@@ -378,12 +440,9 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
             port_cfg2.nexus_ip_addr, const.SWITCH_INACTIVE)
 
         # Set-up successful creation of port vlan config
-        result_add = (
-            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(269),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/3', 269)])
         self._basic_create_verify_port_vlan('test_replay_dual',
-            result_add,
+            self.results.get_test_results(
+                'switch_up_result_add'),
             nbr_of_bindings=1)
 
         # Even though 2nd entry is inactive, there should be
@@ -394,12 +453,9 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
                    port_cfg2.nexus_ip_addr)))
 
         # Clean-up the port entry
-        result_del = (
-            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/3', 269),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(269)])
         self._basic_delete_verify_port_vlan('test_replay_dual',
-            result_del,
+            self.results.get_test_results(
+                'switch_up_result_del'),
             nbr_of_bindings=0)
 
     def test_replay_port_success_if_one_switch_restored(self):
@@ -417,12 +473,9 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
             port_cfg2.nexus_ip_addr, const.SWITCH_INACTIVE)
 
         # Set-up successful creation of port vlan config
-        result_add = (
-            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(269),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/3', 269)])
         self._basic_create_verify_port_vlan('test_replay_dual',
-            result_add,
+            self.results.get_test_results(
+                'switch_restore_result_add'),
             nbr_of_bindings=1)
 
         # Even though 2nd entry is inactive, there should be
@@ -434,25 +487,17 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
 
         # Restore port data for that switch
         self._cfg_monitor.check_connections()
-        result_replay = (
-            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/2', 269),
-            test_cisco_nexus_base.RESULT_ADD_VLAN.format(269)])
-        self._verify_results(result_replay)
+        self._verify_results(
+            self.results.get_test_results(
+                'switch_restore_result_replay'))
 
         # Clear mock_call history.
         self.mock_ncclient.reset_mock()
 
         # Clean-up the port entries
-        result_del = (
-            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/3', 269),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(269),
-            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/2', 269),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(269)])
         self._basic_delete_verify_port_vlan('test_replay_dual',
-            result_del,
+            self.results.get_test_results(
+                'switch_restore_result_del'),
             nbr_of_bindings=0)
 
     def test_replay_create_fails_if_single_switch_down(self):
@@ -495,7 +540,8 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
             port_cfg.nexus_ip_addr, const.SWITCH_ACTIVE)
 
         self._basic_create_verify_port_vlan('test_replay_unique1',
-            self.driver_result_unique_add1)
+            self.results.get_test_results(
+                'driver_result_unique_add1'))
 
         # Make switch inactive before delete
         self._cisco_mech_driver.set_switch_ip_and_active_state(
@@ -544,7 +590,8 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
 
         # Set-up successful creation of port vlan config
         self._basic_create_verify_port_vlan('test_replay_unique1',
-            self.driver_result_unique_add1)
+            self.results.get_test_results(
+                'driver_result_unique_add1'))
 
         # Set-up so get_nexus_type driver fails
         config = {'connect.return_value.get.side_effect':
@@ -581,7 +628,8 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
 
         # Set-up successful creation of port vlan config
         self._basic_create_verify_port_vlan('test_replay_unique1',
-            self.driver_result_unique_add1)
+            self.results.get_test_results(
+                'driver_result_unique_add1'))
 
         # Set-up exception during create_vlan
         config = {'connect.return_value.edit_config.side_effect':
@@ -608,6 +656,7 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
         result_replay = (
             [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
                 format('ethernet', '1\/10', 267)] + driver_result1)
+
         self._verify_results(result_replay)
 
         # Clear the edit driver exception for next test.
@@ -630,7 +679,8 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
 
         # Clean-up the port entry
         self._basic_delete_verify_port_vlan('test_replay_unique1',
-            self.driver_result_unique_del2)
+            self.results.get_test_results(
+                'driver_result_unique_del2'))
 
     def test_replay_vlan_batch_failure_during_replay(self):
         """Verifies handling of batch vlan during replay."""
@@ -737,8 +787,10 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
             port_cfg.nexus_ip_addr, const.SWITCH_ACTIVE)
 
         # Set-up successful creation of port vlan config
-        self._basic_create_verify_port_vlan('test_replay_unique1',
-            self.driver_result_unique_add1)
+        self._basic_create_verify_port_vlan(
+            'test_replay_unique1',
+            self.results.get_test_results(
+                'driver_result_unique_add1'))
 
         # Test 1:
         # Set the edit create vlan driver exception
@@ -855,9 +907,123 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
                 test_cisco_nexus_base.NEXUS_IP_ADDRESS_1))
 
 
+class TestCiscoNexusBaremetalReplayResults(
+    test_cisco_nexus_base.TestCiscoNexusBaseResults):
+    """Unit tests driver results for Cisco ML2 Nexus."""
+
+    test_results = {
+
+        'driver_result_unique_eth_init': (
+            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', 'None')]),
+
+        'driver_result_unique_eth_add1': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', 267)]),
+
+        'driver_result_unique_eth_add2': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(265),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', 265)]),
+
+        'driver_result_unique_eth_del1': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/10', 265),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)]),
+
+        'driver_result_unique_eth_del2': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/10', 267),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)]),
+
+        'driver_result_unique_vPC_init': (
+            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('port-channel', '469', 'None')]),
+
+        'driver_result_unique_vPC_add1': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('port-channel', '469', 267)]),
+
+        'driver_result_unique_vPC_add2': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(265),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('port-channel', '469', 265)]),
+
+        'driver_result_unique_vPC_del1': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('port-channel', '469', 265),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)]),
+
+        'driver_result_unique_vPC_del2': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('port-channel', '469', 267),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)]),
+
+        'driver_result_unique_native_port_ethernet_add': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(265),
+            (test_cisco_nexus_base.RESULT_ADD_NATIVE_INTERFACE.
+                format('ethernet', '1\/10', 265) +
+            '[\x00-\x7f]+' +
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', 265))]),
+
+        'driver_result_unique_native_port_ethernet_del': (
+            [(test_cisco_nexus_base.RESULT_DEL_NATIVE_INTERFACE.
+                format('ethernet', '1\/10') +
+            '[\x00-\x7f]+' +
+            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/10', 265)),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)]),
+
+        'driver_result_unique_2vlan_replay': (
+            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', '265,267'),
+            test_cisco_nexus_base.RESULT_ADD_VLAN.format('265,267')]),
+
+        'driver_result_unique_2vlan_vpc_replay': (
+            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('port-channel', '469', '265,267'),
+            test_cisco_nexus_base.RESULT_ADD_VLAN.format('265,267')]),
+
+        'driver_result_unique_vPC470_del1': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('port-channel', '470', 265),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)]),
+
+        'driver_result_unique_vPC470_del2': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('port-channel', '470', 267),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)]),
+
+        'driver_result_unique_vPC470_2vlan_replay': (
+            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('port-channel', '470', '265,267'),
+            test_cisco_nexus_base.RESULT_ADD_VLAN.format('265,267')]),
+
+        'driver_result_unique_2vlan_vpc_enchg_replay': (
+            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', '265,267'),
+            test_cisco_nexus_base.RESULT_ADD_VLAN.format('265,267')]),
+
+        'driver_result_unique_native_2vlan_replay': (
+            [(test_cisco_nexus_base.RESULT_ADD_NATIVE_INTERFACE.
+            format('ethernet', '1\/10', 265) +
+            '[\x00-\x7f]+' +
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', '265')),
+            (test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('ethernet', '1\/10', '265,267')),
+            test_cisco_nexus_base.RESULT_ADD_VLAN.format('265,267')])
+    }
+
+
 class TestCiscoNexusBaremetalReplay(
     test_cisco_nexus_base.TestCiscoNexusReplayBase):
+
     """Unit tests for Replay of Cisco ML2 Nexus data."""
+
     baremetal_profile = {
         "local_link_information": [
             {
@@ -921,70 +1087,6 @@ class TestCiscoNexusBaremetalReplay(
                 test_cisco_nexus_base.BAREMETAL_VNIC),
     }
 
-    driver_result_unique_eth_init = (
-        [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-            format('ethernet', '1\/10', 'None')])
-
-    driver_result_unique_eth_add1 = (
-        [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
-        test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-            format('ethernet', '1\/10', 267)])
-
-    driver_result_unique_eth_add2 = (
-        [test_cisco_nexus_base.RESULT_ADD_VLAN.format(265),
-        test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-            format('ethernet', '1\/10', 265)])
-
-    driver_result_unique_eth_del1 = (
-        [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-            format('ethernet', '1\/10', 265),
-        test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)])
-
-    driver_result_unique_eth_del2 = (
-        [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-            format('ethernet', '1\/10', 267),
-        test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)])
-
-    driver_result_unique_vPC_init = (
-        [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-            format('port-channel', '469', 'None')])
-
-    driver_result_unique_vPC_add1 = (
-        [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
-        test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-            format('port-channel', '469', 267)])
-
-    driver_result_unique_vPC_add2 = (
-        [test_cisco_nexus_base.RESULT_ADD_VLAN.format(265),
-        test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-            format('port-channel', '469', 265)])
-
-    driver_result_unique_vPC_del1 = (
-        [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-            format('port-channel', '469', 265),
-        test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)])
-
-    driver_result_unique_vPC_del2 = (
-        [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-            format('port-channel', '469', 267),
-        test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)])
-
-    driver_result_unique_native_port_ethernet_add = (
-        [test_cisco_nexus_base.RESULT_ADD_VLAN.format(265),
-        (test_cisco_nexus_base.RESULT_ADD_NATIVE_INTERFACE.
-            format('ethernet', '1\/10', 265) +
-        '[\x00-\x7f]+' +
-        test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-            format('ethernet', '1\/10', 265))])
-
-    driver_result_unique_native_port_ethernet_del = (
-        [(test_cisco_nexus_base.RESULT_DEL_NATIVE_INTERFACE.
-            format('ethernet', '1\/10') +
-        '[\x00-\x7f]+' +
-        test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-            format('ethernet', '1\/10', 265)),
-        test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)])
-
     test_configs = collections.OrderedDict(sorted(test_configs.items()))
 
     def setUp(self):
@@ -992,71 +1094,81 @@ class TestCiscoNexusBaremetalReplay(
 
         cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
         super(TestCiscoNexusBaremetalReplay, self).setUp()
+        self.results = TestCiscoNexusBaremetalReplayResults()
+
+    def _init_port_channel(self, ch_grp):
+
+        # with Baremetal config when enet interface associated to port-channel,
+        # the port-channel interface is configured instead.  This config
+        # causes this to happen.
+        data_xml = {'connect.return_value.get.return_value.data_xml':
+                    'switchport trunk allowed vlan none\n'
+                    'channel-group ' + str(ch_grp) + ' mode active'}
+        self.mock_ncclient.configure_mock(**data_xml)
 
     def test_replay_unique_ethernet_ports(self):
         """Provides replay data and result data for unique ports. """
 
-        first_add = {'driver_results': self.
-                     driver_result_unique_eth_add1,
-                     'nbr_db_entries': 2}
-        second_add = {'driver_results': self.
-                      driver_result_unique_eth_add2,
-                      'nbr_db_entries': 3}
-        first_del = {'driver_results': self.
-                     driver_result_unique_eth_del1,
-                     'nbr_db_entries': 2}
-        second_del = {'driver_results': self.
-                      driver_result_unique_eth_del2,
-                      'nbr_db_entries': 1}
-        driver_result_unique_2vlan_replay = (
-            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/10', '265,267'),
-            test_cisco_nexus_base.RESULT_ADD_VLAN.format('265,267')])
+        first_add = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_eth_add1'),
+            'nbr_db_entries': 2}
+        second_add = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_eth_add2'),
+            'nbr_db_entries': 3}
+        first_del = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_eth_del1'),
+            'nbr_db_entries': 2}
+        second_del = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_eth_del2'),
+            'nbr_db_entries': 1}
 
         self._process_replay(
             'test_replay_unique1',
             'test_replay_unique2',
-            self.driver_result_unique_eth_init,
+            self.results.get_test_results(
+                'driver_result_unique_eth_init'),
             first_add,
             second_add,
-            driver_result_unique_2vlan_replay,
+            self.results.get_test_results(
+                'driver_result_unique_2vlan_replay'),
             first_del,
             second_del)
 
     def test_replay_unique_vPC_ports(self):
         """Provides replay data and result data for unique ports. """
 
-        first_add = {'driver_results': self.
-                     driver_result_unique_vPC_add1,
-                     'nbr_db_entries': 2}
-        second_add = {'driver_results': self.
-                      driver_result_unique_vPC_add2,
-                      'nbr_db_entries': 3}
-        first_del = {'driver_results': self.
-                     driver_result_unique_vPC_del1,
-                     'nbr_db_entries': 2}
-        second_del = {'driver_results': self.
-                      driver_result_unique_vPC_del2,
-                      'nbr_db_entries': 1}
-        driver_result_unique_2vlan_replay = (
-            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('port-channel', '469', '265,267'),
-            test_cisco_nexus_base.RESULT_ADD_VLAN.format('265,267')])
+        first_add = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_vPC_add1'),
+            'nbr_db_entries': 2}
+        second_add = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_vPC_add2'),
+            'nbr_db_entries': 3}
+        first_del = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_vPC_del1'),
+            'nbr_db_entries': 2}
+        second_del = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_vPC_del2'),
+            'nbr_db_entries': 1}
 
-        # this is to prevent interface initialization from occurring
-        # which adds unnecessary noise to the results.
-        data_xml = {'connect.return_value.get.return_value.data_xml':
-                    'switchport trunk allowed vlan none\n'
-                    'channel-group 469 mode active'}
-        self.mock_ncclient.configure_mock(**data_xml)
+        self._init_port_channel(469)
 
         self._process_replay(
             'test_replay_unique1',
             'test_replay_unique2',
-            self.driver_result_unique_vPC_init,
+            self.results.get_test_results(
+                'driver_result_unique_vPC_init'),
             first_add,
             second_add,
-            driver_result_unique_2vlan_replay,
+            self.results.get_test_results(
+                'driver_result_unique_2vlan_vpc_replay'),
             first_del,
             second_del)
 
@@ -1064,53 +1176,39 @@ class TestCiscoNexusBaremetalReplay(
         """Provides replay data and result data for unique ports. """
 
         def replay_init():
-            # This is to cause port-channel to get configured to 470
-            data_xml = {'connect.return_value.get.return_value.data_xml':
-                        'switchport trunk allowed vlan none\n'
-                        'channel-group 470 mode active'}
-            self.mock_ncclient.configure_mock(**data_xml)
+            # This causes port-channel 470 to get configured instead.
+            self._init_port_channel(470)
 
-        driver_result_unique_vPC470_del1 = (
-            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('port-channel', '470', 265),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)])
-
-        driver_result_unique_vPC470_del2 = (
-            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('port-channel', '470', 267),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)])
-
-        first_add = {'driver_results': self.
-                     driver_result_unique_vPC_add1,
-                     'nbr_db_entries': 2}
-        second_add = {'driver_results': self.
-                      driver_result_unique_vPC_add2,
-                      'nbr_db_entries': 3}
-        first_del = {'driver_results':
-                     driver_result_unique_vPC470_del1,
-                     'nbr_db_entries': 2}
-        second_del = {'driver_results':
-                      driver_result_unique_vPC470_del2,
-                      'nbr_db_entries': 1}
-        driver_result_unique_vPC470_2vlan_replay = (
-            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('port-channel', '470', '265,267'),
-            test_cisco_nexus_base.RESULT_ADD_VLAN.format('265,267')])
+        first_add = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_vPC_add1'),
+            'nbr_db_entries': 2}
+        second_add = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_vPC_add2'),
+            'nbr_db_entries': 3}
+        first_del = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_vPC470_del1'),
+            'nbr_db_entries': 2}
+        second_del = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_vPC470_del2'),
+            'nbr_db_entries': 1}
 
         # This is to cause port-channel 469 to get configured
-        data_xml = {'connect.return_value.get.return_value.data_xml':
-                    'switchport trunk allowed vlan none\n'
-                    'channel-group 469 mode active'}
-        self.mock_ncclient.configure_mock(**data_xml)
+        self._init_port_channel(469)
 
         # Providing replay_init to change channel-group
         self._process_replay(
             'test_replay_unique1',
             'test_replay_unique2',
-            self.driver_result_unique_vPC_init,
+            self.results.get_test_results(
+                'driver_result_unique_vPC_init'),
             first_add,
             second_add,
-            driver_result_unique_vPC470_2vlan_replay,
+            self.results.get_test_results(
+                'driver_result_unique_vPC470_2vlan_replay'),
             first_del,
             second_del,
             replay_init)
@@ -1119,43 +1217,42 @@ class TestCiscoNexusBaremetalReplay(
         """Provides replay data and result data for unique ports. """
 
         def replay_init():
-            # This is to cause port-channel to get replaced with enet
-            data_xml = {'connect.return_value.get.return_value.data_xml':
-                        'switchport trunk allowed vlan none\n'}
-            self.mock_ncclient.configure_mock(**data_xml)
+            # This causes port-channel to get replaced with enet
+            # by eliminating channel-group config from enet config.
+            if cfg.CONF.ml2_cisco.nexus_driver == 'restapi':
+                self.restapi_mock_init()
+            else:
+                self.mock_init()
 
-        first_add = {'driver_results': self.
-                     driver_result_unique_vPC_add1,
-                     'nbr_db_entries': 2}
-        second_add = {'driver_results': self.
-                      driver_result_unique_vPC_add2,
-                      'nbr_db_entries': 3}
-        first_del = {'driver_results': self.
-                     driver_result_unique_eth_del1,
-                     'nbr_db_entries': 2}
-        second_del = {'driver_results': self.
-                      driver_result_unique_eth_del2,
-                      'nbr_db_entries': 1}
-        driver_result_unique_2vlan_replay = (
-            [test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/10', '265,267'),
-            test_cisco_nexus_base.RESULT_ADD_VLAN.format('265,267')])
+        first_add = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_vPC_add1'),
+            'nbr_db_entries': 2}
+        second_add = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_vPC_add2'),
+            'nbr_db_entries': 3}
+        first_del = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_eth_del1'),
+            'nbr_db_entries': 2}
+        second_del = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_eth_del2'),
+            'nbr_db_entries': 1}
 
-        # this is to prevent interface initialization from occurring
-        # which adds unnecessary noise to the results.
-        data_xml = {'connect.return_value.get.return_value.data_xml':
-                    'switchport trunk allowed vlan none\n'
-                    'channel-group 469 mode active'}
-        self.mock_ncclient.configure_mock(**data_xml)
+        self._init_port_channel(469)
 
         # Providing replay_init to remove port-channel
         self._process_replay(
             'test_replay_unique1',
             'test_replay_unique2',
-            self.driver_result_unique_vPC_init,
+            self.results.get_test_results(
+                'driver_result_unique_vPC_init'),
             first_add,
             second_add,
-            driver_result_unique_2vlan_replay,
+            self.results.get_test_results(
+                'driver_result_unique_2vlan_vpc_enchg_replay'),
             first_del,
             second_del,
             replay_init)
@@ -1163,33 +1260,32 @@ class TestCiscoNexusBaremetalReplay(
     def test_replay_unique_native_nonnative_ethernet_ports(self):
         """Test replay with native and nonnative ethernet ports. """
 
-        first_add = {'driver_results': self.
-                     driver_result_unique_native_port_ethernet_add,
-                     'nbr_db_entries': 2}
-        second_add = {'driver_results': self.
-                      driver_result_unique_eth_add1,
-                      'nbr_db_entries': 3}
-        first_del = {'driver_results': self.
-                     driver_result_unique_eth_del2,
-                     'nbr_db_entries': 2}
-        second_del = {'driver_results': self.
-                     driver_result_unique_native_port_ethernet_del,
-                      'nbr_db_entries': 1}
-        driver_result_unique_native_2vlan_replay = (
-            [(test_cisco_nexus_base.RESULT_ADD_NATIVE_INTERFACE.
-            format('ethernet', '1\/10', 265) +
-            '[\x00-\x7f]+' +
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/10', '265,267')),
-            test_cisco_nexus_base.RESULT_ADD_VLAN.format('265,267')])
+        first_add = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_native_port_ethernet_add'),
+            'nbr_db_entries': 2}
+        second_add = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_eth_add1'),
+            'nbr_db_entries': 3}
+        first_del = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_eth_del2'),
+            'nbr_db_entries': 2}
+        second_del = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_native_port_ethernet_del'),
+            'nbr_db_entries': 1}
 
         self._process_replay(
             'test_replay_unique_native1',
             'test_replay_unique1',
-            self.driver_result_unique_eth_init,
+            self.results.get_test_results(
+                'driver_result_unique_eth_init'),
             first_add,
             second_add,
-            driver_result_unique_native_2vlan_replay,
+            self.results.get_test_results(
+                'driver_result_unique_native_2vlan_replay'),
             first_del,
             second_del)
 

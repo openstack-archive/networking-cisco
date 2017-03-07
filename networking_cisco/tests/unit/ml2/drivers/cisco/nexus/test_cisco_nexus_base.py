@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2016 Cisco Systems, Inc.
+# Copyright (c) 2015-2017 Cisco Systems, Inc.
 # All rights reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -15,13 +15,20 @@
 
 """
 Basic test Class and elements for testing Cisco Nexus platforms.
+
+Most classes in this file do not contain test cases but instead
+provide common methods for other classes to utilize. This class
+provides the basic methods needed to drive a create or delete
+port request thru to the ssh or restapi driver. It verifies the
+final content of the data base and verifies what data the
+Drivers sent out.  There also exists another 'base' class
+specifically for Replay testing.
 """
 
 import collections
 import mock
 import os
 from oslo_config import cfg
-from oslo_utils import importutils
 import re
 import six
 import testtools
@@ -31,6 +38,10 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_network_driver)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    nexus_restapi_network_driver)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    nexus_restapi_snippets as rest_snipp)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import constants
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import exceptions
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import mech_cisco_nexus
@@ -106,6 +117,55 @@ BAREMETAL_VNIC = u'baremetal'
 
 CONNECT_ERROR = 'Unable to connect to Nexus'
 
+GET_NEXUS_TYPE_RESPONSE = {
+    "totalCount": "1",
+    "imdata": [
+        {
+            "eqptCh": {
+                "attributes": {
+                    "descr": "Nexus9000 C9396PX Chassis",
+                }
+            }
+        }
+    ]
+}
+
+GET_INTERFACE_RESPONSE = {
+    "totalCount": "1",
+    "imdata": [
+        {
+            "l1PhysIf": {
+                "attributes": {
+                    "trunkVlans": ""
+                }
+            }
+        }
+    ]
+}
+
+GET_INTERFACE_PCHAN_RESPONSE = {
+    "totalCount": "1",
+    "imdata": [
+        {
+            "pcAggrIf": {
+                "attributes": {
+                    "trunkVlans": ""
+                }
+            }
+        }
+    ]
+}
+
+
+GET_NO_PORT_CH_RESPONSE = {
+    "totalCount": "3",
+    "imdata": [
+    ]
+}
+
+POST = 0
+DELETE = 1
+
 ## Test snippets used to verify nexus command output
 RESULT_ADD_VLAN = """configure\>\s+\<vlan\>\s+\
 <vlan-id-create-delete\>\s+\<__XML__PARAM_value\>{0}"""
@@ -146,9 +206,6 @@ RESULT_DEL_NATIVE_INTERFACE = """\
 
 RESULT_DEL_NVE_INTERFACE = """\<interface\>\s+\
 \<nve\>nve{0}\<\/nve\>\s+[\x20-\x7e]+\s+\<member\>no member vni {1}"""
-
-NEXUS_DRIVER = ('networking_cisco.plugins.ml2.drivers.cisco.nexus.'
-                'nexus_network_driver.CiscoNexusDriver')
 
 
 class FakeNetworkContext(object):
@@ -291,6 +348,19 @@ class FakeUnbindPortContext(FakePortContext):
         return self._bottom_segment
 
 
+class TestCiscoNexusBaseResults(object):
+
+    """Unit tests driver results for Cisco ML2 Nexus."""
+
+    test_results = {}
+
+    def get_test_results(self, name):
+        if name in self.test_results:
+            return self.test_results[name]
+        else:
+            return None
+
+
 class TestCiscoNexusBase(testlib_api.SqlTestCase):
     """Feature Base Test Class for Cisco ML2 Nexus driver."""
 
@@ -299,19 +369,45 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         'nexus_ip_addr host_name nexus_port instance_id vlan_id vxlan_id '
         'mcast_group device_owner profile vnic_type')
 
-    def _mock_init(self):
-        # this is to prevent interface initialization from occurring
-        # which adds unnecessary noise to the results.
+    def mock_init(self):
+
+        # This initializes interface responses to prevent
+        # unnecessary noise to the results.
 
         data_xml = {'connect.return_value.get.return_value.data_xml':
                     'switchport trunk allowed vlan none'}
         self.mock_ncclient.configure_mock(**data_xml)
 
+    def restapi_mock_init(self):
+
+        # This initializes RESTAPI responses to prevent
+        # unnecessary noise to the results.
+
+        data_json = {'rest_get.side_effect':
+                    self.get_side_effect}
+        self.mock_ncclient.configure_mock(**data_json)
+
+    def get_side_effect(self, action, ipaddr=None, body=None, headers=None):
+
+        eth_path = 'api/mo/sys/intf/phys-'
+        port_chan_path = 'api/mo/sys/intf/aggr-'
+
+        if action == rest_snipp.PATH_GET_NEXUS_TYPE:
+            return GET_NEXUS_TYPE_RESPONSE
+        elif action in rest_snipp.PATH_GET_PC_MEMBERS:
+            return GET_NO_PORT_CH_RESPONSE
+        elif eth_path in action:
+            return GET_INTERFACE_RESPONSE
+        elif port_chan_path in action:
+            return GET_INTERFACE_PCHAN_RESPONSE
+
+        return {}
+
     def _clear_port_dbs(self):
         nexus_db_v2.remove_all_nexusport_bindings()
 
     def setUp(self):
-        """Sets up mock ncclient, and switch and credentials dictionaries."""
+        """Sets up mock client, switch, and credentials dictionaries."""
 
         super(TestCiscoNexusBase, self).setUp()
 
@@ -320,20 +416,32 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         cfg.CONF.import_opt('rpc_workers', 'neutron.service')
         cfg.CONF.set_default('rpc_workers', 0)
 
-        # Use a mock netconf client
+        # Use a mock netconf or REST API client
         self.mock_ncclient = mock.Mock()
-        mock.patch.object(nexus_network_driver.CiscoNexusDriver,
-                          '_import_ncclient',
-                          return_value=self.mock_ncclient).start()
+        if cfg.CONF.ml2_cisco.nexus_driver == 'restapi':
+            mock.patch.object(
+                nexus_restapi_network_driver.CiscoNexusRestapiDriver,
+                '_import_client',
+                return_value=self.mock_ncclient).start()
+            self._verify_results = self._verify_restapi_results
+        else:
+            mock.patch.object(
+                nexus_network_driver.CiscoNexusSshDriver,
+                '_import_client',
+                return_value=self.mock_ncclient).start()
+            self._verify_results = self._verify_ssh_results
 
         self.mock_continue_binding = mock.patch.object(
             FakePortContext,
             'continue_binding').start()
 
-        self._mock_init()
+        if cfg.CONF.ml2_cisco.nexus_driver == 'restapi':
+            self.restapi_mock_init()
+        else:
+            self.mock_init()
 
         def new_nexus_init(mech_instance):
-            mech_instance.driver = importutils.import_object(NEXUS_DRIVER)
+            mech_instance.driver = mech_instance._load_nexus_cfg_driver()
             mech_instance.monitor_timeout = (
                 cfg.CONF.ml2_cisco.switch_heartbeat_time)
             mech_instance._ppid = os.getpid()
@@ -471,6 +579,57 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
                            port_config.instance_id)
             self.assertEqual(1, len(bindings))
 
+    def _verify_restapi_results(self, driver_result):
+        """Verifies correct entries sent to Nexus."""
+
+        posts = 0
+        deletes = 0
+        for idx in range(0, len(driver_result)):
+            if driver_result[idx][3] == POST:
+                posts += 1
+            else:
+                deletes += 1
+        self.assertEqual(
+            posts,
+            len(self.mock_ncclient.rest_post.mock_calls),
+            "Unexpected driver post calls")
+        self.assertEqual(
+            deletes,
+            len(self.mock_ncclient.rest_delete.mock_calls),
+            "Unexpected driver delete calls")
+
+        post_calls = self.mock_ncclient.rest_post.mock_calls
+        del_calls = self.mock_ncclient.rest_delete.mock_calls
+        posts = 0
+        deletes = 0
+        for idx in range(0, len(driver_result)):
+            # assigned None to skip testing this one.
+            if not driver_result[idx]:
+                continue
+            if driver_result[idx][3] == POST:
+                test_it = post_calls[posts][1]
+            else:
+                test_it = del_calls[deletes][1]
+            self.assertTrue(
+                (driver_result[idx][0] ==
+                    test_it[0]),
+                "Expected Rest URI does not match")
+
+            if driver_result[idx][1] is not None:
+                self.assertTrue(
+                    (driver_result[idx][1] ==
+                        test_it[1]),
+                    "Expected Nexus Switch ip does not match")
+
+            if driver_result[idx][3] == POST:
+                self.assertTrue(
+                    (driver_result[idx][2] ==
+                        test_it[2]),
+                    "Expected Rest Body does not match")
+                posts += 1
+            else:
+                deletes += 1
+
     def _delete_port(self, port_config):
         """Tests deletion of a virtual port."""
         port_context = self._generate_port_context(port_config)
@@ -498,7 +657,7 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
                     port_config.nexus_ip_addr,
                     port_config.instance_id)
 
-    def _verify_results(self, driver_result):
+    def _verify_ssh_results(self, driver_result):
         """Verifies correct entries sent to Nexus."""
 
         self.assertEqual(
