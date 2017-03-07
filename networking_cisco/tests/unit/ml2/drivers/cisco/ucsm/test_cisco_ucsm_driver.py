@@ -762,7 +762,9 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         expected_ip = '1.1.1.1'
         expected_sp1 = "org-root/ls-SP1"
         expected_sp2 = "org-root/ls-SP2"
-        ucsm_sp_dict, ucsm_host_dict = conf.parse_ucsm_host_config()
+        ucsm_sp_dict, ucsm_host_dict = conf.parse_ucsm_host_config(
+            cfg.CONF.ml2_cisco_ucsm.ucsm_ip,
+            cfg.CONF.ml2_cisco_ucsm.ucsm_host_list)
 
         key = (cfg.CONF.ml2_cisco_ucsm.ucsm_ip, 'Host1')
         self.assertIn(key, ucsm_sp_dict)
@@ -783,11 +785,13 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         """Verifies malformed ucsm_host_list raises an error."""
         cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = ['Host1:', 'Host2:SP2']
         self.assertRaisesRegex(cfg.Error, "Host1:",
-            conf.parse_ucsm_host_config)
+            conf.parse_ucsm_host_config, UCSM_IP_ADDRESS_1,
+                cfg.CONF.ml2_cisco_ucsm.ucsm_host_list)
 
         cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = ['Host1:SP1', 'Host2']
         self.assertRaisesRegex(cfg.Error, "Host2",
-            conf.parse_ucsm_host_config)
+            conf.parse_ucsm_host_config, UCSM_IP_ADDRESS_1,
+                cfg.CONF.ml2_cisco_ucsm.ucsm_host_list)
 
     def test_parse_virtio_eth_ports(self):
         cfg.CONF.ml2_cisco_ucsm.ucsm_virtio_eth_ports = ['test-eth1',
@@ -804,7 +808,9 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = ['Host1:SP1',
             'Host2:org-root/sub-org1/ls-SP2']
 
-        ucsm_sp_dict, ucsm_host_dict = conf.parse_ucsm_host_config()
+        ucsm_sp_dict, ucsm_host_dict = conf.parse_ucsm_host_config(
+            cfg.CONF.ml2_cisco_ucsm.ucsm_ip,
+            cfg.CONF.ml2_cisco_ucsm.ucsm_host_list)
 
         key = ('1.1.1.1', 'Host1')
         actual_service_profile1 = ucsm_sp_dict.get(key)
