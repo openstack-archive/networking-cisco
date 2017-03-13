@@ -74,7 +74,8 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         self._edit_running_config(conf_str, 'EMPTY_SNIPPET')
 
     def internal_network_added(self, ri, port):
-        gw_ip = port['subnets'][0]['gateway_ip']
+        gw_ip = self._get_item(
+            port['subnets'], port['ip_info']['subnet_id'], 'id')['gateway_ip']
         if self._is_port_v6(port):
             LOG.debug("Adding IPv6 internal network port: %(port)s for router "
                       "%(r_id)s", {'port': port, 'r_id': ri.id})
@@ -107,7 +108,9 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         if self._is_global_router(ri):
             self._remove_sub_interface(ext_gw_port)
         else:
-            ex_gw_ip = ext_gw_port['subnets'][0]['gateway_ip']
+            ex_gw_ip = self._get_item(
+                ext_gw_port['subnets'],
+                ext_gw_port['ip_info']['subnet_id'], 'id')['gateway_ip']
             if (ex_gw_ip and
                     ext_gw_port['device_owner'] == DEVICE_OWNER_ROUTER_GW):
                 # Remove default route via this network's gateway ip
@@ -216,26 +219,32 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
 
     def _handle_external_gateway_added_global_router(self, ri, ext_gw_port):
         # TODO(bobmel): Get the HA virtual IP correctly
-        # TODO(sridar):
-        # This seems to work fine. Keeping this todo until more testing.
+        # NOTE(sridar): This seems to work fine. Keeping this todo until
+        #               more testing.
         virtual_gw_port = ext_gw_port[ha.HA_INFO]['ha_port']
-        sub_itfc_ip = virtual_gw_port['fixed_ips'][0]['ip_address']
+        subnet_id = ext_gw_port['ip_info']['subnet_id']
+        sub_itfc_ip = self._get_item(virtual_gw_port['fixed_ips'],
+                                     subnet_id)['ip_address']
         if self._is_port_v6(ext_gw_port):
             LOG.debug("Adding IPv6 external network port: %(port)s for global "
                       "router %(r_id)s", {'port': ext_gw_port['id'],
                                           'r_id': ri.id})
             self._create_sub_interface_v6(ri, ext_gw_port, True, sub_itfc_ip)
         else:
-            LOG.debug("Adding IPv4 external network port: %(port)s for global "
-                      "router %(r_id)s", {'port': ext_gw_port['id'],
-                                          'r_id': ri.id})
+            LOG.debug("Adding IPv4 external network port: %(port)s on "
+                      "subnet: (subnet)s for global router %(r_id)s",
+                      {'port': ext_gw_port['id'], 'subnet': subnet_id,
+                       'r_id': ri.id})
             self._create_sub_interface(ri, ext_gw_port, True, sub_itfc_ip)
 
     def _handle_external_gateway_added_normal_router(self, ri, ext_gw_port):
         # Default routes are mapped to tenant router VRFs . Global Router
         # is not aware of tenant routers with ext network assigned. Thus,
         # default route must be handled per tenant router.
-        ex_gw_ip = ext_gw_port['subnets'][0]['gateway_ip']
+        ex_gw_ip = self._get_item(
+            ext_gw_port['subnets'],
+            ext_gw_port['ip_info']['subnet_id'], 'id')['gateway_ip']
+
         sub_interface = self._get_interface_name_from_hosting_port(ext_gw_port)
         vlan_id = self._get_interface_vlan_from_hosting_port(ext_gw_port)
         if (self._fullsync and
@@ -266,11 +275,17 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
             LOG.info(_LI("Sub-interface already exists, skipping"))
             return
         vrf_name = self._get_vrf_name(ri)
-        net_mask = netaddr.IPNetwork(port['ip_cidr']).netmask
-        hsrp_ip = port['fixed_ips'][0]['ip_address']
+        net_mask = netaddr.IPNetwork(port['ip_info']['ip_cidr']).netmask
+        # get port's ip address for the subnet we're processing
+        hsrp_ip = self._get_item(port['fixed_ips'],
+                                 port['ip_info']['subnet_id'])['ip_address']
         sub_interface = self._get_interface_name_from_hosting_port(port)
-        self._do_create_sub_interface(sub_interface, vlan, vrf_name, hsrp_ip,
-                                      net_mask, is_external)
+        if port['ip_info']['is_primary'] is True:
+            self._do_create_sub_interface(
+                sub_interface, vlan, vrf_name, hsrp_ip, net_mask, is_external)
+        else:
+            # this will only happen for global routers
+            self._do_set_secondary(sub_interface, hsrp_ip, net_mask)
         # Always do HSRP
         if ri.router.get(ha.ENABLED, False):
             if port.get(ha.HA_INFO) is not None:
@@ -280,6 +295,12 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                 params = {'r_id': ri.router_id, 'p_id': port['id'],
                           'port': port}
                 raise cfg_exc.HAParamsMissingException(**params)
+
+    def _do_set_secondary(self, sub_interface, ip, mask):
+        conf_str = (
+               asr1k_snippets.SET_SUBINTERFACE_SECONDARY_IP % (
+                    sub_interface, ip, mask))
+        self._edit_running_config(conf_str, 'SET_SUBINTERFACE_SECONDARY_IP')
 
     def _do_create_sub_interface(self, sub_interface, vlan_id, vrf_name, ip,
                                  mask, is_external=False):
@@ -329,41 +350,31 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
     def _set_nat_pool(self, ri, gw_port, is_delete):
         vrf_name = self._get_vrf_name(ri)
         if ri.router.get(ROUTER_ROLE_ATTR) == ROUTER_ROLE_HA_REDUNDANCY:
-            pool_ip = gw_port[ha.HA_INFO]['ha_port']['fixed_ips'][0][
-                'ip_address']
-            pool_ip_prefix_len = gw_port['fixed_ips'][0]['prefixlen']
+            the_port = gw_port[ha.HA_INFO]['ha_port']
         else:
-            pool_ip = gw_port['fixed_ips'][0]['ip_address']
-            pool_ip_prefix_len = gw_port['fixed_ips'][0]['prefixlen']
-        # TODO(sridar) reverting to old model, needs more investigation
-        # and cleanup
-        # pool_info = gw_port['nat_pool_info']
-        # pool_ip = pool_info['pool_ip']
+            the_port = gw_port
+        subnet_id = gw_port['ip_info']['subnet_id']
+        fixed_ip = self._get_item(the_port['fixed_ips'], subnet_id)
+        pool_ip = fixed_ip['ip_address']
+        pool_ip_prefix_len = fixed_ip['prefixlen']
+        #TODO(ebobmel) We need to modify the pool name generation if we
+        #              will have multiple NAT pools per VRF
         pool_name = "%s_nat_pool" % (vrf_name)
-        #pool_net = netaddr.IPNetwork(pool_info['pool_cidr'])
-        #pool_net = netaddr.IPNetwork(gw_port['ip_cidr'])
         pool_net = "%s/%s" % (pool_ip, pool_ip_prefix_len)
         pool_net = netaddr.IPNetwork(pool_net)
         if self._fullsync and pool_ip in self._existing_cfg_dict['pools']:
             LOG.info(_LI("Pool already exists, skipping"))
             return
 
-        #LOG.debug("SET_NAT_POOL pool netmask: %s, gw_port %s" % (
-        # pool_net.netmask, gw_port))
         try:
             if is_delete:
                 conf_str = asr1k_snippets.DELETE_NAT_POOL % (
                     pool_name, pool_ip, pool_ip, pool_net.netmask)
-                #self._edit_running_config(conf_str, '%s DELETE_NAT_POOL' %
-                #                          self.target_asr['name'])
                 # TODO(update so that hosting device name is passed down)
                 self._edit_running_config(conf_str, 'DELETE_NAT_POOL')
-
             else:
                 conf_str = asr1k_snippets.CREATE_NAT_POOL % (
                     pool_name, pool_ip, pool_ip, pool_net.netmask)
-                #self._edit_running_config(conf_str, '%s CREATE_NAT_POOL' %
-                #                          self.target_asr['name'])
                 # TODO(update so that hosting device name is passed down)
                 self._edit_running_config(conf_str, 'CREATE_NAT_POOL')
         #except cfg_exc.CSR1kvConfigException as cse:
@@ -376,7 +387,9 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                                self._existing_cfg_dict['routes']):
             LOG.debug("Default route already exists, skipping")
             return
-        ext_gw_ip = ext_gw_port['subnets'][0]['gateway_ip']
+        ext_gw_ip = self._get_item(
+            ext_gw_port['subnets'],
+            ext_gw_port['ip_info']['subnet_id'], 'id')['gateway_ip']
         if ext_gw_ip:
             vrf_name = self._get_vrf_name(ri)
             out_itfc = self._get_interface_name_from_hosting_port(ext_gw_port)
@@ -385,7 +398,9 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
             self._edit_running_config(conf_str, 'SET_DEFAULT_ROUTE_WITH_INTF')
 
     def _remove_default_route(self, ri, ext_gw_port):
-        ext_gw_ip = ext_gw_port['subnets'][0]['gateway_ip']
+        ext_gw_ip = self._get_item(
+            ext_gw_port['subnets'],
+            ext_gw_port['ip_info']['subnet_id'], 'id')['gateway_ip']
         if ext_gw_ip:
             vrf_name = self._get_vrf_name(ri)
             out_itfc = self._get_interface_name_from_hosting_port(ext_gw_port)
@@ -405,29 +420,40 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
             priority = ri.router[ha.DETAILS][ha.PRIORITY]
         port_ha_info = port[ha.HA_INFO]
         group = port_ha_info['group']
-        ip = port_ha_info['ha_port']['fixed_ips'][0]['ip_address']
+        subnet_id = port['ip_info']['subnet_id']
+        ip = self._get_item(port_ha_info['ha_port']['fixed_ips'],
+                            subnet_id)['ip_address']
         vlan = port['hosting_info']['segmentation_id']
         if ip and group and priority:
             vrf_name = self._get_vrf_name(ri)
+            is_primary = port['ip_info']['is_primary']
             sub_interface = self._get_interface_name_from_hosting_port(port)
-            self._do_set_ha_hsrp(sub_interface, vrf_name,
-                                 priority, group, ip, vlan)
+            self._do_set_ha_hsrp(sub_interface, vrf_name, priority, group, ip,
+                                 vlan, is_primary)
 
     def _do_set_ha_hsrp(self, sub_interface, vrf_name, priority, group,
-                        ip, vlan):
-        conf_str = asr1k_snippets.SET_INTC_ASR_HSRP_EXTERNAL % (sub_interface,
-                                                                group,
-                                                                priority,
-                                                                group, ip,
-                                                                group, group,
-                                                                group, vlan)
-        self._edit_running_config(conf_str, 'SET_INTC_ASR_HSRP_EXTERNAL')
+                        ip, vlan, is_primary=True):
+        if is_primary is True:
+            conf_str = asr1k_snippets.SET_INTC_ASR_HSRP_EXTERNAL % (
+                sub_interface,
+                group,
+                priority,
+                group, ip,
+                group, group,
+                group, vlan)
+            self._edit_running_config(conf_str, 'SET_INTC_ASR_HSRP_EXTERNAL')
+        else:
+            conf_str = asr1k_snippets.SET_INTC_ASR_SECONDARY_HSRP_EXTERNAL % (
+                sub_interface,
+                group, ip)
+            self._edit_running_config(conf_str,
+                                      'SET_INTC_ASR_SECONDARY_HSRP_EXTERNAL')
 
     def _create_sub_interface_v6(self, ri, port, is_external=False, gw_ip=""):
         if self._v6_port_needs_config(port) is not True:
             return
         vrf_name = self._get_vrf_name(ri)
-        ip_cidr = port['ip_cidr']
+        ip_cidr = port['ip_info']['ip_cidr']
         vlan = self._get_interface_vlan_from_hosting_port(port)
         sub_interface = self._get_interface_name_from_hosting_port(port)
         self._do_create_sub_interface_v6(sub_interface, vlan, vrf_name,
@@ -487,6 +513,20 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         return True
 
     @staticmethod
+    def _get_item(list_containing_dicts_entries, attribute_value,
+                  attribute_name='subnet_id'):
+        """Searches a list of dicts and returns the first matching entry
+
+        The dict entry returned contains the attribute 'attribute_name' whose
+        value equals 'attribute_value'. If no such dict is found in the list
+        an empty dict is returned.
+        """
+        for item in list_containing_dicts_entries:
+            if item.get(attribute_name) == attribute_value:
+                return item
+        return {}
+
+    @staticmethod
     def _port_is_hsrp(port):
         hsrp_types = [bc.constants.DEVICE_OWNER_ROUTER_HA_INTF]
         return port['device_owner'] in hsrp_types
@@ -496,9 +536,11 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         return (ri.router.get(ROUTER_ROLE_ATTR) ==
                 cisco_constants.ROUTER_ROLE_GLOBAL)
 
-    @staticmethod
-    def _is_port_v6(port):
-        return netaddr.IPNetwork(port['subnets'][0]['cidr']).version == 6
+    @classmethod
+    def _is_port_v6(cls, port):
+        cidr = cls._get_item(port['subnets'],
+                             port['ip_info']['subnet_id'], 'id')['cidr']
+        return netaddr.IPNetwork(cidr).version == 6
 
     @staticmethod
     def _get_hsrp_grp_num_from_ri(ri):
@@ -507,7 +549,7 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
     def _add_internal_nw_nat_rules(self, ri, port, ext_port):
         vrf_name = self._get_vrf_name(ri)
         acl_no = self._generate_acl_num_from_port(port)
-        internal_cidr = port['ip_cidr']
+        internal_cidr = port['ip_info']['ip_cidr']
         internal_net = netaddr.IPNetwork(internal_cidr).network
         net_mask = netaddr.IPNetwork(internal_cidr).hostmask
         inner_itfc = self._get_interface_name_from_hosting_port(port)

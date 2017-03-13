@@ -524,12 +524,97 @@ def _mock_stuff():
     pingable_patcher.start()
 
 
+# NOTE(bobmel): call mock_ncclient() in main() of cfg_agent.py to run config
+# agent with a fake ncclient. That mocked mode of running the config agent is
+# useful for end-2-end-like debugging without actual backend hosting devices.
+def mock_ncclient():
+    import mock
+    from ncclient.transport import errors as ncc_exc
+    from networking_cisco.plugins.cisco.common import (cisco_ios_xe_simulator
+        as cisco_ios_xe)
+    import os
+
+    def _fake_connect(host, port, username, password, device_params, timeout):
+        sim = cisco_ios_xe.CiscoIOSXESimulator(
+            '', host, "255.255.255.0", port, username, password,
+            device_params, "GigabitEthernet0", timeout)
+        connection_mock = mock.MagicMock()
+        connection_mock.edit_config.side_effect = _get_fake_edit_config(sim)
+        connection_mock.get_config.side_effect = (
+            _get_fake_get_config(sim))
+        return connection_mock
+
+    def _get_fake_edit_config(simulator):
+
+        def edit_config(config, format='xml', target='candidate',
+                        default_operation=None, test_option=None,
+                        error_option=None):
+            if not _fake_is_pingable(rc_emul.host_ip):
+                raise ncc_exc.SSHError('SSH error')
+            rc_emul.edit_config(config)
+            print(rc_emul.get_config())
+            return ok_xml_obj
+
+        ok_xml_obj = mock.MagicMock()
+        ok_xml_obj.xml = "<ok />"
+        rc_emul = simulator
+        return edit_config
+
+    def _get_fake_get_config(simulator):
+
+        def get_running_config(source):
+            if not _fake_is_pingable(rc_emul.host_ip):
+                raise ncc_exc.SSHError('SSH error')
+            head = ('<?xml version="1.0" encoding="UTF-8"?><rpc-reply '
+                    'message-id="urn:uuid:ec8bab72-a500-11e5-a92f'
+                    '-74a2e6d55908" xmlns="urn:ietf:params:xml:ns:netconf:'
+                    'base:1.0"><data><cli-config-data-block>!')
+            tail = '</cli-config-data-block></data></rpc-reply>'
+            raw_rc = rc_emul.get_config()
+            return cisco_ios_xe.FakeRunningConfig(head + raw_rc + tail)
+
+        rc_emul = simulator
+        return get_running_config
+
+    def _fake_is_pingable(ip):
+        # if a file with a certain name (derived from the 'ip' argument):
+        #
+        #     /opt/stack/data/neutron/DEAD__10_0_5_8       (ip = 10.0.5.8)
+        #
+        # exists then the (faked) hosting device with that IP address
+        # will appear to NOT respond to pings
+        path = '/opt/stack/data/neutron'
+        indicator_filename = path + '/DEAD_' + str(ip).replace('.', '_')
+        return not os.path.isfile(indicator_filename)
+
+    targets = ['networking_cisco.plugins.cisco.cfg_agent.device_drivers.'
+               'csr1kv.csr1kv_routing_driver.manager',
+               'networking_cisco.plugins.cisco.cfg_agent.device_drivers.'
+               'csr1kv.iosxe_routing_driver.manager']
+    ncc_patchers = []
+    ncclient_mgr_mock = mock.MagicMock()
+    ncclient_mgr_mock.connect.side_effect = _fake_connect
+
+    for target in targets:
+        patcher = mock.patch(target, ncclient_mgr_mock)
+        patcher.start()
+        ncc_patchers.append(patcher)
+
+    is_pingable_mock = mock.MagicMock()
+    is_pingable_mock.side_effect = _fake_is_pingable
+    pingable_patcher = mock.patch(
+        'networking_cisco.plugins.cisco.cfg_agent.device_status._is_pingable',
+        is_pingable_mock)
+    pingable_patcher.start()
+
+
 def main(manager='networking_cisco.plugins.cisco.cfg_agent.'
                  'cfg_agent.CiscoCfgAgentWithStateReport'):
     # NOTE(bobmel): call _mock_stuff() to run config agent with fake ncclient
     # This mocked mode of running the config agent is useful for end-2-end-like
     # debugging without actual backend hosting devices.
     #_mock_stuff()
+    #mock_ncclient()
     conf = cfg.CONF
     conf.register_opts(OPTS, "cfg_agent")
     config.register_agent_state_opts_helper(conf)

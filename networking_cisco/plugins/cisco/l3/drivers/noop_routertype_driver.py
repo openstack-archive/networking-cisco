@@ -76,3 +76,9 @@ class NoopL3RouterDriver(drivers.L3RouterBaseDriver):
 
     def delete_floatingip_postcommit(self, context, fip_context):
         pass
+
+    def pre_backlog_processing(self, context):
+        pass
+
+    def post_backlog_processing(self, context):
+        pass

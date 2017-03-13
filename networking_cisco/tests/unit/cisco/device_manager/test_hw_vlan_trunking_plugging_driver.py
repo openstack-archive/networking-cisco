@@ -146,6 +146,7 @@ class TestHwVLANTrunkingPlugDriver(
         fake_port_db_obj.hosting_info = mock.MagicMock()
         fake_port_db_obj.hosting_info.segmentation_id = 50
         fake_port_db_obj.device_owner = bc.constants.DEVICE_OWNER_ROUTER_INTF
+        fake_port_db_obj.networks.external = None
         hosting_device = {'id': '00000000-0000-0000-0000-000000000002'}
         tenant_id = 'tenant_uuid1'
         ctx = context.Context('', tenant_id, is_admin=True)
@@ -162,6 +163,7 @@ class TestHwVLANTrunkingPlugDriver(
         fake_port_db_obj.hosting_info = mock.MagicMock()
         fake_port_db_obj.hosting_info.segmentation_id = 40
         fake_port_db_obj.device_owner = bc.constants.DEVICE_OWNER_ROUTER_GW
+        fake_port_db_obj.networks.external = {'external': True}
         hosting_device = {'id': '00000000-0000-0000-0000-000000000002'}
         tenant_id = 'tenant_uuid1'
         ctx = context.Context('', tenant_id, is_admin=True)

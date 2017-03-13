@@ -400,3 +400,27 @@ class L3RouterBaseDriver(object):
         config agent drivers corresponding to this router type driver.
         """
         return ""
+
+    def pre_backlog_processing(self, context):
+        """Perform driver specific processing before backlog is processed.
+
+        :param context: admin neutron context
+
+        This function is invoked before the router plugin is processing the
+        backlog of unscheduled routers. It allows the router type driver to
+        perform any tasks that should be performed before the backlog is
+        processed.
+        """
+        pass
+
+    def post_backlog_processing(self, context):
+        """Perform driver specific processing after backlog is processed.
+
+        :param context: admin neutron context
+
+        This function is invoked after the router plugin has processed the
+        backlog of unscheduled routers. It allows the router type driver to
+        perform any tasks that should be performed after the backlog has been
+        processed.
+        """
+        pass
