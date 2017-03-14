@@ -13,8 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import debtcollector
-
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -82,38 +80,35 @@ def parse_pci_vendor_config():
     return vendor_list
 
 
-@debtcollector.removals.remove(message=DEPRECATION_MESSAGE)
-def parse_ucsm_host_config():
+def parse_ucsm_host_config(ucsm_ip, ucsm_host_list):
     sp_dict = {}
     host_dict = {}
-    if cfg.CONF.ml2_cisco_ucsm.ucsm_host_list:
-        host_config_list = cfg.CONF.ml2_cisco_ucsm.ucsm_host_list
-        for host in host_config_list:
-            hostname, sep, service_profile = host.partition(':')
-            if not sep or not service_profile:
-                raise cfg.Error(_("UCS Mech Driver: Invalid Host Service "
-                                  "Profile config: %s") % host)
-            key = (cfg.CONF.ml2_cisco_ucsm.ucsm_ip, hostname)
-            if '/' not in service_profile:
-                # Assuming the service profile is at the root level
-                # and the path is not specified. This option
-                # allows backward compatability with earlier config
-                # format
-                sp_dict[key] = (const.SERVICE_PROFILE_PATH_PREFIX +
-                    service_profile.strip())
-            else:
-                # Assuming the complete path to Service Profile has
-                # been provided in the config. The Service Profile
-                # could be in an sub-org.
-                sp_dict[key] = service_profile.strip()
+    for host in ucsm_host_list:
+        host = host.strip()
+        hostname, sep, service_profile = host.partition(':')
+        if not sep or not service_profile:
+            raise cfg.Error(_("UCS Mech Driver: Invalid Host Service "
+                              "Profile config: %s") % host)
+        key = (ucsm_ip, hostname)
+        if '/' not in service_profile:
+            # Assuming the service profile is at the root level
+            # and the path is not specified. This option
+            # allows backward compatability with earlier config
+            # format
+            sp_dict[key] = (const.SERVICE_PROFILE_PATH_PREFIX +
+                service_profile.strip())
+        else:
+            # Assuming the complete path to Service Profile has
+            # been provided in the config. The Service Profile
+            # could be in an sub-org.
+            sp_dict[key] = service_profile.strip()
 
-            LOG.debug('Service Profile for %s is %s',
-                hostname, sp_dict.get(key))
-            host_dict[hostname] = cfg.CONF.ml2_cisco_ucsm.ucsm_ip
-        return sp_dict, host_dict
+        LOG.debug('Service Profile for %s is %s',
+            hostname, sp_dict.get(key))
+        host_dict[hostname] = ucsm_ip
+    return sp_dict, host_dict
 
 
-@debtcollector.removals.remove(message=DEPRECATION_MESSAGE)
 def parse_virtio_eth_ports():
     eth_port_list = []
     if not cfg.CONF.ml2_cisco_ucsm.ucsm_virtio_eth_ports:
@@ -130,6 +125,8 @@ def parse_virtio_eth_ports():
 class UcsmConfig(object):
     """ML2 Cisco UCSM Mechanism Driver Configuration class."""
     ucsm_dict = {}
+    ucsm_sp_dict = {}
+    ucsm_host_dict = {}
     ucsm_port_dict = {}
     sp_template_dict = {}
     vnic_template_dict = {}
@@ -149,7 +146,6 @@ class UcsmConfig(object):
             raise cfg.Error(_('Insufficient UCS Manager configuration has '
                               'been provided to the plugin'))
 
-    @debtcollector.removals.remove(message=DEPRECATION_MESSAGE)
     def _create_single_ucsm_dicts(self):
         """Creates a dictionary of UCSM data for 1 UCS Manager."""
         ucsm_info = []
@@ -166,6 +162,8 @@ class UcsmConfig(object):
         """Creates a dictionary of all UCS Manager data from config."""
         username = None
         password = None
+        local_sp_dict = {}
+        local_host_dict = {}
         multi_parser = cfg.MultiConfigParser()
         read_ok = multi_parser.read(cfg.CONF.config_file)
 
@@ -181,7 +179,13 @@ class UcsmConfig(object):
                     eth_port_list = []
                     for dev_key, value in parsed_file[parsed_item].items():
                         config_item = dev_key.lower()
-                        if config_item == 'ucsm_virtio_eth_ports':
+                        if config_item == 'ucsm_host_list':
+                            local_sp_dict, local_host_dict = (
+                                parse_ucsm_host_config(dev_ip,
+                                                       value[0].split(',')))
+                            self.ucsm_sp_dict.update(local_sp_dict)
+                            self.ucsm_host_dict.update(local_host_dict)
+                        elif config_item == 'ucsm_virtio_eth_ports':
                             for eth_port in value[0].split(','):
                                 eth_port_list.append(
                                     const.ETH_PREFIX + str(eth_port).strip())
@@ -197,7 +201,7 @@ class UcsmConfig(object):
                             self.sriov_qos_policy[dev_ip] = value[0].strip()
                         elif dev_key.lower() == 'ucsm_username':
                             username = value[0].strip()
-                        else:
+                        elif dev_key.lower() == 'ucsm_password':
                             password = value[0].strip()
                         ucsm_info = (username, password)
                         self.ucsm_dict[dev_ip] = ucsm_info

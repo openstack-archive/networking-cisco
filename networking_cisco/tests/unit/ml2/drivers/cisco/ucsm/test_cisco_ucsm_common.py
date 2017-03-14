@@ -29,6 +29,7 @@ UCSM_IP_ADDRESS_1 = '1.1.1.1'
 UCSM_USERNAME_1 = 'username1'
 UCSM_PASSWORD_1 = 'password1'
 UCSM_VIRTIO_ETH_PORTS_1 = ['eth0, eth1']
+UCSM_HOST_LIST_1 = ['UCS-1:UCS-1-SP, UCS-2:org-root/test/ls-UCS-2-SP']
 
 UCSM_IP_ADDRESS_2 = '2.2.2.2'
 UCSM_USERNAME_2 = 'username2'
@@ -63,6 +64,7 @@ class ConfigMixin(object):
             'ml2_cisco_ucsm_ip: 1.1.1.1': {
                 'ucsm_username': [UCSM_USERNAME_1],
                 'ucsm_password': [UCSM_PASSWORD_1],
+                'ucsm_host_list': UCSM_HOST_LIST_1,
                 'ucsm_virtio_eth_ports': UCSM_VIRTIO_ETH_PORTS_1,
                 'vnic_template_list': ['test-physnet:org-root:Test-VNIC'],
                 'sriov_qos_policy': ['Test']
@@ -103,6 +105,11 @@ class ConfigMixin(object):
                               507, 508, 509, 700]
         }
 
+        expected_sp_dict = {
+            ('1.1.1.1', 'UCS-1'): ('org-root/ls-UCS-1-SP'),
+            ('1.1.1.1', 'UCS-2'): ('org-root/test/ls-UCS-2-SP'),
+        }
+
         self.mocked_parser = mock.patch.object(cfg,
             'MultiConfigParser').start()
         self.mocked_parser.return_value.read.return_value = [ucsm_test_config]
@@ -118,3 +125,5 @@ class ConfigMixin(object):
                          ucsm_config.UcsmConfig.sriov_qos_policy)
         self.assertEqual(expected_multivlan_trunk_dict,
                          ucsm_config.UcsmConfig.multivlan_trunk_dict)
+        self.assertEqual(expected_sp_dict,
+                         ucsm_config.UcsmConfig.ucsm_sp_dict)
