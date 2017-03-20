@@ -34,7 +34,7 @@ interface GigabitEthernet/1/0/5.1056
  description OPENSTACK_NEUTRON_EXTERNAL_INTF
  encapsulation dot1Q 1056
  ip address 172.16.6.48 255.255.255.224 secondary
- ip address 172.17.7.38 255.255.255.224
+ ip address 172.17.7.38 255.255.255.240
  ip nat outside
  standby 1064 ip 172.16.6.46 secondary
  standby 1064 ip 172.17.7.36
@@ -54,7 +54,7 @@ ip access-list standard neutron_acl_1086_0b9c4564
 !
 ip nat inside source list neutron_acl_1086_0b9c4564 pool nrouter-5dd41c_nat_pool vrf nrouter-5dd41c overload
 ip nat pool nrouter-5dd41c_nat_pool 172.16.6.44 172.16.6.44 netmask 255.255.255.224
-ip nat pool nrouter-5dd41c_nat_pool 172.17.7.34 172.17.7.34 netmask 255.255.255.224
+ip nat pool nrouter-5dd41c_nat_pool 172.17.7.34 172.17.7.34 netmask 255.255.255.240
 !
 ip route vrf nrouter-5dd41c 0.0.0.0 0.0.0.0 GigabitEthernet/1/0/5.1056 172.16.6.33
 ip route vrf nrouter-5dd41c 0.0.0.0 0.0.0.0 GigabitEthernet/1/0/5.1056 172.17.7.33

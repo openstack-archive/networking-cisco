@@ -45,9 +45,10 @@ def prepare_router_data(enable_snat=None, num_internal_ports=1,
     sn_ids = sorted([_uuid() for i in range(num_subnets)])
     for i in range(num_subnets):
         sn_id = sn_ids[i]
+        prfxlen = 28 if i == 0 else 27
         ext_fixed_ips.append({'ip_address': '19.4.%s.4' % i,
                               'subnet_id': sn_id})
-        ext_subnets.append({'id': sn_id, 'cidr': '19.4.%s.0/24' % i,
+        ext_subnets.append({'id': sn_id, 'cidr': '19.4.%s.0/%s' % (i, prfxlen),
                             'gateway_ip': '19.4.%s.1' % i})
     ex_gw_port = {'id': _uuid(),
                   'network_id': _uuid(),
@@ -303,10 +304,10 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         def _verify_ip_info(the_mock):
             self.assertEqual(num_ext_subnets, len(the_mock.ip_infos))
             self.assertTrue(the_mock.ip_infos[0]['is_primary'])
-            self.assertEqual('19.4.0.4/24', the_mock.ip_infos[0]['ip_cidr'])
+            self.assertEqual('19.4.0.4/28', the_mock.ip_infos[0]['ip_cidr'])
             for i in range(1, num_ext_subnets):
                 self.assertFalse(the_mock.ip_infos[i]['is_primary'])
-                self.assertEqual('19.4.%s.4/24' % i,
+                self.assertEqual('19.4.%s.4/27' % i,
                                  the_mock.ip_infos[i]['ip_cidr'])
 
         # need these helpers to verify that ip_info is correct

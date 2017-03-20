@@ -913,7 +913,10 @@ class ConfigSyncer(object):
             if found is False:
                 LOG.info(_LI("Subintf real IP is incorrect, deleting"))
                 return False
-            target_net = netaddr.IPNetwork(gw_port['subnets'][i]['cidr'])
+            subnet_id = gw_port['fixed_ips'][i]['subnet_id']
+            subnet = next(
+                sn for sn in gw_port['subnets'] if sn['id'] == subnet_id)
+            target_net = netaddr.IPNetwork(subnet['cidr'])
             if netmask != str(target_net.netmask):
                 LOG.info(_LI("Subintf has incorrect netmask, deleting"))
                 return False

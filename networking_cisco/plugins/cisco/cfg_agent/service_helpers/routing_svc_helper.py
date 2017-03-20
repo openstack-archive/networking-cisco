@@ -1144,13 +1144,12 @@ class RoutingServiceHelper(object):
 
     @staticmethod
     def _set_subnet_info(port, subnet_id, is_primary=True):
-
-        ips = [i['ip_address'] for i in port['fixed_ips']
-               if i['subnet_id'] == subnet_id]
-        if not ips:
+        ip = next((i['ip_address'] for i in port['fixed_ips']
+                   if i['subnet_id'] == subnet_id), None)
+        if ip is None:
             raise IPAddressMissingException(port_id=port['id'],
                                             subnet_id=subnet_id)
-        subnet = port['subnets'][0]
+        subnet = next(sn for sn in port['subnets'] if sn['id'] == subnet_id)
         prefixlen = netaddr.IPNetwork(subnet['cidr']).prefixlen
         port['ip_info'] = {'subnet_id': subnet_id, 'is_primary': is_primary,
-                           'ip_cidr': "%s/%s" % (ips[0], prefixlen)}
+                           'ip_cidr': "%s/%s" % (ip, prefixlen)}
