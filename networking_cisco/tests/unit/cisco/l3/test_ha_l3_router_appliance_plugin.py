@@ -1523,6 +1523,10 @@ class HAL3RouterApplianceVMTestCase(
             self.assertEqual(admin_ctx, args[0])
             self.assertIn(router['router']['id'], args[1])
 
+    @unittest.skip('Gateway network should have a subnet')
+    def test_router_add_gateway_no_subnet(self):
+        pass
+
 
 class L3AgentHARouterApplianceTestCase(
         test_l3_router_appliance_plugin.L3AgentRouterApplianceTestCase):
