@@ -16,7 +16,6 @@
 
 from oslo_log import log as logging
 
-from neutron.extensions import portbindings
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import driver_api as api
 
@@ -36,7 +35,7 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
 
     def initialize(self):
         self.vif_type = const.VIF_TYPE_802_QBH
-        self.vif_details = {portbindings.CAP_PORT_FILTER: False}
+        self.vif_details = {bc.portbindings.CAP_PORT_FILTER: False}
         self.ucsm_db = ucsm_db.UcsmDbModel()
         self.driver = ucsm_network_driver.CiscoUcsmDriver()
         self.ucsm_conf = config.UcsmConfig()
@@ -72,12 +71,12 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
         4. If no, create a new port profile with this vlan_id and
         associate with this port
         """
-        vnic_type = context.current.get(portbindings.VNIC_TYPE,
-                                        portbindings.VNIC_NORMAL)
+        vnic_type = context.current.get(bc.portbindings.VNIC_TYPE,
+                                        bc.portbindings.VNIC_NORMAL)
 
-        profile = context.current.get(portbindings.PROFILE, {})
+        profile = context.current.get(bc.portbindings.PROFILE, {})
         host_id = self._get_host_id(
-            context.current.get(portbindings.HOST_ID))
+            context.current.get(bc.portbindings.HOST_ID))
         if not host_id:
             LOG.warning(_LW('Host id from port context is None. '
                 'Ignoring this port'))
@@ -170,7 +169,7 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
         # Checks to perform before UCS Manager can create a Port Profile.
         # 1. Make sure this host is on a known UCS Manager.
         host_id = self._get_host_id(
-            context.current.get(portbindings.HOST_ID))
+            context.current.get(bc.portbindings.HOST_ID))
         if not host_id:
             LOG.warning(_LW('Host id from port context is None. '
                 'Ignoring this port'))
@@ -182,9 +181,9 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                 'Manager'), str(host_id))
             return
 
-        profile = context.current.get(portbindings.PROFILE, {})
-        vnic_type = context.current.get(portbindings.VNIC_TYPE,
-                                        portbindings.VNIC_NORMAL)
+        profile = context.current.get(bc.portbindings.PROFILE, {})
+        vnic_type = context.current.get(bc.portbindings.VNIC_TYPE,
+                                        bc.portbindings.VNIC_NORMAL)
 
         # 2. Make sure this is a vm_fex_port.(Port profiles are created
         # only for VM-FEX ports.)
@@ -296,8 +295,8 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
         in ACTIVE state and provide the Port Profile or Vlan Id as part
         vif_details.
         """
-        vnic_type = context.current.get(portbindings.VNIC_TYPE,
-                                        portbindings.VNIC_NORMAL)
+        vnic_type = context.current.get(bc.portbindings.VNIC_TYPE,
+                                        bc.portbindings.VNIC_NORMAL)
 
         LOG.debug('Attempting to bind port %(port)s with vnic_type '
                   '%(vnic_type)s on network %(network)s ',
@@ -305,7 +304,7 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                    'vnic_type': vnic_type,
                    'network': context.network.current['id']})
 
-        profile = context.current.get(portbindings.PROFILE, {})
+        profile = context.current.get(bc.portbindings.PROFILE, {})
 
         if not self.driver.check_vnic_type_and_vendor_info(vnic_type,
                                                            profile):
@@ -328,7 +327,7 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                         const.VIF_DETAILS_PROFILEID] = profile_name
                 else:
                     self.vif_details[
-                        portbindings.VIF_DETAILS_VLAN] = str(vlan_id)
+                        bc.portbindings.VIF_DETAILS_VLAN] = str(vlan_id)
 
                 context.set_binding(segment[api.ID],
                                     self.vif_type,

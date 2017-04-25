@@ -52,6 +52,7 @@ else:
 if NEUTRON_VERSION >= NEUTRON_OCATA_VERSION:
     from neutron.db.models import agent as agent_model
     from neutron.db.models import l3 as l3_models
+    from neutron_lib.api.definitions import portbindings
     from neutron_lib.api import extensions
     from neutron_lib.db import model_base
     from neutron_lib.plugins import directory
@@ -84,6 +85,7 @@ else:
     from neutron.db import l3_db
     from neutron.db import model_base  # noqa
     from neutron.db import models_v2
+    from neutron.extensions import portbindings  # noqa
     from neutron import manager
     from neutron.plugins.common import constants as svc_constants
 

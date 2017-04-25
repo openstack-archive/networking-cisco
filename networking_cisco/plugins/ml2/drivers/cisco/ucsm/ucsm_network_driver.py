@@ -19,12 +19,12 @@ import sys
 from threading import Timer
 
 from contextlib import contextmanager
-from neutron.extensions import portbindings
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 
 from networking_cisco._i18n import _LE, _LI, _LW
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import config
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import constants as const
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import exceptions as cexc
@@ -41,8 +41,8 @@ class CiscoUcsmDriver(object):
     def __init__(self):
         LOG.debug("UCS Manager Network driver found")
         self.ucsmsdk = None
-        self.supported_sriov_vnic_types = [portbindings.VNIC_DIRECT,
-                                           portbindings.VNIC_MACVTAP]
+        self.supported_sriov_vnic_types = [bc.portbindings.VNIC_DIRECT,
+                                           bc.portbindings.VNIC_MACVTAP]
         self.supported_pci_devs = config.parse_pci_vendor_config()
         self.ucsm_conf = config.UcsmConfig()
         self.ucsm_db = ucsm_db.UcsmDbModel()
@@ -326,7 +326,7 @@ class CiscoUcsmDriver(object):
         self.ucsm_db.remove_port_profile_to_delete(profile_name, ucsm_ip)
 
         # Check if direct or macvtap mode
-        if vnic_type == portbindings.VNIC_DIRECT:
+        if vnic_type == bc.portbindings.VNIC_DIRECT:
             port_mode = const.HIGH_PERF
         else:
             port_mode = const.NONE
