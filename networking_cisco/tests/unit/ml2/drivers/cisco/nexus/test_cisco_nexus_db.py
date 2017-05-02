@@ -28,11 +28,10 @@ class CiscoNexusDbTest(testlib_api.SqlTestCase):
     """Unit tests for Cisco mechanism driver's Nexus port binding database."""
 
     NpbObj = collections.namedtuple('NpbObj', 'port vlan vni switch instance '
-                 'is_provider_vlan channel_group is_native_vlan')
+                 'channel_group is_native_vlan')
 
     def _npb_test_obj(self, pnum, vnum, vni=0, switch='10.9.8.7',
-                      instance=None, is_provider_vlan=False,
-                      channel_group=0, is_native_vlan=False):
+                      instance=None, channel_group=0, is_native_vlan=False):
         """Creates a Nexus port binding test object from a pair of numbers."""
         if pnum is 'router':
             port = pnum
@@ -41,8 +40,7 @@ class CiscoNexusDbTest(testlib_api.SqlTestCase):
         if instance is None:
             instance = 'instance_%s_%s' % (pnum, vnum)
         return self.NpbObj(port, vnum, vni, switch, instance,
-                           is_provider_vlan, channel_group,
-                           is_native_vlan=False)
+                           channel_group, is_native_vlan=False)
 
     def _assert_bindings_match(self, npb, npb_obj):
         """Asserts that a port binding matches a port binding test obj."""
@@ -55,22 +53,19 @@ class CiscoNexusDbTest(testlib_api.SqlTestCase):
         """Adds a port binding to the Nexus database."""
         return nexus_db_v2.add_nexusport_binding(
             npb.port, npb.vlan, npb.vni, npb.switch, npb.instance,
-            npb.is_provider_vlan, npb.channel_group,
-            npb.is_native_vlan)
+            npb.channel_group, npb.is_native_vlan)
 
     def _add_bindings_to_db(self, npbs):
         """Adds a list of port bindings to the Nexus database."""
         for npb in npbs:
             nexus_db_v2.add_nexusport_binding(
                 npb.port, npb.vlan, npb.vni, npb.switch, npb.instance,
-                npb.is_provider_vlan, npb.channel_group,
-                npb.is_native_vlan)
+                npb.channel_group, npb.is_native_vlan)
 
     def _remove_binding_from_db(self, npb):
         """Removes a port binding from the Nexus database."""
         return nexus_db_v2.remove_nexusport_binding(
-            npb.port, npb.vlan, npb.vni, npb.switch, npb.instance,
-            npb.is_provider_vlan)
+            npb.port, npb.vlan, npb.vni, npb.switch, npb.instance)
 
     def _get_nexusport_binding(self, npb):
         """Gets a port binding based on port, vlan, switch, and instance."""

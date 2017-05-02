@@ -364,10 +364,8 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
 
         Verify the bind_port method allocates the VLAN segment correctly.
         """
-        #TODO(rpothier) Add back in provider segment support.
         expected_dynamic_segment = {
             api.SEGMENTATION_ID: mock.ANY,
-            #const.PROVIDER_SEGMENT: False,
             api.PHYSICAL_NETWORK: test_cisco_nexus_base.PHYSNET,
             api.ID: mock.ANY,
             api.NETWORK_TYPE: p_const.TYPE_VLAN}

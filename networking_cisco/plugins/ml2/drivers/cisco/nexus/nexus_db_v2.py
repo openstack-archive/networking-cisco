@@ -203,6 +203,38 @@ def is_reserved_binding(binding):
            [const.RESERVED_NEXUS_SWITCH_DEVICE_ID_R1])
 
 
+def add_provider_network(network_id, vlan_id):
+    session = db.get_session()
+    row = nexus_models_v2.NexusProviderNetwork(network_id=network_id,
+                                               vlan_id=vlan_id)
+    session.add(row)
+    session.flush()
+    return row
+
+
+def delete_provider_network(network_id):
+    session = db.get_session()
+    row = session.query(nexus_models_v2.NexusProviderNetwork).filter_by(
+        network_id=network_id).one_or_none()
+    if row:
+        session.delete(row)
+        session.flush()
+
+
+def is_provider_network(network_id):
+    session = db.get_session()
+    row = session.query(nexus_models_v2.NexusProviderNetwork).filter_by(
+        network_id=network_id).one_or_none()
+    return True if row else False
+
+
+def is_provider_vlan(vlan_id):
+    session = db.get_session()
+    row = session.query(nexus_models_v2.NexusProviderNetwork).filter_by(
+        vlan_id=vlan_id).one_or_none()
+    return True if row else False
+
+
 def get_nexusport_switch_bindings(switch_ip):
     """Lists all Nexus port switch bindings."""
     LOG.debug("get_nexusport_switch_bindings() called")
@@ -210,8 +242,7 @@ def get_nexusport_switch_bindings(switch_ip):
 
 
 def add_nexusport_binding(port_id, vlan_id, vni, switch_ip, instance_id,
-                          is_provider_vlan=False, is_native=False,
-                          ch_grp=0):
+                          is_native=False, ch_grp=0):
     """Adds a nexusport binding."""
     LOG.debug("add_nexusport_binding() called")
     session = db.get_session()
@@ -220,7 +251,6 @@ def add_nexusport_binding(port_id, vlan_id, vni, switch_ip, instance_id,
                   vni=vni,
                   switch_ip=switch_ip,
                   instance_id=instance_id,
-                  is_provider_vlan=is_provider_vlan,
                   is_native=is_native,
                   channel_group=ch_grp)
     session.add(binding)
@@ -228,8 +258,7 @@ def add_nexusport_binding(port_id, vlan_id, vni, switch_ip, instance_id,
     return binding
 
 
-def remove_nexusport_binding(port_id, vlan_id, vni, switch_ip, instance_id,
-                             is_provider_vlan):
+def remove_nexusport_binding(port_id, vlan_id, vni, switch_ip, instance_id):
     """Removes a nexusport binding."""
     LOG.debug("remove_nexusport_binding() called")
     session = db.get_session()

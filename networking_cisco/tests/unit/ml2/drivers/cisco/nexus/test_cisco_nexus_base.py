@@ -226,7 +226,6 @@ class FakeNetworkContext(object):
         self._network_segments = {api.SEGMENTATION_ID: segment_id,
                                   api.ID: netid,
                                   api.NETWORK_TYPE: nw_type,
-                                  const.PROVIDER_SEGMENT: False,
                                   api.PHYSICAL_NETWORK: mcast_group}
 
     @property

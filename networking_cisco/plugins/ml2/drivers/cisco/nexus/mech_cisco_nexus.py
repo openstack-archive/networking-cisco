@@ -784,15 +784,13 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 nxos_db.add_nexusport_binding(
                     new_port_id, row.vlan_id, row.vni,
                     switch_ip, row.instance_id,
-                    row.is_provider_vlan,
                     row.is_native)
 
             # Remove port binding with old channel-group
             try:
                 nxos_db.remove_nexusport_binding(
                     old_port_id, row.vlan_id, row.vni,
-                    switch_ip, row.instance_id,
-                    row.is_provider_vlan)
+                    switch_ip, row.instance_id)
             except Exception:
                 LOG.error(_LE("Failed to remove port %(port)s"
                     "vlan %(vlan)d vni %(vni)d "
@@ -880,8 +878,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         device_id = self._get_port_uuid(port_seg)
 
         vlan_id = segment.get(api.SEGMENTATION_ID)
-        # TODO(rpothier) Add back in provider segment support.
-        is_provider_vlan = False
 
         # Add reserved_exists list to list_to_init to create
         # port_binding data base entries
@@ -896,7 +892,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 nxos_db.add_nexusport_binding(
                     port_id, str(vlan_id), str(vni),
                     switch_ip, device_id,
-                    is_provider_vlan,
                     is_native)
 
     def _get_host_switches(self, host_id):
@@ -1112,7 +1107,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             except excep.NexusPortBindingNotFound:
                 nxos_db.add_nexusport_binding(port_id, str(vlan_id), str(vni),
                                               switch_ip, device_id,
-                                              is_provider_vlan,
                                               is_native)
 
     def _gather_config_parms(self, is_provider_vlan, vlan_id):
@@ -1408,8 +1402,9 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         for port in port_bindings:
             if nxos_db.is_reserved_binding(port):
                 continue
+
             vlan_name, auto_create, auto_trunk = self._gather_config_parms(
-                port.is_provider_vlan, port.vlan_id)
+                nxos_db.is_provider_vlan(port.vlan_id), port.vlan_id)
             if port.port_id == prev_port:
                 if port.vlan_id == prev_vlan and port.vni == prev_vni:
                     # Same port/Same Vlan - skip duplicate
@@ -1486,8 +1481,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             rows = nxos_db.get_nexusvm_bindings(vlan_id, device_id)
             for row in rows:
                 nxos_db.remove_nexusport_binding(row.port_id, row.vlan_id,
-                                    row.vni, row.switch_ip, row.instance_id,
-                                    row.is_provider_vlan)
+                                    row.vni, row.switch_ip, row.instance_id)
         except excep.NexusPortBindingNotFound:
             return
 
@@ -1675,13 +1669,11 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             host_id = port.get(bc.portbindings.HOST_ID)
 
         vlan_id = segment.get(api.SEGMENTATION_ID)
+        is_provider = nxos_db.is_provider_vlan(vlan_id)
 
-        # TODO(rpothier) Add back in provider segment support.
-        is_provider = False
         settings = {"vlan_id": vlan_id,
                     "device_id": device_id,
-                    "host_id": host_id,
-                    "is_provider": is_provider is not None}
+                    "host_id": host_id}
         missing_fields = [field for field, value in settings.items()
                           if (field != 'host_id' and not value)]
         if not missing_fields:
@@ -1727,6 +1719,16 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         if self.timer:
             self.timer.cancel()
             self.timer = None
+
+    def create_network_precommit(self, context):
+        network = context.current
+        if network.get('is_provider_network', False):
+            nxos_db.add_provider_network(
+                network['id'], network[bc.providernet.SEGMENTATION_ID])
+
+    def delete_network_postcommit(self, context):
+        if nxos_db.is_provider_network(context.current['id']):
+            nxos_db.delete_provider_network(context.current['id'])
 
     @lockutils.synchronized('cisco-nexus-portlock')
     def create_port_postcommit(self, context):

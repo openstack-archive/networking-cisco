@@ -31,9 +31,6 @@ NETWORK_ADMIN = 'network_admin'
 CISCO_NEXUS_ML2_MECH_DRIVER_V2 = 'cisco_nexus'
 TYPE_NEXUS_VXLAN = 'nexus_vxlan'
 
-# TODO(rpothier) Add back in provider segment support.
-PROVIDER_SEGMENT = 'provider_segment'
-
 NVE_INT_NUM = '1'
 NEXUS_MAX_VLAN_NAME_LEN = 32
 
