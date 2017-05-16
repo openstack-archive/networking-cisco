@@ -86,7 +86,6 @@ def update_reserved_binding(vlan_id, switch_ip, instance_id,
     :param vlan_id: 0
     :param switch_ip: ip address of the switch
     :param instance_id: fixed string RESERVED_NEXUS_SWITCH_DEVICE_ID_R1
-    :                   or RESERVED_NEXUS_PORT_DEVICE_ID_R1
     :param port_id: switch-state of ACTIVE, RESTORE_S1, RESTORE_S2, INACTIVE
     :               port-expected port_id
     :param ch_grp:      0 if no port-channel else non-zero integer
@@ -130,7 +129,6 @@ def remove_reserved_binding(vlan_id, switch_ip, instance_id,
     :param vlan_id: 0
     :param switch_ip: ip address of the switch
     :param instance_id: fixed string RESERVED_NEXUS_SWITCH_DEVICE_ID_R1
-    :                   or RESERVED_NEXUS_PORT_DEVICE_ID_R1
     :param port_id: switch-state of ACTIVE, RESTORE_S1, RESTORE_S2, INACTIVE
     :               port-expected port_id
     """
@@ -182,43 +180,6 @@ def update_reserved_switch_binding(switch_ip, state):
         state)
 
 
-def get_reserved_port_binding(switch_ip, port_id=None):
-    """Get a reserved port binding."""
-
-    return get_reserved_bindings(
-               const.NO_VLAN_OR_VNI_ID,
-               const.RESERVED_NEXUS_PORT_DEVICE_ID_R1,
-               switch_ip,
-               port_id)
-
-
-def add_reserved_port_binding(switch_ip, port_id, ch_grp):
-    """Add a reserved port binding."""
-
-    add_nexusport_binding(
-        port_id,
-        const.NO_VLAN_OR_VNI_ID,
-        const.NO_VLAN_OR_VNI_ID,
-        switch_ip,
-        const.RESERVED_NEXUS_PORT_DEVICE_ID_R1,
-        False,
-        const.NOT_NATIVE,
-        ch_grp)
-
-
-def update_reserved_port_binding(switch_ip, port_id, ch_grp):
-    """Update a reserved port binding."""
-
-    update_reserved_binding(
-        const.NO_VLAN_OR_VNI_ID,
-        switch_ip,
-        const.RESERVED_NEXUS_PORT_DEVICE_ID_R1,
-        port_id,
-        False,
-        const.NOT_NATIVE,
-        ch_grp)
-
-
 def is_reserved_binding(binding):
     """Identifies switch & port operational bindings.
 
@@ -235,8 +196,7 @@ def is_reserved_binding(binding):
     """
 
     return (binding.instance_id in
-           [const.RESERVED_NEXUS_SWITCH_DEVICE_ID_R1,
-            const.RESERVED_NEXUS_PORT_DEVICE_ID_R1])
+           [const.RESERVED_NEXUS_SWITCH_DEVICE_ID_R1])
 
 
 def get_nexusport_switch_bindings(switch_ip):
@@ -449,3 +409,126 @@ def get_nve_vni_deviceid_bindings(vni, device_id):
                 filter_by(vni=vni, device_id=device_id).all())
     except sa_exc.NoResultFound:
         return None
+
+
+def _lookup_host_mappings(query_type, session=None, **bfilter):
+    """Look up 'query_type' Nexus mappings matching the filter.
+
+    :param query_type: 'all', 'one' or 'first'
+    :param session: db session
+    :param bfilter: filter for mappings query
+    :return: mappings if query gave a result, else
+             raise NexusHostMappingNotFound.
+    """
+    if session is None:
+        session = db.get_session()
+    query_method = getattr(session.query(
+        nexus_models_v2.NexusHostMapping).filter_by(**bfilter), query_type)
+    try:
+        mappings = query_method()
+        if mappings:
+            return mappings
+    except sa_exc.NoResultFound:
+        pass
+    raise c_exc.NexusHostMappingNotFound(**bfilter)
+
+
+def _lookup_all_host_mappings(session=None, **bfilter):
+    return _lookup_host_mappings('all', session, **bfilter)
+
+
+def _lookup_one_host_mapping(session=None, **bfilter):
+    return _lookup_host_mappings('one', session, **bfilter)
+
+
+def get_all_host_mappings():
+    return(_lookup_all_host_mappings())
+
+
+def get_host_mappings(host_id):
+    return(_lookup_all_host_mappings(host_id=host_id))
+
+
+def get_switch_host_mappings(switch_ip):
+    return(_lookup_all_host_mappings(switch_ip=switch_ip))
+
+
+def get_switch_and_host_mappings(host_id, switch_ip):
+    return(_lookup_all_host_mappings(
+        host_id=host_id, switch_ip=switch_ip))
+
+
+def get_switch_if_host_mappings(switch_ip, if_id):
+    return(_lookup_all_host_mappings(switch_ip=switch_ip,
+                                     if_id=if_id))
+
+
+def add_host_mapping(host_id, nexus_ip, interface, ch_grp, is_static):
+    """Add Host to interface mapping entry into mapping data base.
+
+    host_id is the name of the host to add
+    interface is the interface for this host
+    nexus_ip  is the ip addr of the nexus switch for this interface
+    ch_grp    is the port channel this interface belos
+    is_static whether this is from conf file or learned
+              from baremetal.
+    """
+
+    LOG.debug("add_nexusport_binding() called")
+    session = db.get_session()
+    mapping = nexus_models_v2.NexusHostMapping(host_id=host_id,
+                  if_id=interface,
+                  switch_ip=nexus_ip,
+                  ch_grp=ch_grp,
+                  is_static=is_static)
+    session.add(mapping)
+    session.flush()
+    return mapping
+
+
+def update_host_mapping(host_id, interface, nexus_ip, new_ch_grp):
+    """Change channel_group in host/interface mapping data base."""
+
+    LOG.debug("update_host_mapping called")
+    session = db.get_session()
+    mapping = _lookup_one_host_mapping(
+                  session=session,
+                  host_id=host_id,
+                  if_id=interface,
+                  switch_ip=nexus_ip)
+    mapping.ch_grp = new_ch_grp
+    session.merge(mapping)
+    session.flush()
+    return mapping
+
+
+def remove_host_mapping(interface, nexus_ip):
+    """Remove host to interface mapping entry from mapping data base."""
+
+    LOG.debug("remove_host_mapping() called")
+    session = db.get_session()
+    try:
+        mapping = _lookup_one_host_mapping(
+                      session=session,
+                      if_id=interface,
+                      switch_ip=nexus_ip)
+        session.delete(mapping)
+        session.flush()
+    except c_exc.NexusHostMappingNotFound:
+        pass
+
+
+def remove_all_static_host_mappings():
+    """Remove all entries defined in config file from mapping data base."""
+
+    LOG.debug("remove_host_mapping() called")
+    session = db.get_session()
+    try:
+        mapping = _lookup_all_host_mappings(
+                      session=session,
+                      is_static=True)
+        for host in mapping:
+            session.delete(host)
+        session.flush()
+    except c_exc.NexusHostMappingNotFound:
+        pass

@@ -175,7 +175,7 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
         except Exception:
             pass
 
-        LOG.debug("GET interface %(key)s port channel is %(pc)",
+        LOG.debug("GET interface %(key)s port channel is %(pc)d",
             {'key': match_key, 'pc': ch_grp})
 
         return ch_grp

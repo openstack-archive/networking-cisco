@@ -56,6 +56,15 @@ class NexusPortBindingNotFound(exceptions.NeutronException):
         super(NexusPortBindingNotFound, self).__init__(filters=filters)
 
 
+class NexusHostMappingNotFound(exceptions.NeutronException):
+    """NexusHost Mapping is not present."""
+    message = _("Nexus Host Mapping (%(filters)s) is not present")
+
+    def __init__(self, **kwargs):
+        filters = ','.join('%s=%s' % i for i in kwargs.items())
+        super(NexusHostMappingNotFound, self).__init__(filters=filters)
+
+
 class NexusMissingRequiredFields(exceptions.NeutronException):
     """Missing required fields to configure nexus switch."""
     message = _("Missing required field(s) to configure nexus switch: "

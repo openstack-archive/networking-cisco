@@ -16,6 +16,10 @@
 from oslo_config import cfg
 
 from networking_cisco._i18n import _
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    constants as const)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    nexus_db_v2 as nxos_db)
 
 ml2_cisco_opts = [
     cfg.StrOpt('vlan_name_prefix', default='q-',
@@ -77,16 +81,26 @@ class ML2MechCiscoConfig(object):
         """Create the ML2 device cisco dictionary.
 
         Read data from the ml2_conf_cisco.ini device supported sections.
+        All reserved keywords are saved in the nexus_dict and all other
+        keys (host systems) are saved in the host mapping db.
         """
+        defined_attributes = [const.USERNAME, const.PASSWORD, const.SSHPORT,
+                              const.PHYSNET, const.NVE_SRC_INTF]
         multi_parser = cfg.MultiConfigParser()
         read_ok = multi_parser.read(cfg.CONF.config_file)
 
         if len(read_ok) != len(cfg.CONF.config_file):
             raise cfg.Error(_("Some config files were not parsed properly"))
 
+        nxos_db.remove_all_static_host_mappings()
         for parsed_file in multi_parser.parsed:
             for parsed_item in parsed_file.keys():
                 dev_id, sep, dev_ip = parsed_item.partition(':')
                 if dev_id.lower() == 'ml2_mech_cisco_nexus':
                     for dev_key, value in parsed_file[parsed_item].items():
-                        self.nexus_dict[dev_ip, dev_key] = value[0]
+                        if dev_key in defined_attributes:
+                            self.nexus_dict[dev_ip, dev_key] = value[0]
+                        else:
+                            for if_id in value[0].split(','):
+                                nxos_db.add_host_mapping(
+                                    dev_key, dev_ip, if_id, 0, True)

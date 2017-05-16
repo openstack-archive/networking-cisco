@@ -239,7 +239,7 @@ class CiscoNexusSshDriver(basedrvr.CiscoNexusBaseDriver):
 
         if not self.ncclient:
             self.ncclient = self._import_client()
-        nexus_ssh_port = int(self.nexus_switches[nexus_host, 'ssh_port'])
+        nexus_ssh_port = int(self.nexus_switches[nexus_host, const.SSHPORT])
         nexus_user = self.nexus_switches[nexus_host, const.USERNAME]
         nexus_password = self.nexus_switches[nexus_host, const.PASSWORD]
         hostkey_verify = cfg.CONF.ml2_cisco.host_key_checks

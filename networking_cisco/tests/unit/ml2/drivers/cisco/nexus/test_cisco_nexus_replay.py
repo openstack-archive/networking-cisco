@@ -145,6 +145,7 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
                 None,
                 test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
                 {},
+                None,
                 test_cisco_nexus_base.NORMAL_VNIC),
         'test_replay_unique2':
             test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
@@ -157,6 +158,7 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
                 None,
                 test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
                 {},
+                None,
                 test_cisco_nexus_base.NORMAL_VNIC),
         'test_replay_duplvlan1':
             test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
@@ -169,6 +171,7 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
                 None,
                 test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
                 {},
+                None,
                 test_cisco_nexus_base.NORMAL_VNIC),
         'test_replay_duplvlan2':
             test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
@@ -181,6 +184,7 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
                 None,
                 test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
                 {},
+                None,
                 test_cisco_nexus_base.NORMAL_VNIC),
         'test_replay_duplport1':
             test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
@@ -193,6 +197,7 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
                 None,
                 test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
                 {},
+                None,
                 test_cisco_nexus_base.NORMAL_VNIC),
         'test_replay_duplport2':
             test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
@@ -205,6 +210,7 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
                 None,
                 test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
                 {},
+                None,
                 test_cisco_nexus_base.NORMAL_VNIC),
         'test_replay_dual':
             test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
@@ -217,6 +223,7 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
                 None,
                 test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
                 {},
+                None,
                 test_cisco_nexus_base.NORMAL_VNIC),
         'test_replay_dual2':
             test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
@@ -229,6 +236,7 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
                 None,
                 test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
                 {},
+                None,
                 test_cisco_nexus_base.NORMAL_VNIC),
         'test_replay_vxlan_unique1':
             test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
@@ -241,6 +249,7 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
                 test_cisco_nexus_base.MCAST_GROUP,
                 test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
                 {},
+                None,
                 test_cisco_nexus_base.NORMAL_VNIC),
     }
     test_configs = collections.OrderedDict(sorted(test_configs.items()))
@@ -695,6 +704,7 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
             None,
             test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
             {},
+            None,
             test_cisco_nexus_base.NORMAL_VNIC)
         self._cisco_mech_driver.set_switch_ip_and_active_state(
             tmp_cfg.nexus_ip_addr, const.SWITCH_ACTIVE)
@@ -1060,6 +1070,7 @@ class TestCiscoNexusBaremetalReplay(
                 None,
                 test_cisco_nexus_base.DEVICE_OWNER_BAREMETAL,
                 baremetal_profile,
+                test_cisco_nexus_base.HOST_NAME_Baremetal + '1',
                 test_cisco_nexus_base.BAREMETAL_VNIC),
         'test_replay_unique2':
             test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
@@ -1072,6 +1083,7 @@ class TestCiscoNexusBaremetalReplay(
                 None,
                 test_cisco_nexus_base.DEVICE_OWNER_BAREMETAL,
                 baremetal_profile,
+                test_cisco_nexus_base.HOST_NAME_Baremetal + '1',
                 test_cisco_nexus_base.BAREMETAL_VNIC),
         'test_replay_unique_native1':
             test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
@@ -1084,7 +1096,21 @@ class TestCiscoNexusBaremetalReplay(
                 None,
                 test_cisco_nexus_base.DEVICE_OWNER_BAREMETAL,
                 baremetal_profile_is_native,
+                test_cisco_nexus_base.HOST_NAME_Baremetal + '1',
                 test_cisco_nexus_base.BAREMETAL_VNIC),
+        'test_config_vm':
+            test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
+                test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
+                test_cisco_nexus_base.HOST_NAME_Baremetal + '1',
+                test_cisco_nexus_base.NEXUS_BAREMETAL_PORT_1,
+                test_cisco_nexus_base.INSTANCE_2,
+                test_cisco_nexus_base.VLAN_ID_2,
+                test_cisco_nexus_base.NO_VXLAN_ID,
+                None,
+                test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
+                {},
+                None,
+                test_cisco_nexus_base.NORMAL_VNIC),
     }
 
     test_configs = collections.OrderedDict(sorted(test_configs.items()))
@@ -1112,23 +1138,56 @@ class TestCiscoNexusBaremetalReplay(
         first_add = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_eth_add1'),
-            'nbr_db_entries': 2}
+            'nbr_db_entries': 1}
         second_add = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_eth_add2'),
-            'nbr_db_entries': 3}
+            'nbr_db_entries': 2}
         first_del = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_eth_del1'),
-            'nbr_db_entries': 2}
+            'nbr_db_entries': 1,
+            'nbr_db_mappings': 1}
         second_del = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_eth_del2'),
-            'nbr_db_entries': 1}
+            'nbr_db_entries': 0}
 
         self._process_replay(
             'test_replay_unique1',
             'test_replay_unique2',
+            self.results.get_test_results(
+                'driver_result_unique_eth_init'),
+            first_add,
+            second_add,
+            self.results.get_test_results(
+                'driver_result_unique_2vlan_replay'),
+            first_del,
+            second_del)
+
+    def test_replay_unique_ethernet_port_and_vm(self):
+        """Provides replay data and result data for unique ports. """
+
+        first_add = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_eth_add1'),
+            'nbr_db_entries': 1}
+        second_add = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_eth_add2'),
+            'nbr_db_entries': 2}
+        first_del = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_eth_del1'),
+            'nbr_db_entries': 1}
+        second_del = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_eth_del2'),
+            'nbr_db_entries': 0}
+
+        self._process_replay(
+            'test_replay_unique1',
+            'test_config_vm',
             self.results.get_test_results(
                 'driver_result_unique_eth_init'),
             first_add,
@@ -1144,19 +1203,20 @@ class TestCiscoNexusBaremetalReplay(
         first_add = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_vPC_add1'),
-            'nbr_db_entries': 2}
+            'nbr_db_entries': 1}
         second_add = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_vPC_add2'),
-            'nbr_db_entries': 3}
+            'nbr_db_entries': 2}
         first_del = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_vPC_del1'),
-            'nbr_db_entries': 2}
+            'nbr_db_entries': 1,
+            'nbr_db_mappings': 1}
         second_del = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_vPC_del2'),
-            'nbr_db_entries': 1}
+            'nbr_db_entries': 0}
 
         self._init_port_channel(469)
 
@@ -1175,6 +1235,8 @@ class TestCiscoNexusBaremetalReplay(
     def test_replay_unique_vPC_ports_chg_vPC_nbr(self):
         """Provides replay data and result data for unique ports. """
 
+        self.skipTest("Disable until HN-72 automated vPC implemented")
+
         def replay_init():
             # This causes port-channel 470 to get configured instead.
             self._init_port_channel(470)
@@ -1182,19 +1244,19 @@ class TestCiscoNexusBaremetalReplay(
         first_add = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_vPC_add1'),
-            'nbr_db_entries': 2}
+            'nbr_db_entries': 1}
         second_add = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_vPC_add2'),
-            'nbr_db_entries': 3}
+            'nbr_db_entries': 2}
         first_del = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_vPC470_del1'),
-            'nbr_db_entries': 2}
+            'nbr_db_entries': 1}
         second_del = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_vPC470_del2'),
-            'nbr_db_entries': 1}
+            'nbr_db_entries': 0}
 
         # This is to cause port-channel 469 to get configured
         self._init_port_channel(469)
@@ -1216,6 +1278,8 @@ class TestCiscoNexusBaremetalReplay(
     def test_replay_unique_vPC_ports_chg_to_enet(self):
         """Provides replay data and result data for unique ports. """
 
+        self.skipTest("Disable until HN-72 automated vPC implemented")
+
         def replay_init():
             # This causes port-channel to get replaced with enet
             # by eliminating channel-group config from enet config.
@@ -1227,19 +1291,19 @@ class TestCiscoNexusBaremetalReplay(
         first_add = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_vPC_add1'),
-            'nbr_db_entries': 2}
+            'nbr_db_entries': 1}
         second_add = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_vPC_add2'),
-            'nbr_db_entries': 3}
+            'nbr_db_entries': 2}
         first_del = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_eth_del1'),
-            'nbr_db_entries': 2}
+            'nbr_db_entries': 1}
         second_del = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_eth_del2'),
-            'nbr_db_entries': 1}
+            'nbr_db_entries': 0}
 
         self._init_port_channel(469)
 
@@ -1263,19 +1327,20 @@ class TestCiscoNexusBaremetalReplay(
         first_add = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_native_port_ethernet_add'),
-            'nbr_db_entries': 2}
+            'nbr_db_entries': 1}
         second_add = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_eth_add1'),
-            'nbr_db_entries': 3}
+            'nbr_db_entries': 2}
         first_del = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_eth_del2'),
-            'nbr_db_entries': 2}
+            'nbr_db_entries': 1,
+            'nbr_db_mappings': 1}
         second_del = {
             'driver_results': self.results.get_test_results(
                 'driver_result_unique_native_port_ethernet_del'),
-            'nbr_db_entries': 1}
+            'nbr_db_entries': 0}
 
         self._process_replay(
             'test_replay_unique_native1',
@@ -1308,6 +1373,7 @@ class TestCiscoNexusNonCachedSshReplay(
                 None,
                 test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
                 {},
+                None,
                 test_cisco_nexus_base.NORMAL_VNIC),
     }
 
@@ -1324,6 +1390,7 @@ class TestCiscoNexusNonCachedSshReplay(
             None,
             test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
             {},
+            None,
             test_cisco_nexus_base.NORMAL_VNIC)
 
         self._cisco_mech_driver.set_switch_ip_and_active_state(
