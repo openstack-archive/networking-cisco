@@ -19,7 +19,6 @@ from oslo_config import cfg
 from oslo_utils import uuidutils
 from webob import exc
 
-from neutron import context
 from neutron.extensions import l3
 
 from networking_cisco import backwards_compatibility as bc
@@ -1014,7 +1013,7 @@ class L3CfgAgentAsr1kRouterTypeDriverTestCase(
                                              hd_id_ha_backup, ext_net_ids)
         self.assertIn(g_rtr_2['id'], g_l_rtr_rr_ids)
         self.assertFalse(g_rtr_1[ha.ENABLED])
-        e_context = context.get_admin_context()
+        e_context = bc.context.get_admin_context()
         sync_routers = self.l3_plugin.get_sync_data_ext(e_context,
                                                         g_l_rtr_rr_ids)
         self.assertEqual(2, len(sync_routers))

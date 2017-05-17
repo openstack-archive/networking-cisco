@@ -18,7 +18,6 @@ import mock
 
 from neutron.api.v2 import attributes
 from neutron.common import test_lib
-from neutron import context as n_context
 from neutron.db import agents_db
 from neutron.extensions import agent
 from neutron.tests.unit.extensions import test_l3
@@ -121,7 +120,7 @@ class DeviceManagerTestSupportMixin(object):
         for nic in nics:
             p_dict = {'port': {'device_id': fake_vm.id,
                                'device_owner': 'nova'}}
-            self._core_plugin.update_port(n_context.get_admin_context(),
+            self._core_plugin.update_port(bc.context.get_admin_context(),
                                           nic['port-id'], p_dict)
         return fake_vm
 
@@ -188,7 +187,7 @@ class DeviceManagerTestSupportMixin(object):
     def _test_remove_all_hosting_devices(self):
         """Removes all hosting devices created during a test."""
         devmgr = bc.get_plugin(cisco_constants.DEVICE_MANAGER)
-        context = n_context.get_admin_context()
+        context = bc.context.get_admin_context()
         devmgr.delete_all_hosting_devices(context, True)
 
     def _get_fake_resource(self, tenant_id=None, id=None):
@@ -196,7 +195,7 @@ class DeviceManagerTestSupportMixin(object):
                 'tenant_id': tenant_id or _uuid()}
 
     def _get_test_context(self, user_id=None, tenant_id=None, is_admin=False):
-        return n_context.Context(user_id, tenant_id, is_admin)
+        return bc.context.Context(user_id, tenant_id, is_admin)
 
     def _mock_cfg_agent_notifier(self, plugin):
         # Mock notifications to l3 agent and Cisco config agent

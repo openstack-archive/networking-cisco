@@ -17,7 +17,6 @@ import mock
 from oslo_config import cfg
 
 from neutron.db import api as db_api
-from neutron.extensions import portbindings
 from neutron.plugins.ml2 import driver_api as api
 from neutron.tests.unit import testlib_api
 
@@ -129,9 +128,9 @@ class FakePortContext(object):
             'name': name,
             # set for _is_supported_deviceowner() to return True
             'device_owner': bc.constants.DEVICE_OWNER_DHCP,
-            portbindings.HOST_ID: HOST1,
-            portbindings.VNIC_TYPE: vnic_type,
-            portbindings.PROFILE: profile
+            bc.portbindings.HOST_ID: HOST1,
+            bc.portbindings.VNIC_TYPE: vnic_type,
+            bc.portbindings.PROFILE: profile
         }
         self._network = network_context
         self._segment = network_context.network_segments[0]
@@ -383,9 +382,9 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
     def test_vmfex_vnic_type_and_vendor_info(self):
         """Verifies VM-FEX port is recognized as a supported vendor."""
         port_context = self._create_port_context_vmfex()
-        vnic_type = port_context.current.get(portbindings.VNIC_TYPE,
-                                             portbindings.VNIC_NORMAL)
-        profile = port_context.current.get(portbindings.PROFILE, {})
+        vnic_type = port_context.current.get(bc.portbindings.VNIC_TYPE,
+                                             bc.portbindings.VNIC_NORMAL)
+        profile = port_context.current.get(bc.portbindings.PROFILE, {})
         supported = self.ucsm_driver.check_vnic_type_and_vendor_info(
             vnic_type, profile)
         self.assertTrue(supported)
@@ -393,9 +392,9 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
     def test_unsupported_vnic_type_and_vendor_info(self):
         """Verifies unsupported pci vendor is rejected."""
         port_context = self._create_port_context_bad()
-        vnic_type = port_context.current.get(portbindings.VNIC_TYPE,
-                                             portbindings.VNIC_NORMAL)
-        profile = port_context.current.get(portbindings.PROFILE, {})
+        vnic_type = port_context.current.get(bc.portbindings.VNIC_TYPE,
+                                             bc.portbindings.VNIC_NORMAL)
+        profile = port_context.current.get(bc.portbindings.PROFILE, {})
         supported = self.ucsm_driver.check_vnic_type_and_vendor_info(
             vnic_type, profile)
         self.assertFalse(supported)
@@ -403,9 +402,9 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
     def test_sriov_vnic_type_and_vendor_info(self):
         """Verifies SR-IOV port and MACVTAP vnic_type are supported."""
         port_context = self._create_port_context_sriov()
-        vnic_type = port_context.current.get(portbindings.VNIC_TYPE,
-                                             portbindings.VNIC_NORMAL)
-        profile = port_context.current.get(portbindings.PROFILE, {})
+        vnic_type = port_context.current.get(bc.portbindings.VNIC_TYPE,
+                                             bc.portbindings.VNIC_NORMAL)
+        profile = port_context.current.get(bc.portbindings.PROFILE, {})
         supported = self.ucsm_driver.check_vnic_type_and_vendor_info(
             vnic_type, profile)
         self.assertTrue(supported)
@@ -413,9 +412,9 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
     def test_normal_vnic_type(self):
         """Verifies NORMAL vnic type is not supported."""
         port_context = self._create_port_context_normal()
-        vnic_type = port_context.current.get(portbindings.VNIC_TYPE,
-                                             portbindings.VNIC_NORMAL)
-        profile = port_context.current.get(portbindings.PROFILE, {})
+        vnic_type = port_context.current.get(bc.portbindings.VNIC_TYPE,
+                                             bc.portbindings.VNIC_NORMAL)
+        profile = port_context.current.get(bc.portbindings.PROFILE, {})
         supported = self.ucsm_driver.check_vnic_type_and_vendor_info(
             vnic_type, profile)
         self.assertFalse(supported)
@@ -423,21 +422,21 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
     def test_validate_vm_fex_port_cisco(self):
         """Verifies port's pci vendor info makes it VM-FEX capable."""
         port_context = self._create_port_context_vmfex()
-        profile = port_context.current.get(portbindings.PROFILE, {})
+        profile = port_context.current.get(bc.portbindings.PROFILE, {})
         valid = self.ucsm_driver.is_vmfex_port(profile)
         self.assertTrue(valid)
 
     def test_validate_vm_fex_port_bad(self):
         """Verifies unsupported pci vendor is not VM-FEX capable."""
         port_context = self._create_port_context_bad()
-        profile = port_context.current.get(portbindings.PROFILE, {})
+        profile = port_context.current.get(bc.portbindings.PROFILE, {})
         valid = self.ucsm_driver.is_vmfex_port(profile)
         self.assertFalse(valid)
 
     def test_validate_vm_fex_port_sriov(self):
         """Verifies valid SR-IOV port is not VM-FEX capable."""
         port_context = self._create_port_context_sriov()
-        profile = port_context.current.get(portbindings.PROFILE, {})
+        profile = port_context.current.get(bc.portbindings.PROFILE, {})
         valid = self.ucsm_driver.is_vmfex_port(profile)
         # For ex: Intel PCI is supported but is not vm-fex.
         # so, should return False

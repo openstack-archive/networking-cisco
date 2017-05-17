@@ -19,7 +19,6 @@ import mock
 
 from neutron.api import extensions as api_ext
 from neutron.common import config
-from neutron import context as n_context
 from neutron.tests.unit.db import test_db_base_plugin_v2
 from oslo_config import cfg
 from oslo_utils import importutils
@@ -100,7 +99,7 @@ class DeviceManagerTestCaseMixin(object):
         hd_req = self.new_create_request('hosting_devices', data, fmt)
         if kwargs.get('set_context') and 'tenant_id' in kwargs:
             # create a specific auth context for this request
-            hd_req.environ['neutron.context'] = n_context.Context(
+            hd_req.environ['neutron.context'] = bc.context.Context(
                 '', kwargs['tenant_id'])
         hd_res = hd_req.get_response(self.ext_api)
         if expected_res_status:
@@ -140,7 +139,7 @@ class DeviceManagerTestCaseMixin(object):
                                           fmt)
         if kwargs.get('set_context') and 'tenant_id' in kwargs:
             # create a specific auth context for this request
-            hdt_req.environ['neutron.context'] = n_context.Context(
+            hdt_req.environ['neutron.context'] = bc.context.Context(
                 '', kwargs['tenant_id'])
         hdt_res = hdt_req.get_response(self.ext_api)
         if expected_res_status:
@@ -403,7 +402,7 @@ class TestDeviceManagerDBPlugin(
                         self.assertEqual(v, res['hosting_device'][k])
 
     def test_delete_hosting_device_not_in_use_succeeds(self):
-        ctx = n_context.get_admin_context()
+        ctx = bc.context.get_admin_context()
         with self.hosting_device_template() as hdt:
             hdt_id = hdt['hosting_device_template']['id']
             with self.port(subnet=self._mgmt_subnet) as mgmt_port:
@@ -420,7 +419,7 @@ class TestDeviceManagerDBPlugin(
                         self.plugin.get_hosting_device, ctx, hd_id)
 
     def test_delete_hosting_device_in_use_fails(self):
-        ctx = n_context.get_admin_context()
+        ctx = bc.context.get_admin_context()
         with self.hosting_device_template(slot_capacity=1) as hdt:
             hdt_id = hdt['hosting_device_template']['id']
             with self.port(subnet=self._mgmt_subnet) as mgmt_port:
@@ -474,7 +473,7 @@ class TestDeviceManagerDBPlugin(
                         agt_mock.return_value[0].host = agent_host
                         fake_running_config = 'a fake running config'
                         mock_call.return_value = fake_running_config
-                        ctx = n_context.Context(
+                        ctx = bc.context.Context(
                             user_id=None, tenant_id=None, is_admin=False,
                             overwrite=False)
                         res = self._devmgr.get_hosting_device_config(ctx,
@@ -489,7 +488,7 @@ class TestDeviceManagerDBPlugin(
                             payload={'hosting_device_id': hd_id})
 
     def test_get_hosting_device_configuration_no_agent_found(self):
-        ctx = n_context.Context(user_id=None, tenant_id=None, is_admin=False,
+        ctx = bc.context.Context(user_id=None, tenant_id=None, is_admin=False,
                                 overwrite=False)
         with self.hosting_device_template() as hdt:
             hdt_id = hdt['hosting_device_template']['id']
@@ -540,7 +539,7 @@ class TestDeviceManagerDBPlugin(
                         self.fmt, hdt_id, mgmt_port_id, True,
                         webob.exc.HTTPForbidden.code,
                         tenant_id=tenant_id, set_context=True)
-                    non_admin_ctx = n_context.Context('', tenant_id)
+                    non_admin_ctx = bc.context.Context('', tenant_id)
                     # show fails
                     self._show('hosting_devices', hd_id,
                                webob.exc.HTTPNotFound.code, non_admin_ctx)
@@ -623,7 +622,7 @@ class TestDeviceManagerDBPlugin(
                 self.assertEqual(v, res['hosting_device_template'][k])
 
     def test_delete_hosting_device_template_not_in_use_succeeds(self):
-        ctx = n_context.get_admin_context()
+        ctx = bc.context.get_admin_context()
         with self.hosting_device_template(no_delete=True) as hdt:
             hdt_id = hdt['hosting_device_template']['id']
             req = self.new_delete_request('hosting_device_templates', hdt_id)
@@ -634,7 +633,7 @@ class TestDeviceManagerDBPlugin(
                 self._devmgr.get_hosting_device_template, ctx, hdt_id)
 
     def test_delete_hosting_device_template_in_use_fails(self):
-        ctx = n_context.get_admin_context()
+        ctx = bc.context.get_admin_context()
         with self.hosting_device_template() as hdt:
             hdt_id = hdt['hosting_device_template']['id']
             with self.port(subnet=self._mgmt_subnet) as mgmt_port:
@@ -659,7 +658,7 @@ class TestDeviceManagerDBPlugin(
                 self.fmt, 'my_template', True, 'Hardware',
                 webob.exc.HTTPForbidden.code,
                 tenant_id=tenant_id, set_context=True)
-            non_admin_ctx = n_context.Context('', tenant_id)
+            non_admin_ctx = bc.context.Context('', tenant_id)
             # show fail
             self._show('hosting_device_templates', hdt_id,
                        webob.exc.HTTPNotFound.code, non_admin_ctx)

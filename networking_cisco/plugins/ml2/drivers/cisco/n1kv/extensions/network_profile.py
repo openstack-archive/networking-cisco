@@ -18,7 +18,6 @@ import six
 
 from neutron.api import extensions
 from neutron.api.v2 import base
-from neutron.services import service_base as sb
 from neutron_lib.api import converters as conv
 
 from networking_cisco import backwards_compatibility as bc
@@ -134,7 +133,7 @@ class Network_profile(bc.extensions.ExtensionDescriptor):
 
 
 @six.add_metaclass(abc.ABCMeta)
-class NetworkProfilePluginBase(sb.ServicePluginBase):
+class NetworkProfilePluginBase(bc.service_base.ServicePluginBase):
 
     def get_plugin_name(self):
         return constants.CISCO_N1KV_NET_PROFILE

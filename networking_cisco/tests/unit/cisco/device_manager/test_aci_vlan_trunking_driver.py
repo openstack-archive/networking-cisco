@@ -21,7 +21,6 @@ from oslo_utils import uuidutils
 import webob.exc
 
 from neutron.common import test_lib
-from neutron import context
 from neutron.extensions import providernet as pr_net
 from neutron.tests.unit.extensions import test_l3
 
@@ -123,7 +122,7 @@ class TestAciVLANTrunkingPlugDriverBase(
 
     def test_create_hosting_device_resources(self):
         tenant_id = 'some_tenant_id'
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         mgmt_context = {'mgmt_nw_id': None}
         res = self.plugging_driver.create_hosting_device_resources(
             ctx, "some_id", tenant_id, mgmt_context, 2)
@@ -132,7 +131,7 @@ class TestAciVLANTrunkingPlugDriverBase(
 
     def test_create_hosting_device_resources_no_mgmt_context(self):
         tenant_id = 'some_tenant_id'
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         res = self.plugging_driver.create_hosting_device_resources(
             ctx, "some_id", tenant_id, None, 2)
         self.assertIsNone(res['mgmt_port'], res)
@@ -140,7 +139,7 @@ class TestAciVLANTrunkingPlugDriverBase(
 
     def test_get_hosting_device_resources_by_complementary_id(self):
         tenant_id = 'some_tenant_id'
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         mgmt_context = {'mgmt_nw_id': None}
         res = self.plugging_driver.create_hosting_device_resources(
             ctx, "some_id", tenant_id, mgmt_context, 1)
@@ -154,7 +153,7 @@ class TestAciVLANTrunkingPlugDriverBase(
 
     def test_get_hosting_device_resources_by_device_id(self):
         tenant_id = 'some_tenant_id'
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         mgmt_context = {'mgmt_nw_id': None}
         res = self.plugging_driver.create_hosting_device_resources(
             ctx, "some_id", tenant_id, mgmt_context, 1)
@@ -175,7 +174,7 @@ class TestAciVLANTrunkingPlugDriverBase(
 
     def test_delete_hosting_device_resources(self):
         tenant_id = 'some_tenant_id'
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         mgmt_context = {'mgmt_nw_id': None}
         res = self.plugging_driver.create_hosting_device_resources(
             ctx, "some_id", tenant_id, mgmt_context, 2)
@@ -358,7 +357,7 @@ class TestAciVLANTrunkingPlugDriverGbp(
                     hosting_device = {'id':
                         '00000000-0000-0000-0000-000000000002'}
                     tenant_id = 'tenant_uuid1'
-                    ctx = context.Context('', tenant_id, is_admin=True)
+                    ctx = bc.context.Context('', tenant_id, is_admin=True)
                     self._set_apic_driver_mocks(r1)
                     self.plugging_driver.extend_hosting_port_info(ctx,
                         fake_port_db_obj, hosting_device, hosting_info)
@@ -386,7 +385,7 @@ class TestAciVLANTrunkingPlugDriverGbp(
                     hosting_device = {'id':
                         '00000000-0000-0000-0000-000000000002'}
                     tenant_id = 'tenant_uuid1'
-                    ctx = context.Context('', tenant_id, is_admin=True)
+                    ctx = bc.context.Context('', tenant_id, is_admin=True)
                     self._set_apic_driver_mocks(r1)
                     self.plugging_driver.extend_hosting_port_info(ctx,
                         fake_port_db_obj, hosting_device, hosting_info)
@@ -438,7 +437,7 @@ class TestAciVLANTrunkingPlugDriverGbp(
                 fake_port_db_obj.hosting_info['segmentation_id'] = 40
                 hosting_device = {'id': '00000000-0000-0000-0000-000000000002'}
                 tenant_id = 'tenant_uuid1'
-                ctx = context.Context('', tenant_id, is_admin=True)
+                ctx = bc.context.Context('', tenant_id, is_admin=True)
                 self._set_apic_driver_mocks(r1)
                 self.plugging_driver.extend_hosting_port_info(ctx,
                     fake_port_db_obj, hosting_device, hosting_info)
@@ -472,7 +471,7 @@ class TestAciVLANTrunkingPlugDriverGbp(
                     hosting_device = {'id':
                                       '00000000-0000-0000-0000-000000000002'}
                     tenant_id = 'tenant_uuid1'
-                    ctx = context.Context('', tenant_id, is_admin=True)
+                    ctx = bc.context.Context('', tenant_id, is_admin=True)
                     self._set_apic_driver_mocks(r1)
                     self.plugging_driver.extend_hosting_port_info(ctx,
                         fake_port_db_obj, hosting_device, hosting_info)
@@ -507,7 +506,7 @@ class TestAciVLANTrunkingPlugDriverGbp(
                 hosting_device = {'id':
                                   '00000000-0000-0000-0000-000000000002'}
                 tenant_id = 'tenant_uuid1'
-                ctx = context.Context('', tenant_id, is_admin=True)
+                ctx = bc.context.Context('', tenant_id, is_admin=True)
                 self._set_apic_driver_mocks(dummy_router)
                 self.plugging_driver.extend_hosting_port_info(ctx,
                     fake_port_db_obj, hosting_device, hosting_info)
@@ -590,7 +589,7 @@ class TestAciVLANTrunkingPlugDriverGbp(
                                               'get_networks') as m2:
                         m1.side_effect = self._mocked_get_network
                         m2.side_effect = self._mocked_get_networks
-                        u1_ctx = context.Context('', r1['tenant_id'],
+                        u1_ctx = bc.context.Context('', r1['tenant_id'],
                                                  is_admin=True)
                         gw_port_db = self.core_plugin._get_ports_query(
                             u1_ctx, filters={'network_id': [ext_net_id]}).one()
@@ -633,7 +632,8 @@ class TestAciVLANTrunkingPlugDriverGbp(
                 with self.router(external_gateway_info=gw_info,
                                  tenant_id=sn1['tenant_id']) as router1:
                     r1 = router1['router']
-                    u_ctx = context.Context('', r1['tenant_id'], is_admin=True)
+                    u_ctx = bc.context.Context(
+                        '', r1['tenant_id'], is_admin=True)
                     gw_port_db = self.core_plugin._get_ports_query(
                             u_ctx, filters={'network_id': [ext_net_id]}).one()
                     self._set_apic_driver_mocks(r1)
@@ -669,7 +669,7 @@ class TestAciVLANTrunkingPlugDriverGbp(
                 hosting_device = {'id': '00000000-0000-0000-0000-000000000002'}
                 tenant_id = 'tenant_uuid1'
                 dummy_rid = 'dummy_router_id'
-                ctx = context.Context('', tenant_id, is_admin=True)
+                ctx = bc.context.Context('', tenant_id, is_admin=True)
                 with mock.patch.object(self.core_plugin, 'get_network') as m1:
                     m1.side_effect = _return_mocked_net
                     allocations = self.plugging_driver.allocate_hosting_port(
@@ -703,7 +703,7 @@ class TestAciVLANTrunkingPlugDriverGbp(
                 hosting_device = {'id': '00000000-0000-0000-0000-000000000002'}
                 tenant_id = 'tenant_uuid1'
                 dummy_rid = 'dummy_router_id'
-                ctx = context.Context('', tenant_id, is_admin=True)
+                ctx = bc.context.Context('', tenant_id, is_admin=True)
                 with mock.patch.object(self.core_plugin, 'get_network') as m1:
                     m1.side_effect = _return_mocked_net
                     self.assertRaises(
@@ -802,7 +802,7 @@ class TestAciVLANTrunkingPlugDriverNeutron(TestAciVLANTrunkingPlugDriverGbp):
                     hosting_device = {'id':
                                       '00000000-0000-0000-0000-000000000002'}
                     tenant_id = 'tenant_uuid1'
-                    ctx = context.Context('', tenant_id, is_admin=True)
+                    ctx = bc.context.Context('', tenant_id, is_admin=True)
                     self._set_apic_driver_mocks(r1)
                     self.plugging_driver.extend_hosting_port_info(ctx,
                         fake_port_db_obj, hosting_device, hosting_info)
@@ -841,7 +841,7 @@ class TestAciVLANTrunkingPlugDriverNeutron(TestAciVLANTrunkingPlugDriverGbp):
                     hosting_device = {'id':
                                       '00000000-0000-0000-0000-000000000002'}
                     tenant_id = 'tenant_uuid1'
-                    ctx = context.Context('', tenant_id, is_admin=True)
+                    ctx = bc.context.Context('', tenant_id, is_admin=True)
                     self._set_apic_driver_mocks(r1)
                     self.plugging_driver.extend_hosting_port_info(ctx,
                         fake_port_db_obj, hosting_device, hosting_info)
@@ -874,7 +874,7 @@ class TestAciVLANTrunkingPlugDriverNeutron(TestAciVLANTrunkingPlugDriverGbp):
                     hosting_device = {'id':
                         '00000000-0000-0000-0000-000000000002'}
                     tenant_id = 'tenant_uuid1'
-                    ctx = context.Context('', tenant_id, is_admin=True)
+                    ctx = bc.context.Context('', tenant_id, is_admin=True)
                     self._set_apic_driver_mocks(r1)
                     self.plugging_driver.extend_hosting_port_info(ctx,
                         fake_port_db_obj, hosting_device, hosting_info)
@@ -900,7 +900,7 @@ class TestAciVLANTrunkingPlugDriverNeutron(TestAciVLANTrunkingPlugDriverGbp):
                     hosting_device = {'id':
                         '00000000-0000-0000-0000-000000000002'}
                     tenant_id = 'tenant_uuid1'
-                    ctx = context.Context('', tenant_id, is_admin=True)
+                    ctx = bc.context.Context('', tenant_id, is_admin=True)
                     self._set_apic_driver_mocks(r1)
                     self.plugging_driver.extend_hosting_port_info(ctx,
                         fake_port_db_obj, hosting_device, hosting_info)
@@ -921,7 +921,7 @@ class TestAciVLANTrunkingPlugDriverNeutron(TestAciVLANTrunkingPlugDriverGbp):
 
         drv = self.plugging_driver
         tenant_id = 'some_tenant_id'
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         with self.router() as router1:
             r1 = router1['router']
             dummy_port = DummyPort(r1['id'])
@@ -932,7 +932,7 @@ class TestAciVLANTrunkingPlugDriverNeutron(TestAciVLANTrunkingPlugDriverGbp):
     def test_allocate_hosting_port_no_router(self):
         drv = self.plugging_driver
         tenant_id = 'some_tenant_id'
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         with self.port() as port1:
             p1 = port1['port']
             self.assertIsNone(drv.allocate_hosting_port(ctx,
@@ -941,7 +941,7 @@ class TestAciVLANTrunkingPlugDriverNeutron(TestAciVLANTrunkingPlugDriverGbp):
     def test_allocate_hosting_port_router_no_gw(self):
         drv = self.plugging_driver
         tenant_id = 'some_tenant_id'
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         with self.port() as port1:
             p1 = port1['port']
             with self.router() as router1:

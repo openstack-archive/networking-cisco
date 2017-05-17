@@ -17,7 +17,6 @@ import copy
 import mock
 
 from neutron.common import test_lib
-from neutron import context
 from neutron.extensions import providernet as pr_net
 from neutron.tests.unit.extensions import test_l3
 
@@ -60,7 +59,7 @@ class TestHwVLANTrunkingPlugDriver(
 
     def test_create_hosting_device_resources(self):
         tenant_id = 'some_tenant_id'
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         plugging_driver = HwVLANTrunkingPlugDriver()
         mgmt_context = {'mgmt_nw_id': None}
         res = plugging_driver.create_hosting_device_resources(
@@ -70,7 +69,7 @@ class TestHwVLANTrunkingPlugDriver(
 
     def test_create_hosting_device_resources_no_mgmt_context(self):
         tenant_id = 'some_tenant_id'
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         plugging_driver = HwVLANTrunkingPlugDriver()
         res = plugging_driver.create_hosting_device_resources(
             ctx, "some_id", tenant_id, None, 2)
@@ -79,7 +78,7 @@ class TestHwVLANTrunkingPlugDriver(
 
     def test_get_hosting_device_resources_by_complementary_id(self):
         tenant_id = 'some_tenant_id'
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         plugging_driver = HwVLANTrunkingPlugDriver()
         mgmt_context = {'mgmt_nw_id': None}
         res = plugging_driver.create_hosting_device_resources(
@@ -94,7 +93,7 @@ class TestHwVLANTrunkingPlugDriver(
 
     def test_get_hosting_device_resources_by_device_id(self):
         tenant_id = 'some_tenant_id'
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         plugging_driver = HwVLANTrunkingPlugDriver()
         mgmt_context = {'mgmt_nw_id': None}
         res = plugging_driver.create_hosting_device_resources(
@@ -116,7 +115,7 @@ class TestHwVLANTrunkingPlugDriver(
 
     def test_delete_hosting_device_resources(self):
         tenant_id = 'some_tenant_id'
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         mgmt_context = {'mgmt_nw_id': None}
         plugging_driver = HwVLANTrunkingPlugDriver()
         res = plugging_driver.create_hosting_device_resources(
@@ -149,7 +148,7 @@ class TestHwVLANTrunkingPlugDriver(
         fake_port_db_obj.networks.external = None
         hosting_device = {'id': '00000000-0000-0000-0000-000000000002'}
         tenant_id = 'tenant_uuid1'
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         plugging_driver = HwVLANTrunkingPlugDriver()
         plugging_driver.extend_hosting_port_info(ctx, fake_port_db_obj,
                                                  hosting_device, hosting_info)
@@ -166,7 +165,7 @@ class TestHwVLANTrunkingPlugDriver(
         fake_port_db_obj.networks.external = {'external': True}
         hosting_device = {'id': '00000000-0000-0000-0000-000000000002'}
         tenant_id = 'tenant_uuid1'
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         plugging_driver = HwVLANTrunkingPlugDriver()
         plugging_driver.extend_hosting_port_info(ctx, fake_port_db_obj,
                                                  hosting_device, hosting_info)
@@ -246,7 +245,7 @@ class TestHwVLANTrunkingPlugDriver(
                                           'get_networks') as m2:
                     m1.side_effect = self._mocked_get_network
                     m2.side_effect = self._mocked_get_networks
-                    u1_ctx = context.Context('', r1['tenant_id'],
+                    u1_ctx = bc.context.Context('', r1['tenant_id'],
                                              is_admin=True)
                     gw_port_db = self.core_plugin._get_ports_query(
                         u1_ctx, filters={'network_id': [ext_net_id]}).one()
@@ -284,7 +283,7 @@ class TestHwVLANTrunkingPlugDriver(
                              tenant_id=sn1['tenant_id']) as router1:
                 r1 = router1['router']
                 plugging_driver = HwVLANTrunkingPlugDriver()
-                u_ctx = context.Context('', r1['tenant_id'], is_admin=True)
+                u_ctx = bc.context.Context('', r1['tenant_id'], is_admin=True)
                 gw_port_db = self.core_plugin._get_ports_query(
                         u_ctx, filters={'network_id': [ext_net_id]}).one()
                 allocations = plugging_driver.allocate_hosting_port(

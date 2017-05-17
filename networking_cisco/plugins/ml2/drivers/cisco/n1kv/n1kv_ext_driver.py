@@ -22,7 +22,6 @@ from oslo_utils import uuidutils
 from networking_cisco._i18n import _LE
 
 from neutron.api import extensions as api_extensions
-from neutron.extensions import providernet
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2.common import exceptions as ml2_exc
 from neutron.plugins.ml2 import driver_api as api
@@ -115,7 +114,7 @@ class CiscoN1kvExtensionDriver(api.ExtensionDriver):
     def process_create_network(self, context, data, result):
         """Implementation of abstract method from ExtensionDriver class."""
         net_id = result.get('id')
-        prov_net_type = data.get(providernet.NETWORK_TYPE)
+        prov_net_type = data.get(bc.providernet.NETWORK_TYPE)
         net_prof_attr = data.get(constants.N1KV_PROFILE)
         tenant_id = context.tenant_id
         if not bc.is_attr_set(net_prof_attr):
@@ -159,7 +158,7 @@ class CiscoN1kvExtensionDriver(api.ExtensionDriver):
                                         0,
                                         net_prof_attr.id,
                                         context.session)
-            data[providernet.NETWORK_TYPE] = segment_type
+            data[bc.providernet.NETWORK_TYPE] = segment_type
         result[constants.N1KV_PROFILE] = net_prof_attr.id
 
     def extend_network_dict(self, session, model, result):

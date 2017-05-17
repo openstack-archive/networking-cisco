@@ -17,7 +17,6 @@ import copy
 import mock
 
 from neutron.common import test_lib
-from neutron import context
 from neutron.extensions import providernet as pr_net
 from neutron.tests.unit.extensions import test_l3
 
@@ -161,7 +160,7 @@ class TestN1kvTrunkingPluggingDriver(
         self.net_plugin.get_network_profiles = m2
         osn_subnet = self._list('subnets')['subnets'][0]
         tenant_id = osn_subnet['tenant_id']
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         plugging_driver = self.test_driver()
         mgmt_context = {'mgmt_nw_id': osn_subnet['network_id']}
         res = plugging_driver.create_hosting_device_resources(
@@ -180,7 +179,7 @@ class TestN1kvTrunkingPluggingDriver(
         self.net_plugin.get_network_profiles = m2
         osn_subnet = self._list('subnets')['subnets'][0]
         tenant_id = osn_subnet['tenant_id']
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         plugging_driver = self.test_driver()
         res = plugging_driver.create_hosting_device_resources(
             ctx, "some_id", tenant_id, None, 2)
@@ -197,7 +196,7 @@ class TestN1kvTrunkingPluggingDriver(
         self.net_plugin.get_network_profiles = m2
         osn_subnet = self._list('subnets')['subnets'][0]
         tenant_id = osn_subnet['tenant_id']
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         plugging_driver = self.test_driver()
         mgmt_context = {'mgmt_nw_id': osn_subnet['network_id']}
         res = plugging_driver.create_hosting_device_resources(
@@ -219,7 +218,7 @@ class TestN1kvTrunkingPluggingDriver(
         self.net_plugin.get_network_profiles = m2
         osn_subnet = self._list('subnets')['subnets'][0]
         tenant_id = osn_subnet['tenant_id']
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         plugging_driver = self.test_driver()
         mgmt_context = {'mgmt_nw_id': osn_subnet['network_id']}
         res = plugging_driver.create_hosting_device_resources(
@@ -248,7 +247,7 @@ class TestN1kvTrunkingPluggingDriver(
         self.net_plugin.get_network_profiles = m2
         osn_subnet = self._list('subnets')['subnets'][0]
         tenant_id = osn_subnet['tenant_id']
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         mgmt_context = {'mgmt_nw_id': osn_subnet['network_id']}
         plugging_driver = self.test_driver()
         res = plugging_driver.create_hosting_device_resources(
@@ -291,7 +290,7 @@ class TestN1kvTrunkingPluggingDriver(
         self.net_plugin.get_network_profiles = m2
         osn_subnet = self._list('subnets')['subnets'][0]
         tenant_id = osn_subnet['tenant_id']
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         mgmt_context = {'mgmt_nw_id': osn_subnet['network_id']}
         plugging_driver = self.test_driver()
         real_delete_resources = plugging_driver._delete_resources
@@ -332,7 +331,7 @@ class TestN1kvTrunkingPluggingDriver(
         self.net_plugin.get_network_profiles = m2
         osn_subnet = self._list('subnets')['subnets'][0]
         tenant_id = osn_subnet['tenant_id']
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         mgmt_context = {'mgmt_nw_id': osn_subnet['network_id']}
         plugging_driver = self.test_driver()
         res = plugging_driver.create_hosting_device_resources(
@@ -370,7 +369,7 @@ class TestN1kvTrunkingPluggingDriver(
         fake_port_db_obj.hosting_info.segmentation_id = 50
         hosting_device = mock.MagicMock()
         tenant_id = 'tenant_uuid1'
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         plugging_driver = self.test_driver()
         plugging_driver.extend_hosting_port_info(ctx, fake_port_db_obj,
                                                  hosting_device, hosting_info)
@@ -435,7 +434,7 @@ class TestN1kvTrunkingPluggingDriver(
         self.net_plugin.get_network_profiles = m2
         osn_subnet = self._list('subnets')['subnets'][0]
         tenant_id = osn_subnet['tenant_id']
-        ctx = context.Context('', tenant_id, is_admin=True)
+        ctx = bc.context.Context('', tenant_id, is_admin=True)
         mgmt_context = {'mgmt_nw_id': osn_subnet['network_id']}
         plugging_driver = self.test_driver()
         res = plugging_driver.create_hosting_device_resources(
@@ -471,7 +470,7 @@ class TestN1kvTrunkingPluggingDriver(
                                           'get_networks') as m2:
                     m1.side_effect = self._mocked_get_network
                     m2.side_effect = self._mocked_get_networks
-                    u1_ctx = context.Context('', r1['tenant_id'],
+                    u1_ctx = bc.context.Context('', r1['tenant_id'],
                                              is_admin=True)
                     gw_port_db = self.core_plugin._get_ports_query(
                         u1_ctx, filters={'network_id': [ext_net_id]}).one()
@@ -495,7 +494,7 @@ class TestN1kvTrunkingPluggingDriver(
                     with self.router(external_gateway_info=gw_info,
                                      tenant_id=sn1['tenant_id']) as router2:
                         r2 = router2['router']
-                        u2_ctx = context.Context('', r2['tenant_id'],
+                        u2_ctx = bc.context.Context('', r2['tenant_id'],
                                                  is_admin=True)
                         gw_port_db = self.core_plugin._get_ports_query(
                             u2_ctx, filters={'network_id': [ext_net_id],
@@ -577,7 +576,7 @@ class TestN1kvTrunkingPluggingDriver(
                              tenant_id=sn1['tenant_id']) as router1:
                 r1 = router1['router']
                 plugging_driver = self.test_driver()
-                u_ctx = context.Context('', r1['tenant_id'], is_admin=True)
+                u_ctx = bc.context.Context('', r1['tenant_id'], is_admin=True)
                 gw_port_db = self.core_plugin._get_ports_query(
                         u_ctx, filters={'network_id': [ext_net_id]}).one()
                 with mock.patch(

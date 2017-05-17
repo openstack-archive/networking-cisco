@@ -18,7 +18,6 @@ import unittest
 
 from neutron.api.rpc.agentnotifiers import l3_rpc_agent_api
 from neutron.common import test_lib
-from neutron import context as n_context
 from neutron.extensions import agent
 from neutron.extensions import l3
 from neutron.tests import fake_notifier
@@ -156,7 +155,7 @@ class L3RoutertypeAwareL3AgentSchedulerTestCase(
         cfg.CONF.set_override('default_router_type',
                               c_const.NAMESPACE_ROUTER_TYPE, group='routing')
 
-        self.adminContext = n_context.get_admin_context()
+        self.adminContext = bc.context.get_admin_context()
         self.plugin = bc.get_plugin()
         self.l3_plugin = bc.get_plugin(bc.constants.L3)
         # work-around to make some tests in super class, which assumes core
@@ -443,7 +442,7 @@ class L3RoutertypeAwareHostingDeviceSchedulerTestCaseBase(
         self.setup_config()
         # do pool management in same green thread during tests
         self._mock_eventlet_greenpool_spawn_n()
-        self.adminContext = n_context.get_admin_context()
+        self.adminContext = bc.context.get_admin_context()
         # tests need a predictable random.choice so we always return first
         # item in the argument sequence
         self.random_patch = mock.patch('random.choice')
@@ -1357,7 +1356,7 @@ class L3RouterHostingDeviceBaseSchedulerTestCase(
             use_ini_files=False)
 
     def _update_hosting_device_statuses(self, hosting_devices, statuses):
-        adm_ctxt = n_context.get_admin_context()
+        adm_ctxt = bc.context.get_admin_context()
         core_plugin = bc.get_plugin()
         for (hosting_device, status) in zip(hosting_devices, statuses):
             hd = hosting_device['hosting_device']
@@ -1379,7 +1378,7 @@ class L3RouterHostingDeviceBaseSchedulerTestCase(
         r_hd_b_db.router_type.__getitem__ = lambda obj, name: fake_attrs[name]
         r_hd_b_db.router_type.template = mock.MagicMock()
         r_hd_b_db.router_type.template.slot_capacity = slot_capacity
-        adm_ctx = n_context.get_admin_context()
+        adm_ctx = bc.context.get_admin_context()
         sched_obj = scheduler.L3RouterHostingDeviceLongestRunningScheduler()
         candidates = sched_obj.get_candidates(None, adm_ctx, r_hd_b_db)
         expected_candidates = expected_candidates or []

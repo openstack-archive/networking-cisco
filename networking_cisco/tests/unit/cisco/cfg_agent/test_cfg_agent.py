@@ -17,7 +17,6 @@ from oslo_config import cfg
 from oslo_utils import uuidutils
 import testtools
 
-from neutron.agent.common import config
 from neutron.tests import base
 
 from networking_cisco import backwards_compatibility as bc
@@ -67,7 +66,7 @@ class TestCiscoCfgAgentWithStateReporting(base.BaseTestCase):
 
     def setUp(self):
         self.conf = cfg.ConfigOpts()
-        config.register_agent_state_opts_helper(cfg.CONF)
+        bc.config.register_agent_state_opts_helper(cfg.CONF)
         self.conf.register_opts(bc.core_opts)
         self.conf.register_opts(cfg_agent.OPTS, "cfg_agent")
         cfg.CONF.set_override('report_interval', 0, 'AGENT')

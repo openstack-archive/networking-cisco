@@ -28,8 +28,6 @@ import six
 from neutron.common import exceptions as n_exc
 from neutron.common import rpc as n_rpc
 from neutron.common import topics
-from neutron.common import utils as common_utils
-from neutron import context as n_context
 
 from neutron_lib import exceptions as n_lib_exc
 
@@ -185,7 +183,7 @@ class RoutingServiceHelper(object):
     def __init__(self, host, conf, cfg_agent):
         self.conf = conf
         self.cfg_agent = cfg_agent
-        self.context = n_context.get_admin_context_without_session()
+        self.context = bc.context.get_admin_context_without_session()
         self.plugin_rpc = CiscoRoutingPluginApi(topics.L3PLUGIN, host)
         self._dev_status = device_status.DeviceStatus()
         self._dev_status.enable_heartbeat = (
@@ -1125,7 +1123,7 @@ class RoutingServiceHelper(object):
         """
         new_routes = ri.router['routes']
         old_routes = ri.routes
-        adds, removes = common_utils.diff_list_of_dict(old_routes,
+        adds, removes = bc.common_utils.diff_list_of_dict(old_routes,
                                                        new_routes)
         for route in adds:
             LOG.debug("Added route entry is '%s'", route)

@@ -16,7 +16,6 @@ import os
 
 import mock
 from neutron.api.v2 import attributes
-from neutron import context as n_context
 from neutron.plugins.common import constants as svc_constants
 from neutron.tests import fake_notifier
 from neutron.tests.unit.db import test_agentschedulers_db
@@ -149,7 +148,7 @@ class HostingDeviceConfigAgentSchedulerTestCaseBase(
         if self.mock_cfg_agent_notifiers is True:
             self._mock_cfg_agent_notifier(self.plugin)
         self._other_tenant_id = dev_mgr_test_support._uuid()
-        self.adminContext = n_context.get_admin_context()
+        self.adminContext = bc.context.get_admin_context()
 
     def _setup_cfg_agents(self, host_a_active=True, host_b_active=False,
                           host_c_active=False):
@@ -668,7 +667,7 @@ class HostingDeviceConfigAgentSchedulerTestCase(
                 notify_mock = mock.MagicMock()
                 self.plugin.agent_notifiers[c_const.AGENT_TYPE_CFG] = (
                     notify_mock)
-                e_context = n_context.get_admin_context()
+                e_context = bc.context.get_admin_context()
                 with mock.patch(
                         'networking_cisco.plugins.cisco.db.scheduler.'
                         'cfg_agentschedulers_db.timeutils.is_older_than') as (
@@ -709,7 +708,7 @@ class HostingDeviceConfigAgentSchedulerTestCase(
                 notify_mock = mock.MagicMock()
                 self.plugin.agent_notifiers[c_const.AGENT_TYPE_CFG] = (
                     notify_mock)
-                e_context = n_context.get_admin_context()
+                e_context = bc.context.get_admin_context()
                 with mock.patch(
                         'networking_cisco.plugins.cisco.db.scheduler.'
                         'cfg_agentschedulers_db.timeutils.is_older_than') as (

@@ -15,6 +15,7 @@
 
 import webob.exc
 
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     constants as n1kv_const)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
@@ -28,7 +29,6 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
 from networking_cisco.tests.unit.ml2.drivers.cisco.n1kv import (
     test_cisco_n1kv_mech)
 
-from neutron.extensions import portbindings
 from neutron.plugins.ml2 import config as ml2_config
 from neutron.tests.unit.db import test_db_base_plugin_v2
 
@@ -36,7 +36,7 @@ from neutron.tests.unit.db import test_db_base_plugin_v2
 class TestN1KVMechDriverPortsV2(test_db_base_plugin_v2.TestPortsV2,
                                 test_cisco_n1kv_mech.TestN1KVMechanismDriver):
 
-    VIF_TYPE = portbindings.VIF_TYPE_OVS
+    VIF_TYPE = bc.portbindings.VIF_TYPE_OVS
     HAS_PORT_FILTER = True
 
     def setUp(self):

@@ -31,7 +31,6 @@ from oslo_utils import excutils
 from networking_cisco import backwards_compatibility as bc
 
 from neutron.common import utils as neutron_utils
-from neutron.extensions import portbindings
 from neutron.plugins.common import constants as p_const
 
 if bc.NEUTRON_VERSION <= bc.NEUTRON_NEWTON_VERSION:
@@ -564,8 +563,8 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
            are provided in the port transaction. In this
            case the VNIC_TYPE is 'baremetal'.
         """
-        return (port[portbindings.VNIC_TYPE] ==
-                portbindings.VNIC_BAREMETAL)
+        return (port[bc.portbindings.VNIC_TYPE] ==
+                bc.portbindings.VNIC_BAREMETAL)
 
     def _get_baremetal_switch_info(self, link_info):
         """Get switch_info dictionary from context."""
@@ -589,10 +588,10 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         if not self._is_baremetal(port):
             return False
 
-        if portbindings.PROFILE not in port:
+        if bc.portbindings.PROFILE not in port:
             return False
 
-        profile = port[portbindings.PROFILE]
+        profile = port[bc.portbindings.PROFILE]
 
         if 'local_link_information' not in profile:
             return False
@@ -628,7 +627,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             if (segment[api.NETWORK_TYPE] == p_const.TYPE_VLAN and
                 segment[api.SEGMENTATION_ID]):
                 context.set_binding(segment[api.ID],
-                    portbindings.VIF_TYPE_OTHER,
+                    bc.portbindings.VIF_TYPE_OTHER,
                     {},
                     status=bc.constants.PORT_STATUS_ACTIVE)
                 selected = True
@@ -670,7 +669,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         all_switches = set()
         active_switches = set()
-        all_link_info = port[portbindings.PROFILE]['local_link_information']
+        all_link_info = port[bc.portbindings.PROFILE]['local_link_information']
         for link_info in all_link_info:
             switch_info = self._get_baremetal_switch_info(link_info)
             if not switch_info:
@@ -707,7 +706,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         connections = []
 
-        all_link_info = port[portbindings.PROFILE]['local_link_information']
+        all_link_info = port[bc.portbindings.PROFILE]['local_link_information']
         for link_info in all_link_info:
 
             # Extract port info
@@ -1599,8 +1598,8 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
     def _is_vm_migrating(self, context, vlan_segment, orig_vlan_segment):
         if not vlan_segment and orig_vlan_segment:
-            return (context.current.get(portbindings.HOST_ID) !=
-                    context.original.get(portbindings.HOST_ID))
+            return (context.current.get(bc.portbindings.HOST_ID) !=
+                    context.original.get(bc.portbindings.HOST_ID))
 
     def _log_missing_segment(self):
         LOG.warning(_LW("Nexus: Segment is None, Event not processed."))
@@ -1636,7 +1635,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         if self._is_baremetal(port):
             host_id = ''
         else:
-            host_id = port.get(portbindings.HOST_ID)
+            host_id = port.get(bc.portbindings.HOST_ID)
         vlan_id = segment.get(api.SEGMENTATION_ID)
         # TODO(rpothier) Add back in provider segment support.
         is_provider = False
@@ -1662,7 +1661,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         device_id = port.get('device_id')
         mcast_group = segment.get(api.PHYSICAL_NETWORK)
-        host_id = port.get(portbindings.HOST_ID)
+        host_id = port.get(bc.portbindings.HOST_ID)
         vni = segment.get(api.SEGMENTATION_ID)
 
         if vni and device_id and mcast_group and host_id:
@@ -1719,7 +1718,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 all_switches, active_switches = (
                     self._get_baremetal_switches(context.current))
             else:
-                host_id = context.current.get(portbindings.HOST_ID)
+                host_id = context.current.get(bc.portbindings.HOST_ID)
                 all_switches, active_switches = (
                     self._get_host_switches(host_id))
 
@@ -1808,7 +1807,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                     all_switches, active_switches = (
                         self._get_baremetal_switches(context.current))
                 else:
-                    host_id = context.current.get(portbindings.HOST_ID)
+                    host_id = context.current.get(bc.portbindings.HOST_ID)
                     all_switches, active_switches = (
                         self._get_host_switches(host_id))
                 # if switches not active but host_id is valid
@@ -1867,7 +1866,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             if self._is_segment_nexus_vxlan(segment):
 
                 # Find physical network setting for this host.
-                host_id = context.current.get(portbindings.HOST_ID)
+                host_id = context.current.get(bc.portbindings.HOST_ID)
                 host_connections = self._get_port_connections(
                                        context.current,
                                        host_id)

@@ -19,9 +19,8 @@ import random
 from oslo_log import log as logging
 from sqlalchemy.orm import exc
 
-from neutron.db import agents_db
-
 from networking_cisco._i18n import _LW
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
 from networking_cisco.plugins.cisco.db.scheduler import cfg_agentschedulers_db
@@ -41,7 +40,7 @@ class HostingDeviceCfgAgentScheduler(object):
 
         Schedules hosting devices to agent running on <agent_host>.
         """
-        query = context.session.query(agents_db.Agent)
+        query = context.session.query(bc.Agent)
         query = query.filter_by(agent_type=c_constants.AGENT_TYPE_CFG,
                                 host=agent_host, admin_state_up=True)
         try:

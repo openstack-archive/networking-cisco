@@ -21,7 +21,6 @@ from oslo_log import log as logging
 import six
 import webob.exc
 
-from neutron import context as n_context
 from neutron.tests.unit.db import test_db_base_plugin_v2
 from neutron_lib import exceptions as n_exc
 
@@ -101,7 +100,7 @@ class RoutertypeTestCaseMixin(object):
         rt_req = self.new_create_request('routertypes', data, fmt)
         if kwargs.get('set_context') and 'tenant_id' in kwargs:
             # create a specific auth context for this request
-            rt_req.environ['neutron.context'] = n_context.Context(
+            rt_req.environ['neutron.context'] = bc.context.Context(
                 '', kwargs['tenant_id'])
         hd_res = rt_req.get_response(self.ext_api)
         if expected_res_status:
@@ -307,7 +306,7 @@ class TestRoutertypeDBPlugin(test_db_base_plugin_v2.NeutronDbPluginV2TestCase,
             tenant_id = hdt['hosting_device_template']['tenant_id']
             with self.routertype(hdt_id) as rt:
                 rt_id = rt['routertype']['id']
-                non_admin_ctx = n_context.Context('', tenant_id)
+                non_admin_ctx = bc.context.Context('', tenant_id)
                 req = self._req('GET', 'routertypes', None, self.fmt, id=rt_id,
                                 context=non_admin_ctx)
                 res = self.deserialize(self.fmt,
@@ -353,7 +352,7 @@ class TestRoutertypeDBPlugin(test_db_base_plugin_v2.NeutronDbPluginV2TestCase,
                 req = self.new_delete_request('routertypes', rt_id)
                 res = req.get_response(self.ext_api)
                 self.assertEqual(res.status_int, 204)
-                ctx = n_context.get_admin_context()
+                ctx = bc.context.get_admin_context()
                 self.assertRaises(routertype.RouterTypeNotFound,
                                   self.l3_plugin.get_routertype, ctx, rt_id)
 
@@ -363,7 +362,7 @@ class TestRoutertypeDBPlugin(test_db_base_plugin_v2.NeutronDbPluginV2TestCase,
             tenant_id = hdt['hosting_device_template']['tenant_id']
             with self.routertype(hdt_id) as rt:
                 rt_id = rt['routertype']['id']
-                non_admin_ctx = n_context.Context('', tenant_id)
+                non_admin_ctx = bc.context.Context('', tenant_id)
                 # create fails
                 self._create_routertype(
                     self.fmt, hdt_id, 'fast_routers', 10,

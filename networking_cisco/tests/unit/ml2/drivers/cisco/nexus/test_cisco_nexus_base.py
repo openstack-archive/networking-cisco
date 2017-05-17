@@ -47,7 +47,6 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import exceptions
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import mech_cisco_nexus
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import nexus_db_v2
 
-from neutron.extensions import portbindings
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import driver_api as api
 from neutron.tests.unit import testlib_api
@@ -264,10 +263,10 @@ class FakePortContext(object):
             'device_owner': device_owner,
             api.ID: PORT_ID,
             'network_id': netid,
-            portbindings.HOST_ID: host_name,
-            portbindings.VNIC_TYPE: vnic_type,
-            portbindings.PROFILE: profile,
-            portbindings.VIF_TYPE: portbindings.VIF_TYPE_OVS
+            bc.portbindings.HOST_ID: host_name,
+            bc.portbindings.VNIC_TYPE: vnic_type,
+            bc.portbindings.PROFILE: profile,
+            bc.portbindings.VIF_TYPE: bc.portbindings.VIF_TYPE_OVS
         }
 
     def set_orig_port(self, device_id, host_name, device_owner,
@@ -279,10 +278,10 @@ class FakePortContext(object):
             'device_owner': device_owner,
             api.ID: PORT_ID,
             'network_id': netid,
-            portbindings.HOST_ID: host_name,
-            portbindings.VNIC_TYPE: vnic_type,
-            portbindings.PROFILE: profile,
-            portbindings.VIF_TYPE: portbindings.VIF_TYPE_OVS
+            bc.portbindings.HOST_ID: host_name,
+            bc.portbindings.VNIC_TYPE: vnic_type,
+            bc.portbindings.PROFILE: profile,
+            bc.portbindings.VIF_TYPE: bc.portbindings.VIF_TYPE_OVS
         }
 
     @property
@@ -1102,7 +1101,7 @@ class TestContext(TestCiscoNexusBase):
 
         if port['device_id'] != config.instance_id:
             return 'device_id mismatch'
-        if port[portbindings.HOST_ID] != config.host_name:
+        if port[bc.portbindings.HOST_ID] != config.host_name:
             return 'host_name mismatch'
         if vlan_segment[api.SEGMENTATION_ID] != config.vlan_id:
             return 'vlan_id mismatch'
@@ -1118,11 +1117,11 @@ class TestContext(TestCiscoNexusBase):
                 config.vxlan_id):
                 return 'vxlan_id mismatch'
 
-        if port[portbindings.VNIC_TYPE] != config.vnic_type:
+        if port[bc.portbindings.VNIC_TYPE] != config.vnic_type:
             return 'vnic_type mismatch'
 
         if config.vnic_type == u'baremetal':
-            profile = port[portbindings.PROFILE]['local_link_information']
+            profile = port[bc.portbindings.PROFILE]['local_link_information']
             cfg_profile = config.profile['local_link_information']
             if (len(profile) != len(cfg_profile) or
                 len(profile) == 0):

@@ -23,7 +23,6 @@ from keystoneclient import session
 from keystoneclient.v2_0 import client as k_client
 from keystoneclient.v3 import client
 from neutron.common import utils
-from neutron import context as neutron_context
 from neutron_lib import exceptions as n_exc
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -207,7 +206,7 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
             if not tenant_id:
                 return
             net = bc.get_plugin().get_networks(
-                neutron_context.get_admin_context(),
+                bc.context.get_admin_context(),
                 {'tenant_id': [tenant_id],
                  'name': [cfg.CONF.general.management_network]},
                 ['id', 'subnets'])
@@ -247,7 +246,7 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
             # Get the id for the _mgmt_security_group_id
             tenant_id = cls.l3_tenant_id()
             res = bc.get_plugin().get_security_groups(
-                neutron_context.get_admin_context(),
+                bc.context.get_admin_context(),
                 {'tenant_id': [tenant_id],
                  'name': [cfg.CONF.general.default_security_group]},
                 ['id'])
@@ -609,7 +608,7 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
         self._create_hosting_devices_from_config()
         self._gt_pool = eventlet.GreenPool()
         # initialize hosting device pools
-        adm_ctx = neutron_context.get_admin_context()
+        adm_ctx = bc.context.get_admin_context()
         for template in adm_ctx.session.query(hd_models.HostingDeviceTemplate):
             self._dispatch_pool_maintenance_job(template)
 
@@ -631,7 +630,7 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
                              'Skipping this service vm pool management '
                              'request.'))
                 return
-        adm_context = neutron_context.get_admin_context()
+        adm_context = bc.context.get_admin_context()
         adm_context.tenant_id = self.l3_tenant_id()
         self._gt_pool.spawn_n(self._maintain_hosting_device_pool, adm_context,
                               template)
@@ -963,7 +962,7 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
         hdt_dict = config.get_specific_config('cisco_hosting_device_template')
         attr_info = ciscohostingdevicemanager.RESOURCE_ATTRIBUTE_MAP[
             ciscohostingdevicemanager.DEVICE_TEMPLATES]
-        adm_context = neutron_context.get_admin_context()
+        adm_context = bc.context.get_admin_context()
 
         for hdt_uuid, kv_dict in hdt_dict.items():
             # ensure hdt_uuid is properly formatted
@@ -996,7 +995,7 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
         hd_dict = config.get_specific_config('cisco_hosting_device')
         attr_info = ciscohostingdevicemanager.RESOURCE_ATTRIBUTE_MAP[
             ciscohostingdevicemanager.DEVICES]
-        adm_context = neutron_context.get_admin_context()
+        adm_context = bc.context.get_admin_context()
 
         for hd_uuid, kv_dict in hd_dict.items():
             # ensure hd_uuid is properly formatted

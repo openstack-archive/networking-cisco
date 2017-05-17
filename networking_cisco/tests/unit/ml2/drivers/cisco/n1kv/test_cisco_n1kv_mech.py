@@ -16,6 +16,7 @@
 import mock
 import webob.exc
 
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     config as ml2_n1kv_config)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
@@ -35,7 +36,6 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv.extensions import (
 from networking_cisco.tests.unit.ml2.drivers.cisco.n1kv import (
     fake_client)
 
-from neutron import context
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import config as ml2_config
 from neutron.plugins.ml2.drivers import type_vlan as vlan_config
@@ -174,7 +174,7 @@ class TestN1KVMechanismDriver(
                         expected_status, is_admin=False, api=None):
         api = api or self.ext_api
         create_req = self.new_create_request(resource, data, self.fmt)
-        create_req.environ['neutron.context'] = context.Context(
+        create_req.environ['neutron.context'] = bc.context.Context(
             '',
             tenant_id,
             is_admin=is_admin)
@@ -188,7 +188,7 @@ class TestN1KVMechanismDriver(
 
     def list_resource(self, resource, tenant_id):
         list_req = self.new_list_request(resource)
-        list_req.environ['neutron.context'] = context.Context('', tenant_id)
+        list_req.environ['neutron.context'] = bc.context.Context('', tenant_id)
         list_res = list_req.get_response(self.ext_api)
         if list_res.status_int < webob.exc.HTTPClientError.code:
             return self.deserialize(self.fmt, list_res)

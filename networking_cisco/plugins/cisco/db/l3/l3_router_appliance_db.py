@@ -35,7 +35,6 @@ from neutron.callbacks import registry
 from neutron.callbacks import resources
 from neutron.common import rpc as n_rpc
 from neutron.common import utils
-from neutron import context as n_context
 from neutron.db import db_base_plugin_v2
 from neutron.db import extraroute_db
 from neutron.db import l3_db
@@ -340,7 +339,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
             # that involved rollback of the transaction in the  context's
             # session. We therefore use a temporary context for the router
             # deletion and rely on the parent delete function.
-            temp_ctx = n_context.Context(context.user_id, context.tenant_id,
+            temp_ctx = bc.context.Context(context.user_id, context.tenant_id,
                                          context.is_admin)
             super(L3RouterApplianceDBMixin, self).delete_router(
                 temp_ctx, router_id)
@@ -1065,7 +1064,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
 
     @lockutils.synchronized('routerbacklog', 'neutron-')
     def _process_backlogged_routers(self):
-        e_context = n_context.get_admin_context()
+        e_context = bc.context.get_admin_context()
         for r_type, drv in self._router_drivers.items():
             if drv is not None:
                 LOG.debug('Calling pre_backlog_processing for router type %s',
@@ -1131,7 +1130,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
 
     def _sync_router_backlog(self):
         LOG.info(_LI('Synchronizing router (scheduling) backlog'))
-        context = n_context.get_admin_context()
+        context = bc.context.get_admin_context()
         type_to_exclude = self.get_namespace_router_type_id(context)
         query = context.session.query(l3_models.RouterHostingDeviceBinding)
         query = query.options(joinedload('router'))
@@ -1261,7 +1260,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         # put in backlog for rescheduling
 
     def _extend_router_dict_routertype(self, router_res, router_db):
-        adm_context = n_context.get_admin_context()
+        adm_context = bc.context.get_admin_context()
         (eff_rt, norm_rt) = self._get_effective_and_normal_routertypes(
             adm_context, router_db.hosting_info)
         # Show both current (temporary) and normal types if Neutron router is
@@ -1493,7 +1492,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         self._dev_mgr._setup_device_manager()
         rt_dict = config.get_specific_config('cisco_router_type')
         attr_info = routertype.RESOURCE_ATTRIBUTE_MAP[routertype.ROUTER_TYPES]
-        adm_context = n_context.get_admin_context()
+        adm_context = bc.context.get_admin_context()
 
         for rt_uuid, kv_dict in rt_dict.items():
             try:

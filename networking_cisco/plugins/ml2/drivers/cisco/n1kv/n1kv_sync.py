@@ -25,6 +25,7 @@ from oslo_config import cfg
 from oslo_log import log
 
 from networking_cisco._i18n import _LE, _LW
+from networking_cisco import backwards_compatibility as bc
 
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     constants as n1kv_const)
@@ -35,7 +36,6 @@ from networking_cisco.plugins.ml2.drivers.cisco.n1kv import n1kv_client
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import n1kv_db
 
 import neutron.db.api as db
-from neutron.extensions import providernet
 from neutron.plugins.common import constants as p_const
 
 LOG = log.getLogger(__name__)
@@ -305,8 +305,9 @@ class N1kvSyncDriver(object):
                 network_profile = n1kv_db.get_network_profile_by_network(
                     network['id'])
                 binding = n1kv_db.get_network_binding(network['id'])
-                network[providernet.SEGMENTATION_ID] = binding.segmentation_id
-                network[providernet.NETWORK_TYPE] = binding.network_type
+                network[bc.providernet.SEGMENTATION_ID] = (
+                    binding.segmentation_id)
+                network[bc.providernet.NETWORK_TYPE] = binding.network_type
                 # create these networks on VSM
                 try:
                     self.n1kvclient.create_network_segment(network,
@@ -437,8 +438,9 @@ class N1kvSyncDriver(object):
             if bd_name not in vsm_bds:
                 binding = n1kv_db.get_network_binding(network['id'])
                 netp = n1kv_db.get_network_profile_by_uuid(binding.profile_id)
-                network[providernet.SEGMENTATION_ID] = binding.segmentation_id
-                network[providernet.NETWORK_TYPE] = binding.network_type
+                network[bc.providernet.SEGMENTATION_ID] = (
+                    binding.segmentation_id)
+                network[bc.providernet.NETWORK_TYPE] = binding.network_type
                 # create this BD on VSM
                 try:
                     self.n1kvclient.create_bridge_domain(network,

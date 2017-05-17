@@ -28,14 +28,12 @@ from oslo_service import periodic_task
 from oslo_service import service
 from oslo_utils import importutils
 
-from neutron.agent.common import config
 from neutron.agent.linux import external_process
 from neutron.agent.linux import interface
 from neutron.agent import rpc as agent_rpc
 from neutron.common import config as common_config
 from neutron.common import rpc as n_rpc
 from neutron.common import topics
-from neutron import context as n_context
 from neutron import manager
 from neutron import service as neutron_service
 
@@ -155,7 +153,7 @@ class CiscoCfgAgent(manager.Manager):
         self._dev_status = device_status.DeviceStatus()
         self._dev_status.enable_heartbeat = (
             self.conf.cfg_agent.enable_heartbeat)
-        self.context = n_context.get_admin_context_without_session()
+        self.context = bc.context.get_admin_context_without_session()
 
         self._initialize_rpc(host)
         self._initialize_service_helpers(host)
@@ -343,7 +341,7 @@ class CiscoCfgAgent(manager.Manager):
                                                       'payload': payload})
 
     def get_assigned_hosting_devices(self):
-        context = n_context.get_admin_context_without_session()
+        context = bc.context.get_admin_context_without_session()
         res = self.devmgr_rpc.get_hosting_devices_for_agent(context)
         return res
 
@@ -401,7 +399,7 @@ class CiscoCfgAgentWithStateReport(CiscoCfgAgent):
         the agent stops itself.
         """
         for attempts in range(MAX_REGISTRATION_ATTEMPTS):
-            context = n_context.get_admin_context_without_session()
+            context = bc.context.get_admin_context_without_session()
             self.send_agent_report(self.agent_state, context)
             res = self.devmgr_rpc.register_for_duty(context)
             if res is True:
@@ -617,13 +615,13 @@ def main(manager='networking_cisco.plugins.cisco.cfg_agent.'
     #mock_ncclient()
     conf = cfg.CONF
     conf.register_opts(OPTS, "cfg_agent")
-    config.register_agent_state_opts_helper(conf)
-    config.register_root_helper(conf)
+    bc.config.register_agent_state_opts_helper(conf)
+    bc.config.register_root_helper(conf)
     conf.register_opts(interface.OPTS)
     conf.register_opts(external_process.OPTS)
     common_config.init(sys.argv[1:])
     conf(project='neutron')
-    config.setup_logging()
+    bc.config.setup_logging()
     server = neutron_service.Service.create(
         binary='neutron-cisco-cfg-agent',
         topic=c_constants.CFG_AGENT,

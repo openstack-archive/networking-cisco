@@ -18,12 +18,11 @@ from oslo_log import log as logging
 from oslo_utils import timeutils
 import six
 
-from neutron import context as n_context
-from neutron.db import agents_db
 from neutron.db import agentschedulers_db
 from neutron.extensions import agent as ext_agent
 
 from networking_cisco._i18n import _, _LI
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
 from networking_cisco.plugins.cisco.db.device_manager.hd_models import (
@@ -139,14 +138,14 @@ class CfgAgentSchedulerDbMixin(
         return {'agents': cfg_agents}
 
     def get_cfg_agents(self, context, active=None, filters=None):
-        query = context.session.query(agents_db.Agent)
+        query = context.session.query(bc.Agent)
         query = query.filter(
-            agents_db.Agent.agent_type == c_constants.AGENT_TYPE_CFG)
+            bc.Agent.agent_type == c_constants.AGENT_TYPE_CFG)
         if active is not None:
-            query = (query.filter(agents_db.Agent.admin_state_up == active))
+            query = (query.filter(bc.Agent.admin_state_up == active))
         if filters:
             for key, value in six.iteritems(filters):
-                column = getattr(agents_db.Agent, key, None)
+                column = getattr(bc.Agent, key, None)
                 if column:
                     query = query.filter(column.in_(value))
         cfg_agents_db = query.all()
@@ -165,7 +164,7 @@ class CfgAgentSchedulerDbMixin(
             query = self.get_hosting_devices_qry(context, hosting_device_ids)
             if admin_state_up is not None:
                 query = query.filter(
-                    agents_db.Agent.admin_state_up == admin_state_up)
+                    bc.Agent.admin_state_up == admin_state_up)
             agents = []
             agent_assigned_hd_ids = {}
             for hosting_device_db in query:
@@ -238,7 +237,7 @@ class CfgAgentSchedulerDbMixin(
 
     @lockutils.synchronized('devicemonitor', 'neutron-')
     def _check_config_agents(self):
-        e_context = n_context.get_admin_context()
+        e_context = bc.context.get_admin_context()
         if not self._cfg_agent_statuses:
             self._sync_config_agent_monitoring(e_context)
         to_remove = []

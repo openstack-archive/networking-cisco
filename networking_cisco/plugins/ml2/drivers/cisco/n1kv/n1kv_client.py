@@ -25,11 +25,12 @@ from oslo_serialization import jsonutils
 from oslo_utils import excutils
 from oslo_utils import netutils
 
-from neutron.extensions import providernet
 from neutron.plugins.common import constants as p_const
 from neutron_lib import exceptions as n_exc
 
 from networking_cisco._i18n import _, _LE, _LI
+from networking_cisco import backwards_compatibility as bc
+
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     constants as n1kv_const)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
@@ -290,9 +291,9 @@ class Client(object):
         # Override tenantId if network is shared
         if network['shared']:
             body['tenantId'] = '0'
-        if network[providernet.NETWORK_TYPE] == p_const.TYPE_VLAN:
-            body['vlan'] = network[providernet.SEGMENTATION_ID]
-        elif network[providernet.NETWORK_TYPE] == p_const.TYPE_VXLAN:
+        if network[bc.providernet.NETWORK_TYPE] == p_const.TYPE_VLAN:
+            body['vlan'] = network[bc.providernet.SEGMENTATION_ID]
+        elif network[bc.providernet.NETWORK_TYPE] == p_const.TYPE_VXLAN:
             # Create a bridge domain on VSM
             bd_name = network['id'] + n1kv_const.BRIDGE_DOMAIN_SUFFIX
             self.create_bridge_domain(network, network_profile, vsm_ip=vsm_ip)
@@ -305,7 +306,7 @@ class Client(object):
                 # Clean up the bridge domain from the VSM for VXLAN networks.
                 # Reraise the exception so that caller method executes further
                 # clean up.
-                if network[providernet.NETWORK_TYPE] == p_const.TYPE_VXLAN:
+                if network[bc.providernet.NETWORK_TYPE] == p_const.TYPE_VXLAN:
                     self.delete_bridge_domain(bd_name, vsm_ip=vsm_ip)
 
     def update_network_segment(self, updated_network):
@@ -346,7 +347,7 @@ class Client(object):
         else:
             vxlan_subtype = n1kv_const.MODE_NATIVE_VXLAN
         body = {'name': network['id'] + n1kv_const.BRIDGE_DOMAIN_SUFFIX,
-                'segmentId': network[providernet.SEGMENTATION_ID],
+                'segmentId': network[bc.providernet.SEGMENTATION_ID],
                 'subType': vxlan_subtype,
                 'tenantId': network['tenant_id']}
         if vxlan_subtype == n1kv_const.MODE_NATIVE_VXLAN:

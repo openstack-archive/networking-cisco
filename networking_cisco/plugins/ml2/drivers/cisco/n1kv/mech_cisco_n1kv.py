@@ -26,8 +26,6 @@ from oslo_utils import excutils
 from networking_cisco._i18n import _LE, _LI, _LW
 
 from neutron.db import db_base_plugin_v2
-from neutron.extensions import portbindings
-from neutron.extensions import providernet
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2.common import exceptions as ml2_exc
 from neutron.plugins.ml2 import driver_api as api
@@ -76,9 +74,9 @@ class N1KVMechanismDriver(api.MechanismDriver):
             self._ensure_network_profiles_created_on_vsm()
         except (n1kv_exc.VSMConnectionFailed, n1kv_exc.VSMError):
             LOG.error(_LE("VSM failed to create default network profiles."))
-        self.vif_type = portbindings.VIF_TYPE_OVS
-        self.vif_details = {portbindings.CAP_PORT_FILTER: True,
-                            portbindings.OVS_HYBRID_PLUG: True}
+        self.vif_type = bc.portbindings.VIF_TYPE_OVS
+        self.vif_details = {bc.portbindings.CAP_PORT_FILTER: True,
+                            bc.portbindings.OVS_HYBRID_PLUG: True}
         self.supported_network_types = [p_const.TYPE_VLAN, p_const.TYPE_VXLAN]
 
     def _ensure_network_profiles_created_on_vsm(self):
@@ -151,7 +149,7 @@ class N1KVMechanismDriver(api.MechanismDriver):
         session = context._plugin_context.session
         binding = n1kv_db.get_network_binding(network['id'], session)
         netp = n1kv_db.get_network_profile_by_uuid(binding.profile_id, session)
-        network[providernet.SEGMENTATION_ID] = binding.segmentation_id
+        network[bc.providernet.SEGMENTATION_ID] = binding.segmentation_id
         try:
             self.n1kvclient.create_network_segment(network, netp)
         except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):

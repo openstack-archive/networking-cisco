@@ -22,8 +22,8 @@ from oslo_utils import importutils
 from neutron.common import config as common_config
 from neutron.common import rpc as n_rpc
 from neutron.common import topics
-from neutron import context as ctxt
 
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
     asr1k_cfg_syncer)
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
@@ -99,7 +99,7 @@ def main():
     devmgr_rpc = CiscoDevMgrRPC(cisco_constants.DEVICE_MANAGER_PLUGIN, host)
     plugin_rpc = CiscoRoutingPluginRPC(topics.L3PLUGIN, host)
 
-    context = ctxt.Context('', '')
+    context = bc.ctxt.Context('', '')
     # TODO(create an admin context instead)
 
     hardware_router_type_id = plugin_rpc.get_hardware_router_type_id(context)

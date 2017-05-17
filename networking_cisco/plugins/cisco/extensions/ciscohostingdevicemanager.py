@@ -19,7 +19,6 @@ import six
 
 from neutron.api.v2 import attributes as attr
 from neutron.api.v2 import resource_helper
-from neutron.services.service_base import ServicePluginBase
 from neutron_lib.api import converters as conv
 from neutron_lib import exceptions as nexception
 
@@ -250,7 +249,7 @@ class Ciscohostingdevicemanager(bc.extensions.ExtensionDescriptor):
 
 
 @six.add_metaclass(abc.ABCMeta)
-class CiscoHostingDevicePluginBase(ServicePluginBase):
+class CiscoHostingDevicePluginBase(bc.service_base.ServicePluginBase):
 
     def get_plugin_name(self):
         return constants.DEVICE_MANAGER

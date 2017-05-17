@@ -112,7 +112,8 @@ class ServiceVMManager(object):
             nics.append({'port-id': port['id']})
 
         try:
-            image = n_utils.find_resource(self._nclient.images, vm_image)
+            image = n_utils.find_resource(
+                bc.get_novaclient_images(self._nclient), vm_image)
             flavor = n_utils.find_resource(self._nclient.flavors, vm_flavor)
         except (nova_exc.CommandError, Exception) as e:
             LOG.error(_LE('Failure finding needed Nova resource: %s'), e)

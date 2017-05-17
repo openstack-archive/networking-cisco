@@ -28,10 +28,10 @@ from neutron import version
 NEUTRON_VERSION = StrictVersion(str(version.version_info))
 NEUTRON_NEWTON_VERSION = StrictVersion('9.0.0')
 NEUTRON_OCATA_VERSION = StrictVersion('10.0.0')
+NEUTRON_PIKE_VERSION = StrictVersion('11.0.0')
 
 n_c = __import__('neutron.common.constants', fromlist=['common.constants'])
 constants = __import__('neutron_lib.constants', fromlist=['constants'])
-
 
 if NEUTRON_VERSION >= NEUTRON_NEWTON_VERSION:
     from neutron.conf import common as base_config
@@ -53,9 +53,12 @@ if NEUTRON_VERSION >= NEUTRON_OCATA_VERSION:
     from neutron.db.models import agent as agent_model
     from neutron.db.models import l3 as l3_models
     from neutron_lib.api.definitions import portbindings
+    from neutron_lib.api.definitions import provider_net as providernet
     from neutron_lib.api import extensions
     from neutron_lib.db import model_base
     from neutron_lib.plugins import directory
+    from neutron_lib.services import base as service_base
+    from neutron_lib.utils import helpers as common_utils
 
     try:
         from neutron import context
@@ -78,16 +81,23 @@ if NEUTRON_VERSION >= NEUTRON_OCATA_VERSION:
 
     def get_tunnel_session(context):
         return context.session
+
+    def get_novaclient_images(nclient):
+        return nclient.glance
 else:
     from neutron.api import extensions  # noqa
+    from neutron.common import utils as common_utils  # noqa
+    from neutron import context
     from neutron.db import agents_db
     from neutron.db import api as db_api
     from neutron.db import l3_db
     from neutron.db import model_base  # noqa
     from neutron.db import models_v2
     from neutron.extensions import portbindings  # noqa
+    from neutron.extensions import providernet  # noqa
     from neutron import manager
     from neutron.plugins.common import constants as svc_constants
+    from neutron.services import service_base  # noqa
 
     def get_plugin(service=None):
         if service is None:
@@ -111,6 +121,13 @@ else:
     def get_tunnel_session(context):
         return context
 
+    def get_novaclient_images(nclient):
+        return nclient.images
+
+if NEUTRON_VERSION >= NEUTRON_PIKE_VERSION:
+    from neutron.conf.agent import common as config
+else:
+    from neutron.agent.common import config  # noqa
 
 core_opts = base_config.core_opts
 
