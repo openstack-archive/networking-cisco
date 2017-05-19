@@ -545,6 +545,8 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 port['device_owner'].startswith('manila') or
                 port['device_owner'] in [
                     bc.constants.DEVICE_OWNER_DHCP,
+                    bc.constants.DEVICE_OWNER_ROUTER_INTF,
+                    bc.constants.DEVICE_OWNER_ROUTER_GW,
                     bc.constants.DEVICE_OWNER_ROUTER_HA_INTF])
 
     def _is_status_active(self, port):
