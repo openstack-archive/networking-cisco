@@ -272,6 +272,8 @@ class HA_db_mixin(object):
         """To be called in update_router() BEFORE router has been
         updated in DB.
         """
+        if r_hd_binding_db.role == ROUTER_ROLE_HA_REDUNDANCY:
+            return {ha.ENABLED: False}
         auto_enable_ha = r_hd_binding_db.router_type.ha_enabled_by_default
         requested_ha_details = router.pop(ha.DETAILS, {})
         # If ha_details are given then ha is assumed to be enabled even if
