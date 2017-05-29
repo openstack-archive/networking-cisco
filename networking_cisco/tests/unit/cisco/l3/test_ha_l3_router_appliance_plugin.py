@@ -1436,21 +1436,13 @@ class HAL3RouterApplianceVMTestCase(
         routes1 = [{'destination': '135.207.0.0/16', 'nexthop': '10.0.1.199'},
                    {'destination': '12.0.0.0/8', 'nexthop': '10.0.1.200'},
                    {'destination': '141.212.0.0/16', 'nexthop': '10.0.1.201'}]
-        routes2 = [{'destination': '155.210.0.0/28', 'nexthop': '11.0.1.199'},
-                   {'destination': '130.238.5.0/24', 'nexthop': '11.0.1.199'}]
         with self.router() as router,\
                 self.subnet(cidr='10.0.1.0/24') as subnet1,\
-                self.subnet(cidr='11.0.1.0/24') as subnet2,\
-                self.port(subnet=subnet1) as port1,\
-                self.port(subnet=subnet2) as port2:
+                self.port(subnet=subnet1) as port1:
             r = router['router']
             p1 = port1['port']
-            p2 = port2['port']
             updated_r = self._routes_update_prepare(r['id'], None, p1['id'],
                                                     routes1)['router']
-            rr1_id = r[ha.DETAILS][ha.REDUNDANCY_ROUTERS][0]['id']
-            updated_rr1 = self._rr_routes_update_prepare(
-                r['id'], None, p2['id'], rr1_id, routes2)['router']
             params = "id=%s" % r[ha.DETAILS][ha.REDUNDANCY_ROUTERS][1]['id']
             routers = self._list('routers', query_params=params)['routers']
             routers.append(updated_r)
@@ -1458,10 +1450,6 @@ class HAL3RouterApplianceVMTestCase(
             for router in routers:
                 self.assertEqual(_sort_routes(router['routes']),
                                  correct_routes1)
-            routes1.extend(routes2)
-            self.assertEqual(_sort_routes(updated_rr1['routes']),
-                             _sort_routes(routes1))
-            self._rr_routes_update_cleanup(p2['id'], None, r['id'], rr1_id, [])
             self._routes_update_cleanup(p1['id'], None, r['id'], [])
 
     def test_router_update_change_name_changes_redundancy_routers(self):
@@ -1662,21 +1650,13 @@ class L3CfgAgentHARouterApplianceTestCase(
         routes1 = [{'destination': '135.207.0.0/16', 'nexthop': '10.0.1.199'},
                    {'destination': '12.0.0.0/8', 'nexthop': '10.0.1.200'},
                    {'destination': '141.212.0.0/16', 'nexthop': '10.0.1.201'}]
-        routes2 = [{'destination': '155.210.0.0/28', 'nexthop': '11.0.1.202'},
-                   {'destination': '130.238.5.0/24', 'nexthop': '11.0.1.202'}]
         with self.router() as router,\
                 self.subnet(cidr='10.0.1.0/24') as subnet1,\
-                self.subnet(cidr='11.0.1.0/24') as subnet2,\
-                self.port(subnet=subnet1) as port1,\
-                self.port(subnet=subnet2) as port2:
+                self.port(subnet=subnet1) as port1:
             r = router['router']
             p1 = port1['port']
-            p2 = port2['port']
             self._routes_update_prepare(r['id'], None, p1['id'], r['id'],
                                         routes1)
-            rr1_id = r[ha.DETAILS][ha.REDUNDANCY_ROUTERS][0]['id']
-            self._routes_update_prepare(r['id'], None, p2['id'], rr1_id,
-                                        routes2)
             router_ids = [r['id'],
                           r[ha.DETAILS][ha.REDUNDANCY_ROUTERS][1]['id']]
             e_context = bc.context.get_admin_context()
@@ -1686,11 +1666,6 @@ class L3CfgAgentHARouterApplianceTestCase(
             for router in routers:
                 self.assertEqual(_sort_routes(router['routes']),
                                  correct_routes1)
-            routers = self.l3_plugin.get_sync_data_ext(e_context, [rr1_id])
-            routes1.extend(routes2)
-            self.assertEqual(_sort_routes(routers[0]['routes']),
-                             _sort_routes(routes1))
-            self._routes_update_cleanup(p2['id'], None, r['id'], rr1_id, [])
             self._routes_update_cleanup(p1['id'], None, r['id'], r['id'], [])
 
     def test_l3_cfg_agent_query_ha_router_with_fips(self):

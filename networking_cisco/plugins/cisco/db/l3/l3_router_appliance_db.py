@@ -13,6 +13,7 @@
 #    under the License.
 
 import copy
+import inspect
 import os
 import subprocess
 
@@ -103,6 +104,11 @@ class RouterInternalError(n_exc.NeutronException):
 
 class RouterBindingInfoError(n_exc.NeutronException):
     message = _("Could not get binding information for router %(router_id)s.")
+
+
+class PluginManagedRouterError(n_exc.NotAuthorized):
+    message = _("Router %(router_id)s is managed by the L3 router service "
+                "plugin and cannot be modified by users (including admins).")
 
 
 class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
@@ -231,6 +237,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         return router_created
 
     def update_router(self, context, id, router):
+        self._validate_caller(context, id)
         router_type_id = self.get_router_type_id(context, id)
         driver = self._get_router_type_driver(context,
                                               router_type_id)
@@ -333,6 +340,11 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
 
     def delete_router(self, context, router_id, unschedule=True):
         try:
+            self._validate_caller(context, router_id)
+        except RouterBindingInfoError:
+            LOG.debug('Router %s to be deleted has no binding information '
+                      'so assuming it is a regular router')
+        try:
             router_db = self._ensure_router_not_in_use(context, router_id)
         except sa_exc.InvalidRequestError:
             # Perform router deletion for a partially failed router creation
@@ -397,8 +409,14 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
             if is_ha:
                 # process any HA
                 self._delete_redundancy_routers(context, router_db)
-            super(L3RouterApplianceDBMixin, self).delete_router(context,
-                                                                router_id)
+            try:
+                super(L3RouterApplianceDBMixin, self).delete_router(context,
+                                                                    router_id)
+            except l3.RouterNotFound as e:
+                LOG.debug('Ignorable error: %(err)s as it only indicates that '
+                          'router was already concurrently deleted just '
+                          'before this deletion attempt', {'err': e})
+                return
             if driver:
                 driver.delete_router_postcommit(context, router_ctxt)
         except n_exc.NeutronException:
@@ -425,6 +443,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                       {'router_interface': router_interface_info})
 
     def add_router_interface(self, context, router_id, interface_info):
+        self._validate_caller(context, router_id)
         router_type_id = self.get_router_type_id(context, router_id)
         r_hd_binding_db = self._get_router_binding_info(context.elevated(),
                                                         router_id)
@@ -484,6 +503,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                                                       port_subnet_id)
 
     def remove_router_interface(self, context, router_id, interface_info):
+        self._validate_caller(context, router_id)
         remove_by_port, remove_by_subnet = self._validate_interface_info(
             interface_info, for_removal=True)
         e_context = context.elevated()
@@ -527,6 +547,16 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         if driver:
             driver.remove_router_interface_postcommit(context, port_ctxt)
         return info
+
+    def _validate_caller(self, context, router_id):
+        frm = inspect.stack()[2]
+        module_name = inspect.getmodule(frm[0]).__name__
+        role = self._get_router_binding_info(context.elevated(),
+                                             router_id).role
+        if module_name.endswith('api.v2.base') and role is not None:
+            # nobody, not even admins are allowed to operate directly on
+            # HA redundancy routers or Global routers
+            raise PluginManagedRouterError(router_id=router_id)
 
     @property
     def is_gbp_workflow(self):
