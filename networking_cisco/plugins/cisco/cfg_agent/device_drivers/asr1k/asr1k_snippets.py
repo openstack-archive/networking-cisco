@@ -82,15 +82,57 @@ CREATE_SUBINTERFACE_EXT_REGION_ID_WITH_ID = """
 """
 
 # ===================================================
+# Set primary ip for interface
+# $(config)interface GigabitEthernet 2.500
+# $(config)ip address 192.168.0.1 255.255.255.0
+# ===================================================
+SET_INTERFACE_PRIMARY_IP = """
+<config>
+        <cli-config-data>
+            <cmd>interface %s</cmd>
+            <cmd>ip address %s %s</cmd>
+        </cli-config-data>
+</config>
+"""
+
+# ===================================================
+# Remove primary ip for interface
+# $(config)interface GigabitEthernet 2.500
+# $(config)no ip address 192.168.0.1 255.255.255.0
+# ===================================================
+REMOVE_INTERFACE_PRIMARY_IP = """
+<config>
+        <cli-config-data>
+            <cmd>interface %s</cmd>
+            <cmd>no ip address %s %s</cmd>
+        </cli-config-data>
+</config>
+"""
+
+# ===================================================
 # Add secondary ip for additional subnets
 # $(config)interface GigabitEthernet 2.500
 # $(config)ip address 192.168.0.1 255.255.255.0 secondary
 # ===================================================
-SET_SUBINTERFACE_SECONDARY_IP = """
+SET_INTERFACE_SECONDARY_IP = """
 <config>
         <cli-config-data>
             <cmd>interface %s</cmd>
             <cmd>ip address %s %s secondary</cmd>
+        </cli-config-data>
+</config>
+"""
+
+# ===================================================
+# Remove secondary ip for additional subnets
+# $(config)interface GigabitEthernet 2.500
+# $(config)no ip address 192.168.0.1 255.255.255.0 secondary
+# ===================================================
+REMOVE_INTERFACE_SECONDARY_IP = """
+<config>
+        <cli-config-data>
+            <cmd>interface %s</cmd>
+            <cmd>no ip address %s %s secondary</cmd>
         </cli-config-data>
 </config>
 """
@@ -153,6 +195,20 @@ SET_INTC_ASR_SECONDARY_HSRP_EXTERNAL = """
         <cli-config-data>
             <cmd>interface %s</cmd>
             <cmd>standby %s ip %s secondary</cmd>
+        </cli-config-data>
+</config>
+"""
+
+# ===================================================
+# Disable HSRP on a External Network Subinterface secondary IP
+# $(config)interface GigabitEthernet0/0/0.314
+# $(config)no standby 1621 ip 10.0.3.1 secondary
+# ===================================================
+REMOVE_INTC_ASR_SECONDARY_HSRP_EXTERNAL = """
+<config>
+        <cli-config-data>
+            <cmd>interface %s</cmd>
+            <cmd>no standby %s ip %s secondary</cmd>
         </cli-config-data>
 </config>
 """

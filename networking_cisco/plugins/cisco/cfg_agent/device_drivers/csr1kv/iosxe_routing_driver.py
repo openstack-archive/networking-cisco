@@ -153,7 +153,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         if ip and group and priority:
             vrf_name = self._get_vrf_name(ri)
             sub_interface = self._get_interface_name_from_hosting_port(port)
-            self._do_set_ha_hsrp(sub_interface, vrf_name, priority, group, ip)
+            self._do_add_ha_hsrp(sub_interface, vrf_name, priority, group, ip)
 
     def _add_ha_vrrp(self, ri, port):
         raise NotImplementedError()
@@ -485,7 +485,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
             self._edit_running_config(conf_str, 'REMOVE_VRF')
 
     def _do_create_sub_interface(self, sub_interface, vlan_id, vrf_name, ip,
-                                mask):
+                                 mask):
         if vrf_name not in self._get_vrfs():
             LOG.error(_LE("VRF %s not present"), vrf_name)
         conf_str = snippets.CREATE_SUBINTERFACE % (sub_interface, vlan_id,
@@ -498,7 +498,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
             conf_str = snippets.REMOVE_SUBINTERFACE % sub_interface
             self._edit_running_config(conf_str, 'REMOVE_SUBINTERFACE')
 
-    def _do_set_ha_hsrp(self, sub_interface, vrf_name, priority, group, ip):
+    def _do_add_ha_hsrp(self, sub_interface, vrf_name, priority, group, ip):
         if vrf_name not in self._get_vrfs():
             LOG.error(_LE("VRF %s not present"), vrf_name)
         conf_str = snippets.SET_INTC_HSRP % (sub_interface, vrf_name, group,

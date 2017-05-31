@@ -30,81 +30,17 @@ from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
 from networking_cisco.plugins.cisco.extensions import ha
 from networking_cisco.plugins.cisco.extensions import routerrole
+from networking_cisco.tests.unit.cisco.cfg_agent import cfg_agent_test_support
 
 
 _uuid = uuidutils.generate_uuid
 HOST = 'myhost'
 FAKE_ID = _uuid()
+HA_INFO = 'ha_info'
 
 
-def prepare_router_data(enable_snat=None, num_internal_ports=1,
-                        num_subnets=1, is_global=False):
-    router_id = _uuid()
-    ext_fixed_ips = []
-    ext_subnets = []
-    sn_ids = sorted([_uuid() for i in range(num_subnets)])
-    for i in range(num_subnets):
-        sn_id = sn_ids[i]
-        prfxlen = 28 if i == 0 else 27
-        ext_fixed_ips.append({'ip_address': '19.4.%s.4' % i,
-                              'subnet_id': sn_id})
-        ext_subnets.append({'id': sn_id, 'cidr': '19.4.%s.0/%s' % (i, prfxlen),
-                            'gateway_ip': '19.4.%s.1' % i})
-    ex_gw_port = {'id': _uuid(),
-                  'network_id': _uuid(),
-                  'admin_state_up': True,
-                  'fixed_ips': ext_fixed_ips,
-                  'subnets': ext_subnets}
-    int_ports = []
-    num_internal_subnets = 1 if is_global is False else num_subnets
-    for j in range(num_internal_ports):
-        k = 35 + j
-        int_fixed_ips = []
-        int_subnets = []
-        sn_ids = sorted([_uuid() for i in range(num_internal_subnets)])
-        for i in range(num_internal_subnets):
-            sn_id = sn_ids[i]
-            int_fixed_ips.append({'ip_address': '%s.4.%s.4' % (k, i),
-                                  'subnet_id': sn_id})
-            int_subnets.append({'id': sn_id, 'cidr': '%s.4.%s.0/24' % (k, i),
-                                'gateway_ip': '%s.4.%s.1' % (k, i)})
-        int_ports.append({'id': _uuid(),
-                          'network_id': _uuid(),
-                          'admin_state_up': True,
-                          'fixed_ips': int_fixed_ips,
-                          'mac_address': 'ca:fe:de:ad:be:ef',
-                          'subnets': int_subnets})
-
-    hosting_device = {'id': _uuid(),
-                      "name": "CSR1kv_template",
-                      "booting_time": 300,
-                      "host_category": "VM",
-                      'management_ip_address': '20.0.0.5',
-                      'protocol_port': 22,
-                      "credentials": {
-                          "username": "user",
-                          "password": "4getme"},
-                      }
-    router = {
-        'id': router_id,
-        'status': 'ACTIVE',
-        'admin_state_up': True,
-        bc.constants.INTERFACE_KEY: int_ports,
-        'routes': [],
-        'hosting_device': hosting_device,
-        'router_type': ''}
-    if is_global is True:
-        router['gw_port'] = None
-        router[routerrole.ROUTER_ROLE_ATTR] = c_constants.ROUTER_ROLE_GLOBAL
-    else:
-        router['gw_port'] = ex_gw_port
-        router[routerrole.ROUTER_ROLE_ATTR] = None
-    if enable_snat is not None:
-        router['enable_snat'] = enable_snat
-    return router, int_ports
-
-
-class TestRouterInfo(base.BaseTestCase):
+class TestRouterInfo(base.BaseTestCase,
+                     cfg_agent_test_support.CfgAgentTestSupportMixin):
 
     def setUp(self):
         super(TestRouterInfo, self).setUp()
@@ -142,7 +78,8 @@ class TestRouterInfo(base.BaseTestCase):
         self.assertFalse(ri.snat_enabled)
 
 
-class TestBasicRoutingOperations(base.BaseTestCase):
+class TestBasicRoutingOperations(
+        base.BaseTestCase, cfg_agent_test_support.CfgAgentTestSupportMixin):
 
     def setUp(self):
         super(TestBasicRoutingOperations, self).setUp()
@@ -229,7 +166,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
                   'confstr': confstr, 'dev_id': 'FAKE_ID', 'ip': 'FAKE_IP'}
         self.routing_helper._internal_network_added.side_effect = (
             cfg_exceptions.CSR1kvConfigException(**params))
-        router, ports = prepare_router_data()
+        router, ports = self.prepare_router_data()
         ri = routing_svc_helper.RouterInfo(router['id'], router)
         self.assertRaises(cfg_exceptions.CSR1kvConfigException,
                           self.routing_helper._process_router, ri)
@@ -240,13 +177,13 @@ class TestBasicRoutingOperations(base.BaseTestCase):
 
         self.routing_helper._internal_network_added.side_effect = (
             SessionCloseError("Simulate SessionCloseError"))
-        router, ports = prepare_router_data()
+        router, ports = self.prepare_router_data()
         ri = routing_svc_helper.RouterInfo(router['id'], router)
         self.assertRaises(SessionCloseError,
                           self.routing_helper._process_router, ri)
 
     def test_process_router_throw_no_ip_address_on_subnet_error(self):
-        router, ports = prepare_router_data()
+        router, ports = self.prepare_router_data()
         # change subnet_id to something that does not exist
         router['gw_port']['subnets'][0]['id'] = 'fake_uuid'
         ri = routing_svc_helper.RouterInfo(router['id'], router)
@@ -254,7 +191,8 @@ class TestBasicRoutingOperations(base.BaseTestCase):
                           self.routing_helper._process_router, ri)
 
     def _test_process_router_throw_multiple_ipv4_subnets_error(self):
-        router, ports = prepare_router_data(num_subnets=2, is_global=True)
+        router, ports = self.prepare_router_data(num_ext_subnets=2,
+                                                 is_global=True)
         # make router a regular one which triggers the error condition
         router[routerrole.ROUTER_ROLE_ATTR] = None
         ri = routing_svc_helper.RouterInfo(router['id'], router)
@@ -297,6 +235,212 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.assertFalse(self.routing_helper._disable_router_interface.called)
         self._reset_mocks()
 
+    def _verify_operations(self, added, removed):
+
+        def _verify_ports(expected_pids, actual_ports):
+            num_elem = len(expected_pids)
+            self.assertEqual(num_elem, len(actual_ports))
+            for i in range(num_elem):
+                self.assertEqual(expected_pids[i], actual_ports[i]['id'])
+
+        actual_added = self.routing_helper._internal_network_added
+        actual_removed = self.routing_helper._internal_network_removed
+        self.assertEqual(len(added), actual_added.call_count)
+        i = 0
+        for expected in added:
+            port_dict = actual_added.call_args_list[i][0][1]
+            actual_details = port_dict['change_details']
+            self.assertEqual(expected['p_id'], port_dict['id'])
+            _verify_ports(expected['new_port_pids'],
+                          actual_details['new_ports'])
+            _verify_ports(expected['current_port_pids'],
+                          actual_details['current_ports'])
+            _verify_ports(expected['old_port_pids'],
+                          actual_details['old_ports'])
+            _verify_ports(expected['former_port_pids'],
+                          actual_details['former_ports'])
+            i += 1
+        self.assertEqual(len(removed), actual_removed.call_count)
+        i = 0
+        for expected in removed:
+            port_dict = actual_removed.call_args_list[i][0][1]
+            actual_details = port_dict['change_details']
+            self.assertEqual(expected['p_id'], port_dict['id'])
+            _verify_ports(expected['new_port_pids'],
+                          actual_details['new_ports'])
+            _verify_ports(expected['current_port_pids'],
+                          actual_details['current_ports'])
+            _verify_ports(expected['old_port_pids'],
+                          actual_details['old_ports'])
+            _verify_ports(expected['former_port_pids'],
+                          actual_details['former_ports'])
+            i += 1
+        self.routing_helper._internal_network_added.reset_mock()
+        self.routing_helper._internal_network_removed.reset_mock()
+
+    def test_process_router_multiple_ports_on_same_multiple_subnet_network(
+            self):
+        router, ports = self.prepare_router_data(
+            set_gateway=True, num_internal_ports=1, same_internal_nw=True)
+        port_1 = ports[0]
+        p1_id = port_1['id']
+        nw_uuid = ports[0]['network_id']
+        vlan_tag = ports[0]['hosting_info']['segmentation_id']
+        ri = routing_svc_helper.RouterInfo(router['id'], router=router)
+        # process with router attached to one subnet
+        self.routing_helper._process_router(ri)
+        # ----> VERIFY HERE: [.35]
+        # attach router to second subnet on same network, subnet should become
+        self._verify_operations(
+            [{'p_id': p1_id,
+              'new_port_pids': [p1_id],
+              'current_port_pids': [p1_id],
+              'old_port_pids': [],
+              'former_port_pids': []}], [])
+        # primary since 32 < 35 determines sorting order
+        port_2 = self.create_router_port(
+            nw_uuid, vlan_tag, 32, 1, router['id'],
+            mac_address='ac:22:de:ad:be:ef')
+        ports.append(port_2)
+        p2_id = port_2['id']
+        # process again
+        self.routing_helper._process_router(ri)
+        # ----> VERIFY HERE: [.32], .35
+        self._verify_operations(
+            [{'p_id': p2_id,
+              'new_port_pids': [p2_id],
+              'current_port_pids': [p2_id, p1_id],
+              'old_port_pids': [],
+              'former_port_pids': [p1_id]}], [])
+        # attach router to third subnet on same network, subnet should become
+        # secondary since 36 > 32 determines sorting order
+        port_3 = self.create_router_port(
+            nw_uuid, vlan_tag, 36, 1, router['id'],
+            mac_address='ac:33:de:ad:be:ef')
+        ports.append(port_3)
+        p3_id = port_3['id']
+        # process again
+        self.routing_helper._process_router(ri)
+        # ----> VERIFY HERE: [.32], .35, .36
+        self._verify_operations(
+            [{'p_id': p3_id,
+              'new_port_pids': [p3_id],
+              'current_port_pids': [p2_id, p1_id, p3_id],
+              'old_port_pids': [],
+              'former_port_pids': [p2_id, p1_id]}], [])
+        # attach router to fourth subnet on same network, subnet should become
+        # secondary since 36 > 32 determines sorting order
+        port_4 = self.create_router_port(
+            nw_uuid, vlan_tag, 37, 1, router['id'],
+            mac_address='ac:44:de:ad:be:ef')
+        ports.append(port_4)
+        p4_id = port_4['id']
+        # process again
+        self.routing_helper._process_router(ri)
+        # ----> VERIFY HERE: [.32], .35, .36, .37
+        self._verify_operations(
+            [{'p_id': p4_id,
+             'new_port_pids': [p4_id],
+             'current_port_pids': [p2_id, p1_id, p3_id, p4_id],
+             'old_port_pids': [],
+             'former_port_pids': [p2_id, p1_id, p3_id]}], [])
+        # detach router from first subnet on same network, primary should
+        # remain the same since 35 > 32 determines sorting order
+        del ports[0]
+        # process again
+        self.routing_helper._process_router(ri)
+        # ----> VERIFY HERE: [.32], .36, .37
+        self._verify_operations(
+            [],
+            [{'p_id': p1_id,
+              'new_port_pids': [],
+              'current_port_pids': [p2_id, p3_id, p4_id],
+              'old_port_pids': [p1_id],
+              'former_port_pids': [p2_id, p1_id, p3_id, p4_id]}])
+        # detach router from second subnet on same network, primary must
+        # change since 32 < 36 determines sorting order
+        del ports[0]
+        # process again
+        self.routing_helper._process_router(ri)
+        # ----> VERIFY HERE: [.36], .37
+        self._verify_operations(
+            [],
+            [{'p_id': p2_id,
+              'new_port_pids': [],
+              'current_port_pids': [p3_id, p4_id],
+              'old_port_pids': [p2_id],
+              'former_port_pids': [p2_id, p3_id, p4_id]}])
+        # attach router to fifth subnet on same network, subnet should become
+        # primary since 33 < 36 determines sorting order
+        port_5 = self.create_router_port(
+            nw_uuid, vlan_tag, 33, 1, router['id'],
+            mac_address='ac:55:de:ad:be:ef')
+        ports.append(port_5)
+        p5_id = port_5['id']
+        # detach router from third subnet on same network, primary must
+        # not change since 37 > 33
+        del ports[0]
+        # process again
+        self.routing_helper._process_router(ri)
+        # ----> VERIFY HERE: [.33], .37
+        self._verify_operations(
+            [{'p_id': p5_id,
+              'new_port_pids': [p5_id],
+              'current_port_pids': [p5_id, p4_id],
+              'old_port_pids': [p3_id],
+              'former_port_pids': [p3_id, p4_id]}],
+            [{'p_id': p3_id,
+              'new_port_pids': [p5_id],
+              'current_port_pids': [p5_id, p4_id],
+              'old_port_pids': [p3_id],
+              'former_port_pids': [p3_id, p4_id]}])
+        # attach router to sixth subnet on same network, subnet should become
+        # primary since 31 < 33 determines sorting order
+        port_6 = self.create_router_port(
+            nw_uuid, vlan_tag, 31, 1, router['id'],
+            mac_address='ac:66:de:ad:be:ef')
+        ports.append(port_6)
+        p6_id = port_6['id']
+        self.routing_helper._process_router(ri)
+        # ----> VERIFY HERE: [.31], .33, .37
+        self._verify_operations(
+            [{'p_id': p6_id,
+              'new_port_pids': [p6_id],
+              'current_port_pids': [p6_id, p5_id, p4_id],
+              'old_port_pids': [],
+              'former_port_pids': [p5_id, p4_id]}], [])
+        # detach router from fifth and sixth subnets on same network, primary
+        # must change since only one port remains
+        del ports[1:3]
+        # process again
+        self.routing_helper._process_router(ri)
+        # ----> VERIFY HERE: [.37]
+        self._verify_operations(
+            [],
+            [{'p_id': p5_id,
+              'new_port_pids': [],
+              'current_port_pids': [p4_id],
+              'old_port_pids': [p6_id, p5_id],
+              'former_port_pids': [p6_id, p5_id, p4_id]},
+             {'p_id': p6_id,
+              'new_port_pids': [],
+              'current_port_pids': [p4_id],
+              'old_port_pids': [p6_id, p5_id],
+              'former_port_pids': [p6_id, p5_id, p4_id]}])
+        # detach router from fourth subnet on same network, primary can just
+        # be deleted as there are no secondaries
+        del ports[0]
+        # process again
+        self.routing_helper._process_router(ri)
+        # ----> VERIFY HERE: None left
+        self._verify_operations(
+            [],
+            [{'p_id': p4_id,
+              'new_port_pids': [],
+              'current_port_pids': [],
+              'old_port_pids': [p4_id],
+              'former_port_pids': [p4_id]}])
+
     # msn means that the router has an external gateway with multiple subnets
     def _test_process_msn_router(self, num_ext_subnets=3,
                                  test_admin_state=True):
@@ -304,10 +448,10 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         def _verify_ip_info(the_mock):
             self.assertEqual(num_ext_subnets, len(the_mock.ip_infos))
             self.assertTrue(the_mock.ip_infos[0]['is_primary'])
-            self.assertEqual('19.4.0.4/28', the_mock.ip_infos[0]['ip_cidr'])
+            self.assertEqual('19.4.0.1/28', the_mock.ip_infos[0]['ip_cidr'])
             for i in range(1, num_ext_subnets):
                 self.assertFalse(the_mock.ip_infos[i]['is_primary'])
-                self.assertEqual('19.4.%s.4/27' % i,
+                self.assertEqual('19.4.%s.1/27' % i,
                                  the_mock.ip_infos[i]['ip_cidr'])
 
         # need these helpers to verify that ip_info is correct
@@ -319,7 +463,8 @@ class TestBasicRoutingOperations(base.BaseTestCase):
             self.routing_helper._external_gateway_removed.ip_infos.append(
                 copy.deepcopy(ex_gw_port['ip_info']))
 
-        router, ports = prepare_router_data(num_subnets=num_ext_subnets)
+        router, ports = self.prepare_router_data(
+            num_ext_subnets=num_ext_subnets)
         # Setup mock for call to process floating ips
         self.routing_helper._process_router_floating_ips = mock.Mock()
         fake_floatingips1 = {'floatingips': [
@@ -399,6 +544,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
 
     def _test_process_global_msn_router(self, num_ext_subnets=3):
 
+        # need these helpers to verify that ip_info is correct
         def _verify_ip_info(the_mock):
             self.assertEqual(num_ext_subnets, len(the_mock.ip_infos))
             self.assertTrue(the_mock.ip_infos[0]['is_primary'])
@@ -408,14 +554,13 @@ class TestBasicRoutingOperations(base.BaseTestCase):
                 self.assertEqual('35.4.%s.4/24' % i,
                                  the_mock.ip_infos[i]['ip_cidr'])
 
-        # need these helpers to verify that ip_info is correct
         def _int_nw_added(ri, port, ex_gw_port):
             self.assertIsNone(ex_gw_port)
             self.routing_helper._internal_network_added.ip_infos.append(
                 copy.deepcopy(port['ip_info']))
 
-        router, ports = prepare_router_data(num_subnets=num_ext_subnets,
-                                            is_global=True)
+        router, ports = self.prepare_router_data(
+            num_ext_subnets=num_ext_subnets, is_global=True)
         # Setup mock for call to process floating ips
         self.routing_helper._process_router_floating_ips = mock.Mock()
         ri = routing_svc_helper.RouterInfo(router['id'], router=router)
@@ -446,7 +591,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
             ri, ports[0], None)
 
     def test_process_global_router(self):
-        self._test_process_global_msn_router(num_ext_subnets=1,)
+        self._test_process_global_msn_router(num_ext_subnets=1)
 
     def test_process_global_msn_router(self):
         self._test_process_global_msn_router()
@@ -499,7 +644,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.driver.routes_updated.assert_any_call(ri, 'delete', fake_route1)
 
     def test_process_router_internal_network_added_unexpected_error(self):
-        router, ports = prepare_router_data()
+        router, ports = self.prepare_router_data()
         ri = routing_svc_helper.RouterInfo(router['id'], router=router)
         # raise RuntimeError to simulate that an unexpected exception occurrs
         self.routing_helper._internal_network_added.side_effect = RuntimeError
@@ -519,7 +664,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
             router[bc.constants.INTERFACE_KEY][0], ri.internal_ports)
 
     def test_process_router_internal_network_added_raises_HAMissingError(self):
-        router, ports = prepare_router_data()
+        router, ports = self.prepare_router_data()
         router[ha.ENABLED] = True
         ri = routing_svc_helper.RouterInfo(router['id'], router=router)
         # raise RuntimeError to simulate that a HAParamsMissingException
@@ -540,7 +685,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
             router[bc.constants.INTERFACE_KEY][0], ri.internal_ports)
 
     def test_process_router_internal_network_removed_unexpected_error(self):
-        router, ports = prepare_router_data()
+        router, ports = self.prepare_router_data()
         ri = routing_svc_helper.RouterInfo(router['id'], router=router)
         # add an internal port
         self.routing_helper._process_router(ri)
@@ -596,8 +741,8 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.assertNotIn(router['id'], self.routing_helper.router_info)
 
     def test_collect_state(self):
-        router, ports = prepare_router_data(enable_snat=True,
-                                            num_internal_ports=2)
+        router, ports = self.prepare_router_data(enable_snat=True,
+                                                 num_internal_ports=2)
         self.routing_helper._router_added(router['id'], router)
 
         configurations = {}
@@ -613,10 +758,10 @@ class TestBasicRoutingOperations(base.BaseTestCase):
             configurations['non_responding_hosting_devices']))
 
     def test_sort_resources_per_hosting_device(self):
-        router1, port = prepare_router_data()
-        router2, port = prepare_router_data()
-        router3, port = prepare_router_data()
-        router4, port = prepare_router_data()
+        router1, port = self.prepare_router_data()
+        router2, port = self.prepare_router_data()
+        router3, port = self.prepare_router_data()
+        router4, port = self.prepare_router_data()
 
         hd1_id = router1['hosting_device']['id']
         hd2_id = router4['hosting_device']['id']
@@ -647,8 +792,8 @@ class TestBasicRoutingOperations(base.BaseTestCase):
 
     @mock.patch("eventlet.GreenPool.spawn_n")
     def test_process_services_full_sync_different_devices(self, mock_spawn):
-        router1, port = prepare_router_data()
-        router2, port = prepare_router_data()
+        router1, port = self.prepare_router_data()
+        router2, port = self.prepare_router_data()
         self.plugin_api.get_routers = mock.Mock(
             return_value=[router1, router2])
         self.routing_helper.process_service()
@@ -663,8 +808,8 @@ class TestBasicRoutingOperations(base.BaseTestCase):
 
     @mock.patch("eventlet.GreenPool.spawn_n")
     def test_process_services_full_sync_same_device(self, mock_spawn):
-        router1, port = prepare_router_data()
-        router2, port = prepare_router_data()
+        router1, port = self.prepare_router_data()
+        router2, port = self.prepare_router_data()
         router2['hosting_device']['id'] = router1['hosting_device']['id']
         self.plugin_api.get_routers = mock.Mock(return_value=[router1,
                                                               router2])
@@ -678,7 +823,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
     @mock.patch("eventlet.GreenPool.spawn_n")
     def test_process_services_with_updated_routers(self, mock_spawn):
 
-        router1, port = prepare_router_data()
+        router1, port = self.prepare_router_data()
 
         def routers_data(context, router_ids=None, hd_ids=None):
             if router_ids:
@@ -701,7 +846,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
     @mock.patch("eventlet.GreenPool.spawn_n")
     def test_process_services_with_deviceid(self, mock_spawn):
 
-        router, port = prepare_router_data()
+        router, port = self.prepare_router_data()
         device_id = router['hosting_device']['id']
 
         def routers_data(context, router_ids=None, hd_ids=None):
@@ -723,7 +868,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
 
     @mock.patch("eventlet.GreenPool.spawn_n")
     def test_process_services_with_removed_routers(self, mock_spawn):
-        router, port = prepare_router_data()
+        router, port = self.prepare_router_data()
         device_id = router['hosting_device']['id']
 
         self._mock_driver_and_hosting_device(self.routing_helper)
@@ -741,9 +886,9 @@ class TestBasicRoutingOperations(base.BaseTestCase):
 
     @mock.patch("eventlet.GreenPool.spawn_n")
     def test_process_services_with_removed_routers_info(self, mock_spawn):
-        router1, port = prepare_router_data()
+        router1, port = self.prepare_router_data()
         device_id = router1['hosting_device']['id']
-        router2, port = prepare_router_data()
+        router2, port = self.prepare_router_data()
         router2['hosting_device']['id'] = _uuid()
 
         removed_devices_info = {
@@ -772,7 +917,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
 
     @mock.patch("eventlet.GreenPool.spawn_n")
     def test_process_services_with_rpc_error(self, mock_spawn):
-        router, port = prepare_router_data()
+        router, port = self.prepare_router_data()
         self.plugin_api.get_routers.side_effect = (
             oslo_messaging.MessagingException)
         self.routing_helper.fullsync = False
@@ -786,7 +931,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.assertTrue(self.routing_helper.fullsync)
 
     def test_process_routers(self):
-        router, port = prepare_router_data()
+        router, port = self.prepare_router_data()
         driver = self._mock_driver_and_hosting_device(self.routing_helper)
         self.routing_helper._process_router = mock.Mock()
         self.routing_helper._process_routers([router], None)
@@ -795,7 +940,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.routing_helper._process_router.assert_called_with(ri)
 
     def _process_routers_floatingips(self, action='add'):
-        router, port = prepare_router_data()
+        router, port = self.prepare_router_data()
         driver = self._mock_driver_and_hosting_device(self.routing_helper)
         ex_gw_port = router['gw_port']
         floating_ip_address = '19.4.4.10'
@@ -844,7 +989,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self._process_routers_floatingips(action="remap")
 
     def test_process_routers_rearrange_for_global(self):
-        router1, port1 = prepare_router_data()
+        router1, port1 = self.prepare_router_data()
 
         router2 = {'id': _uuid(),
                    routerrole.ROUTER_ROLE_ATTR: None}
@@ -854,7 +999,7 @@ class TestBasicRoutingOperations(base.BaseTestCase):
 
         self.routing_helper._adjust_router_list_for_global_router(
                 removed_routers)
-        #We check if the routers where rearranged
+        # we check if the routers were rearranged
         self.assertEqual(router2['id'], removed_routers[0]['id'])
 
         removed_routers = [router_G, router2]
@@ -872,10 +1017,10 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.routing_helper._process_router.assert_called_with(ri1)
 
     def test_process_routers_skips_routers_on_other_hosting_devices(self):
-        router1, port1 = prepare_router_data()
+        router1, port1 = self.prepare_router_data()
         r1_id = router1['id']
         r1_info = routing_svc_helper.RouterInfo(r1_id, router1)
-        router2, port2 = prepare_router_data()
+        router2, port2 = self.prepare_router_data()
         r2_id = router2['id']
         self.routing_helper.router_info = {
             r1_id: r1_info,

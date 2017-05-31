@@ -27,6 +27,7 @@ from networking_cisco.plugins.cisco.cfg_agent.service_helpers import (
     routing_svc_helper_aci as aci_svc_helper)
 from networking_cisco.tests.unit.cisco.cfg_agent import (
     test_routing_svc_helper as helper)
+from networking_cisco.tests.unit.cisco.cfg_agent import cfg_agent_test_support
 
 _uuid = uuidutils.generate_uuid
 
@@ -96,7 +97,7 @@ class TestBasicRoutingOperationsAci(helper.TestBasicRoutingOperations):
 
     def test_process_router_2_rids_1_vrf(self):
         driver = self._mock_driver_and_hosting_device(self.routing_helper)
-        router1, ports = helper.prepare_router_data()
+        router1, ports = self.prepare_router_data()
         ri1 = svc_helper.RouterInfo(router1['id'], router=router1)
 
         # Router #2 is like #1, except with some different IDs
@@ -155,7 +156,8 @@ def _mock_driver_and_hosting_device(svc_helper):
     return driver
 
 
-class TestNetworkRoutingOperationsAci(base.BaseTestCase):
+class TestNetworkRoutingOperationsAci(
+        base.BaseTestCase, cfg_agent_test_support.CfgAgentTestSupportMixin):
 
     def setUp(self):
         super(TestNetworkRoutingOperationsAci, self).setUp()
@@ -189,7 +191,7 @@ class TestNetworkRoutingOperationsAci(base.BaseTestCase):
         driver = _mock_driver_and_hosting_device(self.routing_helper)
         self._set_driver_port_mocks(driver)
 
-        router1, ports = helper.prepare_router_data()
+        router1, ports = self.prepare_router_data()
         ri1 = svc_helper.RouterInfo(router1['id'], router=router1)
 
         # Router #2 is like #1, except with some different IDs
@@ -209,6 +211,8 @@ class TestNetworkRoutingOperationsAci(base.BaseTestCase):
         driver._get_vrf_name = mock.Mock(return_value=vrf)
         self.routing_helper._process_router(ri1)
 
+        # remove change_details as they are recursive and prevent comparison
+        del ports[0]['change_details']
         driver.internal_network_added.assert_called_with(
             ri1, ports[0])
         driver.enable_internal_network_NAT.assert_called_with(
@@ -224,6 +228,8 @@ class TestNetworkRoutingOperationsAci(base.BaseTestCase):
         driver.enable_internal_network_NAT.reset_mock()
 
         self.routing_helper._process_router(ri2)
+        # remove change_details as they are recursive and prevent comparison
+        del ri2.internal_ports[0]['change_details']
         driver.internal_network_added.assert_called_with(
             ri2, ports[0])
         driver.enable_internal_network_NAT.assert_called_with(
@@ -250,6 +256,9 @@ class TestNetworkRoutingOperationsAci(base.BaseTestCase):
         del ri2.router[bc.constants.INTERFACE_KEY]
         self.routing_helper._process_router(ri2)
 
+        # remove change_details as they are recursive and prevent comparison
+        del ports[0]['change_details']
+        del driver.internal_network_removed.call_args[0][1]['change_details']
         driver.internal_network_removed.assert_called_with(
             ri2, ports[0], itfc_deleted=True)
         driver.disable_internal_network_NAT.assert_called_with(
@@ -260,7 +269,7 @@ class TestNetworkRoutingOperationsAci(base.BaseTestCase):
         driver = _mock_driver_and_hosting_device(self.routing_helper)
         self._set_driver_port_mocks(driver)
 
-        router1, ports = helper.prepare_router_data()
+        router1, ports = self.prepare_router_data()
         ri1 = svc_helper.RouterInfo(router1['id'], router=router1)
 
         # Router #2 is like #1, except with some different IDs
@@ -298,6 +307,9 @@ class TestNetworkRoutingOperationsAci(base.BaseTestCase):
 
         driver._get_vrf_name = mock.Mock(return_value=vrf2)
         self.routing_helper._process_router(ri2)
+        # remove change_details as they are recursive and prevent comparison
+        del ports[0]['change_details']
+        del ri2.internal_ports[0]['change_details']
         driver.internal_network_added.assert_called_with(
             ri2, ports[0])
         driver.enable_internal_network_NAT.assert_called_with(
@@ -328,7 +340,9 @@ class TestNetworkRoutingOperationsAci(base.BaseTestCase):
         del ri2.router[bc.constants.INTERFACE_KEY]
         driver._get_vrf_name = mock.Mock(return_value=vrf2)
         self.routing_helper._process_router(ri2)
-
+        # remove change_details as they are recursive and prevent comparison
+        del ports[0]['change_details']
+        del driver.internal_network_removed.call_args[0][1]['change_details']
         driver.internal_network_removed.assert_called_with(
             ri2, ports[0], itfc_deleted=True)
         driver.disable_internal_network_NAT.assert_called_with(
@@ -339,7 +353,7 @@ class TestNetworkRoutingOperationsAci(base.BaseTestCase):
         driver = _mock_driver_and_hosting_device(self.routing_helper)
         self._set_driver_port_mocks(driver)
 
-        router1, ports = helper.prepare_router_data()
+        router1, ports = self.prepare_router_data()
         ri1 = svc_helper.RouterInfo(router1['id'], router=router1)
 
         # Router #2 is like #1, except with different IDs and host info
@@ -377,6 +391,9 @@ class TestNetworkRoutingOperationsAci(base.BaseTestCase):
         driver.enable_internal_network_NAT.reset_mock()
 
         self.routing_helper._process_router(ri2)
+        # remove change_details as they are recursive and prevent comparison
+        del ports[0]['change_details']
+        del ri2.internal_ports[0]['change_details']
         driver.internal_network_added.assert_called_with(
             ri2, ports[0])
         driver.enable_internal_network_NAT.assert_called_with(
@@ -404,6 +421,9 @@ class TestNetworkRoutingOperationsAci(base.BaseTestCase):
         del ri2.router[bc.constants.INTERFACE_KEY]
         self.routing_helper._process_router(ri2)
 
+        # remove change_details as they are recursive and prevent comparison
+        del ports[0]['change_details']
+        del driver.internal_network_removed.call_args[0][1]['change_details']
         driver.internal_network_removed.assert_called_with(
             ri2, ports[0], itfc_deleted=True)
         driver.disable_internal_network_NAT.assert_called_with(
@@ -414,7 +434,7 @@ class TestNetworkRoutingOperationsAci(base.BaseTestCase):
         driver = _mock_driver_and_hosting_device(self.routing_helper)
         self._set_driver_port_mocks(driver)
 
-        router1, ports = helper.prepare_router_data()
+        router1, ports = self.prepare_router_data()
         ri1 = svc_helper.RouterInfo(router1['id'], router=router1)
 
         # Router #2 is like #1, except with different IDs and host info
@@ -453,6 +473,9 @@ class TestNetworkRoutingOperationsAci(base.BaseTestCase):
         driver._get_vrf_name = mock.Mock(return_value=vrf2)
 
         self.routing_helper._process_router(ri2)
+        # remove change_details as they are recursive and prevent comparison
+        del ports[0]['change_details']
+        del ri2.internal_ports[0]['change_details']
         driver.internal_network_added.assert_called_with(
             ri2, ports[0])
         driver.enable_internal_network_NAT.assert_called_with(
@@ -483,6 +506,9 @@ class TestNetworkRoutingOperationsAci(base.BaseTestCase):
         driver._get_vrf_name = mock.Mock(return_value=vrf2)
         self.routing_helper._process_router(ri2)
 
+        # remove change_details as they are recursive and prevent comparison
+        del ports[0]['change_details']
+        del driver.internal_network_removed.call_args[0][1]['change_details']
         driver.internal_network_removed.assert_called_with(
             ri2, ports[0], itfc_deleted=True)
         driver.disable_internal_network_NAT.assert_called_with(

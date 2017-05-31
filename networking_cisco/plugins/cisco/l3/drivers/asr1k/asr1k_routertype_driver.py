@@ -24,7 +24,7 @@ from neutron.extensions import l3
 from neutron_lib import constants as l3_constants
 from neutron_lib import exceptions as n_exc
 
-from networking_cisco._i18n import _, _LI
+from networking_cisco._i18n import _, _LI, _LW
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.l3 import ha_db
@@ -135,16 +135,32 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
             net_id = sn['network_id']
         else:
             net_id = r_port_context.current['network_id']
+        router_id = r_port_context.router_context.current['id']
         filters = {'network_id': [net_id],
                    'device_owner': [bc.constants.DEVICE_OWNER_ROUTER_INTF]}
-        for port in self._core_plugin.get_ports(e_context,
-                                                filters=filters):
-            router_id = port['device_id']
-            if router_id is None:
+        for port in self._core_plugin.get_ports(e_context, filters=filters):
+            device_id = port['device_id']
+            if device_id is None:
                 continue
-            router = self._l3_plugin.get_router(e_context, router_id)
-            if router[routerrole.ROUTER_ROLE_ATTR] is None:
-                raise TopologyNotSupportedByRouterError()
+            try:
+                router = self._l3_plugin.get_router(e_context, device_id)
+                if (router[routerrole.ROUTER_ROLE_ATTR] is None and
+                        router['id'] != router_id):
+                    # only a single router can connect to multiple subnets
+                    # on the same internal network
+                    raise TopologyNotSupportedByRouterError()
+            except n_exc.NotFound:
+                if self._l3_plugin.get_ha_group(e_context, device_id):
+                    # Since this is a port for the HA VIP address, we can
+                    # safely ignore it
+                    continue
+                else:
+                    LOG.warning(
+                        _LW('Spurious router port %s prevents attachement from'
+                            ' being performed. Try attaching again later, and '
+                            'if the operation then fails again, remove the '
+                            'spurious port'), port['id'])
+                    raise TopologyNotSupportedByRouterError()
 
     def add_router_interface_postcommit(self, context, r_port_context):
         pass

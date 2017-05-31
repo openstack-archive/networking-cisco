@@ -43,10 +43,10 @@ ROUTER_ROLE_GLOBAL = cisco_constants.ROUTER_ROLE_GLOBAL
 ASR1K_DRIVER_OPTS = [
     cfg.BoolOpt('enable_multi_region',
                 default=False,
-                help=_("If enabled, the agent will maintain "
-                       "a heartbeat against its hosting-devices.  If  "
-                       "a device dies and recovers, the agent will then "
-                       "trigger a configuration resync.")),
+                help=_("If enabled, the agent will maintain a heartbeat "
+                       "against its hosting devices. If a device dies and "
+                       "recovers, the agent will then trigger a configuration "
+                       "resync.")),
     cfg.StrOpt('region_id',
                default='L3FR001',
                help=_("Label to use for this deployments region-id")),
@@ -74,26 +74,221 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         self._edit_running_config(conf_str, 'EMPTY_SNIPPET')
 
     def internal_network_added(self, ri, port):
-        gw_ip = self._get_item(
-            port['subnets'], port['ip_info']['subnet_id'], 'id')['gateway_ip']
         if self._is_port_v6(port):
             LOG.debug("Adding IPv6 internal network port: %(port)s for router "
                       "%(r_id)s", {'port': port, 'r_id': ri.id})
+            gw_ip = self._get_item(
+                port['subnets'], port['ip_info']['subnet_id'],
+                'id')['gateway_ip']
             self._create_sub_interface_v6(ri, port, False, gw_ip)
         else:
             # IPv4 handling
             if self._is_global_router(ri):
-                # The global router is modeled as the default vrf
-                # in the ASR.  When an external gateway is configured,
-                # a normal "internal" interface is created in the default
-                # vrf that is in the same subnet as the ext-net.
-                LOG.debug("++++ global router handling")
+                # The global router is modeled as the default vrf in the ASR1k.
+                # When an external gateway is configured, a normal "internal"
+                # interface is created in the default vrf that is in the same
+                # subnet as the ext-net.
+                LOG.debug("Attaching Global router %(r_id)s to external "
+                          "network using port %(p_id)s", {'r_id': ri.id,
+                                                          'p_id': port['id']})
                 self.external_gateway_added(ri, port)
             else:
-                LOG.debug("Adding IPv4 internal network port: %(port)s "
-                          "for router %(r_id)s", {'port': port, 'r_id': ri.id})
-                self._create_sub_interface(
-                    ri, port, is_external=False, gw_ip=gw_ip)
+                LOG.debug("Adding IPv4 internal network port: %(p_id)s "
+                          "for router %(r_id)s", {'p_id': port['id'],
+                                                  'r_id': ri.id})
+                details = port['change_details']
+                LOG.debug('Add - change details: former: %(f_ips)s, old: '
+                          '%(o_ips)s, new: %(n_ips)s, current: %(c_ips)s',
+                          {'f_ips': [p['fixed_ips'][0]['ip_address'] for p in
+                                     details['former_ports']],
+                           'o_ips': [p['fixed_ips'][0]['ip_address'] for p in
+                                     details['old_ports']],
+                           'n_ips': [p['fixed_ips'][0]['ip_address'] for p in
+                                     details['new_ports']],
+                           'c_ips': [p['fixed_ips'][0]['ip_address'] for p in
+                                     details['current_ports']]})
+                former_ports = details['former_ports']
+                old_ports = details['old_ports']
+                if port['ip_info']['is_primary'] is False:
+                    # port to be configured as a secondary
+                    LOG.debug('Configuring %(ip)s as SECONDARY address for '
+                              'port %(p_id)s of router %(r_id)s',
+                              {'ip': port['fixed_ips'][0]['ip_address'],
+                               'p_id': port['id'], 'r_id': ri.id})
+                    self._set_secondary_ipv4(ri, port)
+                elif not former_ports:
+                    # port is first one on network so must create sub-interface
+                    # and configure port as primary
+                    LOG.debug('Creating sub-interface and configuring %(ip)s '
+                              'as PRIMARY address for first port %(p_id)s on '
+                              'network for router %(r_id)s',
+                              {'ip': port['fixed_ips'][0]['ip_address'],
+                               'p_id': port['id'], 'r_id': ri.id})
+                    self._create_sub_interface(ri, port)
+                elif old_ports and old_ports[0] == former_ports[0]['id']:
+                    # former primary will be deleted so sub-interface already
+                    # exists so can just configure port as primary
+                    LOG.debug('Configuring %(ip)s as PRIMARY address for port '
+                              '%(p_id)s of router %(r_id)s since port '
+                              '%(fp_id)s providing former primary address '
+                              '%(f_ip)s is to be deleted',
+                              {'ip': port['fixed_ips'][0]['ip_address'],
+                               'p_id': port['id'], 'r_id': ri.id,
+                               'fp_id': former_ports[0]['id'],
+                               'f_ip': former_ports[0]['fixed_ips'][0][
+                                   'ip_address']})
+                    self._set_primary_ipv4(ri, port)
+                else:
+                    # port is the new primary
+                    LOG.debug('Configuring %(ip)s as new PRIMARY address for '
+                              'port %(p_id)s of router %(r_id)s',
+                              {'ip': port['fixed_ips'][0]['ip_address'],
+                               'p_id': port['id'], 'r_id': ri.id})
+                    self._set_primary_ipv4(ri, port)
+                    # former primary remains and thus must become a secondary
+                    LOG.debug('Configuring %(ip)s as SECONDARY address for '
+                              'former primary port %(p_id)s of router '
+                              '%(r_id)s',
+                              {'ip': former_ports[0]['fixed_ips'][0][
+                                  'ip_address'],
+                               'p_id': former_ports[0]['id'], 'r_id': ri.id})
+                    self._set_subnet_info(
+                        former_ports[0],
+                        former_ports[0]['fixed_ips'][0]['subnet_id'], False)
+                    self._set_secondary_ipv4(ri, former_ports[0])
+
+    def internal_network_removed(self, ri, port):
+        if self._is_global_router(ri):
+            self._remove_sub_interface(port)
+        else:
+            details = port['change_details']
+            LOG.debug('Remove - change details: former: %(f_ips)s, old: '
+                      '%(o_ips)s, new: %(n_ips)s, current: %(c_ips)s',
+                      {'f_ips': [p['fixed_ips'][0]['ip_address'] for p in
+                                 details['former_ports']],
+                       'o_ips': [p['fixed_ips'][0]['ip_address'] for p in
+                                 details['old_ports']],
+                       'n_ips': [p['fixed_ips'][0]['ip_address'] for p in
+                                 details['new_ports']],
+                       'c_ips': [p['fixed_ips'][0]['ip_address'] for p in
+                                 details['current_ports']]})
+            former_ports = details['former_ports']
+            new_ports = details['new_ports']
+            current_ports = details['current_ports']
+            if port['ip_info']['is_primary'] is False:
+                LOG.debug('Port %(p_id)s that provides %(ip)s used as '
+                          'SECONDARY address is to be removed',
+                          {'p_id': port['id'],
+                           'ip': port['fixed_ips'][0]['ip_address']})
+                # since port is a secondary it can just be removed
+                if current_ports:
+                    # only explicitly de-configure if other ports on same
+                    # network remain since the sub-interface removal will
+                    # otherwise take care of secondaries automatically
+                    LOG.debug('IPv4 address %(ip)s of port %(p_id)s is '
+                              'DECONFIGURED as SECONDARY address since router '
+                              '%(r_id)s has other ports on the network',
+                              {'ip': port['fixed_ips'][0]['ip_address'],
+                               'p_id': port['id'], 'r_id': ri.id})
+                    self._remove_secondary_ipv4(ri, port)
+            elif len(former_ports) == 1:
+                # port was the only port on network (thus also the primary)
+                if not new_ports:
+                    # no new port on that network is added so we can just
+                    # remove the sub-interface
+                    LOG.debug('Port %(p_id)s that provides %(ip)s used as '
+                              'PRIMARY address is to be removed and router '
+                              '%(r_id)s has NO new ports NOR remaining ports '
+                              'on network so SUB-INTERFACE WILL BE DELETED.',
+                              {'p_id': port['id'],
+                               'ip': port['fixed_ips'][0]['ip_address'],
+                               'r_id': ri.id})
+                    self._remove_sub_interface(port)
+                else:
+                    # the new primary has already be configured as new ports
+                    # are processed before ports that have been removed
+                    # NOTHING MORE TO DD
+                    LOG.debug('The router (%(r_id)s)\'s ONLY port %(p_id)s on '
+                              'network that thus provided %(ip)s used as '
+                              'PRIMARY address is to be removed. But '
+                              'the router has a NEW port %(np_id)s on network '
+                              'that with IPv4 %(n_ip)s has already been '
+                              'configured as primary so NOTHING MORE TO DO '
+                              'HERE.',
+                              {'r_id': ri.id, 'p_id': port['id'],
+                               'ip': port['fixed_ips'][0]['ip_address'],
+                               'np_id': current_ports[0]['id'],
+                               'n_ip': current_ports[0]['fixed_ips'][0][
+                                   'ip_address']})
+            elif not new_ports:
+                # port was one of several ports on network but no new ports
+                # were added so one of the existing ports (if any exist) will
+                # change role from secondary to be the new primary
+                if current_ports:
+                    LOG.debug('Port %(p_id)s that provides %(ip)s used as '
+                              'PRIMARY address is to be removed. But router '
+                              '%(r_id)s has other REMAINING port %(fp_id)s '
+                              'with IPv4 address %(f_ip)s that is '
+                              'RECONFIGURED from secondary to primary.',
+                              {'p_id': port['id'],
+                               'ip': port['fixed_ips'][0]['ip_address'],
+                               'r_id': ri.id,
+                               'fp_id': current_ports[0]['id'],
+                               'f_ip': current_ports[0]['fixed_ips'][0][
+                                   'ip_address']})
+                    self._set_subnet_info(
+                        current_ports[0],
+                        current_ports[0]['fixed_ips'][0]['subnet_id'], False)
+                    self._remove_secondary_ipv4(ri, current_ports[0])
+                    current_ports[0]['ip_info']['is_primary'] = True
+                    self._set_primary_ipv4(ri, current_ports[0])
+                else:
+                    # no ports on that network remain so we can just remove
+                    # the sub-interface
+                    LOG.debug('Port %(p_id)s that provides %(ip)s used as '
+                              'PRIMARY address is to be removed. Router '
+                              '%(r_id)s has NO remaining ports NOR any new '
+                              'ports on network so SUB-INTERFACE WILL BE '
+                              'DELETED.',
+                              {'p_id': port['id'],
+                               'ip': port['fixed_ips'][0]['ip_address'],
+                               'r_id': ri.id})
+                    self._remove_sub_interface(port)
+            elif new_ports[0]['id'] == current_ports[0]['id']:
+                # one of the new ports is the new primary at it will already
+                # have overwritten the old primary so we're done
+                # NOTHING MORE TO DO
+                LOG.debug('Port %(p_id)s that provides %(ip)s used as '
+                          'PRIMARY address is to be removed. But router '
+                          '%(r_id)s has a NEW port %(np_id)s with IPv4 '
+                          'address %(n_ip)s that has already been'
+                          'CONFIGURED AS PRIMARY ',
+                          {'p_id': port['id'],
+                           'ip': port['fixed_ips'][0]['ip_address'],
+                           'r_id': ri.id,
+                           'np_id': current_ports[0]['id'],
+                           'n_ip': current_ports[0]['fixed_ips'][0][
+                               'ip_address']})
+            else:
+                # no new new port is a new primary so one of the existing
+                # ports will change role from secondary to be the new primary
+                LOG.debug('Port %(p_id)s that provides %(ip)s used as '
+                          'PRIMARY address is to be removed. But router '
+                          '%(r_id)s has new ports and a REMAINING port '
+                          '%(fp_id)s with IPv4 address %(f_ip)s that is '
+                          'RECONFIGURED FROM SECONDARY TO PRIMARY.',
+                          {'p_id': port['id'],
+                           'ip': port['fixed_ips'][0]['ip_address'],
+                           'r_id': ri.id,
+                           'fp_id': current_ports[0]['id'],
+                           'f_ip': current_ports[0]['fixed_ips'][0][
+                               'ip_address']})
+                self._set_subnet_info(
+                    current_ports[0],
+                    current_ports[0]['fixed_ips'][0]['subnet_id'], False)
+                self._remove_secondary_ipv4(ri, current_ports[0])
+                current_ports[0]['ip_info']['is_primary'] = True
+                self._set_primary_ipv4(ri, current_ports[0])
 
     def external_gateway_added(self, ri, ext_gw_port):
         # global router handles IP assignment, HSRP setup
@@ -108,9 +303,9 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         if self._is_global_router(ri):
             self._remove_sub_interface(ext_gw_port)
         else:
-            ex_gw_ip = self._get_item(
-                ext_gw_port['subnets'],
-                ext_gw_port['ip_info']['subnet_id'], 'id')['gateway_ip']
+            ex_gw_ip = self._get_item(ext_gw_port['subnets'],
+                                      ext_gw_port['ip_info']['subnet_id'],
+                                      'id')['gateway_ip']
             if (ex_gw_ip and
                     ext_gw_port['device_owner'] == DEVICE_OWNER_ROUTER_GW):
                 # Remove default route via this network's gateway ip
@@ -121,22 +316,20 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                     self._remove_default_route(ri, ext_gw_port)
 
     def floating_ip_added(self, ri, ext_gw_port, floating_ip, fixed_ip):
-        self._add_floating_ip(ri, ext_gw_port, floating_ip, fixed_ip)
+        self._add_floating_ip_asr1k(ri, ext_gw_port, floating_ip, fixed_ip)
 
     def floating_ip_removed(self, ri, ext_gw_port, floating_ip, fixed_ip):
         self._remove_floating_ip(ri, ext_gw_port, floating_ip, fixed_ip)
 
     def disable_internal_network_NAT(self, ri, port, ext_gw_port,
                                      itfc_deleted=False):
-        self._remove_internal_nw_nat_rules(ri,
-                                           [port],
-                                           ext_gw_port,
+        self._remove_internal_nw_nat_rules(ri, [port], ext_gw_port,
                                            itfc_deleted)
 
     def enable_router_interface(self, ri, port):
         # Enable the router interface
         interface = self._get_interface_name_from_hosting_port(port)
-        self._create_sub_interface_enable(interface)
+        self._enable_sub_interface(interface)
 
     def disable_router_interface(self, ri, port=None):
         # Disable the router interface
@@ -145,15 +338,15 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
             if ex_gw_port:
                 ext_interface = (self._get_interface_name_from_hosting_port(
                                  ex_gw_port))
-                self._create_sub_interface_disable(ext_interface)
+                self._disable_sub_interface(ext_interface)
             internal_ports = ri.router.get(bc.constants.INTERFACE_KEY, [])
             for port in internal_ports:
                 internal_interface = (
                         self._get_interface_name_from_hosting_port(port))
-                self._create_sub_interface_disable(internal_interface)
+                self._disable_sub_interface(internal_interface)
         else:
             interface = self._get_interface_name_from_hosting_port(port)
-            self._create_sub_interface_disable(interface)
+            self._disable_sub_interface(interface)
 
     def cleanup_invalid_cfg(self, hd, routers):
         cfg_syncer = asr1k_cfg_syncer.ConfigSyncer(routers, self, hd)
@@ -213,6 +406,34 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
             params = {'key': e}
             raise cfg_exc.DriverExpectedKeyNotSetException(**params)
 
+    @staticmethod
+    def _set_subnet_info(port, subnet_id, is_primary=True):
+        ip = next((i['ip_address'] for i in port['fixed_ips']
+                   if i['subnet_id'] == subnet_id), None)
+        if ip is None:
+            # there will be KeyError exception later if this happens
+            LOG.error(_LE('Port %(p_id)s lacks IP address on subnet %(s_id)s'),
+                      {'p_id': port['id'], 's_id': subnet_id})
+            return
+        subnet = next(sn for sn in port['subnets'] if sn['id'] == subnet_id)
+        prefixlen = netaddr.IPNetwork(subnet['cidr']).prefixlen
+        port['ip_info'] = {'subnet_id': subnet_id, 'is_primary': is_primary,
+                           'ip_cidr': "%s/%s" % (ip, prefixlen)}
+
+    @staticmethod
+    def _get_item(list_containing_dicts_entries, attribute_value,
+                  attribute_name='subnet_id'):
+        """Searches a list of dicts and returns the first matching entry
+
+        The dict entry returned contains the attribute 'attribute_name' whose
+        value equals 'attribute_value'. If no such dict is found in the list
+        an empty dict is returned.
+        """
+        for item in list_containing_dicts_entries:
+            if item.get(attribute_name) == attribute_value:
+                return item
+        return {}
+
     def _enable_itfcs(self, conn):
         """For ASR we don't need to do anything"""
         return True
@@ -221,44 +442,44 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         # TODO(bobmel): Get the HA virtual IP correctly
         # NOTE(sridar): This seems to work fine. Keeping this todo until
         #               more testing.
-        virtual_gw_port = ext_gw_port[ha.HA_INFO]['ha_port']
         subnet_id = ext_gw_port['ip_info']['subnet_id']
-        sub_itfc_ip = self._get_item(virtual_gw_port['fixed_ips'],
-                                     subnet_id)['ip_address']
         if self._is_port_v6(ext_gw_port):
-            LOG.debug("Adding IPv6 external network port: %(port)s for global "
-                      "router %(r_id)s", {'port': ext_gw_port['id'],
-                                          'r_id': ri.id})
+            LOG.debug("Adding IPv6 external network port: %(port)s on "
+                      "subnet: (subnet)s for global router %(r_id)s",
+                      {'port': ext_gw_port['id'], 'subnet': subnet_id,
+                       'r_id': ri.id})
+            virtual_gw_port = ext_gw_port[ha.HA_INFO]['ha_port']
+            sub_itfc_ip = self._get_item(virtual_gw_port['fixed_ips'],
+                                         subnet_id)['ip_address']
             self._create_sub_interface_v6(ri, ext_gw_port, True, sub_itfc_ip)
         else:
             LOG.debug("Adding IPv4 external network port: %(port)s on "
                       "subnet: (subnet)s for global router %(r_id)s",
                       {'port': ext_gw_port['id'], 'subnet': subnet_id,
                        'r_id': ri.id})
-            self._create_sub_interface(ri, ext_gw_port, True, sub_itfc_ip)
+            self._create_external_sub_interface(ri, ext_gw_port)
 
     def _handle_external_gateway_added_normal_router(self, ri, ext_gw_port):
-        # Default routes are mapped to tenant router VRFs . Global Router
+        # Default routes are mapped to tenant router VRFs. Global Router
         # is not aware of tenant routers with ext network assigned. Thus,
         # default route must be handled per tenant router.
         ex_gw_ip = self._get_item(
-            ext_gw_port['subnets'],
-            ext_gw_port['ip_info']['subnet_id'], 'id')['gateway_ip']
+            ext_gw_port['subnets'], ext_gw_port['ip_info']['subnet_id'],
+            'id')['gateway_ip']
 
         sub_interface = self._get_interface_name_from_hosting_port(ext_gw_port)
         vlan_id = self._get_interface_vlan_from_hosting_port(ext_gw_port)
         if (self._fullsync and
                 int(vlan_id) in self._existing_cfg_dict['interfaces']):
-            LOG.debug("Sub-interface already exists, don't create "
-                      "interface")
+            LOG.debug("Sub-interface already exists, will not create it")
         else:
             LOG.debug("Adding IPv4 external network port: %(port)s for tenant "
                       "router %(r_id)s", {'port': ext_gw_port['id'],
                                           'r_id': ri.id})
             if ri.router['admin_state_up'] and ext_gw_port['admin_state_up']:
-                self._create_sub_interface_enable(sub_interface)
+                self._enable_sub_interface(sub_interface)
             else:
-                self._create_sub_interface_disable(sub_interface)
+                self._disable_sub_interface(sub_interface)
 
         if ex_gw_ip:
             # Set default route via this network's gateway ip
@@ -268,82 +489,129 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                 self._set_nat_pool(ri, ext_gw_port, False)
                 self._add_default_route(ri, ext_gw_port)
 
-    def _create_sub_interface(self, ri, port, is_external=False, gw_ip=""):
+    def _create_sub_interface(self, ri, port):
         vlan = self._get_interface_vlan_from_hosting_port(port)
         if (self._fullsync and
                 int(vlan) in self._existing_cfg_dict['interfaces']):
-            LOG.info(_LI("Sub-interface already exists, skipping"))
+            LOG.info(_LI("Sub-interface already exists, will not create it"))
             return
         vrf_name = self._get_vrf_name(ri)
         net_mask = netaddr.IPNetwork(port['ip_info']['ip_cidr']).netmask
         # get port's ip address for the subnet we're processing
-        hsrp_ip = self._get_item(port['fixed_ips'],
-                                 port['ip_info']['subnet_id'])['ip_address']
+        ip = self._get_item(port['fixed_ips'],
+                            port['ip_info']['subnet_id'])['ip_address']
+        sub_interface = self._get_interface_name_from_hosting_port(port)
+        self._do_create_sub_interface(sub_interface, vlan, vrf_name, ip,
+                                      net_mask)
+        self._conditionally_add_ha_hsrp_asr1k(ri, port)
+
+    def _create_external_sub_interface(self, ri, port):
+        vlan = self._get_interface_vlan_from_hosting_port(port)
+        if (self._fullsync and
+                int(vlan) in self._existing_cfg_dict['interfaces']):
+            LOG.info(_LI("Sub-interface already exists, will not create it"))
+            return
+        net_mask = netaddr.IPNetwork(port['ip_info']['ip_cidr']).netmask
+        # get port's ip address for the subnet we're processing
+        ip = self._get_item(port['fixed_ips'],
+                            port['ip_info']['subnet_id'])['ip_address']
         sub_interface = self._get_interface_name_from_hosting_port(port)
         if port['ip_info']['is_primary'] is True:
-            self._do_create_sub_interface(
-                sub_interface, vlan, vrf_name, hsrp_ip, net_mask, is_external)
+            self._do_create_external_sub_interface(sub_interface, vlan, ip,
+                                                   net_mask)
         else:
-            # this will only happen for global routers
-            self._do_set_secondary(sub_interface, hsrp_ip, net_mask)
-        # Always do HSRP
-        if ri.router.get(ha.ENABLED, False):
-            if port.get(ha.HA_INFO) is not None:
-                self._add_ha_hsrp(ri, port)
-            else:
-                # We are missing HA data, candidate for retrying
-                params = {'r_id': ri.router_id, 'p_id': port['id'],
-                          'port': port}
-                raise cfg_exc.HAParamsMissingException(**params)
+            # this will only happen for global routers or when a tenant
+            # router is connected to multiple subnets on the same network
+            self._do_set_secondary(sub_interface, ip, net_mask)
+        self._conditionally_add_ha_hsrp_asr1k(ri, port)
+
+    def _set_primary_ipv4(self, ri, port):
+        sub_interface = self._get_interface_name_from_hosting_port(port)
+        ip = self._get_item(port['fixed_ips'],
+                            port['ip_info']['subnet_id'])['ip_address']
+        net_mask = netaddr.IPNetwork(port['ip_info']['ip_cidr']).netmask
+        self._do_set_primary(sub_interface, ip, net_mask)
+        self._conditionally_add_ha_hsrp_asr1k(ri, port)
+
+    def _set_secondary_ipv4(self, ri, port):
+        net_mask = netaddr.IPNetwork(
+            port['ip_info']['ip_cidr']).netmask
+        # get port's ip address for the subnet we're processing
+        subnet_id = port['ip_info']['subnet_id']
+        ip = self._get_item(port['fixed_ips'], subnet_id)['ip_address']
+        sub_interface = self._get_interface_name_from_hosting_port(
+            port)
+        self._do_set_secondary(sub_interface, ip, net_mask)
+        self._conditionally_add_ha_hsrp_asr1k(ri, port)
+
+    def _remove_secondary_ipv4(self, ri, port):
+        net_mask = netaddr.IPNetwork(
+            port['ip_info']['ip_cidr']).netmask
+        # get port's ip address for the subnet we're processing
+        subnet_id = port['ip_info']['subnet_id']
+        ip = self._get_item(port['fixed_ips'], subnet_id)['ip_address']
+        sub_interface = self._get_interface_name_from_hosting_port(
+            port)
+        self._do_unset_secondary(sub_interface, ip, net_mask)
+        self._conditionally_remove_ha_hsrp_asr1k(ri, port, sub_interface)
+
+    def _do_create_sub_interface(self, sub_interface, vlan_id, vrf_name, ip,
+                                 mask):
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+        if is_multi_region_enabled:
+            region_id = cfg.CONF.multi_region.region_id
+            conf_str = asr1k_snippets.CREATE_SUBINTERFACE_REGION_ID_WITH_ID % (
+                sub_interface, region_id, vlan_id, vrf_name, ip, mask)
+        else:
+            conf_str = asr1k_snippets.CREATE_SUBINTERFACE_WITH_ID % (
+                sub_interface, vlan_id, vrf_name, ip, mask)
+        self._edit_running_config(conf_str, 'CREATE_SUBINTERFACE_WITH_ID')
+
+    def _do_create_external_sub_interface(self, sub_interface, vlan_id, ip,
+                                          mask):
+        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+        if is_multi_region_enabled:
+            region_id = cfg.CONF.multi_region.region_id
+            conf_str = (
+                asr1k_snippets.CREATE_SUBINTERFACE_EXT_REGION_ID_WITH_ID % (
+                    sub_interface, region_id, vlan_id, ip, mask))
+        else:
+            conf_str = (
+                asr1k_snippets.CREATE_SUBINTERFACE_EXTERNAL_WITH_ID % (
+                    sub_interface, vlan_id, ip, mask))
+        self._edit_running_config(conf_str, 'CREATE_SUBINTERFACE_WITH_ID')
+
+    def _do_set_primary(self, sub_interface, ip, mask):
+        conf_str = (
+            asr1k_snippets.SET_INTERFACE_PRIMARY_IP % (
+                    sub_interface, ip, mask))
+        self._edit_running_config(conf_str, 'SET_SUBINTERFACE_PRIMARY_IP')
+
+    def _do_unset_primary(self, sub_interface, ip, mask):
+        conf_str = (
+            asr1k_snippets.REMOVE_INTERFACE_PRIMARY_IP % (
+                sub_interface, ip, mask))
+        self._edit_running_config(conf_str, 'REMOVE_SUBINTERFACE_PRIMARY_IP')
 
     def _do_set_secondary(self, sub_interface, ip, mask):
         conf_str = (
-               asr1k_snippets.SET_SUBINTERFACE_SECONDARY_IP % (
+            asr1k_snippets.SET_INTERFACE_SECONDARY_IP % (
                     sub_interface, ip, mask))
         self._edit_running_config(conf_str, 'SET_SUBINTERFACE_SECONDARY_IP')
 
-    def _do_create_sub_interface(self, sub_interface, vlan_id, vrf_name, ip,
-                                 mask, is_external=False):
-        is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
+    def _do_unset_secondary(self, sub_interface, ip, mask):
+        conf_str = (
+            asr1k_snippets.REMOVE_INTERFACE_SECONDARY_IP % (
+                sub_interface, ip, mask))
+        self._edit_running_config(conf_str, 'REMOVE_SUBINTERFACE_SECONDARY_IP')
 
-        if is_external is True:
-            if (is_multi_region_enabled):
-                region_id = cfg.CONF.multi_region.region_id
-                conf_str = (
-                    asr1k_snippets.CREATE_SUBINTERFACE_EXT_REGION_ID_WITH_ID
-                    % (sub_interface, region_id, vlan_id, ip, mask))
-            else:
-                conf_str = (
-                    asr1k_snippets.CREATE_SUBINTERFACE_EXTERNAL_WITH_ID % (
-                        sub_interface, vlan_id, ip, mask))
-        else:
-            if (is_multi_region_enabled):
-                region_id = cfg.CONF.multi_region.region_id
-                conf_str = (
-                    asr1k_snippets.CREATE_SUBINTERFACE_REGION_ID_WITH_ID % (
-                        sub_interface,
-                        region_id,
-                        vlan_id,
-                        vrf_name,
-                        ip, mask))
-            else:
-                conf_str = (
-                    asr1k_snippets.CREATE_SUBINTERFACE_WITH_ID % (
-                        sub_interface,
-                        vlan_id,
-                        vrf_name,
-                        ip, mask))
-        self._edit_running_config(conf_str, 'CREATE_SUBINTERFACE_WITH_ID')
-
-    def _create_sub_interface_enable(self, sub_interface):
-        LOG.debug("Enabling network sub interface: %s",
-                  sub_interface)
+    def _enable_sub_interface(self, sub_interface):
+        LOG.debug("Enabling network sub interface: %s", sub_interface)
         conf_str = snippets.ENABLE_INTF % sub_interface
         self._edit_running_config(conf_str, 'ENABLE_INTF')
 
-    def _create_sub_interface_disable(self, sub_interface):
-        LOG.debug("Disabling network sub interface: %s",
-                  sub_interface)
+    def _disable_sub_interface(self, sub_interface):
+        LOG.debug("Disabling network sub interface: %s", sub_interface)
         conf_str = snippets.DISABLE_INTF % sub_interface
         self._edit_running_config(conf_str, 'DISABLE_INTF')
 
@@ -379,8 +647,8 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                 self._edit_running_config(conf_str, 'CREATE_NAT_POOL')
         #except cfg_exc.CSR1kvConfigException as cse:
         except Exception as cse:
-            LOG.error(_LE("Temporary disable NAT_POOL exception handling: "
-                          "%s"), cse)
+            LOG.error(_LE("Temporary disable NAT_POOL exception handling: %s"),
+                      cse)
 
     def _add_default_route(self, ri, ext_gw_port):
         if self._fullsync and (ri.router_id in
@@ -388,8 +656,8 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
             LOG.debug("Default route already exists, skipping")
             return
         ext_gw_ip = self._get_item(
-            ext_gw_port['subnets'],
-            ext_gw_port['ip_info']['subnet_id'], 'id')['gateway_ip']
+            ext_gw_port['subnets'], ext_gw_port['ip_info']['subnet_id'],
+            'id')['gateway_ip']
         if ext_gw_ip:
             vrf_name = self._get_vrf_name(ri)
             out_itfc = self._get_interface_name_from_hosting_port(ext_gw_port)
@@ -399,8 +667,8 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
 
     def _remove_default_route(self, ri, ext_gw_port):
         ext_gw_ip = self._get_item(
-            ext_gw_port['subnets'],
-            ext_gw_port['ip_info']['subnet_id'], 'id')['gateway_ip']
+            ext_gw_port['subnets'], ext_gw_port['ip_info']['subnet_id'],
+            'id')['gateway_ip']
         if ext_gw_ip:
             vrf_name = self._get_vrf_name(ri)
             out_itfc = self._get_interface_name_from_hosting_port(ext_gw_port)
@@ -409,7 +677,15 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
             self._edit_running_config(conf_str,
                                       'REMOVE_DEFAULT_ROUTE_WITH_INTF')
 
-    def _add_ha_hsrp(self, ri, port):
+    def _conditionally_add_ha_hsrp_asr1k(self, ri, port):
+        if ri.router.get(ha.ENABLED, False):
+            if port.get(ha.HA_INFO) is None:
+                # We are missing HA data, candidate for retrying
+                params = {'r_id': ri.router_id, 'p_id': port['id'],
+                          'port': port}
+                raise cfg_exc.HAParamsMissingException(**params)
+        else:
+            return
         priority = None
         if ri.router.get(ROUTER_ROLE_ATTR) in (ROUTER_ROLE_HA_REDUNDANCY,
                                                ROUTER_ROLE_GLOBAL):
@@ -421,33 +697,60 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         port_ha_info = port[ha.HA_INFO]
         group = port_ha_info['group']
         subnet_id = port['ip_info']['subnet_id']
-        ip = self._get_item(port_ha_info['ha_port']['fixed_ips'],
-                            subnet_id)['ip_address']
+        vip = self._get_item(port_ha_info['ha_port']['fixed_ips'],
+                             subnet_id)['ip_address']
         vlan = port['hosting_info']['segmentation_id']
-        if ip and group and priority:
-            vrf_name = self._get_vrf_name(ri)
+        if vip and group and priority:
             is_primary = port['ip_info']['is_primary']
             sub_interface = self._get_interface_name_from_hosting_port(port)
-            self._do_set_ha_hsrp(sub_interface, vrf_name, priority, group, ip,
-                                 vlan, is_primary)
+            self._do_add_ha_hsrp_asr1k(sub_interface, priority, group, vip,
+                                       vlan, is_primary)
 
-    def _do_set_ha_hsrp(self, sub_interface, vrf_name, priority, group,
-                        ip, vlan, is_primary=True):
+    def _conditionally_remove_ha_hsrp_asr1k(self, ri, port, sub_interface):
+        if ri.router.get(ha.ENABLED, False):
+            if port.get(ha.HA_INFO) is None:
+                ip = self._get_item(port['fixed_ips'],
+                                    port['ip_info']['subnet_id'])['ip_address']
+                LOG.warning(
+                    _LI("Could not remove HSRP VIP address for port %(p_id)s "
+                        "with interface IP %(addr)s because plugin did not "
+                        "provide needed information. Manual removal by admin "
+                        "required."), {'p_id': port['id'], 'addr': ip})
+                return
+        else:
+            return
+        subnet_id = port['ip_info']['subnet_id']
+        is_primary = port['ip_info']['is_primary']
+        port_ha_info = port[ha.HA_INFO]
+        group = port_ha_info['group']
+        hsrp_ip = self._get_item(port_ha_info['ha_port']['fixed_ips'],
+                                 subnet_id)['ip_address']
+        self._do_remove_ha_hsrp_asr1k(sub_interface, group, hsrp_ip,
+                                      is_primary=is_primary)
+
+    def _do_add_ha_hsrp_asr1k(self, sub_interface, priority, group, vip, vlan,
+                              is_primary=True):
         if is_primary is True:
             conf_str = asr1k_snippets.SET_INTC_ASR_HSRP_EXTERNAL % (
-                sub_interface,
-                group,
-                priority,
-                group, ip,
-                group, group,
+                sub_interface, group, priority, group, vip, group, group,
                 group, vlan)
             self._edit_running_config(conf_str, 'SET_INTC_ASR_HSRP_EXTERNAL')
         else:
             conf_str = asr1k_snippets.SET_INTC_ASR_SECONDARY_HSRP_EXTERNAL % (
-                sub_interface,
-                group, ip)
+                sub_interface, group, vip)
             self._edit_running_config(conf_str,
                                       'SET_INTC_ASR_SECONDARY_HSRP_EXTERNAL')
+
+    def _do_remove_ha_hsrp_asr1k(self, sub_interface, group, ip,
+                                 is_primary=True):
+        if is_primary is False:
+            conf_str = (asr1k_snippets.REMOVE_INTC_ASR_SECONDARY_HSRP_EXTERNAL
+                        % (sub_interface, group, ip))
+            self._edit_running_config(
+                conf_str, 'REMOVE_INTC_ASR_SECONDARY_HSRP_EXTERNAL')
+        else:
+            LOG.debug('Standby IP address is not secondary so not removing '
+                      'that configuration')
 
     def _create_sub_interface_v6(self, ri, port, is_external=False, gw_ip=""):
         if self._v6_port_needs_config(port) is not True:
@@ -513,20 +816,6 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         return True
 
     @staticmethod
-    def _get_item(list_containing_dicts_entries, attribute_value,
-                  attribute_name='subnet_id'):
-        """Searches a list of dicts and returns the first matching entry
-
-        The dict entry returned contains the attribute 'attribute_name' whose
-        value equals 'attribute_value'. If no such dict is found in the list
-        an empty dict is returned.
-        """
-        for item in list_containing_dicts_entries:
-            if item.get(attribute_name) == attribute_value:
-                return item
-        return {}
-
-    @staticmethod
     def _port_is_hsrp(port):
         hsrp_types = [bc.constants.DEVICE_OWNER_ROUTER_HA_INTF]
         return port['device_owner'] in hsrp_types
@@ -558,13 +847,8 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                                             net_mask, inner_itfc,
                                             outer_itfc, vrf_name)
 
-    def _nat_rules_for_internet_access(self,
-                                       acl_no,
-                                       network,
-                                       netmask,
-                                       inner_itfc,
-                                       outer_itfc,
-                                       vrf_name):
+    def _nat_rules_for_internet_access(self, acl_no, network, netmask,
+                                       inner_itfc, outer_itfc, vrf_name):
         """Configure the NAT rules for an internal network.
 
         Configuring NAT rules in the CSR1kv is a three step process. First
@@ -607,10 +891,7 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         conf_str = snippets.SET_NAT % (outer_itfc, 'outside')
         self._edit_running_config(conf_str, 'SET_NAT')
 
-    def _remove_internal_nw_nat_rules(self,
-                                      ri,
-                                      ports,
-                                      ext_port,
+    def _remove_internal_nw_nat_rules(self, ri, ports, ext_port,
                                       intf_deleted=False):
         """
         Removes the NAT rules already configured when an internal network is
@@ -628,7 +909,8 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         for port in ports:
             in_itfc_name = self._get_interface_name_from_hosting_port(port)
             acls.append(self._generate_acl_num_from_port(port))
-            if not intf_deleted:
+            is_alone = len(port['change_details']['current_ports']) == 1
+            if not intf_deleted and is_alone is True:
                 self._remove_interface_nat(in_itfc_name, 'inside')
         # There is a possibility that the dynamic NAT rule cannot be removed
         # from the running config, if there is still traffic in the inner
@@ -662,12 +944,13 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         conf_str = snippets.REMOVE_ACL % acl_no
         self._edit_running_config(conf_str, 'REMOVE_ACL')
 
-    def _add_floating_ip(self, ri, ex_gw_port, floating_ip, fixed_ip):
+    def _add_floating_ip_asr1k(self, ri, ex_gw_port, floating_ip, fixed_ip):
         vrf_name = self._get_vrf_name(ri)
-        self._asr_do_add_floating_ip(floating_ip, fixed_ip,
-                                     vrf_name, ex_gw_port)
+        self._do_add_floating_ip_asr1k(floating_ip, fixed_ip, vrf_name,
+                                       ex_gw_port)
 
-    def _asr_do_add_floating_ip(self, floating_ip, fixed_ip, vrf, ex_gw_port):
+    def _do_add_floating_ip_asr1k(self, floating_ip, fixed_ip, vrf,
+                                  ex_gw_port):
         """
         To implement a floating ip, an ip static nat is configured in the
         underlying router ex_gw_port contains data to derive the vlan

@@ -132,7 +132,7 @@ class CiscoRoutingPluginApi(object):
         :param context: session context
         :param router_ids: list of  routers to fetch
         :param hd_ids: hosting device ids, only routers assigned to these
-            hosting devices will be returned.
+                       hosting devices will be returned.
         """
         cctxt = self.client.prepare(version='1.1')
         return cctxt.call(context, 'cfg_sync_routers', host=self.host,
@@ -253,7 +253,7 @@ class RoutingServiceHelper(object):
             removed_routers = []
             all_routers_flag = False
             if self.fullsync:
-                LOG.debug("FullSync flag is on. Starting fullsync")
+                LOG.debug("The fullsync flag is set. Starting complete sync")
                 # Setting all_routers_flag and clear the global full_sync flag
                 all_routers_flag = True
                 self.fullsync = False
@@ -268,12 +268,12 @@ class RoutingServiceHelper(object):
             else:
                 if self.updated_routers:
                     router_ids = list(self.updated_routers)
-                    LOG.debug("Updated routers:%s", router_ids)
+                    LOG.debug("Updated routers: %s", router_ids)
                     self.updated_routers.clear()
                     routers = self._fetch_router_info(router_ids=router_ids)
-                    LOG.debug("Updated routers:%s" % (pp.pformat(routers)))
+                    LOG.debug("Updated routers: %s" % (pp.pformat(routers)))
                 if device_ids:
-                    LOG.debug("Adding new devices:%s", device_ids)
+                    LOG.debug("Adding new devices: %s", device_ids)
                     self.sync_devices = set(device_ids) | self.sync_devices
                 if self.sync_devices:
                     self._handle_sync_devices(routers)
@@ -284,7 +284,7 @@ class RoutingServiceHelper(object):
                         self.removed_routers = self.removed_routers | set(ids)
                 if self.removed_routers:
                     removed_routers_ids = list(self.removed_routers)
-                    LOG.debug("Removed routers:%s",
+                    LOG.debug("Removed routers: %s",
                               pp.pformat(removed_routers_ids))
                     for r in removed_routers_ids:
                         if r in self.router_info:
@@ -365,7 +365,9 @@ class RoutingServiceHelper(object):
                         "hosting_device": routers[0]['hosting_device'],
                         "router_type": routers[0]['router_type']}
             driver = self.driver_manager.set_driver(temp_res)
-
+            LOG.debug("Running config sync for hosting device %(hd_id)s that "
+                      "should host %(num_r)d routers",
+                      {'hd_id': hd_id, 'num_r': len(routers)})
             driver.cleanup_invalid_cfg(
                 routers[0]['hosting_device'], routers)
 
@@ -381,6 +383,7 @@ class RoutingServiceHelper(object):
         """
         try:
             if all_routers:
+                LOG.debug('Fetching all routers')
                 router_ids = self.plugin_rpc.get_router_ids(self.context)
                 routers = self._fetch_router_chunk_data(router_ids)
 
@@ -659,7 +662,7 @@ class RoutingServiceHelper(object):
                         _LE("ncclient Unexpected session close %s"), e)
                     if not self._dev_status.is_hosting_device_reachable(
                         r['hosting_device']):
-                        LOG.debug("Lost connectivity to Hosting Device %s" %
+                        LOG.debug("Lost connectivity to hosting device %s" %
                                   r['hosting_device']['id'])
                         # Will rely on heartbeat to detect hd state
                         # and schedule resync when hd comes back
@@ -710,22 +713,64 @@ class RoutingServiceHelper(object):
             self.plugin_rpc.send_update_port_statuses(self.context,
                                                       chunk_ports, status)
 
+    def _get_ports_on_networks(self, router_role, internal_ports):
+        # Tenant router and any of its HA redundancy routers may have more
+        # than one interface on an internal network (on different subnets).
+        # This is not the case for Global routers that are not connected to
+        # any internal networks.
+        relevant_router_roles = [None, c_constants.ROUTER_ROLE_HA_REDUNDANCY]
+        nw_p_dict = {}
+        if router_role in relevant_router_roles:
+            for p in internal_ports:
+                new_item = {'ip_address': p['fixed_ips'][0]['ip_address'],
+                            'port': p}
+                try:
+                    nw_p_dict[p['network_id']].append(new_item)
+                except KeyError:
+                    nw_p_dict[p['network_id']] = [new_item]
+        # To configure primary and secondary ip addresses in a consistent
+        # way across the tenant router and any HA redundancy routers we
+        # sort ports in each network on their ip address
+        multiple_port_networks = {
+            k: [vv['port'] for vv in sorted(v, key=itemgetter('ip_address'))]
+            for k, v in six.iteritems(nw_p_dict)}
+        return multiple_port_networks
+
     def _get_internal_port_changes(self, ri, internal_ports):
         existing_port_ids = set([p['id'] for p in ri.internal_ports])
         current_port_ids = set([p['id'] for p in internal_ports
                                 if p['admin_state_up']])
         new_ports = [p for p in internal_ports
-                     if
-                     p['id'] in (current_port_ids - existing_port_ids)]
+                     if p['id'] in (current_port_ids - existing_port_ids)]
+        new_ports = [
+            p for p in sorted(new_ports,
+                              key=lambda i: i['fixed_ips'][0]['ip_address'])]
         old_ports = [p for p in ri.internal_ports
                      if p['id'] not in current_port_ids]
 
-        new_port_ids = [p['id'] for p in new_ports]
-        old_port_ids = [p['id'] for p in old_ports]
-        LOG.debug("++ new_port_ids = %s" % (pp.pformat(new_port_ids)))
-        LOG.debug("++ old_port_ids = %s" % (pp.pformat(old_port_ids)))
+        router_role = ri.router[routerrole.ROUTER_ROLE_ATTR]
+        new_ports_on_networks = self._get_ports_on_networks(router_role,
+                                                            new_ports)
+        current_ports_on_networks = self._get_ports_on_networks(
+            router_role, internal_ports)
+        old_ports_on_networks = self._get_ports_on_networks(router_role,
+                                                            old_ports)
+        former_ports_on_networks = (
+            self._get_ports_on_networks(router_role, ri.internal_ports))
+        change_details = {
+            nw_id: {'new_ports': new_ports_on_networks.get(nw_id, []),
+                    'current_ports': current_ports_on_networks.get(nw_id, []),
+                    'old_ports': old_ports_on_networks.get(nw_id, []),
+                    'former_ports': former_ports_on_networks.get(nw_id, [])}
+            for nw_id in set(current_ports_on_networks.keys()) |
+            set(former_ports_on_networks.keys())}
 
-        return new_ports, old_ports
+        LOG.debug("Ids of ports to be added = %s" % pp.pformat(
+            [p['id'] for p in new_ports]))
+        LOG.debug("Ids of ports to removed = %s" % pp.pformat(
+            [p['id'] for p in old_ports]))
+
+        return new_ports, old_ports, change_details
 
     def _enable_disable_ports(self, ri, ex_gw_port, internal_ports):
         if not ri.router['admin_state_up']:
@@ -742,7 +787,45 @@ class RoutingServiceHelper(object):
                 else:
                     self._enable_router_interface(ri, port)
 
-    def _process_new_ports(self, ri, new_ports, ex_gw_port, list_port_ids_up):
+    def _process_new_ports(self, ri, new_ports, ex_gw_port, list_port_ids_up,
+                           change_details):
+        for p in new_ports:
+            num_subnets_on_port = len(p['subnets'])
+            if num_subnets_on_port > 1:
+                LOG.error(_LE("Ignoring router port with multiple IPv4 "
+                              "subnets associated"))
+                raise MultipleIPv4SubnetsException(
+                    port_id=p['id'], subnets=pp.pformat(p['subnets']))
+            p['change_details'] = change_details[p['network_id']]
+            current_ports_on_network = p['change_details']['current_ports']
+            if len(current_ports_on_network) > 1:
+                # port p is one of at least two ports on the network so we must
+                # configure one as primary and the others as secondary
+                is_primary = current_ports_on_network[0]['id'] == p['id']
+                LOG.debug('Processing new port %(p_id)s with IPv4 %(ip)s '
+                          'which should be %(type)s address. The router has '
+                          'additional ports on the network (on different '
+                          'subnets).',
+                          {'p_id': p['id'],
+                           'type': 'primary' if is_primary else 'secondary',
+                           'ip': p['fixed_ips'][0]['ip_address']})
+            else:
+                # only one port on network so is must be the primary
+                is_primary = True
+                LOG.debug('Processing new port %(p_id)s with IPv4 %(ip)s '
+                          'which should be primary address as router has no '
+                          'other ports on network',
+                          {'p_id': p['id'],
+                           'ip': p['fixed_ips'][0]['ip_address']})
+            self._set_subnet_info(p, p['subnets'][0]['id'], is_primary)
+            self._internal_network_added(ri, p, ex_gw_port)
+
+            if not any(i_p['id'] == p['id'] for i_p in ri.internal_ports):
+                ri.internal_ports.append(p)
+            list_port_ids_up.append(p['id'])
+
+    def _process_new_ports_global(self, ri, new_ports, ex_gw_port,
+                                  list_port_ids_up):
         #TODO(bmelande): 1. We need to handle the case where an external
         #                   network, to which a global router is connected,
         #                   is given another subnet. The global router must
@@ -756,17 +839,9 @@ class RoutingServiceHelper(object):
             # the same ip address is used as primary on the HA master router
             # as well as on all HA backup routers.
             port_subnets = sorted(p['subnets'], key=itemgetter('id'))
-
             num_subnets_on_port = len(port_subnets)
-            LOG.debug("Number of subnets associated with router port = %d" %
-                      num_subnets_on_port)
-            if (ri.router[ROUTER_ROLE_ATTR] is None and
-                    num_subnets_on_port > 1):
-                LOG.error(_LE("Ignoring router port with multiple IPv4 "
-                              "subnets associated"))
-                raise MultipleIPv4SubnetsException(
-                    port_id=p['id'], subnets=pp.pformat(port_subnets))
-
+            LOG.debug("Number of subnets associated with new Global router "
+                      "port = %d", num_subnets_on_port)
             # Configure the primary IP address
             self._set_subnet_info(p, port_subnets[0]['id'])
             self._internal_network_added(ri, p, ex_gw_port)
@@ -781,7 +856,34 @@ class RoutingServiceHelper(object):
             ri.internal_ports.append(p)
             list_port_ids_up.append(p['id'])
 
-    def _process_old_ports(self, ri, old_ports, ex_gw_port):
+    def _process_old_ports(self, ri, old_ports, ex_gw_port, change_details):
+        for p in old_ports:
+            p['change_details'] = change_details[p['network_id']]
+            former_ports_on_network = p['change_details']['former_ports']
+            if len(former_ports_on_network) > 1:
+                # port p is one of at least two ports on the network
+                # so we must deconfigure it accordingly
+                is_primary = former_ports_on_network[0]['id'] == p['id']
+                LOG.debug('Processing deletion of port %(p_id)s with IPv4 '
+                          '%(ip)s which was %(type)s address. The router has '
+                          'additional ports on the network (on different '
+                          'subnets).',
+                          {'p_id': p['id'],
+                           'type': 'primary' if is_primary else 'secondary',
+                           'ip': p['fixed_ips'][0]['ip_address']})
+            else:
+                # only one port on network so is must be the primary
+                is_primary = True
+                LOG.debug('Processing deletion of port %(p_id)s with IPv4 '
+                          '%(ip)s which was primary address as router had no '
+                          'other ports on network',
+                          {'p_id': p['id'],
+                           'ip': p['fixed_ips'][0]['ip_address']})
+            self._set_subnet_info(p, p['subnets'][0]['id'], is_primary)
+            self._internal_network_removed(ri, p, ri.ex_gw_port)
+            ri.internal_ports.remove(p)
+
+    def _process_old_ports_global(self, ri, old_ports, ex_gw_port):
         for p in old_ports:
             self._internal_network_removed(ri, p, ri.ex_gw_port)
             ri.internal_ports.remove(p)
@@ -848,22 +950,28 @@ class RoutingServiceHelper(object):
             gateway_set = ex_gw_port and not ri.ex_gw_port
             gateway_cleared = not ex_gw_port and ri.ex_gw_port
             internal_ports = ri.router.get(bc.constants.INTERFACE_KEY, [])
-            # Once the gateway is set, then we know which VRF
-            # this router belongs to. Keep track of it in our
-            # lists of routers, organized as a dictionary by
-            # VRF name
+            # Once the gateway is set, then we know which VRF this router
+            # belongs to. Keep track of it in our lists of routers, organized
+            # as a dictionary by VRF name
             if gateway_set:
                 self._add_rid_to_vrf_list(ri)
 
-            new_ports, old_ports = self._get_internal_port_changes(
-                ri, internal_ports)
+            new_ports, old_ports, change_details = (
+                self._get_internal_port_changes(ri, internal_ports))
 
             list_port_ids_up = []
 
-            self._process_new_ports(ri, new_ports,
-                                    ex_gw_port, list_port_ids_up)
-
-            self._process_old_ports(ri, old_ports, ex_gw_port)
+            non_global_router_roles = [None,
+                                       c_constants.ROUTER_ROLE_HA_REDUNDANCY]
+            if ri.router[ROUTER_ROLE_ATTR] in non_global_router_roles:
+                self._process_new_ports(ri, new_ports, ex_gw_port,
+                                        list_port_ids_up, change_details)
+                self._process_old_ports(ri, old_ports, ex_gw_port,
+                                        change_details)
+            else:
+                self._process_new_ports_global(ri, new_ports, ex_gw_port,
+                                               list_port_ids_up)
+                self._process_old_ports_global(ri, old_ports, ex_gw_port)
 
             if gateway_set:
                 self._process_gateway_set(ri, ex_gw_port,
@@ -876,9 +984,9 @@ class RoutingServiceHelper(object):
             if ex_gw_port:
                 self._process_router_floating_ips(ri, ex_gw_port)
 
-            if ri.router[ROUTER_ROLE_ATTR] not in \
-                    [c_constants.ROUTER_ROLE_GLOBAL,
-                     c_constants.ROUTER_ROLE_LOGICAL_GLOBAL]:
+            global_router_roles = [c_constants.ROUTER_ROLE_GLOBAL,
+                                   c_constants.ROUTER_ROLE_LOGICAL_GLOBAL]
+            if ri.router[ROUTER_ROLE_ATTR] not in global_router_roles:
                 self._enable_disable_ports(ri, ex_gw_port, internal_ports)
 
                 if gateway_cleared:
@@ -1031,7 +1139,7 @@ class RoutingServiceHelper(object):
         ri = self.router_info.get(router_id)
         if ri is None:
             LOG.warning(_LW("Info for router %s was not found. "
-                            "Skipping router removal"), router_id)
+                            "Skipping router removal."), router_id)
             return
         ri.router['gw_port'] = None
         ri.router[bc.constants.INTERFACE_KEY] = []

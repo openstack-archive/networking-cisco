@@ -222,6 +222,7 @@ class CfgAgentSchedulerDbMixin(
 
     @lockutils.synchronized('devicemonitor', 'neutron-')
     def set_monitor_timestamp(self, agent, timestamp):
+        LOG.debug('Setting monitoring time stamp for %s:' % agent['id'])
         self._cfg_agent_statuses[agent['id']] = {'timestamp': timestamp}
 
     def _sync_config_agent_monitoring(self, context):

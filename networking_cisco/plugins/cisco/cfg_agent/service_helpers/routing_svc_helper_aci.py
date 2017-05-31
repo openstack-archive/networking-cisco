@@ -40,20 +40,33 @@ class RoutingServiceHelperAci(helper.RoutingServiceHelper):
         return (ri.router.get(ROUTER_ROLE_ATTR) ==
             c_constants.ROUTER_ROLE_GLOBAL)
 
-    def _process_new_ports(self, ri, new_ports, ex_gw_port, list_port_ids_up):
+    def _process_new_ports(self, ri, new_ports, ex_gw_port, list_port_ids_up,
+                           change_details):
         # Only add internal networks if we have an
         # external gateway -- otherwise we have no parameters
         # to use to configure the interface (e.g. VRF, IP, etc.)
-        if ex_gw_port or self._is_global_router(ri):
-            super(RoutingServiceHelperAci,
-                  self)._process_new_ports(
-                      ri, new_ports, ex_gw_port, list_port_ids_up)
+        if self._is_global_router(ri):
+            super(RoutingServiceHelperAci, self)._process_new_ports_global(
+                ri, new_ports, ex_gw_port, list_port_ids_up)
+        elif ex_gw_port:
+            super(RoutingServiceHelperAci, self)._process_new_ports(
+                ri, new_ports, ex_gw_port, list_port_ids_up, change_details)
 
-    def _process_old_ports(self, ri, old_ports, ex_gw_port):
+    def _process_old_ports(self, ri, old_ports, ex_gw_port, change_details):
         gw_port = ex_gw_port or ri.ex_gw_port
         for p in old_ports:
             LOG.debug("++ removing port id = %s (gw = %s)" %
                       (p['id'], gw_port))
+            p['change_details'] = change_details[p['network_id']]
+            former_ports_on_network = p['change_details']['former_ports']
+            if len(former_ports_on_network) > 1:
+                # port p is one of at least two ports on the network
+                # so we must deconfigure it accordingly
+                is_primary = former_ports_on_network[0]['id'] == p['id']
+            else:
+                # only one port on network so is must be the primary
+                is_primary = True
+            self._set_subnet_info(p, p['subnets'][0]['id'], is_primary)
             # We can only clear the port if we stil have all
             # the relevant information (VRF and external network
             # parameters), which come from the GW port. Go ahead
@@ -73,7 +86,22 @@ class RoutingServiceHelperAci(helper.RoutingServiceHelper):
         new_ports = [p for p in interfaces
                      if (p['admin_state_up'] and
                          p not in ri.internal_ports)]
-        self._process_new_ports(ri, new_ports, ex_gw_port, list_port_ids_up)
+        router_role = ri.router[routerrole.ROUTER_ROLE_ATTR]
+        new_ports_on_networks = self._get_ports_on_networks(router_role,
+                                                            new_ports)
+        current_ports_on_networks = self._get_ports_on_networks(router_role,
+                                                                interfaces)
+        former_ports_on_networks = (
+            self._get_ports_on_networks(router_role, ri.internal_ports))
+        change_details = {
+            nw_id: {'new_ports': new_ports_on_networks.get(nw_id, []),
+                    'current_ports': current_ports_on_networks.get(nw_id, []),
+                    'old_ports': [],
+                    'former_ports': former_ports_on_networks.get(nw_id, [])}
+            for nw_id in set(current_ports_on_networks.keys()) |
+            set(former_ports_on_networks.keys())}
+        self._process_new_ports(ri, new_ports, ex_gw_port, list_port_ids_up,
+                                change_details)
 
     def _process_gateway_cleared(self, ri, ex_gw_port):
         super(RoutingServiceHelperAci,
@@ -83,7 +111,18 @@ class RoutingServiceHelperAci(helper.RoutingServiceHelper):
         # while the gateway information is still available
         # (has VRF network parameters)
         del_ports = copy.copy(ri.internal_ports)
-        self._process_old_ports(ri, del_ports, ex_gw_port)
+        router_role = ri.router[routerrole.ROUTER_ROLE_ATTR]
+        former_ports_on_networks = self._get_ports_on_networks(router_role,
+                                                               del_ports)
+        old_ports_on_networks = self._get_ports_on_networks(router_role,
+                                                            del_ports)
+        change_details = {
+            nw_id: {'new_ports': [],
+                    'current_ports': [],
+                    'old_ports': old_ports_on_networks.get(nw_id, []),
+                    'former_ports': former_ports_on_networks.get(nw_id, [])}
+            for nw_id in former_ports_on_networks.keys()}
+        self._process_old_ports(ri, del_ports, ex_gw_port, change_details)
 
     def _add_rid_to_vrf_list(self, ri):
         """Add router ID to a VRF list.

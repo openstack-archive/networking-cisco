@@ -719,11 +719,13 @@ class HA_db_mixin(object):
         port_info_list = self._core_plugin.get_ports(
             e_context, filters={'device_id': rr_ids,
                                 'network_id': [old_port['network_id']]},
-            fields=['device_id', 'id'])
+            fields=['device_id', 'fixed_ips', 'id'])
+        subnet_id = old_port['fixed_ips'][0]['subnet_id']
         for port_info in port_info_list:
-            interface_info = {'port_id': port_info['id']}
-            self.remove_router_interface(e_context, port_info['device_id'],
-                                         interface_info)
+            if port_info['fixed_ips'][0]['subnet_id'] == subnet_id:
+                interface_info = {'port_id': port_info['id']}
+                self.remove_router_interface(e_context, port_info['device_id'],
+                                             interface_info)
         self._delete_ha_group(e_context, old_port['id'])
 
     def _redundancy_routers_for_floatingip(
@@ -820,12 +822,13 @@ class HA_db_mixin(object):
             self._extend_router_dict_ha(router, user_router_db)
         # The interfaces of the user visible router must use the
         # IP configuration of the extra ports in the HA groups.
-        hags = self._get_subnet_id_indexed_ha_groups(context, user_router_id)
+        hag_dbs = self._get_subnet_id_indexed_ha_groups(context,
+                                                        user_router_id)
         e_context = context.elevated()
         if router.get('gw_port'):
             modified_interfaces = []
             interface_port = self._populate_port_ha_information(
-                e_context, router['gw_port'], router['id'], hags,
+                e_context, router['gw_port'], router['id'], hag_dbs,
                 user_router_id, modified_interfaces)
             if not interface_port:
                 # The router has a gw_port but cannot find the port info yet
@@ -838,7 +841,7 @@ class HA_db_mixin(object):
         modified_interfaces = []
         for itfc in router.get(bc.constants.INTERFACE_KEY, []):
             interface_port = self._populate_port_ha_information(
-                e_context, itfc, router['id'], hags, user_router_id,
+                e_context, itfc, router['id'], hag_dbs, user_router_id,
                 modified_interfaces)
             if not interface_port:
                 # the router has interfaces but cannot find the port info yet
@@ -851,11 +854,11 @@ class HA_db_mixin(object):
         if fips:
             router[bc.constants.FLOATINGIP_KEY] = fips
 
-    def _populate_port_ha_information(self, context, port, router_id, hags,
+    def _populate_port_ha_information(self, context, port, router_id, hag_dbs,
                                       user_router_id, modified_interfaces):
         subnet_id = port['fixed_ips'][0]['subnet_id']
         try:
-            hag = hags[subnet_id]
+            hag_db = hag_dbs[subnet_id]
         except KeyError:
             # Oops, the subnet_id was not found. Probably because the DB
             # insertion of that HA group is still in progress by another
@@ -867,11 +870,11 @@ class HA_db_mixin(object):
                       {'r_id': router_id, 's_id': subnet_id,
                        'p_id': port['id']})
             try:
-                hag = self._get_ha_group_for_subnet_id(context, router_id,
-                                                       subnet_id)
+                hag_db = self._get_ha_group_for_subnet_id(context, router_id,
+                                                          subnet_id)
             except exc.NoResultFound:
-                hag = None
-        if hag is None:
+                hag_db = None
+        if hag_db is None:
             LOG.debug('Failed to fetch the HA group info for for router: '
                       '%(r_id)s and subnet: %(s_id)s. Giving up. No HA '
                       'info will be added to the router\'s port: %(p_id)s.',
@@ -883,44 +886,46 @@ class HA_db_mixin(object):
             LOG.debug('Successfully fetched the HA group info for '
                       'router: %(r_id)s and subnet: %(s_id)s from DB',
                       {'r_id': router_id, 's_id': subnet_id})
-            hags[subnet_id] = hag
+            hag_dbs[subnet_id] = hag_db
         if router_id == user_router_id:
-            # If the router interface need no dedicated IP address we just
+            # If the router interface needs no dedicated IP address we just
             # set the HA (VIP) port to the port itself. The config agent
             # driver will know how to handle this "signal".
-            p_id = hag.extra_port_id or port['id']
+            p_id = hag_db.extra_port_id or port['id']
             try:
                 interface_port = self._core_plugin.get_port(context, p_id)
             except n_exc.PortNotFound:
-                LOG.debug('**** NO Port Info for '
-                    'router: %(r_id)s : Port: %(p_id)s from DB',
-                    {'r_id': router_id, 'p_id': port['id']})
+                LOG.debug('Failed to get port %(p_id)s from DB for user '
+                          'visible HA router: %(r_id)s. No HA info will be '
+                          'added to that router\'s port', {'p_id': p_id,
+                                                           'r_id': router_id})
                 return
-            LOG.debug('**** Fetched Port Info for '
-                'router: %(r_id)s : Port: %(p_id)s from DB',
-                {'r_id': router_id, 'p_id': port['id']})
+            LOG.debug('Fetched port %(p_id)s from DB for user visible '
+                      'router: %(r_id)s', {'p_id': p_id, 'r_id': router_id})
             self._populate_mtu_and_subnets_for_ports(context, [interface_port])
             modified_interfaces.append(interface_port)
             ha_port = port
         else:
             try:
-                ha_port = self._core_plugin.get_port(context, hag.ha_port_id)
+                ha_port = self._core_plugin.get_port(context,
+                                                     hag_db.ha_port_id)
             except n_exc.PortNotFound:
-                LOG.debug('**** NO Port Info for '
-                    'router(BAK): %(r_id)s : Port: %(p_id)s from DB',
-                    {'r_id': router_id, 'p_id': hag.ha_port_id})
+                LOG.debug('Failed to get port %(p_id)s from DB for HA '
+                          'redundancy router: %(r_id)s. No HA info will be '
+                          'added to that router\'s port',
+                          {'p_id': hag_db.ha_port_id, 'r_id': router_id})
                 return
-            LOG.debug('**** Fetched Port Info for '
-                'router(BAK): %(r_id)s : Port: %(p_id)s from DB',
-                {'r_id': router_id, 'p_id': hag.ha_port_id})
+            LOG.debug('Fetched port %(p_id)s from DB for HA redundancy '
+                      'router: %(r_id)s', {'p_id': hag_db.ha_port_id,
+                                           'r_id': router_id})
             self._populate_mtu_and_subnets_for_ports(context, [ha_port])
             interface_port = port
         interface_port[ha.HA_INFO] = {
-            ha.TYPE: hag.ha_type,
-            HA_GROUP: hag.group_identity,
-            'timers_config': hag.timers_config,
-            'tracking_config': hag.tracking_config,
-            'other_config': hag.other_config,
+            ha.TYPE: hag_db.ha_type,
+            HA_GROUP: hag_db.group_identity,
+            'timers_config': hag_db.timers_config,
+            'tracking_config': hag_db.tracking_config,
+            'other_config': hag_db.other_config,
             HA_PORT: ha_port}
         return interface_port
 
