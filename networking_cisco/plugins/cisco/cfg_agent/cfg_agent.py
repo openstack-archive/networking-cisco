@@ -111,6 +111,9 @@ OPTS = [
                       "backlog / hosting-device heart beat task.")),
     cfg.IntOpt('max_device_sync_attempts', default=6,
                help=_("Maximum number of attempts for a device sync.")),
+    cfg.IntOpt('max_device_sync_batch_size', default=64,
+               help=_("The largest number of routers to fetch in one "
+                      "RPC call.")),
     cfg.IntOpt('keepalive_interval', default=10,
                help=_("Interval in seconds when the config agent sents a "
                       "timestamp to the plugin to say that it is alive.")),
