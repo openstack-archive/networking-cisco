@@ -871,6 +871,22 @@ class TestBasicRoutingOperations(base.BaseTestCase):
         self.routing_helper._router_removed.assert_any_call(router2['id'])
         self.routing_helper._process_router.assert_called_with(ri1)
 
+    def test_process_routers_skips_routers_on_other_hosting_devices(self):
+        router1, port1 = prepare_router_data()
+        r1_id = router1['id']
+        r1_info = routing_svc_helper.RouterInfo(r1_id, router1)
+        router2, port2 = prepare_router_data()
+        r2_id = router2['id']
+        self.routing_helper.router_info = {
+            r1_id: r1_info,
+            r2_id: routing_svc_helper.RouterInfo(r2_id, router2)}
+        self.routing_helper._process_router = mock.Mock()
+        self.routing_helper._router_removed = mock.Mock()
+        self.routing_helper._process_routers([router1], [],
+                                             router1['hosting_device']['id'])
+        self.routing_helper._process_router.assert_called_once_with(r1_info)
+        self.assertEqual(0, self.routing_helper._router_removed.call_count)
+
 
 class TestDeviceSyncOperations(base.BaseTestCase):
 

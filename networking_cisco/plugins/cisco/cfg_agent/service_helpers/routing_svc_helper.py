@@ -597,11 +597,16 @@ class RoutingServiceHelper(object):
         :return: None
         """
         try:
+            ids_previously_hosted_routers = (
+                set(r_id for r_id, rdata in self.router_info.items()
+                    if rdata.router.get('hosting_device',
+                                        {}).get('id') == device_id))
+
             if all_routers:
-                prev_router_ids = set(self.router_info)
+                prev_router_ids = ids_previously_hosted_routers
             else:
-                prev_router_ids = set(self.router_info) & set(
-                    [router['id'] for router in routers])
+                prev_router_ids = (ids_previously_hosted_routers &
+                                   set([router['id'] for router in routers]))
             cur_router_ids = set()
             deleted_routerids_list = []
 
