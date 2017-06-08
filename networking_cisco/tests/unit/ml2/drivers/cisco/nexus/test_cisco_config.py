@@ -19,6 +19,8 @@ from oslo_config import cfg
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     config as cisco_config)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    nexus_helpers as nexus_help)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import nexus_db_v2
 
 from neutron.tests.unit import testlib_api
@@ -92,7 +94,10 @@ class TestCiscoNexusPluginConfig(testlib_api.SqlTestCase):
         for map in maps_sorted:
             self.assertEqual(map[0], host_map_data[idx][0])
             self.assertEqual(map[1], host_map_data[idx][1])
-            self.assertEqual(map[2], host_map_data[idx][2])
+            if_type, port = nexus_help.split_interface_name(
+                host_map_data[idx][2])
+            eth_name = nexus_help.format_interface_name(if_type, port)
+            self.assertEqual(map[2], eth_name)
             self.assertEqual(map[3], 0)
             self.assertTrue(map[4])
             idx += 1

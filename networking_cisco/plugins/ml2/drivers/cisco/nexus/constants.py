@@ -19,6 +19,7 @@ RESERVED_PORT_HOST_ID = 'reserved_port'
 CREDENTIAL_USERNAME = 'user_name'
 CREDENTIAL_PASSWORD = 'password'
 
+VPCPOOL = 'vpc_pool'
 USERNAME = 'username'
 PASSWORD = 'password'
 SSHPORT = 'ssh_port'

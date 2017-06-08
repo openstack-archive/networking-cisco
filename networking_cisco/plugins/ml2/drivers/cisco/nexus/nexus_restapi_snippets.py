@@ -21,7 +21,7 @@ PATH_GET_NEXUS_TYPE = 'api/mo/sys/ch.json'
 # conf t
 #   vlan <a,n-y>
 #     state active
-PATH_VLAN_ALL = 'api/mo.json'
+PATH_ALL = 'api/mo.json'
 BODY_VLAN_ALL_BEG = '{"topSystem": { "children": [ {"bdEntity":'
 BODY_VLAN_ALL_BEG += ' { children": ['
 BODY_VLAN_ALL_INCR = '  {"l2BD": {"attributes": {"fabEncap": "vlan-%s",'
@@ -43,6 +43,49 @@ BODY_VLAN_ALL_CONT + BODY_VLAN_ALL_END)
 
 BODY_VXLAN_ADD = (BODY_VLAN_ALL_BEG + BODY_VXLAN_ALL_INCR +
 BODY_VLAN_ALL_CONT + BODY_VLAN_ALL_END)
+
+BODY_PORT_CH_BEG = '{"topSystem": { "children": [ '
+BODY_PORT_CH_BEG += ' { "interfaceEntity": { "children": ['
+BODY_PORT_CH_BEG += ' { "pcAggrIf": { "attributes": '
+BODY_PORT_CH_BEG += '{ "id": "po%s" '
+BODY_PORT_CH_END = '} } ] } } ] } }'
+
+BODY_ADD_PORT_CH = BODY_PORT_CH_BEG + ' } } } ] } }, {"vpcEntity": '
+BODY_ADD_PORT_CH += '{ "children": [ { "vpcInst": { "children": [ '
+BODY_ADD_PORT_CH += '{ "vpcDom": { "children": [ '
+BODY_ADD_PORT_CH += '{ "vpcIf": { "attributes": { "id": "%s" }, '
+BODY_ADD_PORT_CH += '"children": [ { "vpcRsVpcConf": '
+BODY_ADD_PORT_CH += '{ "attributes": { "tDn": "sys/intf/aggr-[po%s]"'
+BODY_ADD_PORT_CH += ' } } } ] } }'
+BODY_ADD_PORT_CH += '] } } ]' + BODY_PORT_CH_END
+
+BODY_ADD_STP_PORT_CH = '{ "stpEntity": { "children": [ '
+BODY_ADD_STP_PORT_CH += ' { "stpInst": { "children": [ '
+BODY_ADD_STP_PORT_CH += ' { "stpIf": { "attributes": { '
+BODY_ADD_STP_PORT_CH += ' "id": "po%s", "mode": "trunk"'
+BODY_ADD_STP_PORT_CH += ' } } } ] } } ] } }'
+BODY_ADD_PORT_CH_P2 = BODY_PORT_CH_BEG + ', "ctrl": "graceful-conv"'
+BODY_ADD_PORT_CH_P2 += '} } } ] } },'
+BODY_ADD_PORT_CH_P2 += BODY_ADD_STP_PORT_CH
+BODY_ADD_PORT_CH_P2 += '] } }'
+
+BODY_DEL_PORT_CH = BODY_PORT_CH_BEG + ', "status": "deleted" } '
+BODY_DEL_PORT_CH += BODY_PORT_CH_END
+
+BODY_ADD_CH_GRP = BODY_PORT_CH_BEG + ', "isExplicit": "no", '
+BODY_ADD_CH_GRP += '"pcMode": "active" },'
+BODY_ADD_CH_GRP += '"children": [ { "pcShadowAggrIf": {'
+BODY_ADD_CH_GRP += '"attributes": { "id": "po%s" } } }, '
+BODY_ADD_CH_GRP += '{ "pcRsMbrIfs": { "attributes": { '
+BODY_ADD_CH_GRP += '"isMbrForce": "yes", '
+BODY_ADD_CH_GRP += '"tDn": "sys/intf/%s"'
+BODY_ADD_CH_GRP += '} } } ] ' + BODY_PORT_CH_END
+
+BODY_DEL_CH_GRP = BODY_PORT_CH_BEG + ' },'
+BODY_DEL_CH_GRP += '"children": [ { "pcRsMbrIfs": {'
+BODY_DEL_CH_GRP += ' "attributes": { "status": "deleted",'
+BODY_DEL_CH_GRP += '"tDn": "sys/intf/%s"'
+BODY_DEL_CH_GRP += '} } } ] ' + BODY_PORT_CH_END
 
 # conf t
 #   vlan <n>
@@ -66,8 +109,9 @@ PATH_IF = 'api/mo/sys/intf/%s.json'
 #      switchport trunk allowed vlan none | add <vlan> | remove <vlan>
 # first %s is "l1PhysIf" | "pcAggrIf", 2nd trunkvlan string, 3rd one
 # native vlan
-BODY_TRUNKVLAN = '{"%s": {"attributes": {"trunkVlans": "%s"}}}'
-BODY_NATIVE_TRUNKVLAN = '{"%s": {"attributes": {"trunkVlans": "%s",'
+BODY_PORT_CH_MODE = '"mode": "trunk",'
+BODY_TRUNKVLAN = '{"%s": {"attributes": {%s "trunkVlans": "%s"}}}'
+BODY_NATIVE_TRUNKVLAN = '{"%s": {"attributes": {%s "trunkVlans": "%s",'
 BODY_NATIVE_TRUNKVLAN += ' "nativeVlan": "%s"}}}'
 
 # conf t

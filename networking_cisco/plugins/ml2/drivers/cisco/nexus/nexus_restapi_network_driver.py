@@ -22,14 +22,20 @@ import time
 
 from oslo_log import log as logging
 
-from networking_cisco._i18n import _LW
+from networking_cisco._i18n import _LE, _LW
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     config as conf)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    exceptions as cexc)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_base_network_driver as basedrvr)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    nexus_db_v2 as nxos_db)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    nexus_helpers as nexus_help)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_restapi_client as client)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -137,6 +143,95 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
 
         return found
 
+    def add_ch_grp_to_interface(
+        self, nexus_host, if_type, port, ch_grp):
+        """Applies channel-group n to ethernet interface."""
+
+        if if_type != "ethernet":
+            LOG.error(_LE("Unexpected interface type %(iftype)s when "
+                      "adding change group"), {'iftype': if_type})
+            return
+
+        starttime = time.time()
+
+        path_snip = snipp.PATH_ALL
+        path_interface = "phys-[eth" + port + "]"
+
+        body_snip = snipp.BODY_ADD_CH_GRP % (ch_grp, ch_grp, path_interface)
+
+        self.send_edit_string(nexus_host, path_snip, body_snip)
+
+        self.capture_and_print_timeshot(
+            starttime, "add_ch_group",
+            switch=nexus_host)
+
+    def delete_ch_grp_to_interface(
+        self, nexus_host, if_type, port, ch_grp):
+        """Removes channel-group n from ethernet interface."""
+
+        if if_type != "ethernet":
+            LOG.error(_LE("Unexpected interface type %(iftype)s when "
+                      "deleting change group"), {'iftype': if_type})
+            return
+
+        starttime = time.time()
+
+        path_snip = snipp.PATH_ALL
+
+        path_interface = "phys-[eth" + port + "]"
+        body_snip = snipp.BODY_DEL_CH_GRP % (ch_grp, path_interface)
+
+        self.send_edit_string(nexus_host, path_snip, body_snip)
+
+        self.capture_and_print_timeshot(
+            starttime, "del_ch_group",
+            switch=nexus_host)
+
+    def _apply_user_port_channel_config(self, nexus_host, vpc_nbr):
+        """Adds STP and no lacp suspend config to port channel. """
+
+        vpc_str = str(vpc_nbr)
+        path_snip = snipp.PATH_ALL
+
+        body_snip = snipp.BODY_ADD_PORT_CH_P2 % (vpc_str, vpc_str)
+
+        self.send_edit_string(nexus_host, path_snip, body_snip)
+
+    def create_port_channel(self, nexus_host, vpc_nbr):
+        """Creates port channel n on Nexus switch."""
+
+        starttime = time.time()
+
+        vpc_str = str(vpc_nbr)
+        path_snip = snipp.PATH_ALL
+        body_snip = snipp.BODY_ADD_PORT_CH % (vpc_str, vpc_str, vpc_str)
+
+        self.send_edit_string(nexus_host, path_snip, body_snip)
+
+        self._apply_user_port_channel_config(nexus_host, vpc_nbr)
+
+        self.send_enable_vlan_on_trunk_int(
+            nexus_host, "", 'port-channel',
+            vpc_str, False, add_mode=True)
+
+        self.capture_and_print_timeshot(
+            starttime, "create_port_channel",
+            switch=nexus_host)
+
+    def delete_port_channel(self, nexus_host, vpc_nbr):
+        """Deletes delete port channel on Nexus switch."""
+
+        starttime = time.time()
+
+        path_snip = snipp.PATH_ALL
+        body_snip = snipp.BODY_DEL_PORT_CH % (vpc_nbr)
+
+        self.send_edit_string(nexus_host, path_snip, body_snip)
+
+        self.capture_and_print_timeshot(
+            starttime, "delete_port_channel",
+            switch=nexus_host)
+
     def _get_port_channel_group(
         self, nexus_host, intf_type, interface):
         """Look for 'channel-group x' config and return x.
@@ -180,37 +275,188 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
 
         return ch_grp
 
-    def initialize_all_switch_interfaces(self, interfaces):
+    def initialize_baremetal_switch_interfaces(self, interfaces):
+        """Initialize Nexus interfaces and for initial baremetal event.
+
+        This get/create port channel number, applies channel-group to
+        ethernet interface, and initializes trunking on interface.
+
+        :param interface: Receive a list of interfaces containing:
+
+        nexus_host: IP address of Nexus switch
+        intf_type:  String which specifies interface type.
+                    example: ethernet
+        interface:  String indicating which interface.
+                       example: 1/19
+        is_native:  Whether native vlan must be configured.
+        ch_grp:     May replace port channel to each entry.
+                    channel number is 0 if none
+        """
+        if not interfaces:
+            return
+
+        max_ifs = len(interfaces)
+        starttime = time.time()
+
+        # build host list in case you need to allocate vpc_id
+        prev_ch_grp = -1
+        nexus_ip_list = []
+        for (nexus_host, intf_type, nexus_port,
+            is_native, ch_grp) in interfaces:
+            nexus_ip_list.append(nexus_host)
+            if prev_ch_grp != -1 and prev_ch_grp != ch_grp:
+                # LOG error Baremetal set does not have matching ch_grp
+                LOG.error(_LE("Inconsistent change group stored in "
+                    "port entries. Saw %(ch_grp)d expected "
+                    "%(p_ch_grp)d for switch %(switch)s interface "
+                    "%(intf)s."), {
+                    'ch_grp': ch_grp,
+                    'p_ch_grp': prev_ch_grp,
+                    'switch': nexus_host,
+                    'intf': nexus_help.format_interface_name(
+                        intf_type, nexus_port)})
+                return
+            prev_ch_grp = ch_grp
+
+        ch_grp = 0
+        for i, (nexus_host, intf_type, nexus_port, is_native,
+            ch_grp_saved) in enumerate(interfaces):
+
+            add_trunk_mode = False
+            if max_ifs > 1 and ch_grp_saved == 0:
+
+                learned_ch_grp = self._get_port_channel_group(
+                    nexus_host, intf_type, nexus_port)
+
+                if i == 0:   # if first in the set
+                    if learned_ch_grp == 0:
+                        # When allocating vpcid, it must be unique for
+                        # all switches in the set.
+                        ch_grp = nxos_db.alloc_vpcid(nexus_ip_list)
+                        self.create_port_channel(nexus_host, ch_grp)
+                        learned = False
+                        add_trunk_mode = True
+                        self.add_ch_grp_to_interface(
+                            nexus_host, intf_type, nexus_port, ch_grp)
+                    else:
+                        ch_grp = learned_ch_grp
+                        learned = True
+                    save_1st_if = (nexus_host + ', ' +
+                        intf_type + ':' + nexus_port + ', ')
+                else:
+                    if learned:
+                        if learned_ch_grp != ch_grp:
+                            this_if = (nexus_host + ', ' + intf_type +
+                                ':' + nexus_port +
+                                ', vpc=' + str(learned_ch_grp))
+                            raise cexc.NexusVPCLearnedNotConsistent(
+                                first=save_1st_if + 'vpc=' + str(ch_grp),
+                                second=this_if)
+                        # if newly learned ch_grp
+                        if ch_grp_saved == 0:
+                            nxos_db.update_vpc_entry(
+                                nexus_host, ch_grp, learned, True)
+                    elif learned_ch_grp != 0:
+                        # Remove port-channels just created
+                        for y in range(i):
+                            self.delete_port_channel(
+                                nexus_ip_list[y], ch_grp)
+                        nxos_db.free_vpcid_for_switch_list(
+                            ch_grp, nexus_ip_list)
+                        raise cexc.NexusVPCExpectedNoChgrp(
+                            first=save_1st_if + 'vpc=None',
+                            second=this_if)
+                    else:
+                        self.create_port_channel(nexus_host, ch_grp)
+                        self.add_ch_grp_to_interface(
+                            nexus_host, intf_type, nexus_port, ch_grp)
+                if ch_grp is not 0:
+                    # if channel-group returned, init port-channel
+                    # instead of the provided ethernet interface
+                    intf_type = 'port-channel'
+                    nexus_port = str(ch_grp)
+
+            elif i == 0:
+                ch_grp = ch_grp_saved
+
+            #substitute content of ch_grp
+            no_chgrp_len = len(interfaces[i]) - 1
+            interfaces[i] = interfaces[i][:no_chgrp_len] + (ch_grp,)
+
+            present = self._get_interface_switch_trunk_present(
+                nexus_host, intf_type, nexus_port)
+            if not present:
+                self.send_enable_vlan_on_trunk_int(
+                    nexus_host, "", intf_type, nexus_port, False,
+                    add_trunk_mode)
+
+        self.capture_and_print_timeshot(
+            starttime, "init_bmif",
+            switch=nexus_host)
+
+    def initialize_all_switch_interfaces(self, interfaces,
+                                         switch_ip=None, replay=True):
         """Configure Nexus interface and get port channel number.
 
-        Receive a list of interfaces containing:
-        :param nexus_host: IP address of Nexus switch
-        :param intf_type:  String which specifies interface type.
-                           example: ethernet
-        :param interface:  String indicating which interface.
-                           example: 1/19
-        :returns interface: Appends port channel to each entry
-                            channel number is 0 if none
+        Called during switch replay or just init if no replay
+        is configured.  For latter case, only configured interfaces
+        are affected by this method.
+
+        During switch replay, the change group from the
+        host mapping data base is used.  There is no attempt
+        to relearn port-channel from the Nexus switch.  What
+        we last knew it to be will persist.
+
+        :param interfaces:  List of interfaces for a given switch.
+                            ch_grp can be altered as last arg
+                            to each interface. If no ch_grp,
+                            this arg will be zero.
+        :param switch_ip: IP address of Nexus switch
+        :param replay: Whether in replay path
         """
         if not interfaces:
             return
 
         starttime = time.time()
-        for i in range(len(interfaces)):
-            nexus_host, intf_type, nexus_port, is_native = interfaces[i]
-            ch_grp = self._get_port_channel_group(
-                         nexus_host, intf_type, nexus_port)
-            if ch_grp is not 0:
-                # if channel-group returned, init port-channel
+
+        if replay:
+            try:
+                vpcs = nxos_db.get_active_switch_vpc_allocs(switch_ip)
+            except cexc.NexusVPCAllocNotFound:
+                vpcs = []
+            for vpc in vpcs:
+                # if this is an allocated vpc, then recreate it
+                if not vpc.learned:
+                    self.create_port_channel(switch_ip, vpc.vpc_id)
+
+        for i, (nexus_host, intf_type, nexus_port, is_native,
+            ch_grp) in enumerate(interfaces):
+            add_trunk_mode = False
+            if replay and ch_grp != 0:
+                try:
+                    vpc = nxos_db.get_switch_vpc_alloc(switch_ip, ch_grp)
+                    if not vpc.learned:
+                        add_trunk_mode = True
+                    self.add_ch_grp_to_interface(
+                        nexus_host, intf_type, nexus_port, ch_grp)
+                except cexc.NexusVPCAllocNotFound:
+                    pass
+                # if channel-group exists, switch to port-channel
                 # instead of the provided ethernet interface
                 intf_type = 'port-channel'
                 nexus_port = str(ch_grp)
-            interfaces[i] += (ch_grp,)
+
+            #substitute content of ch_grp
+            no_chgrp_len = len(interfaces[i]) - 1
+            interfaces[i] = interfaces[i][:no_chgrp_len] + (ch_grp,)
+
             present = self._get_interface_switch_trunk_present(
-                          nexus_host, intf_type, nexus_port)
+                nexus_host, intf_type, nexus_port)
             if not present:
                 self.send_enable_vlan_on_trunk_int(
-                    nexus_host, "", intf_type, nexus_port, False)
+                    nexus_host, "", intf_type, nexus_port, False,
+                    add_trunk_mode)
+
         self.capture_and_print_timeshot(
             starttime, "get_allif",
             switch=nexus_host)
@@ -249,7 +495,7 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
     def start_create_vlan(self):
         """Returns REST API path and config start."""
 
-        return snipp.PATH_VLAN_ALL, snipp.BODY_VLAN_ALL_BEG
+        return snipp.PATH_ALL, snipp.BODY_VLAN_ALL_BEG
 
     def end_create_vlan(self, conf_str):
         """Returns current config + end of config."""
@@ -337,7 +583,8 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
             switch=nexus_host)
 
     def _get_vlan_body_on_trunk_int(self, nexus_host, vlanid, intf_type,
-                                    interface, is_native, is_delete):
+                                    interface, is_native, is_delete,
+                                    add_mode):
         """Prepares an XML snippet for VLAN on a trunk interface.
 
         :param nexus_host: IP address of Nexus switch
@@ -348,6 +595,7 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
                            example: 1/19
         :param is_native:  Is native vlan config desired?
         :param is_delete:  Is this a delete operation?
+        :param add_mode:   Add mode trunk
         :returns           path_snippet, body_snippet
         """
 
@@ -365,6 +613,7 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
 
         path_snip = (snipp.PATH_IF % (path_interface))
 
+        mode = snipp.BODY_PORT_CH_MODE if add_mode else ''
         if is_delete:
             increment_it = "-"
             debug_desc = "delif"
@@ -379,11 +628,11 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
 
         if is_native:
             body_snip = (snipp.BODY_NATIVE_TRUNKVLAN %
-                (body_if_type, increment_it + str(vlanid),
+                (body_if_type, mode, increment_it + str(vlanid),
                 str(native_vlan)))
         else:
             body_snip = (snipp.BODY_TRUNKVLAN %
-                (body_if_type, increment_it + str(vlanid)))
+                (body_if_type, mode, increment_it + str(vlanid)))
 
         self.capture_and_print_timeshot(
             starttime, debug_desc,
@@ -399,7 +648,7 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
 
         path_snip, body_snip = self._get_vlan_body_on_trunk_int(
             nexus_host, vlanid, intf_type, interface,
-            is_native, True)
+            is_native, True, False)
         self.send_edit_string(nexus_host, path_snip, body_snip)
         self.capture_and_print_timeshot(
             starttime, "delif",
@@ -418,12 +667,12 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
             switch=nexus_host)
 
     def send_enable_vlan_on_trunk_int(self, nexus_host, vlanid, intf_type,
-                                      interface, is_native):
+                                      interface, is_native, add_mode=False):
         """Gathers and sends an interface trunk XML snippet."""
 
         path_snip, body_snip = self._get_vlan_body_on_trunk_int(
             nexus_host, vlanid, intf_type, interface,
-            is_native, False)
+            is_native, False, add_mode)
         self.send_edit_string(nexus_host, path_snip, body_snip)
 
     def create_and_trunk_vlan(self, nexus_host, vlan_id,

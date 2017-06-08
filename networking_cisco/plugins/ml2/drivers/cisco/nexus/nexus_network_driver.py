@@ -304,17 +304,21 @@ class CiscoNexusSshDriver(basedrvr.CiscoNexusBaseDriver):
             "config", {'if_type': intf_type, 'interface': interface})
         return response
 
-    def initialize_all_switch_interfaces(self, interfaces):
+    def initialize_baremetal_switch_interfaces(self, interfaces):
+        """Initialize Nexus interfaces and for initial baremetal event."""
+
+        self.initialize_all_switch_interfaces(interfaces)
+
+    def initialize_all_switch_interfaces(self, interfaces, switch_ip=None,
+                                         replay=True):
         """Configure Nexus interface and get port channel number.
 
-        Receive a list of interfaces containing:
-        :param nexus_host: IP address of Nexus switch
-        :param intf_type:  String which specifies interface type.
-                           example: ethernet
-        :param interface:  String indicating which interface.
-                           example: 1/19
-        :returns interface: Appends port channel to each entry
-                            channel number is 0 if none
+        :param interfaces:  List of interfaces for a given switch.
+                            ch_grp can be altered as last arg
+                            to each interface. If no ch_grp,
+                            this arg will be zero.
+        :param switch_ip: IP address of Nexus switch
+        :param replay: Whether in replay path
         """
 
         if not interfaces:
@@ -322,22 +326,27 @@ class CiscoNexusSshDriver(basedrvr.CiscoNexusBaseDriver):
 
         starttime = time.time()
         ifs = []
-        for i in range(len(interfaces)):
-            nexus_host, intf_type, nexus_port, is_native = interfaces[i]
+        for i, (nexus_host, intf_type, nexus_port, is_native,
+            ch_grp_saved) in enumerate(interfaces):
             response = self.get_interface_switch(
                            nexus_host, intf_type, nexus_port)
-            # Collect the port-channel number from response
-            mo = re.search("channel-group\s(\d*)\s", response)
-            try:
-                ch_grp = int(mo.group(1))
-            except Exception:
-                ch_grp = 0
+            if ch_grp_saved == 0:
+                # Collect the port-channel number from response
+                mo = re.search("channel-group\s(\d*)\s", response)
+                try:
+                    ch_grp = int(mo.group(1))
+                except Exception:
+                    ch_grp = 0
+                #substitute content of ch_grp
+                no_chgrp_len = len(interfaces[i]) - 1
+                interfaces[i] = interfaces[i][:no_chgrp_len] + (ch_grp,)
+            else:
+                ch_grp = ch_grp_saved
             if ch_grp is not 0:
-                # if channel-group returned, init port-channel
+                # if channel-group exists, init port-channel
                 # instead of the provided ethernet interface
                 intf_type = 'port-channel'
                 nexus_port = str(ch_grp)
-            interfaces[i] += (ch_grp,)
             if (response and
                "switchport trunk allowed vlan" in response):
                 pass
