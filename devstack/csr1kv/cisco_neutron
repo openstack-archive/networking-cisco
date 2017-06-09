@@ -189,7 +189,7 @@ function setup_for_csr1kv {
 }
 
 function net_create_neutron_initial_network {
-      if [[ "$Q_L3_ENABLED" == "True" ]]; then
+      if [ "$Q_L3_ENABLED" == "True" && $NEUTRON_CREATE_INITIAL_NETWORK = "True" ]; then
         # Create a router, and add the private subnet as one of its interfaces
         if [[ "$Q_L3_ROUTER_PER_TENANT" == "True" ]]; then
             # create a tenant-owned router.
