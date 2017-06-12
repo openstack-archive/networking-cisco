@@ -36,9 +36,11 @@ constants = __import__('neutron_lib.constants', fromlist=['constants'])
 if NEUTRON_VERSION >= NEUTRON_NEWTON_VERSION:
     from neutron.conf import common as base_config
     from neutron_lib.api import validators
+    from neutron_lib.db import model_base
     is_attr_set = validators.is_attr_set
     validators = validators.validators
     n_c_attr_names = getattr(n_c, "_mg__my_globals", None)
+    HasProject = model_base.HasProject
 else:
     from neutron.api.v2 import attributes
     from neutron.common import config as base_config
@@ -55,7 +57,6 @@ if NEUTRON_VERSION >= NEUTRON_OCATA_VERSION:
     from neutron_lib.api.definitions import portbindings
     from neutron_lib.api.definitions import provider_net as providernet
     from neutron_lib.api import extensions
-    from neutron_lib.db import model_base
     from neutron_lib.plugins import directory
     from neutron_lib.services import base as service_base
     from neutron_lib.utils import helpers as common_utils
@@ -67,7 +68,6 @@ if NEUTRON_VERSION >= NEUTRON_OCATA_VERSION:
 
     get_plugin = directory.get_plugin
     n_c_attr_names = dir(n_c)
-    HasProject = model_base.HasProject
     VXLAN_TUNNEL_TYPE = type_tunnel.ML2TunnelTypeDriver
     Agent = agent_model.Agent
     RouterPort = l3_models.RouterPort
@@ -86,18 +86,37 @@ if NEUTRON_VERSION >= NEUTRON_OCATA_VERSION:
         return nclient.glance
 else:
     from neutron.api import extensions  # noqa
+    from neutron.api.v2 import attributes as attr
     from neutron.common import utils as common_utils  # noqa
     from neutron import context
     from neutron.db import agents_db
     from neutron.db import api as db_api
     from neutron.db import l3_db
     from neutron.db import model_base  # noqa
-    from neutron.db import models_v2
     from neutron.extensions import portbindings  # noqa
     from neutron.extensions import providernet  # noqa
     from neutron import manager
     from neutron.plugins.common import constants as svc_constants
     from neutron.services import service_base  # noqa
+    import sqlalchemy as sa
+    from sqlalchemy.ext import declarative
+    from sqlalchemy import orm
+
+    class HasTenant(object):
+
+        project_id = sa.Column(sa.String(attr.TENANT_ID_MAX_LEN), index=True)
+
+        def get_tenant_id(self):
+            return self.project_id
+
+        def set_tenant_id(self, value):
+            self.project_id = value
+
+        @declarative.declared_attr
+        def tenant_id(cls):
+            return orm.synonym(
+                'project_id',
+                descriptor=property(cls.get_tenant_id, cls.set_tenant_id))
 
     def get_plugin(service=None):
         if service is None:
@@ -105,7 +124,7 @@ else:
         else:
             return manager.NeutronManager.get_service_plugins().get(service)
 
-    HasProject = models_v2.HasTenant
+    HasProject = HasTenant
     setattr(constants, 'L3', getattr(svc_constants, 'L3_ROUTER_NAT'))
     VXLAN_TUNNEL_TYPE = type_tunnel.TunnelTypeDriver
     Agent = agents_db.Agent
