@@ -405,8 +405,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
             with excutils.save_and_reraise_exception():
                 # put router back in backlog if deletion failed so that it
                 # gets reinstated
-                LOG.exception(_LE("Deletion of router %s failed. It will be "
-                                  "re-hosted."), router_id)
+                LOG.error(_LE("Deletion of router %s failed."), router_id)
                 if was_hosted is True or r_hd_binding_db.auto_schedule is True:
                     LOG.info(_LI("Router %s will be re-hosted."), router_id)
                     self.backlog_router(context, r_hd_binding_db)
