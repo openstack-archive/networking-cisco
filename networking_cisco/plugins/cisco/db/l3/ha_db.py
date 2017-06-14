@@ -406,9 +406,14 @@ class HA_db_mixin(object):
                                         router_requested)
         # pick up updates to other attributes where it makes sense
         # and push - right now it is only admin_state_up.
+        other_updates_spec = {'router': {}}
         if 'admin_state_up' in update_specification['router']:
-            other_updates_spec = {'router': {'admin_state_up':
-                update_specification['router']['admin_state_up']}}
+            other_updates_spec['router']['admin_state_up'] = (
+                update_specification['router']['admin_state_up'])
+        if 'name' in update_specification['router']:
+            other_updates_spec['router']['name'] = (
+                update_specification['router']['name'])
+        if other_updates_spec['router']:
             self._process_other_router_updates(e_context, updated_router_db,
                                                other_updates_spec)
         # Ensure we get latest state from DB
@@ -444,7 +449,12 @@ class HA_db_mixin(object):
 
     def _process_other_router_updates(self, context, router_db, update_spec):
         rr_ids = []
+        new_name_stub = update_spec['router'].get('name')
         for r_b_db in router_db.redundancy_bindings:
+            if new_name_stub is not None:
+                idx = r_b_db.redundancy_router.name.split('_')[-1]
+                update_spec['router']['name'] = (
+                    new_name_stub + REDUNDANCY_ROUTER_SUFFIX + idx)
             update_spec['router'][ha.ENABLED] = False
             self._update_router_no_notify(
                 context, r_b_db.redundancy_router_id, update_spec)
