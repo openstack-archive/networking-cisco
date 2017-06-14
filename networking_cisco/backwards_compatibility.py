@@ -54,6 +54,9 @@ else:
 if NEUTRON_VERSION >= NEUTRON_OCATA_VERSION:
     from neutron.db.models import agent as agent_model
     from neutron.db.models import l3 as l3_models
+    from neutron.objects import trunk as trunk_objects
+    from neutron.services.trunk import constants as trunk_consts
+    from neutron.services.trunk.drivers import base as trunk_base
     from neutron_lib.api.definitions import portbindings
     from neutron_lib.api.definitions import provider_net as providernet
     from neutron_lib.api import extensions
@@ -85,6 +88,13 @@ if NEUTRON_VERSION >= NEUTRON_OCATA_VERSION:
     def get_novaclient_images(nclient):
         return nclient.glance
 else:
+    from networking_cisco.services.trunk import (  # noqa
+        trunkstubs as trunk_objects)  # noqa
+    from networking_cisco.services.trunk import (  # noqa
+        trunkstubs as trunk_consts)  # noqa
+    from networking_cisco.services.trunk import (  # noqa
+        trunkstubs as trunk_base)  # noqa
+
     from neutron.api import extensions  # noqa
     from neutron.api.v2 import attributes as attr
     from neutron.common import utils as common_utils  # noqa

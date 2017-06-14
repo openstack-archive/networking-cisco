@@ -37,6 +37,8 @@ from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    nexus_helpers as nexus_help)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_network_driver)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_restapi_network_driver)
@@ -46,6 +48,7 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import constants
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import exceptions
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import mech_cisco_nexus
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import nexus_db_v2
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import trunk
 
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import driver_api as api
@@ -499,6 +502,7 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
 
             mech_instance._switch_state = {}
             mech_instance._nexus_switches = collections.OrderedDict()
+            mech_instance.trunk = trunk.NexusMDTrunkHandler()
             for name, config in self.test_configs.items():
                 host_name = config.host_name
                 # baremetal config done differently
@@ -615,7 +619,7 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         self._cisco_mech_driver.update_port_precommit(port_context)
         self._cisco_mech_driver.update_port_postcommit(port_context)
 
-        if self._cisco_mech_driver._is_baremetal(port_context.current):
+        if nexus_help.is_baremetal(port_context.current):
             connections = self._cisco_mech_driver._get_port_connections(
                 port_context.current, '')
         else:
@@ -692,7 +696,7 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         self._cisco_mech_driver.delete_port_precommit(port_context)
         self._cisco_mech_driver.delete_port_postcommit(port_context)
 
-        if self._cisco_mech_driver._is_baremetal(port_context.current):
+        if nexus_help.is_baremetal(port_context.current):
             connections = self._cisco_mech_driver._get_port_connections(
                 port_context.current, '')
         else:
@@ -800,7 +804,7 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         self.assertEqual(nbr_of_bindings, bindings_found)
 
         port_context = self._generate_port_context(other_test)
-        if self._cisco_mech_driver._is_baremetal(port_context.current):
+        if nexus_help.is_baremetal(port_context.current):
             connections = self._cisco_mech_driver._get_baremetal_connections(
                 port_context.current, False, True)
             for switch_ip, intf_type, port, is_p_vlan, _ in connections:

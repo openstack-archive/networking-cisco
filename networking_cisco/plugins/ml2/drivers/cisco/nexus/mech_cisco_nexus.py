@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2016 Cisco Systems, Inc.
+# Copyright (c) 2013-2017 Cisco Systems, Inc.
 # All rights reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -51,6 +51,8 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_db_v2 as nxos_db)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_helpers as nexus_help)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import trunk
+from networking_cisco.services.trunk import nexus_trunk
 
 
 LOG = logging.getLogger(__name__)
@@ -338,6 +340,8 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         self.monitor_timeout = conf.cfg.CONF.ml2_cisco.switch_heartbeat_time
         self.monitor_lock = threading.Lock()
         self.context = bc.get_context()
+        self.trunk = trunk.NexusMDTrunkHandler()
+        nexus_trunk.NexusTrunkDriver.create()
         LOG.info(_LI("CiscoNexusMechanismDriver: initialize() called "
                     "pid %(pid)d thid %(tid)d"), {'pid': self._ppid,
                     'tid': threading.current_thread().ident})
@@ -510,6 +514,12 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         return switch_connections
 
+    def _get_port_uuid(self, port):
+        # Trunk subport's don't have the 'device_id' set so use port 'id'
+        # as the UUID.
+        uuid_key = 'id' if self.trunk.is_trunk_subport(port) else 'device_id'
+        return port.get(uuid_key)
+
     def _valid_network_segment(self, segment):
         return (cfg.CONF.ml2_cisco.managed_physical_network is None or
                 cfg.CONF.ml2_cisco.managed_physical_network ==
@@ -520,29 +530,17 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 port['device_owner'].startswith('baremetal') or
                 port['device_owner'].startswith('manila') or
                 port['device_owner'] in [
+                    bc.trunk_consts.TRUNK_SUBPORT_OWNER,
                     bc.constants.DEVICE_OWNER_DHCP,
                     bc.constants.DEVICE_OWNER_ROUTER_INTF,
                     bc.constants.DEVICE_OWNER_ROUTER_GW,
                     bc.constants.DEVICE_OWNER_ROUTER_HA_INTF])
 
-    def _is_status_active(self, port):
-        return port['status'] == bc.constants.PORT_STATUS_ACTIVE
-
-    def _is_baremetal(self, port):
-        """Identifies ironic baremetal transactions.
-
-        There are two types of transactions.
-        1) A host transaction which is dependent on
-           host to interface mapping config stored in the
-           ml2_conf.ini file. The VNIC type for this is
-           'normal' which is the assumed condition.
-        2) A baremetal transaction which comes from
-           the ironic project where the interfaces
-           are provided in the port transaction. In this
-           case the VNIC_TYPE is 'baremetal'.
-        """
-        return (port[bc.portbindings.VNIC_TYPE] ==
-                bc.portbindings.VNIC_BAREMETAL)
+    def _is_status_down(self, port):
+        # ACTIVE, BUILD status indicates a port is up or coming up.
+        # DOWN, ERROR status indicates the port is down.
+        return (port['status'] in [bc.constants.PORT_STATUS_DOWN,
+                                   bc.constants.PORT_STATUS_ERROR])
 
     def _get_baremetal_switch_info(self, link_info):
         """Get switch_info dictionary from context."""
@@ -563,7 +561,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         port = context.current
 
-        if not self._is_baremetal(port):
+        if not nexus_help.is_baremetal(port):
             return False
 
         if bc.portbindings.PROFILE not in port:
@@ -620,6 +618,11 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                            'count': len(all_link_info)})
                 break
 
+        # if trunk parent port then generate update_port calls for all
+        # trunk subports configured.
+        if selected and self.trunk.is_trunk_parentport(port):
+            self.trunk.update_subports(port)
+
         return selected
 
     def _get_baremetal_switches(self, port):
@@ -672,7 +675,10 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         connections = []
 
+        is_native = False if self.trunk.is_trunk_subport(port) else True
+
         all_link_info = port[bc.portbindings.PROFILE]['local_link_information']
+
         for link_info in all_link_info:
 
             # Extract port info
@@ -695,10 +701,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 not self.is_switch_active(switch_ip)):
                 continue
 
-            if 'is_native' in switch_info:
-                is_native = switch_info['is_native']
-            else:
-                is_native = const.NOT_NATIVE
             ch_grp = 0
             if not from_segment:
                 try:
@@ -875,7 +877,8 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 nexus_help.format_interface_name(intf_type, port),
                 ch_grp, False)
 
-        device_id = port_seg.get('device_id')
+        device_id = self._get_port_uuid(port_seg)
+
         vlan_id = segment.get(api.SEGMENTATION_ID)
         # TODO(rpothier) Add back in provider segment support.
         is_provider_vlan = False
@@ -964,12 +967,10 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
     def _get_port_connections(self, port, host_id,
                               only_active_switch=False):
-        if self._is_baremetal(port):
-            return self._get_baremetal_connections(
-                       port, only_active_switch)
+        if nexus_help.is_baremetal(port):
+            return self._get_baremetal_connections(port, only_active_switch)
         else:
-            return self._get_host_connections(
-                       host_id, only_active_switch)
+            return self._get_host_connections(host_id, only_active_switch)
 
     def _get_active_port_connections(self, port, host_id):
         return self._get_port_connections(port, host_id, True)
@@ -1593,7 +1594,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             self._delete_port_channel_resources(
                 host_id, switch_ip, intf_type, nexus_port, port_id)
 
-        if self._is_baremetal(port):
+        if nexus_help.is_baremetal(port):
             connections = self._get_baremetal_connections(
                 port, False, True)
             for switch_ip, intf_type, nexus_port, is_native, _ in connections:
@@ -1627,8 +1628,10 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
     def _is_vm_migrating(self, context, vlan_segment, orig_vlan_segment):
         if not vlan_segment and orig_vlan_segment:
-            return (context.current.get(bc.portbindings.HOST_ID) !=
-                    context.original.get(bc.portbindings.HOST_ID))
+            current_host_id = context.current.get(bc.portbindings.HOST_ID)
+            original_host_id = context.original.get(bc.portbindings.HOST_ID)
+            if current_host_id and original_host_id:
+                return current_host_id != original_host_id
 
     def _log_missing_segment(self):
         LOG.warning(_LW("Nexus: Segment is None, Event not processed."))
@@ -1658,12 +1661,15 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         if not self._is_valid_segment(segment):
             return
 
-        device_id = port.get('device_id')
-        if self._is_baremetal(port):
+        device_id = self._get_port_uuid(port)
+
+        if nexus_help.is_baremetal(port):
             host_id = port.get('dns_name')
         else:
             host_id = port.get(bc.portbindings.HOST_ID)
+
         vlan_id = segment.get(api.SEGMENTATION_ID)
+
         # TODO(rpothier) Add back in provider segment support.
         is_provider = False
         settings = {"vlan_id": vlan_id,
@@ -1740,7 +1746,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         port = context.current
         if self._is_supported_deviceowner(port):
-            if self._is_baremetal(context.current):
+            if nexus_help.is_baremetal(context.current):
                 all_switches, active_switches = (
                     self._get_baremetal_switches(context.current))
             else:
@@ -1780,71 +1786,66 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
     def update_port_precommit(self, context):
         """Update port pre-database transaction commit event."""
         vlan_segment, vxlan_segment = self._get_segments(
-                                        context.top_bound_segment,
-                                        context.bottom_bound_segment)
+            context.top_bound_segment, context.bottom_bound_segment)
         orig_vlan_segment, orig_vxlan_segment = self._get_segments(
-                                        context.original_top_bound_segment,
-                                        context.original_bottom_bound_segment)
+            context.original_top_bound_segment,
+            context.original_bottom_bound_segment)
 
-        # if VM migration is occurring then remove previous database entry
-        # else process update event.
-        if self._is_vm_migrating(context, vlan_segment, orig_vlan_segment):
-            vni = self._port_action_vxlan(context.original, orig_vxlan_segment,
-                        self._delete_nve_db) if orig_vxlan_segment else 0
+        if (self._is_vm_migrating(context, vlan_segment, orig_vlan_segment) or
+            self._is_status_down(context.current)):
+            vni = (self._port_action_vxlan(
+                context.original, orig_vxlan_segment, self._delete_nve_db)
+                if orig_vxlan_segment else 0)
             self._port_action_vlan(context.original, orig_vlan_segment,
                                    self._delete_nxos_db, vni)
-        else:
-            if (self._is_supported_deviceowner(context.current) and
-                self._is_status_active(context.current) and
-                not self._is_baremetal(context.current)):
-                vni = self._port_action_vxlan(context.current, vxlan_segment,
-                            self._configure_nve_db) if vxlan_segment else 0
-                self._port_action_vlan(context.current, vlan_segment,
-                                       self._configure_nxos_db, vni)
+        elif (self._is_supported_deviceowner(context.current) and
+              not nexus_help.is_baremetal(context.current)):
+            vni = self._port_action_vxlan(context.current, vxlan_segment,
+                        self._configure_nve_db) if vxlan_segment else 0
+            self._port_action_vlan(context.current, vlan_segment,
+                                   self._configure_nxos_db, vni)
 
     @lockutils.synchronized('cisco-nexus-portlock')
     def update_port_postcommit(self, context):
         """Update port non-database commit event."""
         vlan_segment, vxlan_segment = self._get_segments(
-                                        context.top_bound_segment,
-                                        context.bottom_bound_segment)
+            context.top_bound_segment, context.bottom_bound_segment)
         orig_vlan_segment, orig_vxlan_segment = self._get_segments(
-                                        context.original_top_bound_segment,
-                                        context.original_bottom_bound_segment)
+            context.original_top_bound_segment,
+            context.original_bottom_bound_segment)
 
-        # if VM migration is occurring then remove previous nexus switch entry
-        # else process update event.
-        if self._is_vm_migrating(context, vlan_segment, orig_vlan_segment):
-            vni = self._port_action_vxlan(context.original, orig_vxlan_segment,
-                        self._delete_nve_member) if orig_vxlan_segment else 0
+        if (self._is_vm_migrating(context, vlan_segment, orig_vlan_segment)
+            or self._is_status_down(context.current)):
+            vni = (self._port_action_vxlan(
+                context.original, orig_vxlan_segment,
+                self._delete_nve_member) if orig_vxlan_segment else 0)
             self._port_action_vlan(context.original, orig_vlan_segment,
                                    self._delete_switch_entry, vni)
-        else:
-            if (self._is_supported_deviceowner(context.current) and
-                self._is_status_active(context.current)):
-                if self._is_baremetal(context.current):
-                    # Baremetal db entries are created here instead
-                    # of precommit since a get operation to
-                    # nexus device is required but blocking
-                    # operation should not be done in precommit.
-                    self._init_baremetal_trunk_interfaces(
-                        context.current, vlan_segment, 0)
-                    all_switches, active_switches = (
-                        self._get_baremetal_switches(context.current))
-                else:
-                    host_id = context.current.get(bc.portbindings.HOST_ID)
-                    all_switches, active_switches = (
-                        self._get_host_switches(host_id))
-                # if switches not active but host_id is valid
-                if not active_switches and all_switches:
-                    raise excep.NexusConnectFailed(
-                        nexus_host=all_switches[0], config="None",
-                        exc="Update Port Failed: Nexus Switch "
-                        "is down or replay in progress")
-                vni = self._port_action_vxlan(context.current, vxlan_segment,
-                            self._configure_nve_member) if vxlan_segment else 0
-                self._port_action_vlan(context.current, vlan_segment,
-                                       self._configure_port_entries, vni)
+        elif self._is_supported_deviceowner(context.current):
+            if nexus_help.is_baremetal(context.current):
+                # Baremetal db entries are created here instead
+                # of precommit since a get operation to
+                # nexus device is required but blocking
+                # operation should not be done in precommit.
+                self._init_baremetal_trunk_interfaces(
+                    context.current, vlan_segment, 0)
+                all_switches, active_switches = (
+                    self._get_baremetal_switches(context.current))
+            else:
+                host_id = context.current.get(bc.portbindings.HOST_ID)
+                all_switches, active_switches = (
+                    self._get_host_switches(host_id))
+
+            # if switches not active but host_id is valid
+            if not active_switches and all_switches:
+                raise excep.NexusConnectFailed(
+                    nexus_host=all_switches[0], config="None",
+                    exc="Update Port Failed: Nexus Switch "
+                    "is down or replay in progress")
+            vni = self._port_action_vxlan(context.current, vxlan_segment,
+                        self._configure_nve_member) if vxlan_segment else 0
+            self._port_action_vlan(context.current, vlan_segment,
+                                   self._configure_port_entries, vni)
 
     @lockutils.synchronized('cisco-nexus-portlock')
     def delete_port_precommit(self, context):

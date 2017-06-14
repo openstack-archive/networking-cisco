@@ -17,6 +17,8 @@
 ML2 Nexus Driver - Helper Methods
 """
 
+from networking_cisco import backwards_compatibility as bc
+
 
 def format_interface_name(intf_type, port, ch_grp=0):
     """Method to format interface name given type, port.
@@ -64,3 +66,19 @@ def split_interface_name(interface, ch_grp=0):
         intf_type, port = 'ethernet', interface
 
     return intf_type, port
+
+
+def is_baremetal(port):
+    """Identifies ironic baremetal transactions.
+
+    There are two types of transactions.
+    1) A host transaction which is dependent on
+       host to interface mapping config stored in the
+       ml2_conf.ini file. The VNIC type for this is
+       'normal' which is the assumed condition.
+    2) A baremetal transaction which comes from
+       the ironic project where the interfaces
+       are provided in the port transaction. In this
+       case the VNIC_TYPE is 'baremetal'.
+    """
+    return port[bc.portbindings.VNIC_TYPE] == bc.portbindings.VNIC_BAREMETAL
