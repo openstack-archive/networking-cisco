@@ -33,6 +33,7 @@ from oslo_db import exception as db_exc
 from oslo_utils import uuidutils
 import six
 from sqlalchemy import exc as inner_db_exc
+from webob import exc
 
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
@@ -552,6 +553,41 @@ class L3RouterApplianceNamespaceTestCase(
         self._check_driver_calls(
             'test_router_update_gateway_to_empty_with_existed_floatingip', 1,
             1)
+
+    def _test_rest_api_operations_denied_for_plugin_managed_router(
+            self, func, *args, **kwargs):
+            with mock.patch.object(self.l3_plugin, '_get_router_binding_info',
+                                   return_value=lambda: None) as m:
+                # for now operations on routers of any role != None are not
+                # permitted for anyone but the l3plugin itself
+                setattr(m.return_value, 'role', 'some_role')
+                func(*args, **kwargs)
+
+    def test_router_update_denied_for_plugin_managed_router(self):
+        with self.router() as router:
+            self._test_rest_api_operations_denied_for_plugin_managed_router(
+                self._update, 'routers', router['router']['id'],
+                {'router': {'name': 'new_name'}},
+                expected_code=exc.HTTPForbidden.code)
+
+    def test_router_delete_denied_for_plugin_managed_router(self):
+        with self.router() as router:
+            self._test_rest_api_operations_denied_for_plugin_managed_router(
+                self._delete, 'routers', router['router']['id'],
+                expected_code=exc.HTTPForbidden.code)
+
+    def test_router_interface_add_denied_for_plugin_managed_router(self):
+        with self.router() as router:
+            self._test_rest_api_operations_denied_for_plugin_managed_router(
+                self._router_interface_action, 'add', router['router']['id'],
+                'some_subnet_id', None, expected_code=exc.HTTPForbidden.code)
+
+    def router_interface_remove_denied_for_plugin_managed_router(self):
+        with self.router() as router:
+            self._test_rest_api_operations_denied_for_plugin_managed_router(
+                self._router_interface_action, 'remove',
+                router['router']['id'], 'some_subnet_id', None,
+                expected_code=exc.HTTPForbidden.code)
 
 
 class L3RouterApplianceVMTestCase(L3RouterApplianceNamespaceTestCase):
