@@ -182,4 +182,4 @@ class HATypeCannotBeChanged(nexception.Conflict):
 
 
 class HATypeNotCompatibleWithFloatingIP(nexception.BadRequest):
-    message = _("HA type %(ha_type) cannot be used with FloatingIP")
+    message = _("HA type %(ha_type)s cannot be used with FloatingIP")

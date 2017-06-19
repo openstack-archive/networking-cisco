@@ -819,7 +819,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             except Exception:
                 LOG.error(_LE("Failed to remove port %(port)s"
                     "vlan %(vlan)d vni %(vni)d "
-                    "switch_ip %(ip), instance %(id)s"),
+                    "switch_ip %(ip)s, instance %(id)s"),
                     {'port': old_port_id,
                     'vlan': row.vlan_id,
                     'vni': row.vni,

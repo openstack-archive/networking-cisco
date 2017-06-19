@@ -533,7 +533,7 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
                                               l3_port_check=False)
             except (exc.ObjectDeletedError, n_exc.PortNotFound) as e:
                 LOG.info(_LI('Unable to delete port for Global router '
-                             '%(r_id). It has likely been concurrently '
+                             '%(r_id)s. It has likely been concurrently '
                              'deleted. %(err)s'), {'r_id': router_id,
                                                    'err': e})
 
@@ -552,9 +552,17 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
                     context, global_router_id, unschedule=False)
         except (exc.ObjectDeletedError, l3.RouterNotFound) as e:
             g_r_type = 'Logical Global' if logical is True else 'Global'
-            LOG.info(_LI('Unable to delete %(g_r_type)s router. It has likely '
-                         'been concurrently deleted. %(err)s'),
-                     {'g_r_type': g_r_type, 'err': e})
+            LOG.info(_LI('Unable to delete %(g_r_type)s router %(r_id)s. It '
+                         'has likely been concurrently deleted. %(err)s'),
+                     {'g_r_type': g_r_type, 'r_id': global_router_id,
+                     'err': e})
+        except Exception as e:
+            g_r_type = 'Logical Global' if logical is True else 'Global'
+            LOG.debug('Failed to delete %(g_r_type)s router %(r_id). It may '
+                      'have been deleted concurrently. Error details: '
+                      '%(err)s',
+                      {'g_r_type': g_r_type, 'r_id': global_router_id,
+                       'err': e})
 
     def _get_gateway_routers_count(self, context, ext_net_id, routertype_id,
                                    router_role, hosting_device_id=None):

@@ -343,7 +343,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
             self._validate_caller(context, router_id)
         except RouterBindingInfoError:
             LOG.debug('Router %s to be deleted has no binding information '
-                      'so assuming it is a regular router')
+                      'so assuming it is a regular router', router_id)
         try:
             router_db = self._ensure_router_not_in_use(context, router_id)
         except sa_exc.InvalidRequestError:
@@ -1241,7 +1241,8 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
             raise RouterCreateInternalError()
         return self._make_routertype_dict(router_type_db)
 
-    def _get_effective_and_normal_routertypes(self, context, hosting_info):
+    def _get_effective_and_normal_routertypes(self, context, router_id,
+                                              hosting_info):
         if hosting_info:
             hosting_device = hosting_info.hosting_device
             normal = self._make_routertype_dict(hosting_info.router_type)
@@ -1261,14 +1262,15 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
         else:
             # should not happen but just in case...
             LOG.debug('Could not determine effective router type since '
-                      'router db record had no binding information')
+                      'router db record for router %s had no binding '
+                      'information', router_id)
             normal = None
             effective = None
         return effective, normal
 
-    def _get_effective_slot_need(self, context, hosting_info):
+    def _get_effective_slot_need(self, context, router_id, hosting_info):
         (eff_rt, norm_rt) = self._get_effective_and_normal_routertypes(
-            context, hosting_info)
+            context, router_id, hosting_info)
         return eff_rt['slot_need'] if eff_rt else 0
 
     def _update_routertype(self, context, r, binding_info_db):
@@ -1291,7 +1293,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
     def _extend_router_dict_routertype(self, router_res, router_db):
         adm_context = bc.context.get_admin_context()
         (eff_rt, norm_rt) = self._get_effective_and_normal_routertypes(
-            adm_context, router_db.hosting_info)
+            adm_context, router_db.id, router_db.hosting_info)
         # Show both current (temporary) and normal types if Neutron router is
         # relocated to a device of different type
         if eff_rt and norm_rt:

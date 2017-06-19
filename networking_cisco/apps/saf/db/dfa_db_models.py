@@ -223,7 +223,7 @@ class DfaSegmentTypeDriver(object):
             alloc = self._allocate_specified_segment(session, seg_id, source)
             if not alloc:
                 LOG.error(_LE("ERROR: Segmentation_id %(seg)s is in use. for "
-                              "net %(net)s source %(src)"),
+                              "net %(net)s source %(src)s"),
                           {'seg': seg_id, 'net': net_id, 'src': source})
                 return
 
