@@ -401,7 +401,13 @@ class CiscoCfgAgentWithStateReport(CiscoCfgAgent):
         for attempts in range(MAX_REGISTRATION_ATTEMPTS):
             context = bc.context.get_admin_context_without_session()
             self.send_agent_report(self.agent_state, context)
-            res = self.devmgr_rpc.register_for_duty(context)
+            try:
+                res = self.devmgr_rpc.register_for_duty(context)
+            except Exception:
+                res = False
+                LOG.warning(_LW("[Agent registration] Rpc exception. Neutron "
+                                "may not be available or busy. Retrying "
+                                "in %0.2f seconds "), REGISTRATION_RETRY_DELAY)
             if res is True:
                 LOG.info(_LI("[Agent registration] Agent successfully "
                              "registered"))
