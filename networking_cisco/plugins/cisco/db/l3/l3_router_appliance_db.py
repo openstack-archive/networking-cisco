@@ -470,6 +470,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
                  self.get_namespace_router_type_id(context))
         if is_ha:
             # process any HA
+            setattr(context, 'GUARD_TRANSACTION', False)
             self._add_redundancy_router_interfaces(
                 context, self._make_router_dict(r_hd_binding_db.router),
                 interface_info, self._core_plugin.get_port(context,
@@ -503,6 +504,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
 
     def remove_router_interface(self, context, router_id, interface_info):
         self._validate_caller(context, router_id)
+        setattr(context, 'GUARD_TRANSACTION', False)
         remove_by_port, remove_by_subnet = self._validate_interface_info(
             interface_info, for_removal=True)
         e_context = context.elevated()
@@ -978,6 +980,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
            DOWN and when the ASR plugin creates the port it notifies the DB to
            change the status to ACTIVE.
         """
+        setattr(context, 'GUARD_TRANSACTION', False)
         for port_id in port_ids:
             self._core_plugin.update_port_status(context, port_id, status)
 

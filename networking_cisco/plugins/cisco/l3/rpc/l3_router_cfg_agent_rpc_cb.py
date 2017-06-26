@@ -155,6 +155,5 @@ class L3RouterCfgRpcCallback(object):
            @param port_ids: list of ids of all the ports for the given status
            @param status: PORT_STATUS_ACTIVE/PORT_STATUS_DOWN.
         """
-        with context.session.begin(subtransactions=True):
-            self._l3plugin.update_router_port_statuses(context, port_ids,
-                                                       status)
+        self._l3plugin.update_router_port_statuses(context, port_ids,
+                                                   status)

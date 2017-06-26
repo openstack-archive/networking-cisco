@@ -307,6 +307,7 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
                                               filters=filters)[0]
         fixed_ips = self._get_fixed_ips_subnets(context, gw_port)
         global_router_id = global_router['id']
+        setattr(context, 'GUARD_TRANSACTION', False)
         with context.session.begin(subtransactions=True):
             aux_gw_port = self._core_plugin.create_port(context, {
                 'port': {
