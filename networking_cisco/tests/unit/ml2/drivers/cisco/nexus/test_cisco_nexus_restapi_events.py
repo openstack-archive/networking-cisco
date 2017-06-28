@@ -30,6 +30,8 @@ redundant.
 from oslo_config import cfg
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    nexus_db_v2 as nxos_db)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_restapi_snippets as snipp)
 from networking_cisco.tests.unit.ml2.drivers.cisco.nexus import (
     test_cisco_nexus_base as base)
@@ -43,19 +45,19 @@ class TestCiscoNexusRestDeviceResults(base.TestCiscoNexusBaseResults):
 
     test_results = {
         'duplicate_add_port_driver_result': [
-            [snipp.PATH_VLAN_ALL,
+            [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_1,
              (snipp.BODY_VLAN_ADD % 267),
              base.POST],
             [(snipp.PATH_IF % 'phys-[eth1/10]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '+267')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '+267')),
              base.POST]
         ],
         'duplicate_del_port_driver_result': [
             [(snipp.PATH_IF % 'phys-[eth1/10]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '-267')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '-267')),
              base.POST],
             [(snipp.PATH_VLAN % '267'),
              base.NEXUS_IP_ADDRESS_1,
@@ -63,19 +65,19 @@ class TestCiscoNexusRestDeviceResults(base.TestCiscoNexusBaseResults):
              base.DELETE]
         ],
         'add_port2_driver_result': [
-            [snipp.PATH_VLAN_ALL,
+            [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_1,
              (snipp.BODY_VLAN_ADD % 265),
              base.POST],
             [(snipp.PATH_IF % 'phys-[eth1/20]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '+265')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '+265')),
              base.POST]
         ],
         'delete_port2_driver_result': [
             [(snipp.PATH_IF % 'phys-[eth1/20]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '-265')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '-265')),
              base.POST],
             [(snipp.PATH_VLAN % '265'),
              base.NEXUS_IP_ADDRESS_1,
@@ -83,43 +85,43 @@ class TestCiscoNexusRestDeviceResults(base.TestCiscoNexusBaseResults):
              base.DELETE]
         ],
         'add_port2_driver_result2': [
-            [snipp.PATH_VLAN_ALL,
+            [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_8,
              (snipp.BODY_VLAN_ADD % 267),
              base.POST],
             [(snipp.PATH_IF % 'phys-[eth1/20]'),
              base.NEXUS_IP_ADDRESS_8,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '+267')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '+267')),
              base.POST]
         ],
         'delete_port2_driver_result2': [
             [(snipp.PATH_IF % 'phys-[eth1/20]'),
              base.NEXUS_IP_ADDRESS_8,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '-267')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '-267')),
              base.POST]
         ],
         'add_port2_driver_result3': [
-            [snipp.PATH_VLAN_ALL,
+            [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_6,
              (snipp.BODY_VLAN_ADD % 268),
              base.POST],
             [(snipp.PATH_IF % 'aggr-[po2]'),
              base.NEXUS_IP_ADDRESS_6,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '+268')),
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '+268')),
              base.POST],
-            [snipp.PATH_VLAN_ALL,
+            [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_7,
              (snipp.BODY_VLAN_ADD % 268),
              base.POST],
             [(snipp.PATH_IF % 'aggr-[po2]'),
              base.NEXUS_IP_ADDRESS_7,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '+268')),
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '+268')),
              base.POST]
         ],
         'delete_port2_driver_result3': [
             [(snipp.PATH_IF % 'aggr-[po2]'),
              base.NEXUS_IP_ADDRESS_6,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '-268')),
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '-268')),
              base.POST],
             [(snipp.PATH_VLAN % '268'),
              base.NEXUS_IP_ADDRESS_6,
@@ -127,7 +129,7 @@ class TestCiscoNexusRestDeviceResults(base.TestCiscoNexusBaseResults):
              base.DELETE],
             [(snipp.PATH_IF % 'aggr-[po2]'),
              base.NEXUS_IP_ADDRESS_7,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '-268')),
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '-268')),
              base.POST],
             [(snipp.PATH_VLAN % '268'),
              base.NEXUS_IP_ADDRESS_7,
@@ -135,19 +137,19 @@ class TestCiscoNexusRestDeviceResults(base.TestCiscoNexusBaseResults):
              base.DELETE]
         ],
         'add_port_channel_driver_result': [
-            [snipp.PATH_VLAN_ALL,
+            [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_2,
              (snipp.BODY_VLAN_ADD % 268),
              base.POST],
             [(snipp.PATH_IF % 'aggr-[po2]'),
              base.NEXUS_IP_ADDRESS_2,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '+268')),
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '+268')),
              base.POST]
         ],
         'delete_port_channel_driver_result': [
             [(snipp.PATH_IF % 'aggr-[po2]'),
              base.NEXUS_IP_ADDRESS_2,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '-268')),
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '-268')),
              base.POST],
             [(snipp.PATH_VLAN % '268'),
              base.NEXUS_IP_ADDRESS_2,
@@ -155,27 +157,27 @@ class TestCiscoNexusRestDeviceResults(base.TestCiscoNexusBaseResults):
              base.DELETE]
         ],
         'dual_add_port_driver_result': [
-            [snipp.PATH_VLAN_ALL,
+            [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_DUAL,
              (snipp.BODY_VLAN_ADD % 269),
              base.POST],
             [(snipp.PATH_IF % 'phys-[eth1/3]'),
              base.NEXUS_IP_ADDRESS_DUAL,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '+269')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '+269')),
              base.POST],
-            [snipp.PATH_VLAN_ALL,
+            [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_DUAL,
              (snipp.BODY_VLAN_ADD % 269),
              base.POST],
             [(snipp.PATH_IF % 'aggr-[po2]'),
              base.NEXUS_IP_ADDRESS_DUAL,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '+269')),
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '+269')),
              base.POST]
         ],
         'dual_delete_port_driver_result': [
             [(snipp.PATH_IF % 'phys-[eth1/3]'),
              base.NEXUS_IP_ADDRESS_DUAL,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '-269')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '-269')),
              base.POST],
             [(snipp.PATH_VLAN % '269'),
              base.NEXUS_IP_ADDRESS_DUAL,
@@ -183,23 +185,23 @@ class TestCiscoNexusRestDeviceResults(base.TestCiscoNexusBaseResults):
              base.DELETE],
             [(snipp.PATH_IF % 'aggr-[po2]'),
              base.NEXUS_IP_ADDRESS_DUAL,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '-269')),
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '-269')),
              base.POST],
         ],
         'add_port_driver_result': [
-            [snipp.PATH_VLAN_ALL,
+            [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_8,
              (snipp.BODY_VLAN_ADD % 267),
              base.POST],
             [(snipp.PATH_IF % 'phys-[eth1/10]'),
              base.NEXUS_IP_ADDRESS_8,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '+267')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '+267')),
              base.POST]
         ],
         'del_port_driver_result': [
             [(snipp.PATH_IF % 'phys-[eth1/10]'),
              base.NEXUS_IP_ADDRESS_8,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '-267')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '-267')),
              base.POST],
             [(snipp.PATH_VLAN % '267'),
              base.NEXUS_IP_ADDRESS_8,
@@ -207,13 +209,13 @@ class TestCiscoNexusRestDeviceResults(base.TestCiscoNexusBaseResults):
              base.DELETE]
         ],
         'migrate_add_host2_driver_result': [
-            [snipp.PATH_VLAN_ALL,
+            [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_3,
              (snipp.BODY_VLAN_ADD % 267),
              base.POST],
             [(snipp.PATH_IF % 'phys-[eth1/20]'),
              base.NEXUS_IP_ADDRESS_3,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '+267')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '+267')),
              base.POST]
         ],
     }
@@ -279,52 +281,52 @@ class TestCiscoNexusRestInitResults(base.TestCiscoNexusBaseResults):
         'duplicate_init_port_driver_result1': [
             [(snipp.PATH_IF % 'phys-[eth1/10]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '')),
              base.POST],
 
             [(snipp.PATH_IF % 'phys-[eth1/20]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '')),
              base.POST],
 
             [(snipp.PATH_IF % 'phys-[eth1/10]'),
              base.NEXUS_IP_ADDRESS_8,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '')),
              base.POST],
 
             [(snipp.PATH_IF % 'phys-[eth1/20]'),
              base.NEXUS_IP_ADDRESS_8,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '')),
              base.POST],
 
             [(snipp.PATH_IF % 'phys-[eth1/3]'),
              base.NEXUS_IP_ADDRESS_DUAL,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '')),
              base.POST],
 
             [(snipp.PATH_IF % 'aggr-[po2]'),
              base.NEXUS_IP_ADDRESS_DUAL,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '')),
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '')),
              base.POST],
 
             [(snipp.PATH_IF % 'phys-[eth1/20]'),
              base.NEXUS_IP_ADDRESS_3,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '')),
              base.POST],
 
             [(snipp.PATH_IF % 'aggr-[po2]'),
              base.NEXUS_IP_ADDRESS_2,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '')),
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '')),
              base.POST],
 
             [(snipp.PATH_IF % 'aggr-[po2]'),
              base.NEXUS_IP_ADDRESS_6,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '')),
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '')),
              base.POST],
 
             [(snipp.PATH_IF % 'aggr-[po2]'),
              base.NEXUS_IP_ADDRESS_7,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '')),
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '')),
              base.POST],
 
         ],
@@ -413,20 +415,20 @@ class TestCiscoNexusRestBaremetalResults(base.TestCiscoNexusBaseResults):
     test_results = {
 
         'add_port_ethernet_driver_result': [
-            [snipp.PATH_VLAN_ALL,
+            [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_1,
              (snipp.BODY_VLAN_ADD % 267),
              base.POST],
             [(snipp.PATH_IF % 'phys-[eth1/10]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '+267')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '+267')),
              base.POST]
         ],
 
         'delete_port_ethernet_driver_result': [
             [(snipp.PATH_IF % 'phys-[eth1/10]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '-267')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '-267')),
              base.POST],
             [(snipp.PATH_VLAN % '267'),
              base.NEXUS_IP_ADDRESS_1,
@@ -435,20 +437,20 @@ class TestCiscoNexusRestBaremetalResults(base.TestCiscoNexusBaseResults):
         ],
 
         'add_vm_port_ethernet_driver_result': [
-            [snipp.PATH_VLAN_ALL,
+            [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_1,
              (snipp.BODY_VLAN_ADD % 265),
              base.POST],
             [(snipp.PATH_IF % 'phys-[eth1/10]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '+265')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '+265')),
              base.POST]
         ],
 
         'delete_vm_port_ethernet_driver_result': [
             [(snipp.PATH_IF % 'phys-[eth1/10]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '-265')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '-265')),
              base.POST],
             [(snipp.PATH_VLAN % '265'),
              base.NEXUS_IP_ADDRESS_1,
@@ -457,20 +459,20 @@ class TestCiscoNexusRestBaremetalResults(base.TestCiscoNexusBaseResults):
         ],
 
         'add_port_channel_driver_result': [
-            [snipp.PATH_VLAN_ALL,
+            [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_1,
              (snipp.BODY_VLAN_ADD % 267),
              base.POST],
             [(snipp.PATH_IF % 'aggr-[po469]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '+267')),
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '+267')),
              base.POST]
         ],
 
         'delete_port_channel_driver_result': [
             [(snipp.PATH_IF % 'aggr-[po469]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '-267')),
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '-267')),
              base.POST],
             [(snipp.PATH_VLAN % '267'),
              base.NEXUS_IP_ADDRESS_1,
@@ -479,20 +481,21 @@ class TestCiscoNexusRestBaremetalResults(base.TestCiscoNexusBaseResults):
         ],
 
         'add_port_ethernet_native_driver_result': [
-            [snipp.PATH_VLAN_ALL,
+            [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_1,
              (snipp.BODY_VLAN_ADD % 265),
              base.POST],
             [(snipp.PATH_IF % 'phys-[eth1/10]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_NATIVE_TRUNKVLAN % ('l1PhysIf', '+265', 'vlan-265')),
+             (snipp.BODY_NATIVE_TRUNKVLAN % (
+                 'l1PhysIf', '', '+265', 'vlan-265')),
              base.POST]
         ],
 
         'delete_port_ethernet_native_driver_result': [
             [(snipp.PATH_IF % 'phys-[eth1/10]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_NATIVE_TRUNKVLAN % ('l1PhysIf', '-265', '')),
+             (snipp.BODY_NATIVE_TRUNKVLAN % ('l1PhysIf', '', '-265', '')),
              base.POST],
             [(snipp.PATH_VLAN % '265'),
              base.NEXUS_IP_ADDRESS_1,
@@ -500,10 +503,213 @@ class TestCiscoNexusRestBaremetalResults(base.TestCiscoNexusBaseResults):
              base.DELETE]
         ],
 
+        'driver_result_unique_vPC_add1': [
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_VLAN_ADD % 267),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po469]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '+267')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_VLAN_ADD % 267),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po469]'),
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '+267')),
+             base.POST]
+        ],
+
+        'driver_result_unique_vPC_del1': [
+            [(snipp.PATH_IF % 'aggr-[po469]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '-267')),
+             base.POST],
+            [(snipp.PATH_VLAN % '267'),
+             base.NEXUS_IP_ADDRESS_1,
+             '',
+             base.DELETE],
+            [(snipp.PATH_IF % 'aggr-[po469]'),
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '-267')),
+             base.POST],
+            [(snipp.PATH_VLAN % '267'),
+             base.NEXUS_IP_ADDRESS_2,
+             '',
+             base.DELETE]
+        ],
+
+
+        'driver_result_unique_vPC_add1_vm': [
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_VLAN_ADD % 265),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po469]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '+265')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_VLAN_ADD % 265),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po469]'),
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '+265')),
+             base.POST]
+        ],
+
+        'driver_result_unique_vPC_del1_vm': [
+            [(snipp.PATH_IF % 'aggr-[po469]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '-265')),
+             base.POST],
+            [(snipp.PATH_VLAN % '265'),
+             base.NEXUS_IP_ADDRESS_1,
+             '',
+             base.DELETE],
+            [(snipp.PATH_IF % 'aggr-[po469]'),
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '-265')),
+             base.POST],
+            [(snipp.PATH_VLAN % '265'),
+             base.NEXUS_IP_ADDRESS_2,
+             '',
+             base.DELETE]
+        ],
+
+        'driver_result_unique_auto_vPC_vm_add1': [
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_VLAN_ADD % 265),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '+265')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_VLAN_ADD % 265),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '+265')),
+             base.POST]
+        ],
+
+        'driver_result_unique_auto_vPC_vm_del1': [
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '-265')),
+             base.POST],
+            [(snipp.PATH_VLAN % '265'),
+             base.NEXUS_IP_ADDRESS_1,
+             '',
+             base.DELETE],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '-265')),
+             base.POST],
+            [(snipp.PATH_VLAN % '265'),
+             base.NEXUS_IP_ADDRESS_2,
+             '',
+             base.DELETE]
+        ],
+
+        'driver_result_unique_auto_vPC_add1': [
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_ADD_PORT_CH % (1001, 1001, 1001)),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_ADD_PORT_CH_P2 % (1001, 1001)),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_TRUNKVLAN % (
+                 'pcAggrIf', snipp.BODY_PORT_CH_MODE, '')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_ADD_CH_GRP % (1001, 1001, 'phys-[eth1/10]')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_ADD_PORT_CH % (1001, 1001, 1001)),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_ADD_PORT_CH_P2 % (1001, 1001)),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_TRUNKVLAN % (
+                 'pcAggrIf', snipp.BODY_PORT_CH_MODE, '')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_ADD_CH_GRP % (1001, 1001, 'phys-[eth1/20]')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_VLAN_ADD % 267),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '+267')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_VLAN_ADD % 267),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '+267')),
+             base.POST]
+        ],
+
+        'driver_result_unique_auto_vPC_del1': [
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '-267')),
+             base.POST],
+            [(snipp.PATH_VLAN % '267'),
+             base.NEXUS_IP_ADDRESS_1,
+             '',
+             base.DELETE],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_DEL_CH_GRP % ('1001', 'phys-[eth1/10]')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_DEL_PORT_CH % ('1001')),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '-267')),
+             base.POST],
+            [(snipp.PATH_VLAN % '267'),
+             base.NEXUS_IP_ADDRESS_2,
+             '',
+             base.DELETE],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_DEL_CH_GRP % ('1001', 'phys-[eth1/20]')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_DEL_PORT_CH % ('1001')),
+             base.POST]
+        ],
+
     }
 
 GET_PORT_CH_RESPONSE = {
-    "totalCount": "3",
+    "totalCount": "4",
     "imdata": [
         {
             "pcRsMbrIfs": {
@@ -526,6 +732,14 @@ GET_PORT_CH_RESPONSE = {
                 "attributes": {
                     "parentSKey": "po2",
                     "tSKey": "eth1/12",
+                }
+            }
+        },
+        {
+            "pcRsMbrIfs": {
+                "attributes": {
+                    "parentSKey": "po469",
+                    "tSKey": "eth1/20",
                 }
             }
         }
@@ -555,11 +769,13 @@ class TestCiscoNexusRestBaremetalDevice(
 
         return {}
 
-    def _init_port_channel(self):
+    def _init_port_channel(self, which=1):
 
         # this is to prevent interface initialization from occurring
         # which adds unnecessary noise to the results.
 
+        GET_PORT_CH_RESPONSE['imdata'][which]['pcRsMbrIfs'][
+            'attributes']['parentSKey'] = 'po469'
         data_json = {'rest_get.side_effect':
                     self.get_init_side_effect}
         self.mock_ncclient.configure_mock(**data_json)
@@ -577,8 +793,13 @@ class TestCiscoNexusRestBaremetalDevice(
             test_create_delete_basic_bm_ethernet_port_and_vm())
 
     def test_create_delete_basic_port_channel(self):
+        """Basic creation and deletion test of 1 learned port-channel."""
         (super(TestCiscoNexusRestBaremetalDevice, self).
             test_create_delete_basic_port_channel())
+
+    def test_create_delete_learn_vpc_and_vm(self):
+        (super(TestCiscoNexusRestBaremetalDevice, self).
+            test_create_delete_learn_vpc_and_vm())
 
     def test_create_delete_basic_eth_port_is_native(self):
         (super(TestCiscoNexusRestBaremetalDevice, self).
@@ -587,6 +808,75 @@ class TestCiscoNexusRestBaremetalDevice(
     def test_create_delete_switch_ip_not_defined(self):
         (super(TestCiscoNexusRestBaremetalDevice, self).
             test_create_delete_switch_ip_not_defined())
+
+    def test_automated_port_channel_creation_deletion(self):
+        """Basic creation and deletion test of 1 auto port-channel."""
+
+        switch_list = ['1.1.1.1', '2.2.2.2']
+
+        for switch_ip in switch_list:
+            nxos_db.init_vpc_entries(switch_ip, 1001, 1025)
+
+        self._basic_create_verify_port_vlan(
+            'test_config_vPC',
+            self.results.get_test_results(
+                'driver_result_unique_auto_vPC_add1'),
+            nbr_of_bindings=2)
+
+        # Clean all the ncclient mock_calls so we can evaluate
+        # results of delete operations.
+        self.mock_ncclient.reset_mock()
+
+        self._basic_delete_verify_port_vlan(
+            'test_config_vPC',
+            self.results.get_test_results(
+                'driver_result_unique_auto_vPC_del1'))
+
+        for switch_ip in switch_list:
+            self.assertEqual(
+                25, len(nxos_db.get_free_switch_vpc_allocs(switch_ip)))
+
+    def test_create_delete_automated_vpc_and_vm(self):
+        """Basic creation and deletion test of 2 auto port-channel and vm."""
+
+        switch_list = ['1.1.1.1', '2.2.2.2']
+
+        for switch_ip in switch_list:
+            nxos_db.init_vpc_entries(switch_ip, 1001, 1025)
+
+        self._basic_create_verify_port_vlan(
+            'test_config_vPC',
+            self.results.get_test_results(
+                'driver_result_unique_auto_vPC_add1'),
+            nbr_of_bindings=2)
+
+        # Clean all the ncclient mock_calls so we can evaluate
+        # results of delete operations.
+        self.mock_ncclient.reset_mock()
+
+        self._basic_create_verify_port_vlan(
+            'test_config_vm',
+            self.results.get_test_results(
+                'driver_result_unique_auto_vPC_vm_add1'),
+            nbr_of_bindings=4)
+
+        self._basic_delete_verify_port_vlan(
+            'test_config_vm',
+            self.results.get_test_results(
+                'driver_result_unique_auto_vPC_vm_del1'),
+            nbr_of_bindings=2)
+
+        self._basic_delete_verify_port_vlan(
+            'test_config_vPC',
+            self.results.get_test_results(
+                'driver_result_unique_auto_vPC_del1'))
+
+        for switch_ip in switch_list:
+            self.assertEqual(
+                25, len(nxos_db.get_free_switch_vpc_allocs(switch_ip)))
+
+    def test_failure_inconsistent_chgrp(self):
+        pass
 
 
 # Skipped inheriting event class TestCiscoNexusNonCacheSshDevice

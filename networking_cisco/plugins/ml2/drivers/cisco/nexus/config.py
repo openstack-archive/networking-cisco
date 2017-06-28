@@ -20,6 +20,8 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_db_v2 as nxos_db)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    nexus_helpers as nexus_help)
 
 ml2_cisco_opts = [
     cfg.StrOpt('vlan_name_prefix', default='q-',
@@ -85,7 +87,7 @@ class ML2MechCiscoConfig(object):
         keys (host systems) are saved in the host mapping db.
         """
         defined_attributes = [const.USERNAME, const.PASSWORD, const.SSHPORT,
-                              const.PHYSNET, const.NVE_SRC_INTF]
+                              const.PHYSNET, const.NVE_SRC_INTF, const.VPCPOOL]
         multi_parser = cfg.MultiConfigParser()
         read_ok = multi_parser.read(cfg.CONF.config_file)
 
@@ -102,5 +104,10 @@ class ML2MechCiscoConfig(object):
                             self.nexus_dict[dev_ip, dev_key] = value[0]
                         else:
                             for if_id in value[0].split(','):
+                                if_type, port = (
+                                    nexus_help.split_interface_name(
+                                        if_id))
+                                interface = nexus_help.format_interface_name(
+                                    if_type, port)
                                 nxos_db.add_host_mapping(
-                                    dev_key, dev_ip, if_id, 0, True)
+                                    dev_key, dev_ip, interface, 0, True)

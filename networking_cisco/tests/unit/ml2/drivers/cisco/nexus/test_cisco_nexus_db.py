@@ -209,3 +209,60 @@ class CiscoNexusDbTest(testlib_api.SqlTestCase):
         npb33 = self._npb_test_obj(30, 300, switch='1.1.1.1', instance='test')
         with testtools.ExpectedException(exceptions.NexusPortBindingNotFound):
             nexus_db_v2.update_nexusport_binding(npb33.port, 200)
+
+
+class TestCiscoNexusVpcAllocDbTest(testlib_api.SqlTestCase):
+
+    """Unit tests for Cisco mechanism driver's Nexus vpc alloc database."""
+
+    def setUp(self):
+        super(TestCiscoNexusVpcAllocDbTest, self).setUp()
+
+    def test_vpcalloc_init(self):
+
+        nexus_ips = ['1.1.1.1', '2.2.2.2', '3.3.3.3']
+
+        for this_ip in nexus_ips:
+            nexus_db_v2.init_vpc_entries(this_ip, 1001, 1025)
+            allocs = nexus_db_v2.get_free_switch_vpc_allocs(this_ip)
+            self.assertEqual(len(allocs), 25)
+
+        nexus_db_v2.update_vpc_entry('1.1.1.1', 1001, False, True)
+        nexus_db_v2.update_vpc_entry('2.2.2.2', 1002, False, True)
+        nexus_db_v2.update_vpc_entry('3.3.3.3', 1003, False, True)
+
+        new_vpcid = nexus_db_v2.alloc_vpcid(nexus_ips)
+        self.assertEqual(new_vpcid, 1004)
+
+        nexus_db_v2.free_vpcid_for_switch(1002, '2.2.2.2')
+        nexus_db_v2.free_vpcid_for_switch_list(1004, nexus_ips)
+
+        new_vpcid = nexus_db_v2.alloc_vpcid(nexus_ips)
+        self.assertEqual(new_vpcid, 1002)
+
+    def test_vpcalloc_min_max(self):
+
+        # Initialize 3 switch vpc entries
+        nexus_db_v2.init_vpc_entries('1.1.1.1', 1001, 2000)
+        nexus_db_v2.init_vpc_entries('2.2.2.2', 2001, 3000)
+        nexus_db_v2.init_vpc_entries('3.3.3.3', 3001, 4000)
+
+        # Verify get_switch_vpc_count_min_max() returns correct
+        # count, min, max values for all 3 switches.
+        count, min, max = nexus_db_v2.get_switch_vpc_count_min_max(
+            '1.1.1.1')
+        self.assertEqual(count, 1000)
+        self.assertEqual(min, 1001)
+        self.assertEqual(max, 2000)
+
+        count, min, max = nexus_db_v2.get_switch_vpc_count_min_max(
+            '2.2.2.2')
+        self.assertEqual(count, 1000)
+        self.assertEqual(min, 2001)
+        self.assertEqual(max, 3000)
+
+        count, min, max = nexus_db_v2.get_switch_vpc_count_min_max(
+            '3.3.3.3')
+        self.assertEqual(count, 1000)
+        self.assertEqual(min, 3001)
+        self.assertEqual(max, 4000)

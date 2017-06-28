@@ -1085,16 +1085,6 @@ class TestCiscoNexusBaremetalResults(
                 format('ethernet', '1\/10', 265),
             test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)]),
 
-        'add_port_channel_driver_result': (
-            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('port-channel', '469', 267)]),
-
-        'delete_port_channel_driver_result': (
-            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('port-channel', '469', 267),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)]),
-
         'add_port_ethernet_native_driver_result': (
             [test_cisco_nexus_base.RESULT_ADD_VLAN.format(265),
             (test_cisco_nexus_base.RESULT_ADD_NATIVE_INTERFACE.
@@ -1109,7 +1099,40 @@ class TestCiscoNexusBaremetalResults(
             '[\x00-\x7f]+' +
             test_cisco_nexus_base.RESULT_DEL_INTERFACE.
                 format('ethernet', '1\/10', 265)),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)])
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)]),
+
+        'driver_result_unique_vPC_add1': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('port-channel', '469', 267),
+            test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('port-channel', '469', 267)]),
+
+        'driver_result_unique_vPC_del1': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('port-channel', '469', 267),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267),
+            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('port-channel', '469', 267),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)]),
+
+        'driver_result_unique_vPC_add1_vm': (
+            [test_cisco_nexus_base.RESULT_ADD_VLAN.format(265),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('port-channel', '469', 265),
+            test_cisco_nexus_base.RESULT_ADD_VLAN.format(265),
+            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
+                format('port-channel', '469', 265)]),
+
+        'driver_result_unique_vPC_del1_vm': (
+            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('port-channel', '469', 265),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(265),
+            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('port-channel', '469', 265),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)]),
+
     }
 
 
@@ -1124,6 +1147,25 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
                 "switch_info": {
                     "is_native": False,
                     "switch_ip": test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
+                },
+            },
+        ]
+    }
+
+    baremetal_profile_vPC = {
+        "local_link_information": [
+            {
+                "port_id": test_cisco_nexus_base.NEXUS_BAREMETAL_PORT_1,
+                "switch_info": {
+                    "is_native": False,
+                    "switch_ip": test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
+                },
+            },
+            {
+                "port_id": test_cisco_nexus_base.NEXUS_BAREMETAL_PORT_2,
+                "switch_info": {
+                    "is_native": False,
+                    "switch_ip": test_cisco_nexus_base.NEXUS_IP_ADDRESS_2,
                 },
             },
         ]
@@ -1172,6 +1214,19 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
                 {},
                 None,
                 test_cisco_nexus_base.NORMAL_VNIC),
+        'test_config_vPC':
+            test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
+                None,
+                test_cisco_nexus_base.HOST_NAME_UNUSED,
+                test_cisco_nexus_base.NEXUS_BAREMETAL_PORT_1,
+                test_cisco_nexus_base.INSTANCE_1,
+                test_cisco_nexus_base.VLAN_ID_1,
+                test_cisco_nexus_base.NO_VXLAN_ID,
+                None,
+                test_cisco_nexus_base.DEVICE_OWNER_BAREMETAL,
+                baremetal_profile_vPC,
+                test_cisco_nexus_base.HOST_NAME_Baremetal + '1',
+                test_cisco_nexus_base.BAREMETAL_VNIC),
         'test_config_native':
             test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
                 test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
@@ -1194,7 +1249,7 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
         super(TestCiscoNexusBaremetalDevice, self).setUp()
         self.results = TestCiscoNexusBaremetalResults()
 
-    def _init_port_channel(self):
+    def _init_port_channel(self, which=1):
         # this is to prevent interface initialization from occurring
         # which adds unnecessary noise to the results.
         data_xml = {'connect.return_value.get.return_value.data_xml':
@@ -1234,20 +1289,61 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
     def test_create_delete_basic_port_channel(self):
         """Basic creation and deletion test of 1 port-channel."""
 
-        self._init_port_channel()
+        self._init_port_channel(3)
         self._basic_create_verify_port_vlan(
-            'test_config1',
+            'test_config_vPC',
             self.results.get_test_results(
-                'add_port_channel_driver_result'))
+                'driver_result_unique_vPC_add1'),
+            nbr_of_bindings=2)
 
         # Clean all the ncclient mock_calls so we can evaluate
         # results of delete operations.
         self.mock_ncclient.reset_mock()
 
         self._basic_delete_verify_port_vlan(
-            'test_config1',
+            'test_config_vPC',
             self.results.get_test_results(
-                'delete_port_channel_driver_result'))
+                'driver_result_unique_vPC_del1'))
+
+    def test_create_delete_learn_vpc_and_vm(self):
+        """Basic creation and deletion test of 2 learn port-channel and vm."""
+
+        switch_list = ['1.1.1.1', '2.2.2.2']
+
+        self._init_port_channel(3)
+        for switch_ip in switch_list:
+            nexus_db_v2.init_vpc_entries(switch_ip, 451, 475)
+
+        self._basic_create_verify_port_vlan(
+            'test_config_vPC',
+            self.results.get_test_results(
+                'driver_result_unique_vPC_add1'),
+            nbr_of_bindings=2)
+
+        # Clean all the ncclient mock_calls so we can evaluate
+        # results of delete operations.
+        self.mock_ncclient.reset_mock()
+
+        self._basic_create_verify_port_vlan(
+            'test_config_vm',
+            self.results.get_test_results(
+                'driver_result_unique_vPC_add1_vm'),
+            nbr_of_bindings=4)
+
+        self._basic_delete_verify_port_vlan(
+            'test_config_vm',
+            self.results.get_test_results(
+                'driver_result_unique_vPC_del1_vm'),
+            nbr_of_bindings=2)
+
+        self._basic_delete_verify_port_vlan(
+            'test_config_vPC',
+            self.results.get_test_results(
+                'driver_result_unique_vPC_del1'))
+
+        for switch_ip in switch_list:
+            self.assertEqual(
+                25, len(nexus_db_v2.get_free_switch_vpc_allocs(switch_ip)))
 
     def test_create_delete_basic_eth_port_is_native(self):
         """Basic creation and deletion test of 1 ethernet port."""
@@ -1326,19 +1422,19 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
     def test_new_host_mapping_db(self):
 
         nexus_db_v2.add_host_mapping(
-            "host-1", "1.1.1.1", "ethernet:1/1", 0, False)
+            "host-1", "110.1.1.1", "ethernet:1/1", 0, False)
         nexus_db_v2.add_host_mapping(
-            "host-1", "2.2.2.2", "ethernet:1/1", 0, False)
+            "host-1", "112.2.2.2", "ethernet:1/1", 0, False)
         nexus_db_v2.add_host_mapping(
-            "host-2", "1.1.1.1", "ethernet:2/2", 0, False)
+            "host-2", "110.1.1.1", "ethernet:2/2", 0, False)
         nexus_db_v2.add_host_mapping(
-            "host-3", "3.3.3.3", "ethernet:3/3", 0, True)
+            "host-3", "113.3.3.3", "ethernet:3/3", 0, True)
         nexus_db_v2.add_host_mapping(
-            "host-4", "4.4.4.4", "ethernet:4/4", 0, True)
+            "host-4", "114.4.4.4", "ethernet:4/4", 0, True)
 
-        # Do a get 1.1.1.1 and verify  only host-1 is returned
+        # Do a get 110.1.1.1 and verify  only host-1 is returned
         mappings = nexus_db_v2.get_switch_if_host_mappings(
-            "1.1.1.1", "ethernet:1/1")
+            "110.1.1.1", "ethernet:1/1")
         self.assertEqual(
             len(mappings),
             1,
@@ -1368,8 +1464,8 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
                 "Expecting interface returned from "
                 "get_host_mappings")
 
-        # Do a get on switch 1.1.1.1 and verify 2 entries returned
-        mappings = nexus_db_v2.get_switch_host_mappings("1.1.1.1")
+        # Do a get on switch 110.1.1.1 and verify 2 entries returned
+        mappings = nexus_db_v2.get_switch_host_mappings("110.1.1.1")
         self.assertEqual(
             len(mappings),
             2,
@@ -1377,7 +1473,7 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
         for map in mappings:
             self.assertEqual(
                 map.switch_ip,
-                "1.1.1.1",
+                "110.1.1.1",
                 "Expecting switch_ip returned from "
                 "get_switch_host_mappings")
 
@@ -1385,7 +1481,7 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
         nexus_db_v2.update_host_mapping(
             "host-2",
             "ethernet:2/2",
-            "1.1.1.1",
+            "110.1.1.1",
             2)
         mappings = nexus_db_v2.get_host_mappings("host-2")
         self.assertEqual(
@@ -1406,7 +1502,7 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
 
         # remove 1 host mapping
         nexus_db_v2.remove_host_mapping(
-            "ethernet:2/2", "1.1.1.1")
+            "ethernet:2/2", "110.1.1.1")
         # Verify it is gone
         self.assertRaises(
             exceptions.NexusHostMappingNotFound,
@@ -1429,9 +1525,9 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
 
         # remove host mappings
         nexus_db_v2.remove_host_mapping(
-            "ethernet:1/1", "2.2.2.2")
+            "ethernet:1/1", "112.2.2.2")
         nexus_db_v2.remove_host_mapping(
-            "ethernet:1/1", "1.1.1.1")
+            "ethernet:1/1", "110.1.1.1")
         # Verify it is gone
         self.assertRaises(
             exceptions.NexusHostMappingNotFound,

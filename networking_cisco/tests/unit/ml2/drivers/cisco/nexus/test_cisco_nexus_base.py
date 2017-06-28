@@ -79,6 +79,7 @@ INSTANCE_PC = 'testpcvm'
 INSTANCE_DUAL = 'testdualvm'
 
 NEXUS_BAREMETAL_PORT_1 = 'Ethernet 1/10'
+NEXUS_BAREMETAL_PORT_2 = 'Ethernet 1/20'
 NEXUS_PORT_1 = 'ethernet:1/10'
 NEXUS_PORT_2 = 'ethernet:1/20'
 NEXUS_PORT_3 = 'ethernet:1/30'
@@ -414,6 +415,48 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
     def _clear_port_dbs(self):
         nexus_db_v2.remove_all_nexusport_bindings()
 
+    def _set_switch_state(self, port_cfg, state):
+
+        # not baremetal transaction
+        if port_cfg.nexus_ip_addr:
+            self._cisco_mech_driver.set_switch_ip_and_active_state(
+                port_cfg.nexus_ip_addr, state)
+        else:    # baremetal transaction
+            if port_cfg.profile:
+                all_link_info = port_cfg.profile['local_link_information']
+                for link_info in all_link_info:
+                    ip_addr = link_info['switch_info']['switch_ip']
+                    self._cisco_mech_driver.set_switch_ip_and_active_state(
+                        ip_addr, state)
+
+    def _get_ip_addrs(self, port_cfg):
+
+        # not baremetal transaction
+        if port_cfg.nexus_ip_addr:
+            if port_cfg.host_name.startswith('baremetal'):
+                maps = nexus_db_v2.get_host_mappings(port_cfg.host_name)
+                ipaddrs = []
+                for map in maps:
+                    ipaddrs.append(map.switch_ip)
+                return ipaddrs
+            return [port_cfg.nexus_ip_addr]
+        else:    # baremetal transaction
+            ipaddrs = []
+            all_link_info = port_cfg.profile['local_link_information']
+            for link_info in all_link_info:
+                ipaddrs.append(link_info['switch_info']['switch_ip'])
+            return ipaddrs
+
+    def _config_switch_cred(self, mech_instance, ip_addr):
+        mech_instance._nexus_switches[(ip_addr,
+                                      'ssh_port')] = NEXUS_SSH_PORT
+        mech_instance._nexus_switches[(ip_addr,
+                                      constants.USERNAME)] = 'admin'
+        mech_instance._nexus_switches[(ip_addr,
+                                      constants.PASSWORD)] = 'password'
+        mech_instance._nexus_switches[(ip_addr,
+                                      'physnet')] = PHYSNET
+
     def setUp(self):
         """Sets up mock client, switch, and credentials dictionaries."""
 
@@ -457,16 +500,23 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
             mech_instance._switch_state = {}
             mech_instance._nexus_switches = collections.OrderedDict()
             for name, config in self.test_configs.items():
-                ip_addr = config.nexus_ip_addr
                 host_name = config.host_name
-                nexus_ports = config.nexus_port
                 # baremetal config done differently
-                if not ip_addr:
-                    continue
-                # if VNIC_TYPE is baremetal
-                # VMs that reference this baremetal
-                # do not configure an entry in the host mapping db
-                # since code learns this information.
+                if not config.nexus_ip_addr:
+                    if not config.profile:
+                        continue
+                    all_link_info = config.profile['local_link_information']
+                    for link_info in all_link_info:
+                        nexus_ports = link_info['port_id']
+                        ip_addr = link_info['switch_info']['switch_ip']
+                        self._config_switch_cred(mech_instance, ip_addr)
+                else:
+                    ip_addr = config.nexus_ip_addr
+                    nexus_ports = config.nexus_port
+                ## if VNIC_TYPE is baremetal
+                ## VMs that reference this baremetal
+                ## do not configure an entry in the host mapping db
+                ## since code learns this information.
                 if (host_name is not HOST_NAME_UNUSED and
                     HOST_NAME_Baremetal not in host_name):
                     for nexus_port in nexus_ports.split(','):
@@ -477,14 +527,7 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
                             nexus_db_v2.add_host_mapping(
                                 host_name, ip_addr, nexus_port,
                                 0, True)
-                mech_instance._nexus_switches[(ip_addr,
-                                               'ssh_port')] = NEXUS_SSH_PORT
-                mech_instance._nexus_switches[(ip_addr,
-                                               constants.USERNAME)] = 'admin'
-                mech_instance._nexus_switches[(ip_addr,
-                                              constants.PASSWORD)] = 'password'
-                mech_instance._nexus_switches[(ip_addr,
-                                              const.PHYSNET)] = PHYSNET
+                self._config_switch_cred(mech_instance, ip_addr)
             mech_instance.driver.nexus_switches = (
                 mech_instance._nexus_switches)
             mech_instance.context = bc.get_context()
@@ -580,7 +623,7 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
                 port_context.current, port_config.host_name)
 
         # for port_id in port_config.nexus_port.split(','):
-        for switch_ip, intf_type, port, is_p_vlan in connections:
+        for switch_ip, intf_type, port, is_p_vlan, _ in connections:
             if switch_ip is not port_config.nexus_ip_addr:
                 continue
             port_id = intf_type + ':' + port
@@ -657,7 +700,7 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
                 port_context.current, port_config.host_name)
 
         # for port_id in port_config.nexus_port.split(','):
-        for switch_ip, intf_type, port, is_p_vlan in connections:
+        for switch_ip, intf_type, port, is_p_vlan, _ in connections:
             if switch_ip is not port_config.nexus_ip_addr:
                 continue
             port_id = intf_type + ':' + port
@@ -702,18 +745,23 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         # Configure port entry config which puts switch in inactive state
         self._create_port(other_test)
 
-        # Verify it's in the port binding data base
-        # Add one to count for the reserved switch state entry
-        # if replay is enabled
         port_cfg = other_test
-        if self._cisco_mech_driver.is_replay_enabled():
-            nbr_of_bindings += 1
-        try:
-            port_bindings = nexus_db_v2.get_nexusport_switch_bindings(
-                port_cfg.nexus_ip_addr)
-        except exceptions.NexusPortBindingNotFound:
-            port_bindings = []
-        self.assertEqual(nbr_of_bindings, len(port_bindings))
+
+        ipaddrs = self._get_ip_addrs(port_cfg)
+        bindings_found = 0
+        for ipaddr in ipaddrs:
+            try:
+                port_bindings = nexus_db_v2.get_nexusport_switch_bindings(
+                    ipaddr)
+                bindings_found += len(port_bindings)
+                # Verify it's in the port binding data base
+                # Add one to count for the reserved switch state entry
+                # if replay is enabled
+                if self._cisco_mech_driver.is_replay_enabled():
+                    nbr_of_bindings += 1
+            except exceptions.NexusPortBindingNotFound:
+                pass
+        self.assertEqual(nbr_of_bindings, bindings_found)
 
         # Make sure there is only a single attempt to configure.
         self._verify_results(test_result)
@@ -737,21 +785,25 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         # Verify failure stats is not reset and
         # verify no driver transactions have been sent
         port_cfg = other_test
-        if self._cisco_mech_driver.is_replay_enabled():
-            # Add one for the reserved switch state entry
-            nbr_of_bindings += 1
-        try:
-            port_bindings = nexus_db_v2.get_nexusport_switch_bindings(
-                port_cfg.nexus_ip_addr)
-        except exceptions.NexusPortBindingNotFound:
-            port_bindings = []
-        self.assertEqual(nbr_of_bindings, len(port_bindings))
+        ipaddrs = self._get_ip_addrs(port_cfg)
+        bindings_found = 0
+        for ipaddr in ipaddrs:
+            try:
+                port_bindings = nexus_db_v2.get_nexusport_switch_bindings(
+                    ipaddr)
+                bindings_found += len(port_bindings)
+                if self._cisco_mech_driver.is_replay_enabled():
+                    # Add one for the reserved switch state entry
+                    nbr_of_bindings += 1
+            except exceptions.NexusPortBindingNotFound:
+                pass
+        self.assertEqual(nbr_of_bindings, bindings_found)
 
         port_context = self._generate_port_context(other_test)
         if self._cisco_mech_driver._is_baremetal(port_context.current):
             connections = self._cisco_mech_driver._get_baremetal_connections(
                 port_context.current, False, True)
-            for switch_ip, intf_type, port, is_p_vlan in connections:
+            for switch_ip, intf_type, port, is_p_vlan, _ in connections:
                 port_id = intf_type + ':' + port
                 try:
                     host_mapping = nexus_db_v2.get_switch_if_host_mappings(
@@ -1015,30 +1067,30 @@ class TestCiscoNexusReplayBase(TestCiscoNexusBase):
         # Set all required connection state to True so
         # configurations will succeed
         port_cfg = self.test_configs[test1]
-        self._cisco_mech_driver.set_switch_ip_and_active_state(
-            port_cfg.nexus_ip_addr, const.SWITCH_ACTIVE)
-        port_cfg = self.test_configs[test2]
-        self._cisco_mech_driver.set_switch_ip_and_active_state(
-            port_cfg.nexus_ip_addr, const.SWITCH_ACTIVE)
+        self._set_switch_state(port_cfg, const.SWITCH_ACTIVE)
+
+        if test2:
+            port_cfg = self.test_configs[test2]
+            self._set_switch_state(port_cfg, const.SWITCH_ACTIVE)
 
         self._basic_create_verify_port_vlan(
             test1, add_result1['driver_results'],
             add_result1['nbr_db_entries'])
-        self._basic_create_verify_port_vlan(
-            test2, add_result2['driver_results'],
-            add_result2['nbr_db_entries'])
+        if test2:
+            self._basic_create_verify_port_vlan(
+                test2, add_result2['driver_results'],
+                add_result2['nbr_db_entries'])
 
         # Set all connection state to False for
         # test case HOST_1, NEXUS_IP_ADDRESS_1
         cfg_type = ['test_replay_unique1',
                     'test_replay_duplvlan1',
-                    'test_replay_duplport1']
+                    'test_replay_duplport1',
+                    'test_replay_unique_vPC']
         for which_cfg in cfg_type:
             if which_cfg in [test1, test2]:
-                state = const.SWITCH_INACTIVE
                 port_cfg = self.test_configs[which_cfg]
-                self._cisco_mech_driver.set_switch_ip_and_active_state(
-                    port_cfg.nexus_ip_addr, state)
+                self._set_switch_state(port_cfg, const.SWITCH_INACTIVE)
 
         if replay_init:
             replay_init()
@@ -1047,19 +1099,22 @@ class TestCiscoNexusReplayBase(TestCiscoNexusBase):
         self._cfg_monitor.check_connections()
         if not replay_result:
             replay_result = (if_init_result +
-                            add_result1['driver_results'] +
-                            add_result2['driver_results'])
+                            add_result1['driver_results'])
+            if test2:
+                replay_result = (replay_result +
+                                 add_result2['driver_results'])
         self._verify_results(replay_result)
 
         # Clear mock_call history so we can evaluate
         # just the result of replay()
         self.mock_ncclient.reset_mock()
 
-        if 'nbr_db_mappings' in del_result1:
+        if test2 and 'nbr_db_mappings' in del_result1:
             nbr_db_mappings = del_result1['nbr_db_mappings']
         else:
             nbr_db_mappings = 0
-        self._basic_delete_verify_port_vlan(
+        if test2:
+            self._basic_delete_verify_port_vlan(
                 test2, del_result1['driver_results'],
                 del_result1['nbr_db_entries'],
                 nbr_db_mappings)
