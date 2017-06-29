@@ -27,6 +27,7 @@ apply to ssh only OR because rerunning the test would be
 redundant.
 """
 
+import mock
 import unittest
 
 from oslo_config import cfg
@@ -784,7 +785,16 @@ class TestCiscoNexusRestBaremetalDevice(
 
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
+        original_intersect = nxos_db._get_free_vpcids_on_switches
 
+        def new_get_free_vpcids_on_switches(nexus_ips):
+            intersect = list(original_intersect(nexus_ips))
+            intersect.sort()
+            return intersect
+
+        mock.patch.object(nxos_db,
+                         '_get_free_vpcids_on_switches',
+                         new=new_get_free_vpcids_on_switches).start()
         cfg.CONF.set_override('nexus_driver', 'restapi', 'ml2_cisco')
         cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
         super(TestCiscoNexusRestBaremetalDevice, self).setUp()

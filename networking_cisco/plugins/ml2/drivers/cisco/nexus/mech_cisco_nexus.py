@@ -1538,7 +1538,13 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 nexus_port)
             self.driver.delete_port_channel(switch_ip,
                 nexus_port)
-        nxos_db.free_vpcid_for_switch(nexus_port, switch_ip)
+        try:
+            nxos_db.free_vpcid_for_switch(nexus_port, switch_ip)
+        except excep.NexusVPCAllocNotFound:
+            # Not all learned port channels will be in this db when
+            # they're outside the configured vpc_pool so
+            # this exception may be possible.
+            pass
 
     def _delete_switch_entry(self, port, vlan_id, device_id, host_id, vni,
                              is_provider_vlan):

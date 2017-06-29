@@ -67,7 +67,7 @@ class NexusHostMappingNotFound(exceptions.NeutronException):
 
 class NexusVPCAllocNotFound(exceptions.NeutronException):
     """Nexus VPC alloc is not present."""
-    message = _("Nexus VPC Alloc (%(filters)s) is not present")
+    message = _("Nexus VPC Alloc (%(filters)s) is not present.")
 
     def __init__(self, **kwargs):
         filters = ','.join('%s=%s' % i for i in kwargs.items())
@@ -78,7 +78,7 @@ class NexusVPCAllocInvalidArgValue(exceptions.NeutronException):
     """Nexus VPC alloc arg values not valid."""
     message = _("Nexus VPC Alloc init failed. Args "
                 "start (%(vpcstart)s) and end (%(vpcend)s) "
-                "difference should be greater than 0.  ")
+                "difference should be greater than 0.")
 
 
 class NexusVPCAllocIncorrectArgCount(exceptions.NeutronException):

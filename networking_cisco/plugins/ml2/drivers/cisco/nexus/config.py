@@ -105,8 +105,7 @@ class ML2MechCiscoConfig(object):
                         else:
                             for if_id in value[0].split(','):
                                 if_type, port = (
-                                    nexus_help.split_interface_name(
-                                        if_id))
+                                    nexus_help.split_interface_name(if_id))
                                 interface = nexus_help.format_interface_name(
                                     if_type, port)
                                 nxos_db.add_host_mapping(

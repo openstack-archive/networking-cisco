@@ -15,6 +15,9 @@
 #
 
 from oslo_log import log as logging
+from random import shuffle
+import sqlalchemy as sa
+from sqlalchemy.orm import aliased
 import sqlalchemy.orm.exc as sa_exc
 from sqlalchemy.sql import func
 
@@ -593,12 +596,66 @@ def _lookup_vpc_count_min_max(session=None, **bfilter):
     raise c_exc.NexusVPCAllocNotFound(**bfilter)
 
 
+def _lookup_vpcids(query_type, session=None, **bfilter):
+    """Look up 'query_type' Nexus VPC Allocs matching the filter.
+
+    :param query_type: 'all', 'one' or 'first'
+    :param session: db session
+    :param bfilter: filter for mappings query
+    :return: VPCIDs if query gave a result, else
+             raise NexusVPCAllocNotFound.
+    """
+
+    if session is None:
+        session = db.get_session()
+
+    query_method = getattr(session.query(
+        nexus_models_v2.NexusVPCAlloc.vpc_id).filter_by(**bfilter), query_type)
+
+    try:
+        vpcs = query_method()
+        if vpcs:
+            return vpcs
+    except sa_exc.NoResultFound:
+        pass
+
+    raise c_exc.NexusVPCAllocNotFound(**bfilter)
+
+
 def _lookup_all_vpc_allocs(session=None, **bfilter):
     return _lookup_vpc_allocs('all', session, **bfilter)
 
 
 def _lookup_one_vpc_allocs(session=None, **bfilter):
     return _lookup_vpc_allocs('one', session, **bfilter)
+
+
+def _lookup_all_vpcids(session=None, **bfilter):
+    return _lookup_vpcids('all', session, **bfilter)
+
+
+def _get_free_vpcids_on_switches(switch_ip_list):
+    '''Get intersect list of free vpcids in list of switches.'''
+
+    session = db.get_session()
+
+    prev_view = aliased(nexus_models_v2.NexusVPCAlloc)
+    query = session.query(prev_view.vpc_id)
+    prev_swip = switch_ip_list[0]
+
+    for ip in switch_ip_list[1:]:
+        cur_view = aliased(nexus_models_v2.NexusVPCAlloc)
+        cur_swip = ip
+        query = query.join(cur_view, sa.and_(
+            prev_view.switch_ip == prev_swip, prev_view.active == False,  # noqa
+            cur_view.switch_ip == cur_swip, cur_view.active == False,     # noqa
+            prev_view.vpc_id == cur_view.vpc_id))
+        prev_view = cur_view
+        prev_swip = cur_swip
+
+    unique_vpcids = query.all()
+    shuffle(unique_vpcids)
+    return unique_vpcids
 
 
 def get_all_switch_vpc_allocs(switch_ip):
@@ -648,55 +705,45 @@ def init_vpc_entries(nexus_ip, vpc_start, vpc_end):
     session.flush()
 
 
-def update_vpc_entry(nexus_ip, vpc_id, learned, active):
+def update_vpc_entry(nexus_ips, vpc_id, learned, active):
     """Change active state in vpc_allocate data base."""
 
     LOG.debug("update_vpc_entry called")
 
     session = db.get_session()
-    try:
-        vpc_alloc = _lookup_one_vpc_allocs(
-            switch_ip=nexus_ip,
-            vpc_id=vpc_id)
-    except c_exc.NexusVPCAllocNotFound:
-        return None
 
-    vpc_alloc.learned = learned
-    vpc_alloc.active = active
-
-    session.merge(vpc_alloc)
-    session.flush()
-
-    return vpc_alloc
+    with session.begin():
+        for n_ip in nexus_ips:
+            flipit = not active
+            x = session.execute(
+                sa.update(nexus_models_v2.NexusVPCAlloc).values({
+                    'learned': learned,
+                    'active': active}).where(sa.and_(
+                        nexus_models_v2.NexusVPCAlloc.switch_ip == n_ip,
+                        nexus_models_v2.NexusVPCAlloc.vpc_id == vpc_id,
+                        nexus_models_v2.NexusVPCAlloc.active == flipit
+                    )))
+            if x.rowcount != 1:
+                raise c_exc.NexusVPCAllocNotFound(
+                    switch_ip=n_ip, vpc_id=vpc_id, active=active)
 
 
 def alloc_vpcid(nexus_ips):
     """Allocate a vpc id for the given list of switch_ips."""
 
     LOG.debug("alloc_vpc() called")
-    vpc_list = []
 
-    # First build a set of vlans for each switch
-    for n_ip in nexus_ips:
-        switch_free_list = get_free_switch_vpc_allocs(n_ip)
-        vpc_set = set()
-        for switch_ip, vpcid, learned, active in switch_free_list:
-            vpc_set.add(vpcid[1])
-        vpc_list.append(vpc_set)
-
-    # Now get intersection
-    intersect = vpc_list[0]
-    for switch_list in vpc_list:
-        intersect = intersect & switch_list
-
-    intersect = list(intersect)
-    if len(intersect) > 0:
-        intersect.sort()
-        vpc_id = intersect[0]    # get smallest
-        for n_ip in nexus_ips:
-            update_vpc_entry(n_ip, vpc_id, False, True)
-    else:
-        vpc_id = 0
+    vpc_id = 0
+    intersect = _get_free_vpcids_on_switches(nexus_ips)
+    for intersect_tuple in intersect:
+        try:
+            update_vpc_entry(nexus_ips, intersect_tuple.vpc_id,
+                             False, True)
+            vpc_id = intersect_tuple.vpc_id
+            break
+        except Exception:
+            # Another controller may have beaten us to this vpcid
+            pass
 
     return vpc_id
 
@@ -705,18 +752,13 @@ def free_vpcid_for_switch_list(vpc_id, nexus_ips):
     """Free a vpc id for the given list of switch_ips."""
 
     LOG.debug("free_vpcid_for_switch_list() called")
-    if vpc_id == 0:
-        return
-
-    for n_ip in nexus_ips:
-        update_vpc_entry(n_ip, vpc_id, False, False)
+    if vpc_id != 0:
+        update_vpc_entry(nexus_ips, vpc_id, False, False)
 
 
 def free_vpcid_for_switch(vpc_id, nexus_ip):
     """Free a vpc id for the given switch_ip."""
 
     LOG.debug("free_vpcid_for_switch() called")
-    if vpc_id == 0:
-        return
-
-    update_vpc_entry(nexus_ip, vpc_id, False, False)
+    if vpc_id != 0:
+        update_vpc_entry([nexus_ip], vpc_id, False, False)

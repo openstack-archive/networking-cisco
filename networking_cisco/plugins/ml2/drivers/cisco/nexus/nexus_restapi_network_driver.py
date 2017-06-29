@@ -354,8 +354,13 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
                                 second=this_if)
                         # if newly learned ch_grp
                         if ch_grp_saved == 0:
-                            nxos_db.update_vpc_entry(
-                                nexus_host, ch_grp, learned, True)
+                            try:
+                                nxos_db.update_vpc_entry(
+                                    nexus_host, ch_grp, learned, True)
+                            except cexc.NexusVPCAllocNotFound:
+                                # Will get this error if learned ch_grp
+                                # not part of configured vpc_pool
+                                pass
                     elif learned_ch_grp != 0:
                         # Remove port-channels just created
                         for y in range(i):

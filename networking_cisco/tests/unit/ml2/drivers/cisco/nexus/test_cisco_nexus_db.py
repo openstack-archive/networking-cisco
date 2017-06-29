@@ -14,6 +14,7 @@
 #    under the License.
 
 import collections
+import mock
 import testtools
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import exceptions
@@ -216,6 +217,17 @@ class TestCiscoNexusVpcAllocDbTest(testlib_api.SqlTestCase):
     """Unit tests for Cisco mechanism driver's Nexus vpc alloc database."""
 
     def setUp(self):
+        original_intersect = nexus_db_v2._get_free_vpcids_on_switches
+
+        def new_get_free_vpcids_on_switches(nexus_ips):
+            intersect = list(original_intersect(nexus_ips))
+            intersect.sort()
+            return intersect
+
+        mock.patch.object(nexus_db_v2,
+                         '_get_free_vpcids_on_switches',
+                         new=new_get_free_vpcids_on_switches).start()
+
         super(TestCiscoNexusVpcAllocDbTest, self).setUp()
 
     def test_vpcalloc_init(self):
@@ -227,9 +239,15 @@ class TestCiscoNexusVpcAllocDbTest(testlib_api.SqlTestCase):
             allocs = nexus_db_v2.get_free_switch_vpc_allocs(this_ip)
             self.assertEqual(len(allocs), 25)
 
-        nexus_db_v2.update_vpc_entry('1.1.1.1', 1001, False, True)
-        nexus_db_v2.update_vpc_entry('2.2.2.2', 1002, False, True)
-        nexus_db_v2.update_vpc_entry('3.3.3.3', 1003, False, True)
+        nexus_db_v2.update_vpc_entry(['1.1.1.1'], 1001, False, True)
+        nexus_db_v2.update_vpc_entry(['2.2.2.2'], 1002, False, True)
+        nexus_db_v2.update_vpc_entry(['3.3.3.3'], 1003, False, True)
+
+        # Verify this update fails since entry already active
+        self.assertRaises(
+            exceptions.NexusVPCAllocNotFound,
+            nexus_db_v2.update_vpc_entry,
+            ['3.3.3.3'], 1003, False, True)
 
         new_vpcid = nexus_db_v2.alloc_vpcid(nexus_ips)
         self.assertEqual(new_vpcid, 1004)
@@ -237,8 +255,76 @@ class TestCiscoNexusVpcAllocDbTest(testlib_api.SqlTestCase):
         nexus_db_v2.free_vpcid_for_switch(1002, '2.2.2.2')
         nexus_db_v2.free_vpcid_for_switch_list(1004, nexus_ips)
 
+        # verify vpc 1002 can now be reused
         new_vpcid = nexus_db_v2.alloc_vpcid(nexus_ips)
         self.assertEqual(new_vpcid, 1002)
+
+    def test_vpcalloc_rollback(self):
+
+        nexus_ips = ['1.1.1.1', '2.2.2.2', '3.3.3.3']
+
+        for this_ip in nexus_ips:
+            nexus_db_v2.init_vpc_entries(this_ip, 1001, 1025)
+
+        nexus_db_v2.update_vpc_entry(
+            nexus_ips, 1001, False, True)
+        allocs = nexus_db_v2.get_free_switch_vpc_allocs('1.1.1.1')
+        self.assertEqual(len(allocs), 24)
+        allocs = nexus_db_v2.get_free_switch_vpc_allocs('2.2.2.2')
+        self.assertEqual(len(allocs), 24)
+        allocs = nexus_db_v2.get_free_switch_vpc_allocs('3.3.3.3')
+        self.assertEqual(len(allocs), 24)
+
+        nexus_db_v2.update_vpc_entry(
+            nexus_ips, 1001, False, False)
+        allocs = nexus_db_v2.get_free_switch_vpc_allocs('1.1.1.1')
+        self.assertEqual(len(allocs), 25)
+        allocs = nexus_db_v2.get_free_switch_vpc_allocs('2.2.2.2')
+        self.assertEqual(len(allocs), 25)
+        allocs = nexus_db_v2.get_free_switch_vpc_allocs('3.3.3.3')
+        self.assertEqual(len(allocs), 25)
+
+        nexus_db_v2.update_vpc_entry(['3.3.3.3'], 1001, False, True)
+        try:
+            nexus_db_v2.update_vpc_entry(
+                nexus_ips, 1001, False, True)
+        except exceptions.NexusVPCAllocNotFound:
+            allocs = nexus_db_v2.get_free_switch_vpc_allocs('1.1.1.1')
+            self.assertEqual(len(allocs), 25)
+            allocs = nexus_db_v2.get_free_switch_vpc_allocs('2.2.2.2')
+            self.assertEqual(len(allocs), 25)
+            allocs = nexus_db_v2.get_free_switch_vpc_allocs('3.3.3.3')
+            self.assertEqual(len(allocs), 24)
+
+    def test_vpcalloc_test_alloc_collision(self):
+
+        def new_get_free_vpcids_on_switches(nexus_ips):
+            results = nexus_db_v2.get_free_switch_vpc_allocs('4.4.4.4')
+            return results
+
+        nexus_ips = ['1.1.1.1', '2.2.2.2', '3.3.3.3']
+
+        for this_ip in nexus_ips:
+            nexus_db_v2.init_vpc_entries(this_ip, 1001, 1025)
+        # IP 4.4.4.4 is added only to return a list of vpc ids
+        # in same format as sql will return.
+        nexus_db_v2.init_vpc_entries('4.4.4.4', 1001, 1003)
+        mock.patch.object(nexus_db_v2,
+                         '_get_free_vpcids_on_switches',
+                          new=new_get_free_vpcids_on_switches).start()
+
+        # configure '3.3.3.3', vpcid 1001 so alloc_vpcid will fail
+        # on 1001 after updating 1.1.1.1 and 2.2.2.2 and rollback
+        # occurs.  Then moves onto successfully allocating 1002.
+        nexus_db_v2.update_vpc_entry(['3.3.3.3'], 1001, False, True)
+        vpc_id = nexus_db_v2.alloc_vpcid(nexus_ips)
+        self.assertEqual(vpc_id, 1002)
+        allocs = nexus_db_v2.get_free_switch_vpc_allocs('1.1.1.1')
+        self.assertEqual(len(allocs), 24)
+        allocs = nexus_db_v2.get_free_switch_vpc_allocs('2.2.2.2')
+        self.assertEqual(len(allocs), 24)
+        allocs = nexus_db_v2.get_free_switch_vpc_allocs('3.3.3.3')
+        self.assertEqual(len(allocs), 23)
 
     def test_vpcalloc_min_max(self):
 
