@@ -1148,18 +1148,22 @@ class L3CfgAgentAsr1kRouterTypeDriverTestCase(
         self.assertIn(g_rtr_2['id'], g_l_rtr_rr_ids)
         self.assertFalse(g_rtr_1[ha.ENABLED])
         e_context = bc.context.get_admin_context()
-        incomplete_router_dicts = copy.copy(g_l_rtr_rr_ids)
+        ids_incomplete_router_dicts = copy.copy(g_l_rtr_rr_ids)
         sync_routers = []
         attempt = 0
-        while incomplete_router_dicts and attempt < 10:
-            incomplete_router_dicts = []
-            new_sync_routers = self.l3_plugin.get_sync_data_ext(e_context,
-                                                                g_l_rtr_rr_ids)
+        while ids_incomplete_router_dicts and attempt < 10:
+            new_sync_routers = self.l3_plugin.get_sync_data_ext(
+                e_context, ids_incomplete_router_dicts)
+            ids_incomplete_router_dicts = []
             for s_r in new_sync_routers:
-                if s_r['status'] != ROUTER_INFO_INCOMPLETE:
+                if s_r['status'] != cisco_constants.ROUTER_INFO_INCOMPLETE:
                     sync_routers.append(s_r)
                 else:
-                    incomplete_router_dicts.append(s_r['id'])
+                    LOG.debug('Received incomplete router dict for router '
+                              '%(r_id)s in attempt %(att)d',
+                              {'r_id': s_r['id'], 'att': attempt})
+                    ids_incomplete_router_dicts.append(s_r['id'])
+            attempt += 1
         self.assertEqual(2, len(sync_routers))
         q_p = '%s=%s&%s=%s' % ('device_id', logical_global_router['id'],
                                'device_owner', DEVICE_OWNER_GLOBAL_ROUTER_GW)
