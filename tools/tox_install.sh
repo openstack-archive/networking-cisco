@@ -32,7 +32,7 @@ if $(python -c "import neutron" 2> /dev/null); then
 elif [ -x $ZUUL_CLONER ]; then
     # Use zuul-cloner to clone openstack/neutron, this will ensure the Depends-On
     # references are retrieved from zuul and rebased into the repo, then installed.
-    $ZUUL_CLONER --cache-dir /opt/git --branch $NEUTRON_BRANCH --workspace /tmp git://git.openstack.org openstack/neutron
+    $ZUUL_CLONER --cache-dir /opt/git --zuul-ref $NEUTRON_BRANCH --workspace /tmp git://git.openstack.org openstack/neutron
     $install_cmd /tmp/openstack/neutron
 else
     # Install neutron from git.openstack.org
