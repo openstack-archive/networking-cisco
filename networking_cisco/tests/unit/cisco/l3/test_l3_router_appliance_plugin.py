@@ -20,6 +20,8 @@ import unittest
 from neutron.api.v2 import attributes
 from neutron.callbacks import registry
 from neutron.db import agents_db
+from neutron.db import dns_db
+from neutron.extensions import dns
 from neutron.extensions import external_net as external_net
 from neutron.extensions import extraroute
 from neutron.extensions import l3
@@ -71,6 +73,8 @@ class TestL3RouterApplianceExtensionManager(
     def get_resources(self):
         l3.RESOURCE_ATTRIBUTE_MAP['routers'].update(
             extraroute.EXTENDED_ATTRIBUTES_2_0['routers'])
+        l3.RESOURCE_ATTRIBUTE_MAP[l3.FLOATINGIPS].update(
+            dns.EXTENDED_ATTRIBUTES_2_0[l3.FLOATINGIPS])
         return super(TestL3RouterApplianceExtensionManager,
                      self).get_resources()
 
@@ -121,11 +125,11 @@ class TestNoL3NatPlugin(test_l3.TestNoL3NatPlugin,
 
 # A set routes capable L3 routing service plugin class supporting appliances
 class TestApplianceL3RouterServicePlugin(
-        l3_router_test_support.TestL3RouterServicePlugin):
+        dns_db.DNSDbMixin, l3_router_test_support.TestL3RouterServicePlugin):
 
     supported_extension_aliases = (
         l3_router_test_support.TestL3RouterServicePlugin.
-        supported_extension_aliases + ["extraroute"])
+        supported_extension_aliases + ["extraroute"] + ["dns-integration"])
 
     def cleanup_after_test(self):
         """Reset all class variables to their default values.
@@ -400,6 +404,23 @@ class L3RouterApplianceRouterTypeDriverTestCase(test_l3.L3NatTestCaseMixin,
             driver.add_router_interface_postcommit.assert_called_once_with(
                 ctx, mock.ANY)
 
+    def test_add_router_interface_dns(self):
+        driver = mock.Mock()
+        self.l3_plugin._get_router_type_driver = mock.Mock(
+            return_value=driver)
+        with self.router() as router, self.port(cidr='10.0.1.0/24') as port:
+            r = router['router']
+            port['dns_name'] = "test_dns_name"
+            port['dns_domain'] = "test_dns_domain"
+            p1 = port['port']
+            ctx = bc.context.get_admin_context()
+            info = {'port_id': p1['id']}
+            self.l3_plugin.add_router_interface(ctx, r['id'], info)
+            driver.add_router_interface_precommit.assert_called_once_with(
+                ctx, mock.ANY)
+            driver.add_router_interface_postcommit.assert_called_once_with(
+                ctx, mock.ANY)
+
     def test_remove_router_interface_pre_and_post_subnet(self):
         driver = mock.Mock()
         self.l3_plugin._get_router_type_driver = mock.Mock(
@@ -453,6 +474,31 @@ class L3RouterApplianceRouterTypeDriverTestCase(test_l3.L3NatTestCaseMixin,
                 self.l3_plugin.create_floatingip(ctx, fip)
                 driver.create_floatingip_postcommit.assert_called_once_with(
                     ctx, mock.ANY)
+
+    def test_create_floating_ip_post_dns(self):
+        driver = mock.Mock()
+        self.l3_plugin._get_router_type_driver = mock.Mock(
+            return_value=driver)
+        with self.subnet() as ext_s, self.subnet(cidr='10.0.1.0/24') as s:
+            s1 = ext_s['subnet']
+            ext_net_id = s1['network_id']
+            self._set_net_external(ext_net_id)
+            with self.router(
+                    external_gateway_info={'network_id': ext_net_id}) as r,\
+                    self.port(s) as p:
+                self._router_interface_action('add', r['router']['id'], None,
+                                              p['port']['id'])
+                p1 = p['port']
+                fip = {'floatingip': {'floating_network_id': ext_net_id,
+                                      'port_id': p1['id'],
+                                      'tenant_id': s1['tenant_id'],
+                                      'dns_name': 'dns_test',
+                                      'dns_domain': 'dns_domain'}}
+                ctx = bc.context.get_admin_context()
+                self.l3_plugin.create_floatingip(ctx, fip)
+                driver.create_floatingip_postcommit.assert_called_once_with(
+                    ctx, mock.ANY)
+                #JAJ - test for dns_name on FIP?  How?
 
     def test_update_floating_ip_pre_and_post(self):
         driver = mock.Mock()
