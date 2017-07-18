@@ -72,6 +72,36 @@ class Asr1kRouterTypeDriverTestCase(
     #  that router type in the test setup which makes scheduling deterministic
     router_type = 'Nexus_ToR_Neutron_router'
 
+    def _update(self, resource, id, new_data,
+                expected_code=exc.HTTPOk.code,
+                neutron_context=None,
+                check_return_code=True):
+        req = self.new_update_request(resource, new_data, id)
+        if neutron_context:
+            # create a specific auth context for this request
+            req.environ['neutron.context'] = neutron_context
+        res = req.get_response(self._api_for_resource(resource))
+        if check_return_code is True:
+            self.assertEqual(expected_code, res.status_int)
+        elif res.status_int != expected_code:
+            LOG.debug('Returned code (%(ret)s) != expected code (%(exp)s)',
+                      {'ret': res.status_int, 'exp': expected_code})
+        return self.deserialize(self.fmt, res)
+
+    def _delete(self, collection, id,
+                expected_code=exc.HTTPNoContent.code,
+                neutron_context=None, check_return_code=True):
+        req = self.new_delete_request(collection, id)
+        if neutron_context:
+            # create a specific auth context for this request
+            req.environ['neutron.context'] = neutron_context
+        res = req.get_response(self._api_for_resource(collection))
+        if check_return_code is True:
+            self.assertEqual(expected_code, res.status_int)
+        elif res.status_int != expected_code:
+            LOG.debug('Returned code (%(ret)s) != expected code (%(exp)s)',
+                      {'ret': res.status_int, 'exp': expected_code})
+
     def _verify_global_router(self, role, hd_id, ext_net_ids):
         # The 'ext_net_ids' argument is a dict where key is ext_net_id and
         # value is a list of subnet_ids that the global router should be
@@ -573,10 +603,11 @@ class Asr1kRouterTypeDriverTestCase(
                 self._verify_routers(r_ids, ext_net_ids, hd_id, [0, 1])
                 if update_operation is True:
                     LOG.debug('Update router %s to remove gateway', r2['id'])
-                    self._update('routers', r2['id'], r_spec)
+                    self._update('routers', r2['id'], r_spec,
+                                 check_return_code=False)
                 else:
                     LOG.debug('Delete router %s', r2['id'])
-                    self._delete('routers', r2['id'])
+                    self._delete('routers', r2['id'], check_return_code=False)
                     r_ids = {}
                 # should have no global router now
                 ext_net_ids.pop(ext_net_2_id, None)
@@ -674,7 +705,8 @@ class Asr1kRouterTypeDriverTestCase(
                     ext_net_ids.pop(msn_ext_net_1_id)
                 self._verify_routers(r_ids, ext_net_ids, hd_id, [0, 1])
                 LOG.debug('Update router %s to remove gateway', r2['id'])
-                self._update('routers', r2['id'], r_spec)
+                self._update('routers', r2['id'], r_spec,
+                             check_return_code=False)
                 # should have no global router now
                 self._verify_routers(r_ids, ext_net_ids)
 
@@ -764,7 +796,8 @@ class Asr1kRouterTypeDriverTestCase(
                         '._delete_global_router',
                         new=_concurrent_delete_global_router):
                     LOG.debug('Update router %s to remove gateway', r['id'])
-                    self._update('routers', r['id'], r_spec)
+                    self._update('routers', r['id'], r_spec,
+                                 check_return_code=False)
                     # should have no global router now
                     self._verify_routers(r_ids, ext_net_ids)
 
@@ -864,7 +897,7 @@ class Asr1kRouterTypeDriverTestCase(
                 if same_ext_net is False:
                     ext_net_ids.pop(msn_ext_net_1_id)
                 self._verify_routers(r_ids, ext_net_ids, hd_id, [0, 1])
-                self._delete('routers', r2['id'])
+                self._delete('routers', r2['id'], check_return_code=False)
                 r_ids = {}
                 # should have no global router now
                 self._verify_routers(r_ids, ext_net_ids)
