@@ -1067,12 +1067,18 @@ class TestCiscoNexusBaremetalResults(
     test_results = {
         'add_port_ethernet_driver_result': (
             [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+            (test_cisco_nexus_base.RESULT_ADD_NATIVE_INTERFACE.
+                format('ethernet', '1\/10', 267) +
+            '[\x00-\x7f]+' +
             test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/10', 267)]),
+                format('ethernet', '1\/10', 267))]),
 
         'delete_port_ethernet_driver_result': (
-            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/10', 267),
+            [(test_cisco_nexus_base.RESULT_DEL_NATIVE_INTERFACE.
+                format('ethernet', '1\/10') +
+            '[\x00-\x7f]+' +
+             test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('ethernet', '1\/10', 267)),
             test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)]),
 
         'add_vm_port_ethernet_driver_result': (
@@ -1103,18 +1109,30 @@ class TestCiscoNexusBaremetalResults(
 
         'driver_result_unique_vPC_add1': (
             [test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+            (test_cisco_nexus_base.RESULT_ADD_NATIVE_INTERFACE.
+            format('port-channel', '469', 267) +
+            '[\x00-\x7f]+' +
             test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('port-channel', '469', 267),
+                format('port-channel', '469', 267)),
             test_cisco_nexus_base.RESULT_ADD_VLAN.format(267),
+            (test_cisco_nexus_base.RESULT_ADD_NATIVE_INTERFACE.
+            format('port-channel', '469', 267) +
+            '[\x00-\x7f]+' +
             test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('port-channel', '469', 267)]),
+                format('port-channel', '469', 267))]),
 
         'driver_result_unique_vPC_del1': (
-            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('port-channel', '469', 267),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267),
+            [(test_cisco_nexus_base.RESULT_DEL_NATIVE_INTERFACE.
+                format('port-channel', '469') +
+            '[\x00-\x7f]+' +
             test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('port-channel', '469', 267),
+                format('port-channel', '469', 267)),
+            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267),
+            (test_cisco_nexus_base.RESULT_DEL_NATIVE_INTERFACE.
+                format('port-channel', '469') +
+            '[\x00-\x7f]+' +
+            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
+                format('port-channel', '469', 267)),
             test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)]),
 
         'driver_result_unique_vPC_add1_vm': (
@@ -1145,7 +1163,6 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
             {
                 "port_id": test_cisco_nexus_base.NEXUS_BAREMETAL_PORT_1,
                 "switch_info": {
-                    "is_native": False,
                     "switch_ip": test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
                 },
             },
@@ -1157,14 +1174,12 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
             {
                 "port_id": test_cisco_nexus_base.NEXUS_BAREMETAL_PORT_1,
                 "switch_info": {
-                    "is_native": False,
                     "switch_ip": test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
                 },
             },
             {
                 "port_id": test_cisco_nexus_base.NEXUS_BAREMETAL_PORT_2,
                 "switch_info": {
-                    "is_native": False,
                     "switch_ip": test_cisco_nexus_base.NEXUS_IP_ADDRESS_2,
                 },
             },
@@ -1176,7 +1191,6 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
             {
                 "port_id": test_cisco_nexus_base.NEXUS_BAREMETAL_PORT_1,
                 "switch_info": {
-                    "is_native": True,
                     "switch_ip": test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
                 },
             },
@@ -1371,7 +1385,6 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
                 {
                     "port_id": test_cisco_nexus_base.NEXUS_BAREMETAL_PORT_1,
                     "switch_info": {
-                        "is_native": False,
                         "switch_ip": "1.1.1.1",
                     },
                 },
@@ -1379,7 +1392,6 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
                 {
                     "port_id": test_cisco_nexus_base.NEXUS_BAREMETAL_PORT_1,
                     "switch_info": {
-                        "is_native": False,
                         "switch_ip": "6.6.6.6",
                     },
                 },

@@ -28,7 +28,6 @@ redundant.
 """
 
 import mock
-import unittest
 
 from oslo_config import cfg
 
@@ -424,14 +423,15 @@ class TestCiscoNexusRestBaremetalResults(base.TestCiscoNexusBaseResults):
              base.POST],
             [(snipp.PATH_IF % 'phys-[eth1/10]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '+267')),
+             (snipp.BODY_NATIVE_TRUNKVLAN % (
+                 'l1PhysIf', '', '+267', 'vlan-267')),
              base.POST]
         ],
 
         'delete_port_ethernet_driver_result': [
             [(snipp.PATH_IF % 'phys-[eth1/10]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '-267')),
+             (snipp.BODY_NATIVE_TRUNKVLAN % ('l1PhysIf', '', '-267', '')),
              base.POST],
             [(snipp.PATH_VLAN % '267'),
              base.NEXUS_IP_ADDRESS_1,
@@ -513,7 +513,8 @@ class TestCiscoNexusRestBaremetalResults(base.TestCiscoNexusBaseResults):
              base.POST],
             [(snipp.PATH_IF % 'aggr-[po469]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '+267')),
+             (snipp.BODY_NATIVE_TRUNKVLAN % (
+                 'pcAggrIf', '', '+267', 'vlan-267')),
              base.POST],
             [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_2,
@@ -521,14 +522,15 @@ class TestCiscoNexusRestBaremetalResults(base.TestCiscoNexusBaseResults):
              base.POST],
             [(snipp.PATH_IF % 'aggr-[po469]'),
              base.NEXUS_IP_ADDRESS_2,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '+267')),
+             (snipp.BODY_NATIVE_TRUNKVLAN % (
+                 'pcAggrIf', '', '+267', 'vlan-267')),
              base.POST]
         ],
 
         'driver_result_unique_vPC_del1': [
             [(snipp.PATH_IF % 'aggr-[po469]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '-267')),
+             (snipp.BODY_NATIVE_TRUNKVLAN % ('pcAggrIf', '', '-267', '')),
              base.POST],
             [(snipp.PATH_VLAN % '267'),
              base.NEXUS_IP_ADDRESS_1,
@@ -536,7 +538,7 @@ class TestCiscoNexusRestBaremetalResults(base.TestCiscoNexusBaseResults):
              base.DELETE],
             [(snipp.PATH_IF % 'aggr-[po469]'),
              base.NEXUS_IP_ADDRESS_2,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '-267')),
+             (snipp.BODY_NATIVE_TRUNKVLAN % ('pcAggrIf', '', '-267', '')),
              base.POST],
             [(snipp.PATH_VLAN % '267'),
              base.NEXUS_IP_ADDRESS_2,
@@ -662,7 +664,8 @@ class TestCiscoNexusRestBaremetalResults(base.TestCiscoNexusBaseResults):
              base.POST],
             [(snipp.PATH_IF % 'aggr-[po1001]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '+267')),
+             (snipp.BODY_NATIVE_TRUNKVLAN % (
+                 'pcAggrIf', '', '+267', 'vlan-267')),
              base.POST],
             [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_2,
@@ -670,14 +673,15 @@ class TestCiscoNexusRestBaremetalResults(base.TestCiscoNexusBaseResults):
              base.POST],
             [(snipp.PATH_IF % 'aggr-[po1001]'),
              base.NEXUS_IP_ADDRESS_2,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '+267')),
+             (snipp.BODY_NATIVE_TRUNKVLAN % (
+                 'pcAggrIf', '', '+267', 'vlan-267')),
              base.POST]
         ],
 
         'driver_result_unique_auto_vPC_del1': [
             [(snipp.PATH_IF % 'aggr-[po1001]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '-267')),
+             (snipp.BODY_NATIVE_TRUNKVLAN % ('pcAggrIf', '', '-267', '')),
              base.POST],
             [(snipp.PATH_VLAN % '267'),
              base.NEXUS_IP_ADDRESS_1,
@@ -693,7 +697,7 @@ class TestCiscoNexusRestBaremetalResults(base.TestCiscoNexusBaseResults):
              base.POST],
             [(snipp.PATH_IF % 'aggr-[po1001]'),
              base.NEXUS_IP_ADDRESS_2,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '-267')),
+             (snipp.BODY_NATIVE_TRUNKVLAN % ('pcAggrIf', '', '-267', '')),
              base.POST],
             [(snipp.PATH_VLAN % '267'),
              base.NEXUS_IP_ADDRESS_2,
@@ -800,18 +804,15 @@ class TestCiscoNexusRestBaremetalDevice(
         super(TestCiscoNexusRestBaremetalDevice, self).setUp()
         self.results = TestCiscoNexusRestBaremetalResults()
 
-    @unittest.skip("Update to work w/ new native access code.")
     def test_create_delete_basic_bm_ethernet_port_and_vm(self):
         (super(TestCiscoNexusRestBaremetalDevice, self).
             test_create_delete_basic_bm_ethernet_port_and_vm())
 
-    @unittest.skip("Update to work w/ new native access code.")
     def test_create_delete_basic_port_channel(self):
         """Basic creation and deletion test of 1 learned port-channel."""
         (super(TestCiscoNexusRestBaremetalDevice, self).
             test_create_delete_basic_port_channel())
 
-    @unittest.skip("Update to work w/ new native access code.")
     def test_create_delete_learn_vpc_and_vm(self):
         (super(TestCiscoNexusRestBaremetalDevice, self).
             test_create_delete_learn_vpc_and_vm())
@@ -820,12 +821,10 @@ class TestCiscoNexusRestBaremetalDevice(
         (super(TestCiscoNexusRestBaremetalDevice, self).
             test_create_delete_basic_eth_port_is_native())
 
-    @unittest.skip("Update to work w/ new native access code.")
     def test_create_delete_switch_ip_not_defined(self):
         (super(TestCiscoNexusRestBaremetalDevice, self).
             test_create_delete_switch_ip_not_defined())
 
-    @unittest.skip("Update to work w/ new native access code.")
     def test_automated_port_channel_creation_deletion(self):
         """Basic creation and deletion test of 1 auto port-channel."""
 
@@ -853,7 +852,6 @@ class TestCiscoNexusRestBaremetalDevice(
             self.assertEqual(
                 25, len(nxos_db.get_free_switch_vpc_allocs(switch_ip)))
 
-    @unittest.skip("Update to work w/ new native access code.")
     def test_create_delete_automated_vpc_and_vm(self):
         """Basic creation and deletion test of 2 auto port-channel and vm."""
 
