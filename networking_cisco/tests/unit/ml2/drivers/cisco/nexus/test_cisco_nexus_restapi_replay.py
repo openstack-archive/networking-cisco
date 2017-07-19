@@ -29,7 +29,6 @@ redundant.
 """
 
 import mock
-from oslo_config import cfg
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_db_v2 as nxos_db)
@@ -257,9 +256,9 @@ class TestCiscoNexusRestReplay(test_cisco_nexus_replay.TestCiscoNexusReplay):
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
 
-        cfg.CONF.set_override('nexus_driver', 'restapi', 'ml2_cisco')
-        cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
-        super(TestCiscoNexusRestReplay, self).setUp()
+        # Call Grandfather's setUp(); otherwise parent will set driver to
+        # 'ncclient' instead of 'restapi'.
+        super(test_cisco_nexus_replay.TestCiscoNexusReplay, self).setUp()
         self.results = TestCiscoNexusRestReplayResults()
 
     def test_replay_unique_ports(self):
@@ -899,9 +898,10 @@ class TestCiscoNexusRestBaremetalReplay(
         mock.patch.object(nxos_db,
                          '_get_free_vpcids_on_switches',
                          new=new_get_free_vpcids_on_switches).start()
-        cfg.CONF.set_override('nexus_driver', 'restapi', 'ml2_cisco')
-        cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
-        super(TestCiscoNexusRestBaremetalReplay, self).setUp()
+        # Call Grandfather's setUp(); otherwise parent will set driver to
+        # 'ncclient' instead of 'restapi'.
+        super(test_cisco_nexus_replay.TestCiscoNexusBaremetalReplay,
+              self).setUp()
         self.results = TestCiscoNexusRestBaremetalReplayResults()
 
     def test_replay_unique_ethernet_ports(self):

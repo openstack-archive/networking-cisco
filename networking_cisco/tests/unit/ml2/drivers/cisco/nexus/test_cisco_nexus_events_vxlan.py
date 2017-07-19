@@ -231,6 +231,7 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
 
+        cfg.CONF.set_override('nexus_driver', 'ncclient', 'ml2_cisco')
         cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
         super(TestCiscoNexusVxlanDevice, self).setUp()
         self.mock_ncclient.reset_mock()

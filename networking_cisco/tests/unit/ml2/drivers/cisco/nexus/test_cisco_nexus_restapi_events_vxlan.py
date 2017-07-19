@@ -28,7 +28,6 @@ apply to ssh only OR because rerunning the test would be
 redundant.
 """
 
-from oslo_config import cfg
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_restapi_snippets as snipp)
@@ -242,9 +241,10 @@ class TestCiscoNexusRestVxlanDevice(
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
 
-        cfg.CONF.set_override('nexus_driver', 'restapi', 'ml2_cisco')
-        cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
-        super(TestCiscoNexusRestVxlanDevice, self).setUp()
+        # Call Grandfather's setUp(); otherwise parent will set driver to
+        # 'ncclient' instead of 'restapi'.
+        super(test_cisco_nexus_events_vxlan.TestCiscoNexusVxlanDevice,
+              self).setUp()
         self.mock_ncclient.reset_mock()
         self.addCleanup(self._clear_nve_db)
         self.results = TestCiscoNexusRestVxlanResults()

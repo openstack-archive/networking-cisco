@@ -328,6 +328,7 @@ class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase,
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
 
+        cfg.CONF.set_override('nexus_driver', 'ncclient', 'ml2_cisco')
         cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
         super(TestCiscoNexusDevice, self).setUp()
         self.mock_ncclient.reset_mock()
@@ -632,6 +633,7 @@ class TestCiscoNexusDeviceFailure(test_cisco_nexus_base.TestCiscoNexusBase,
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
 
+        cfg.CONF.set_override('nexus_driver', 'ncclient', 'ml2_cisco')
         cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
         super(TestCiscoNexusDeviceFailure, self).setUp()
         self.mock_ncclient.reset_mock()
@@ -1045,6 +1047,7 @@ class TestCiscoNexusDeviceInit(test_cisco_nexus_base.TestCiscoNexusBase,
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
 
+        cfg.CONF.set_override('nexus_driver', 'ncclient', 'ml2_cisco')
         cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
         super(TestCiscoNexusDeviceInit, self).setUp()
         self.results = TestCiscoNexusInitResults()
@@ -1259,6 +1262,7 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
 
+        cfg.CONF.set_override('nexus_driver', 'ncclient', 'ml2_cisco')
         cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
         super(TestCiscoNexusBaremetalDevice, self).setUp()
         self.results = TestCiscoNexusBaremetalResults()
@@ -1579,6 +1583,11 @@ class TestCiscoNexusNonCacheSshDevice(
         [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
             format('ethernet', '1\/10', 267),
         test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)])
+
+    def setUp(self):
+        cfg.CONF.set_override('nexus_driver', 'ncclient', 'ml2_cisco')
+        super(TestCiscoNexusNonCacheSshDevice, self).setUp()
+        self.mock_ncclient.reset_mock()
 
     def test_create_delete_basic(self):
         """Basic creation and deletion test of 1 ethernet port."""

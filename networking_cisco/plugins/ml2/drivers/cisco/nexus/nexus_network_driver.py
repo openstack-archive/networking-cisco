@@ -20,7 +20,9 @@ Implements a Nexus-OS NETCONF over SSHv2 API Client
 import re
 import six
 import time
+import warnings
 
+from debtcollector import removals
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -40,8 +42,14 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_snippets as snipp)
 
 LOG = logging.getLogger(__name__)
+warnings.simplefilter('always')
 
 
+@removals.removed_class('CiscoNexusSshDriver',
+                        message="CiscoNexusSshDriver replaced by "
+                                "default CiscoNexusRestapiDriver.",
+                        version="Cisco 5.1.0",
+                        removal_version="Cisco 7.0.0")
 class CiscoNexusSshDriver(basedrvr.CiscoNexusBaseDriver):
     """Nexus Driver Main Class."""
     def __init__(self):

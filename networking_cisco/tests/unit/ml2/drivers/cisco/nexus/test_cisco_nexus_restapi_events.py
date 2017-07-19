@@ -29,8 +29,6 @@ redundant.
 
 import mock
 
-from oslo_config import cfg
-
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_db_v2 as nxos_db)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -228,8 +226,10 @@ class TestCiscoNexusRestDevice(test_cisco_nexus_events.TestCiscoNexusDevice):
     """Unit tests for Cisco ML2 Nexus restapi device driver"""
 
     def setUp(self):
-        cfg.CONF.set_override('nexus_driver', 'restapi', 'ml2_cisco')
-        super(TestCiscoNexusRestDevice, self).setUp()
+        # Call Grandfather's setUp(); otherwise parent will set driver to
+        # 'ncclient' instead of 'restapi'.
+        super(test_cisco_nexus_events.TestCiscoNexusDevice, self).setUp()
+        self.mock_ncclient.reset_mock()
         self.results = TestCiscoNexusRestDeviceResults()
 
     def test_create_delete_duplicate_ports(self):
@@ -399,9 +399,9 @@ class TestCiscoNexusRestDeviceInit(
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
 
-        cfg.CONF.set_override('nexus_driver', 'restapi', 'ml2_cisco')
-        cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
-        super(TestCiscoNexusRestDeviceInit, self).setUp()
+        # Call Grandfather's setUp(); otherwise parent will set driver to
+        # 'ncclient' instead of 'restapi'.
+        super(test_cisco_nexus_events.TestCiscoNexusDeviceInit, self).setUp()
         self.results = TestCiscoNexusRestInitResults()
 
     def test_verify_initialization(self):
@@ -799,9 +799,10 @@ class TestCiscoNexusRestBaremetalDevice(
         mock.patch.object(nxos_db,
                          '_get_free_vpcids_on_switches',
                          new=new_get_free_vpcids_on_switches).start()
-        cfg.CONF.set_override('nexus_driver', 'restapi', 'ml2_cisco')
-        cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
-        super(TestCiscoNexusRestBaremetalDevice, self).setUp()
+        # Call Grandfather's setUp(); otherwise parent will set driver to
+        # 'ncclient' instead of 'restapi'.
+        super(test_cisco_nexus_events.TestCiscoNexusBaremetalDevice,
+              self).setUp()
         self.results = TestCiscoNexusRestBaremetalResults()
 
     def test_create_delete_basic_bm_ethernet_port_and_vm(self):

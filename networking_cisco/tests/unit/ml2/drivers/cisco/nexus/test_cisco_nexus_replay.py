@@ -258,6 +258,7 @@ class TestCiscoNexusReplay(test_cisco_nexus_base.TestCiscoNexusReplayBase):
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
 
+        cfg.CONF.set_override('nexus_driver', 'ncclient', 'ml2_cisco')
         cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
         super(TestCiscoNexusReplay, self).setUp()
         self.results = TestCiscoNexusReplayResults()
@@ -1207,6 +1208,7 @@ class TestCiscoNexusBaremetalReplay(
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
 
+        cfg.CONF.set_override('nexus_driver', 'ncclient', 'ml2_cisco')
         cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
         super(TestCiscoNexusBaremetalReplay, self).setUp()
         self.results = TestCiscoNexusBaremetalReplayResults()
@@ -1431,6 +1433,11 @@ class TestCiscoNexusNonCachedSshReplay(
                 None,
                 test_cisco_nexus_base.NORMAL_VNIC),
     }
+
+    def setUp(self):
+        cfg.CONF.set_override('nexus_driver', 'ncclient', 'ml2_cisco')
+        super(TestCiscoNexusNonCachedSshReplay, self).setUp()
+        self.mock_ncclient.reset_mock()
 
     def test_basic_replay_NonCacheSsh(self):
         """Basic none cached ssh replay test."""
