@@ -149,8 +149,8 @@ class UcsmConfig(object):
         """Creates a dictionary of UCSM data for 1 UCS Manager."""
         ucsm_info = []
         eth_port_list = []
-        ucsm_info.append(cfg.CONF.ml2_cisco_ucsm.ucsm_password)
         ucsm_info.append(cfg.CONF.ml2_cisco_ucsm.ucsm_username)
+        ucsm_info.append(cfg.CONF.ml2_cisco_ucsm.ucsm_password)
         self.ucsm_dict[cfg.CONF.ml2_cisco_ucsm.ucsm_ip] = ucsm_info
         eth_port_list = parse_virtio_eth_ports()
         if eth_port_list:

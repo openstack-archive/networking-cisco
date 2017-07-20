@@ -1071,3 +1071,26 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
 
         # Resetting the ucsm_host_dict value to what the other tests expect.
         self.ucsm_driver.ucsm_host_dict[HOST1] = '1.1.1.1'
+
+    def test_parsing_of_single_ucsm_config(self):
+        cfg.CONF.ml2_cisco_ucsm.ucsm_ip = "1.1.1.1"
+        cfg.CONF.ml2_cisco_ucsm.ucsm_username = "user1"
+        cfg.CONF.ml2_cisco_ucsm.ucsm_password = "password1"
+        cfg.CONF.ml2_cisco_ucsm.ucsm_virtio_eth_ports = ["eth0", "eth1"]
+        expected_parsed_virtio_eth_ports = ["/ether-eth0", "/ether-eth1"]
+
+        ucsm_config = conf.UcsmConfig()
+
+        ucsm_config._create_single_ucsm_dicts()
+
+        username, password = ucsm_config.get_credentials_for_ucsm_ip(
+            cfg.CONF.ml2_cisco_ucsm.ucsm_ip)
+
+        self.assertEqual(username, cfg.CONF.ml2_cisco_ucsm.ucsm_username)
+        self.assertEqual(password, cfg.CONF.ml2_cisco_ucsm.ucsm_password)
+
+        virtio_port_list = ucsm_config.get_ucsm_eth_port_list(
+            cfg.CONF.ml2_cisco_ucsm.ucsm_ip)
+
+        self.assertEqual(expected_parsed_virtio_eth_ports,
+            virtio_port_list)
