@@ -79,6 +79,15 @@ class NexusVPCAllocNotFound(exceptions.NeutronException):
         super(NexusVPCAllocNotFound, self).__init__(filters=filters)
 
 
+class NexusVPCAllocFailure(exceptions.NeutronException):
+    """Nexus VPC alloc Failure."""
+    message = _("Unable to allocate vpcid for all switches (%s).")
+
+    def __init__(self, **kwargs):
+        filters = ','.join('%s=%s' % i for i in kwargs.items())
+        super(NexusVPCAllocFailure, self).__init__(filters=filters)
+
+
 class NexusVPCAllocInvalidArgValue(exceptions.NeutronException):
     """Nexus VPC alloc arg values not valid."""
     message = _("Nexus VPC Alloc init failed. Args "
@@ -95,7 +104,7 @@ class NexusVPCAllocIncorrectArgCount(exceptions.NeutronException):
 
 class NexusVPCLearnedNotConsistent(exceptions.NeutronException):
     """Learned Channel group not consistent on interface set in switches."""
-    message = _("Learned Nexus Channel Group not consistent on"
+    message = _("Learned Nexus channel group not consistent on "
                 "this interface set: first interface %(first)s, "
                 "second interface %(second)s.  "
                 "Check Nexus Config and make consistent.")
@@ -103,7 +112,7 @@ class NexusVPCLearnedNotConsistent(exceptions.NeutronException):
 
 class NexusVPCExpectedNoChgrp(exceptions.NeutronException):
     """Allocated Channel group not consistent on interface set in switches."""
-    message = _("Channel Group state in baremetal interface set not "
+    message = _("Channel group state in baremetal interface set not "
                 "consistent: first interface %(first)s, "
                 "second interface %(second)s.  "
                 "Check Nexus Config and make consistent.")

@@ -29,6 +29,10 @@ redundant.
 
 import mock
 
+import six
+
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    exceptions)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_db_v2 as nxos_db)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -283,52 +287,62 @@ class TestCiscoNexusRestInitResults(base.TestCiscoNexusBaseResults):
         'duplicate_init_port_driver_result1': [
             [(snipp.PATH_IF % 'phys-[eth1/10]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf',
+                 snipp.BODY_PORT_CH_MODE, '')),
              base.POST],
 
             [(snipp.PATH_IF % 'phys-[eth1/20]'),
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf',
+                 snipp.BODY_PORT_CH_MODE, '')),
              base.POST],
 
             [(snipp.PATH_IF % 'phys-[eth1/10]'),
              base.NEXUS_IP_ADDRESS_8,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf',
+                 snipp.BODY_PORT_CH_MODE, '')),
              base.POST],
 
             [(snipp.PATH_IF % 'phys-[eth1/20]'),
              base.NEXUS_IP_ADDRESS_8,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf',
+                 snipp.BODY_PORT_CH_MODE, '')),
              base.POST],
 
             [(snipp.PATH_IF % 'phys-[eth1/3]'),
              base.NEXUS_IP_ADDRESS_DUAL,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf',
+                 snipp.BODY_PORT_CH_MODE, '')),
              base.POST],
 
             [(snipp.PATH_IF % 'aggr-[po2]'),
              base.NEXUS_IP_ADDRESS_DUAL,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '')),
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf',
+                 snipp.BODY_PORT_CH_MODE, '')),
              base.POST],
 
             [(snipp.PATH_IF % 'phys-[eth1/20]'),
              base.NEXUS_IP_ADDRESS_3,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '')),
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf',
+                 snipp.BODY_PORT_CH_MODE, '')),
              base.POST],
 
             [(snipp.PATH_IF % 'aggr-[po2]'),
              base.NEXUS_IP_ADDRESS_2,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '')),
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf',
+                 snipp.BODY_PORT_CH_MODE, '')),
              base.POST],
 
             [(snipp.PATH_IF % 'aggr-[po2]'),
              base.NEXUS_IP_ADDRESS_6,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '')),
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf',
+                 snipp.BODY_PORT_CH_MODE, '')),
              base.POST],
 
             [(snipp.PATH_IF % 'aggr-[po2]'),
              base.NEXUS_IP_ADDRESS_7,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf', '', '')),
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf',
+                 snipp.BODY_PORT_CH_MODE, '')),
              base.POST],
 
         ],
@@ -365,6 +379,7 @@ GET_INTERFACE_PCHAN_NO_TRUNK_RESPONSE = {
 # Skipped inheriting event class TestCiscoNexusDeviceFailure
 # since some tests are generic and need not be executed twice
 # and some apply only to SSH driver.
+
 
 class TestCiscoNexusRestDeviceInit(
     test_cisco_nexus_events.TestCiscoNexusDeviceInit):
@@ -632,14 +647,14 @@ class TestCiscoNexusRestBaremetalResults(base.TestCiscoNexusBaseResults):
              base.NEXUS_IP_ADDRESS_1,
              (snipp.BODY_ADD_PORT_CH_P2 % (1001, 1001)),
              base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_ADD_CH_GRP % (1001, 1001, 'phys-[eth1/10]')),
+             base.POST],
             [(snipp.PATH_IF % 'aggr-[po1001]'),
              base.NEXUS_IP_ADDRESS_1,
              (snipp.BODY_TRUNKVLAN % (
                  'pcAggrIf', snipp.BODY_PORT_CH_MODE, '')),
-             base.POST],
-            [snipp.PATH_ALL,
-             base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_ADD_CH_GRP % (1001, 1001, 'phys-[eth1/10]')),
              base.POST],
             [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_2,
@@ -649,14 +664,14 @@ class TestCiscoNexusRestBaremetalResults(base.TestCiscoNexusBaseResults):
              base.NEXUS_IP_ADDRESS_2,
              (snipp.BODY_ADD_PORT_CH_P2 % (1001, 1001)),
              base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_ADD_CH_GRP % (1001, 1001, 'phys-[eth1/20]')),
+             base.POST],
             [(snipp.PATH_IF % 'aggr-[po1001]'),
              base.NEXUS_IP_ADDRESS_2,
              (snipp.BODY_TRUNKVLAN % (
                  'pcAggrIf', snipp.BODY_PORT_CH_MODE, '')),
-             base.POST],
-            [snipp.PATH_ALL,
-             base.NEXUS_IP_ADDRESS_2,
-             (snipp.BODY_ADD_CH_GRP % (1001, 1001, 'phys-[eth1/20]')),
              base.POST],
             [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_1,
@@ -677,7 +692,6 @@ class TestCiscoNexusRestBaremetalResults(base.TestCiscoNexusBaseResults):
                  'pcAggrIf', '', '+267', 'vlan-267')),
              base.POST]
         ],
-
         'driver_result_unique_auto_vPC_del1': [
             [(snipp.PATH_IF % 'aggr-[po1001]'),
              base.NEXUS_IP_ADDRESS_1,
@@ -712,33 +726,59 @@ class TestCiscoNexusRestBaremetalResults(base.TestCiscoNexusBaseResults):
              (snipp.BODY_DEL_PORT_CH % ('1001')),
              base.POST]
         ],
-
-        'driver_result_unique_auto_vPC_add_usr_cmd_rest': [
+        'driver_result_unique_auto_vPC_inconsistency_failure': [
             [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_1,
              (snipp.BODY_ADD_PORT_CH % (1001, 1001, 1001)),
              base.POST],
-            [(snipp.PATH_IF % 'aggr-[po1001]'),
+            [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_1,
-             (snipp.BODY_TRUNKVLAN % (
-                 'pcAggrIf', snipp.BODY_PORT_CH_MODE, '')),
+             (snipp.BODY_ADD_PORT_CH_P2 % (1001, 1001)),
              base.POST],
             [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_1,
              (snipp.BODY_ADD_CH_GRP % (1001, 1001, 'phys-[eth1/10]')),
              base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_TRUNKVLAN % (
+                 'pcAggrIf', snipp.BODY_PORT_CH_MODE, '')),
+             base.POST],
             [snipp.PATH_ALL,
-             base.NEXUS_IP_ADDRESS_2,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_DEL_CH_GRP % ('1001', 'phys-[eth1/10]')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_DEL_PORT_CH % ('1001')),
+             base.POST]
+        ],
+        'driver_result_unique_auto_vPC_add_usr_cmd_rest': [
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
              (snipp.BODY_ADD_PORT_CH % (1001, 1001, 1001)),
              base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_ADD_CH_GRP % (1001, 1001, 'phys-[eth1/10]')),
+             base.POST],
             [(snipp.PATH_IF % 'aggr-[po1001]'),
-             base.NEXUS_IP_ADDRESS_2,
+             base.NEXUS_IP_ADDRESS_1,
              (snipp.BODY_TRUNKVLAN % (
                  'pcAggrIf', snipp.BODY_PORT_CH_MODE, '')),
              base.POST],
             [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_ADD_PORT_CH % (1001, 1001, 1001)),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
              (snipp.BODY_ADD_CH_GRP % (1001, 1001, 'phys-[eth1/20]')),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_TRUNKVLAN % (
+                 'pcAggrIf', snipp.BODY_PORT_CH_MODE, '')),
              base.POST],
             [snipp.PATH_ALL,
              base.NEXUS_IP_ADDRESS_1,
@@ -805,7 +845,7 @@ GET_PORT_CH_RESPONSE = {
         {
             "pcRsMbrIfs": {
                 "attributes": {
-                    "parentSKey": "po469",
+                    "parentSKey": "po470",
                     "tSKey": "eth1/20",
                 }
             }
@@ -833,6 +873,23 @@ class TestCiscoNexusRestBaremetalDevice(
             return base.GET_INTERFACE_RESPONSE
         elif port_chan_path in action:
             return base.GET_INTERFACE_PCHAN_RESPONSE
+
+        return {}
+
+    def get_init_side_effect2(
+        self, action, ipaddr=None, body=None, headers=None):
+
+        eth_path = 'api/mo/sys/intf/phys-'
+        port_chan_path = 'api/mo/sys/intf/aggr-'
+
+        if action == snipp.PATH_GET_NEXUS_TYPE:
+            return base.GET_NEXUS_TYPE_RESPONSE
+        elif action in snipp.PATH_GET_PC_MEMBERS:
+            return base.GET_NO_PORT_CH_RESPONSE
+        elif eth_path in action:
+            return base.GET_INTERFACE_RESPONSE
+        elif port_chan_path in action:
+            return GET_INTERFACE_PCHAN_NO_TRUNK_RESPONSE
 
         return {}
 
@@ -889,6 +946,10 @@ class TestCiscoNexusRestBaremetalDevice(
     def test_automated_port_channel_creation_deletion(self):
         """Basic creation and deletion test of 1 auto port-channel."""
 
+        data_json = {'rest_get.side_effect':
+                    self.get_init_side_effect2}
+        self.mock_ncclient.configure_mock(**data_json)
+
         switch_list = ['1.1.1.1', '2.2.2.2']
 
         for switch_ip in switch_list:
@@ -915,6 +976,10 @@ class TestCiscoNexusRestBaremetalDevice(
 
     def test_create_delete_automated_vpc_and_vm(self):
         """Basic creation and deletion test of 2 auto port-channel and vm."""
+
+        data_json = {'rest_get.side_effect':
+                    self.get_init_side_effect2}
+        self.mock_ncclient.configure_mock(**data_json)
 
         switch_list = ['1.1.1.1', '2.2.2.2']
 
@@ -955,6 +1020,10 @@ class TestCiscoNexusRestBaremetalDevice(
     def test_automated_port_channel_w_user_cfg(self):
         """Basic creation and deletion test of 1 auto port-channel."""
 
+        data_json = {'rest_get.side_effect':
+                    self.get_init_side_effect2}
+        self.mock_ncclient.configure_mock(**data_json)
+
         switch_list = ['1.1.1.1', '2.2.2.2']
 
         for switch_ip in switch_list:
@@ -987,8 +1056,162 @@ class TestCiscoNexusRestBaremetalDevice(
             self.assertEqual(
                 25, len(nxos_db.get_free_switch_vpc_allocs(switch_ip)))
 
-    def test_failure_inconsistent_chgrp(self):
-        pass
+    def test_failure_inconsistent_learned_chgrp(self):
+        """Learning chgrp but different on both eth interfaces."""
+
+        # Clean all the ncclient mock_calls to clear exception
+        # and other mock_call history.
+        self.mock_ncclient.reset_mock()
+
+        LOCAL_GET_PORT_CH_RESPONSE = {
+            "totalCount": "2",
+            "imdata": [
+                {
+                    "pcRsMbrIfs": {
+                        "attributes": {
+                            "parentSKey": "po469",
+                            "tSKey": "eth1/10",
+                        }
+                    }
+                },
+                {
+                    "pcRsMbrIfs": {
+                        "attributes": {
+                            "parentSKey": "po470",
+                            "tSKey": "eth1/20",
+                        }
+                    }
+                }
+            ]
+        }
+
+        def local_get_init_side_effect(
+            action, ipaddr=None, body=None, headers=None):
+
+            eth_path = 'api/mo/sys/intf/phys-'
+            port_chan_path = 'api/mo/sys/intf/aggr-'
+
+            if action == snipp.PATH_GET_NEXUS_TYPE:
+                return base.GET_NEXUS_TYPE_RESPONSE
+            elif action in snipp.PATH_GET_PC_MEMBERS:
+                return LOCAL_GET_PORT_CH_RESPONSE
+            elif eth_path in action:
+                return base.GET_INTERFACE_RESPONSE
+            elif port_chan_path in action:
+                return GET_INTERFACE_PCHAN_NO_TRUNK_RESPONSE
+
+            return {}
+
+        # Substitute init_port_channel() with the following
+        # since this is a one time test scenario.
+        data_json = {'rest_get.side_effect':
+                    local_get_init_side_effect}
+        self.mock_ncclient.configure_mock(**data_json)
+
+        e = self.assertRaises(exceptions.NexusVPCLearnedNotConsistent,
+                              self._create_port,
+                              self.test_configs[
+                                  'test_config_vPC'])
+        x = six.u(str(e))
+        self.assertIn("first interface 1.1.1.1, ethernet:1/10, vpc=469", x)
+        self.assertIn("second interface 2.2.2.2, ethernet:1/20, vpc=470", x)
+
+    def test_failure_inconsistent_new_chgrp(self):
+        """Started as newly created chgrp but one if had chgrp configured."""
+
+        # First interface Nexus returns there's no ch_grp
+        # so treat as port-channel create.
+        # Second interface Nexus returns ch_grp so so process
+        # reset procedure which checks that .....
+        #   - port-channel deleted from Nexus for first interface
+        #   - ch_grp removed from Nexus on first interface
+        #   - free-up vpcid allocated on first interface
+        #   - raised cexc.NexusVPCExpectedNoChgrp
+
+        LOCAL_GET_PORT_CH_RESPONSE = {
+            "totalCount": "1",
+            "imdata": [
+                {
+                    "pcRsMbrIfs": {
+                        "attributes": {
+                            "parentSKey": "po470",
+                            "tSKey": "eth1/20",
+                        }
+                    }
+                }
+            ]
+        }
+
+        def local_get_init_side_effect(
+            action, ipaddr=None, body=None, headers=None):
+
+            eth_path = 'api/mo/sys/intf/phys-'
+            port_chan_path = 'api/mo/sys/intf/aggr-'
+
+            if action == snipp.PATH_GET_NEXUS_TYPE:
+                return base.GET_NEXUS_TYPE_RESPONSE
+            elif action in snipp.PATH_GET_PC_MEMBERS:
+                return LOCAL_GET_PORT_CH_RESPONSE
+            elif eth_path in action:
+                return base.GET_INTERFACE_RESPONSE
+            elif port_chan_path in action:
+                return GET_INTERFACE_PCHAN_NO_TRUNK_RESPONSE
+
+            return {}
+
+        # Substitute init_port_channel() with the following
+        # since this is a one time test scenario.
+        data_json = {'rest_get.side_effect':
+                    local_get_init_side_effect}
+        self.mock_ncclient.configure_mock(**data_json)
+
+        switch_list = ['1.1.1.1', '2.2.2.2']
+
+        for switch_ip in switch_list:
+            nxos_db.init_vpc_entries(switch_ip, 1001, 1025)
+            allocs = nxos_db.get_free_switch_vpc_allocs(switch_ip)
+            self.assertEqual(len(allocs), 25)
+
+        e = self.assertRaises(exceptions.NexusVPCExpectedNoChgrp,
+                              self._create_port,
+                              self.test_configs[
+                                  'test_config_vPC'])
+        # Check that appropriate string in exception string
+        x = six.u(str(e))
+        self.assertIn("first interface 1.1.1.1, ethernet:1/10, vpc=None", x)
+        self.assertIn("second interface 2.2.2.2, ethernet:1/20, vpc=470", x)
+
+        # Verify vpcid initially allocated is now free
+        for switch_ip in switch_list:
+            allocs = nxos_db.get_free_switch_vpc_allocs(switch_ip)
+            self.assertEqual(len(allocs), 25)
+
+        # Verify no attempt to create port-channels
+        self._verify_results([])
+
+    def test_vpcids_depleted_failure(self):
+        """Verifies exception when failed to get vpcid."""
+
+        # Clean all the ncclient mock_calls to clear exception
+        # and other mock_call history.
+        self.mock_ncclient.reset_mock()
+
+        def new_alloc_vpcid(nexus_ip_list):
+            return 0
+
+        mock.patch.object(nxos_db,
+                         'alloc_vpcid',
+                          new=new_alloc_vpcid).start()
+        e = self.assertRaises(exceptions.NexusVPCAllocFailure,
+                              self._create_port,
+                              self.test_configs[
+                                  'test_config_vPC'])
+        x = six.u(str(e))
+        self.assertIn("switches=1.1.1.1,2.2.2.2", x)
+
+        # Clean all the ncclient mock_calls to clear exception
+        # and other mock_call history.
+        self.mock_ncclient.reset_mock()
 
 
 # Skipped inheriting event class TestCiscoNexusNonCacheSshDevice
