@@ -658,30 +658,31 @@ class HA_db_mixin(object):
             return
         ha_group_uuid = uuidutils.generate_uuid()
         # use HA group as device instead of the router to hide this port
+        group_id = (driver.generate_ha_group_id(context, router, port,
+                                                ha_settings_db,
+                                                ha_group_uuid) or
+                    self._generate_ha_group_id(context, router, port,
+                                               ha_settings_db,
+                                               ha_group_uuid))
+        timers_cfg = driver.get_ha_group_timers_parameters(
+            context, router, port, ha_settings_db, ha_group_uuid)
+        tracking_cfg = driver.get_ha_group_tracking_parameters(
+            context, router, port, ha_settings_db, ha_group_uuid)
+        other_cfg = driver.get_other_ha_group_parameters(
+            context, router, port, ha_settings_db, ha_group_uuid)
+        if driver.ha_interface_ip_address_needed(
+                context, router, port, ha_settings_db, ha_group_uuid):
+            fixed_ips = self._get_fixed_ips_subnets(port['fixed_ips'])
+            extra_port = self._create_hidden_port(
+                context, port['network_id'], ha_group_uuid,
+                fixed_ips, port['device_owner'])
+            extra_port_id = extra_port['id']
+        else:
+            extra_port_id = None
+        subnet_id = (port['fixed_ips'][0]['subnet_id']
+                     if port['fixed_ips'] else None)
+
         with context.session.begin(subtransactions=True):
-            group_id = (driver.generate_ha_group_id(context, router, port,
-                                                    ha_settings_db,
-                                                    ha_group_uuid) or
-                        self._generate_ha_group_id(context, router, port,
-                                                   ha_settings_db,
-                                                   ha_group_uuid))
-            timers_cfg = driver.get_ha_group_timers_parameters(
-                context, router, port, ha_settings_db, ha_group_uuid)
-            tracking_cfg = driver.get_ha_group_tracking_parameters(
-                context, router, port, ha_settings_db, ha_group_uuid)
-            other_cfg = driver.get_other_ha_group_parameters(
-                context, router, port, ha_settings_db, ha_group_uuid)
-            if driver.ha_interface_ip_address_needed(
-                    context, router, port, ha_settings_db, ha_group_uuid):
-                fixed_ips = self._get_fixed_ips_subnets(port['fixed_ips'])
-                extra_port = self._create_hidden_port(
-                    context, port['network_id'], ha_group_uuid,
-                    fixed_ips, port['device_owner'])
-                extra_port_id = extra_port['id']
-            else:
-                extra_port_id = None
-            subnet_id = (port['fixed_ips'][0]['subnet_id']
-                         if port['fixed_ips'] else None)
             r_ha_g = RouterHAGroup(
                 id=ha_group_uuid,
                 tenant_id=port['tenant_id'],
@@ -935,7 +936,8 @@ class HA_db_mixin(object):
             'name': ''}}
         if utils.is_extension_supported(self._core_plugin, "dns-integration"):
                 port['port'].update(dns_name='')
-        return self._core_plugin.create_port(context, port)
+        core_plugin = bc.get_plugin()
+        return core_plugin.create_port(context, port)
 
     def _get_ha_settings_by_router_id(self, context, router_id):
         query = context.session.query(RouterHASetting)

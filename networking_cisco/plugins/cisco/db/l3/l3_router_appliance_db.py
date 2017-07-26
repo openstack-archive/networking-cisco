@@ -186,9 +186,9 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
     def do_create_router(self, context, router, router_type_id, auto_schedule,
                          share_host, hosting_device_id=None, role=None,
                          inflated_slot_need=0):
+        router_created = (super(L3RouterApplianceDBMixin, self).
+                          create_router(context, router))
         with context.session.begin(subtransactions=True):
-            router_created = (super(L3RouterApplianceDBMixin, self).
-                              create_router(context, router))
             r_hd_b_db = l3_models.RouterHostingDeviceBinding(
                 router_id=router_created['id'],
                 role=role,
