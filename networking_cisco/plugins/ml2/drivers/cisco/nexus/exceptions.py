@@ -20,6 +20,11 @@ from neutron_lib import exceptions
 from networking_cisco._i18n import _
 
 
+class NexusCredentialNotFound(exceptions.NeutronException):
+    """Credential for this switch_ip cannot be found."""
+    message = _("Credential for switch %(switch_ip)s could not be found.")
+
+
 class CredentialNotFound(exceptions.NeutronException):
     """Credential with this ID cannot be found."""
     message = _("Credential %(credential_id)s could not be found.")

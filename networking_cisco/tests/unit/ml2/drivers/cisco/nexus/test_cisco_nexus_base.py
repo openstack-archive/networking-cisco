@@ -35,6 +35,8 @@ import testtools
 
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    config as conf)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_helpers as nexus_help)
@@ -477,6 +479,11 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
                 nexus_restapi_network_driver.CiscoNexusRestapiDriver,
                 '_import_client',
                 return_value=self.mock_ncclient).start()
+            self.mock_nxapi_client = mock.Mock()
+            mock.patch.object(
+                nexus_restapi_network_driver.CiscoNexusRestapiDriver,
+                '_get_nxapi_client',
+                return_value=self.mock_nxapi_client).start()
             self._verify_results = self._verify_restapi_results
         else:
             mock.patch.object(
@@ -737,6 +744,51 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
                         self.mock_ncclient.connect.return_value.
                         edit_config.mock_calls[idx][2]['config']),
                     "Expected result data not found")
+
+    def _cfg_vPC_user_commands(self, nexus_ips, cmds):
+
+        # Use commands provided by user instead of
+        # sending BODY_ADD_PORT_CH_P2.  So
+        # BODY_USER_CONF_CMDS will be sent instead.
+        for sw_ip in nexus_ips:
+            conf.ML2MechCiscoConfig.nexus_dict[sw_ip, const.IF_PC] = cmds
+
+    def _remove_vPC_user_commands(self, nexus_ips):
+
+        # Use commands provided by user instead of
+        # sending BODY_ADD_PORT_CH_P2.  So
+        # BODY_USER_CONF_CMDS will be sent instead.
+        for sw_ip in nexus_ips:
+            del(conf.ML2MechCiscoConfig.nexus_dict[sw_ip, const.IF_PC])
+
+    def _verify_nxapi_results(self, driver_result):
+        """Verifies correct NXAPI entries sent to Nexus."""
+
+        self.assertEqual(
+            len(driver_result),
+            self.mock_nxapi_client.rest_post.call_count,
+            "Unexpected NXAPI driver count")
+
+        for idx in range(0, len(driver_result)):
+            if not driver_result[idx]:
+                continue
+            self.assertTrue(
+                (driver_result[idx][0] ==
+                    self.mock_nxapi_client.rest_post.mock_calls[idx][1][0]),
+                "Expected Rest URI does not match")
+            if driver_result[idx][1] is not None:
+                self.assertTrue(
+                    (driver_result[idx][1] ==
+                        self.mock_nxapi_client.
+                        rest_post.mock_calls[idx][1][1]),
+                    "Expected Nexus Switch ip does not match")
+            self.assertIsNotNone(
+                self.mock_nxapi_client.rest_post.mock_calls[idx][1][2],
+                "mock_data is None")
+            self.assertIsNotNone(
+                re.search(driver_result[idx][2],
+                    self.mock_nxapi_client.rest_post.mock_calls[idx][1][2]),
+                "Expected result data not found in NXAPI output")
 
     def _basic_create_verify_port_vlan(self, test_name, test_result,
                                        nbr_of_bindings=1,
@@ -1065,7 +1117,8 @@ class TestCiscoNexusReplayBase(TestCiscoNexusBase):
                         add_result1, add_result2,
                         replay_result,
                         del_result1, del_result2,
-                        replay_init=None):
+                        replay_init=None,
+                        replay_complete=None):
         """Tests create, replay, delete of two ports."""
 
         # Set all required connection state to True so
@@ -1108,6 +1161,8 @@ class TestCiscoNexusReplayBase(TestCiscoNexusBase):
                 replay_result = (replay_result +
                                  add_result2['driver_results'])
         self._verify_results(replay_result)
+        if replay_complete:
+            replay_complete()
 
         # Clear mock_call history so we can evaluate
         # just the result of replay()

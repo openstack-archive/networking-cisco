@@ -24,6 +24,7 @@ USERNAME = 'username'
 PASSWORD = 'password'
 SSHPORT = 'ssh_port'
 PHYSNET = 'physnet'
+IF_PC = 'intfcfg.portchannel'
 NVE_SRC_INTF = 'nve_src_intf'
 
 NETWORK_ADMIN = 'network_admin'

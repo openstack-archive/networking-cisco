@@ -51,6 +51,7 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
         credentials = self._build_credentials(
             conf.ML2MechCiscoConfig.nexus_dict)
         self.client = self._import_client(credentials)
+        self.nxapi_client = self._get_nxapi_client(credentials)
         super(CiscoNexusRestapiDriver, self).__init__()
         LOG.debug("ML2 Nexus RESTAPI Drivers initialized.")
 
@@ -63,6 +64,16 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
         """
 
         return client.CiscoNexusRestapiClient(credentials)
+
+    def _get_nxapi_client(self, credentials):
+        """Get the local NXAPI CLI client module.
+
+        :param credentials: contains switch user/password
+        :returns: driver to send Nexus CLI cmds via NXAPI.
+        """
+
+        return client.CiscoNexusRestapiClient(
+            credentials, request_cookie=False)
 
     def _build_credentials(self, nexus_switches):
         """Build credential table for Rest API Client.
@@ -90,6 +101,20 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
                         value)
                 credentials[switch_ip] = credential_tuple
         return credentials
+
+    def _get_user_port_channel_config(self, switch_ip, vpc_nbr):
+        """Looks for optional user port channel config
+
+        :param switch_ip: switch config
+        :returns: vpc_nbr      port channel commands or None
+        """
+
+        nexus_dict = conf.ML2MechCiscoConfig.nexus_dict
+        ucmds = nexus_dict.get((switch_ip, const.IF_PC))
+        if ucmds:
+            prefix = 'int port-channel %d ;' % vpc_nbr
+            ucmds = ''.join((prefix, ucmds))
+        return ucmds
 
     def get_interface_switch(self, nexus_host,
                              intf_type, interface):
@@ -190,12 +215,14 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
     def _apply_user_port_channel_config(self, nexus_host, vpc_nbr):
         """Adds STP and no lacp suspend config to port channel. """
 
-        vpc_str = str(vpc_nbr)
-        path_snip = snipp.PATH_ALL
-
-        body_snip = snipp.BODY_ADD_PORT_CH_P2 % (vpc_str, vpc_str)
-
-        self.send_edit_string(nexus_host, path_snip, body_snip)
+        cli_cmds = self._get_user_port_channel_config(nexus_host, vpc_nbr)
+        if cli_cmds:
+            self._send_cli_conf_string(nexus_host, cli_cmds)
+        else:
+            vpc_str = str(vpc_nbr)
+            path_snip = snipp.PATH_ALL
+            body_snip = snipp.BODY_ADD_PORT_CH_P2 % (vpc_str, vpc_str)
+            self.send_edit_string(nexus_host, path_snip, body_snip)
 
     def create_port_channel(self, nexus_host, vpc_nbr):
         """Creates port channel n on Nexus switch."""
@@ -669,6 +696,19 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
         self.client.rest_post(path_snip, nexus_host, body_snip)
         self.capture_and_print_timeshot(
             starttime, "send_edit",
+            switch=nexus_host)
+
+    def _send_cli_conf_string(self, nexus_host, cli_str):
+        """Sends CLI Config commands to Nexus switch using NXAPI."""
+
+        starttime = time.time()
+        path_snip = snipp.PATH_USER_CMDS
+        body_snip = snipp.BODY_USER_CONF_CMDS % ('1', cli_str)
+        LOG.debug("NexusDriver CLI config for host %s: path: %s body: %s",
+                  nexus_host, path_snip, body_snip)
+        self.nxapi_client.rest_post(path_snip, nexus_host, body_snip)
+        self.capture_and_print_timeshot(
+            starttime, "send_cliconf",
             switch=nexus_host)
 
     def send_enable_vlan_on_trunk_int(self, nexus_host, vlanid, intf_type,
