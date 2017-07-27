@@ -593,7 +593,7 @@ class TestDFAServer(base.BaseTestCase):
         add_upd_mock.assert_called_with(**params)
 
     def test_save_topo_disc_params_exist_nomand(self):
-        """Test the save_topo_disc_.. function for exist, non-mandatory case.
+        """Test the save_topo_disc_* function for exist, non-mandatory case.
 
         This is for the case when config is already present in the DB and
         mandatory TLV's are not present in the new config. This is the delete
@@ -614,7 +614,7 @@ class TestDFAServer(base.BaseTestCase):
         del_upd_mock.assert_called_with(**params)
 
     def test_save_topo_disc_params_nonexist_mand(self):
-        """Test the save_topo_disc_.. function for non-exist, mandatory case.
+        """Test the save_topo_disc_* function for non-exist, mandatory case.
 
         This is for the case when config is not present in the DB and
         mandatory TLV's are present in the new config. This is the add
@@ -639,7 +639,7 @@ class TestDFAServer(base.BaseTestCase):
         add_upd_mock.assert_called_with(**params)
 
     def test_save_topo_disc_params_nonexist_nonmand(self):
-        """Test the save_topo_disc_.. function for non-exist, non-mand case.
+        """Test the save_topo_disc_* function for non-exist, non-mand case.
 
         This is for the case when config is not present in the DB and
         mandatory TLV's are not present in the new config. This is the no-op
@@ -665,7 +665,7 @@ class TestDFAServer(base.BaseTestCase):
         del_upd_mock.assert_not_called()
 
     def test_save_topo_disc_params_none_nonexist_nonmand(self):
-        """Test the save_topo_disc_.. func for none, non-exist, non-mand case.
+        """Test the save_topo_disc_* func for none, non-exist, non-mand case.
 
         This is for the case when config is not present in the DB and
         mandatory TLV's are not present in the new config. The output returned

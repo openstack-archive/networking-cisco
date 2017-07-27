@@ -127,11 +127,11 @@ class Ha(bc.extensions.ExtensionDescriptor):
     HA redundancy by VRRP, HSRP and GLBP for Neutron Routers.
 
     Attribute 'ha_type' can be one of 'vrrp', 'hsrp' and 'glbp'
-    Attribute 'redundancy_level' specifies the number of routers
-              added for redundancy and can be 1, 2, or 3.
+    Attribute 'redundancy_level' specifies the number of routers added for
+    redundancy and can be 1, 2, or 3.
 
     To create a router with HSRP-based HA with 2 extra routers
-    for redundancy using the CLI with admin rights:
+    for redundancy using the CLI with admin rights::
 
        (shell) router-create <router_name> --ha:ha_type hsrp \
        --ha:redundancy_level 2

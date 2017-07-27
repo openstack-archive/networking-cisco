@@ -1,0 +1,4 @@
+-r requirements.txt
+-r test-requirements.txt
+-e git+https://git.openstack.org/openstack/python-neutronclient@mitaka-eol#egg=python-neutronclient
+-e git+https://git.openstack.org/openstack/neutron@mitaka-eol#egg=neutron

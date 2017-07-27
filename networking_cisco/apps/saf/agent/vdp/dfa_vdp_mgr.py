@@ -537,11 +537,11 @@ class VdpMgr(object):
         """Periodic handler to detect the uplink interface to the switch.
 
         -> restart_uplink_called: should be called by agent initially to set
-           the stored uplink and veth from DB
+        the stored uplink and veth from DB
         -> process_uplink_ongoing: Will be set when uplink message is enqueue
-           and reset when dequeued and processed completely
+        and reset when dequeued and processed completely
         -> uplink_det_compl: Will be set to True when a valid uplink is
-           detected and object created. Will be reset when uplink is down
+        detected and object created. Will be reset when uplink is down
         -> phy_uplink: Is the uplink interface
         -> veth_intf : Signifies the veth interface.
         """

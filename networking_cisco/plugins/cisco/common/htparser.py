@@ -145,8 +145,8 @@ class HTParser(object):
         """Find lines and immediate children that match the linespec regex.
 
         :param linespec: regular expression of line to match
-        :return: list of lines. These correspond to the lines that were
-        matched and their immediate children
+        :returns: list of lines. These correspond to the lines that were
+            matched and their immediate children
         """
         res = []
         for parent in self.find_objects(linespec):

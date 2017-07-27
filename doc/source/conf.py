@@ -13,15 +13,35 @@
 # limitations under the License.
 
 import os
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.abspath('../..'))
 # -- General configuration ----------------------------------------------------
 
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+if on_rtd and not os.path.isdir("contributor/api"):
+    print("On Read the Docs and autodoc python module docs aren't built. "
+          "Building...")
+    os.environ['READTHEDOCS'] = 'False'
+    os.environ['JUST_BUILD_AUTO_DOC'] = 'True'
+    subprocess.check_call(
+        [sys.executable, 'setup.py', 'build_sphinx', '-b', 'dummy'],
+        cwd=os.path.join(os.path.dirname(__file__), os.path.pardir,
+                         os.path.pardir),
+    )
+    os.environ['JUST_BUILD_AUTO_DOC'] = 'False'
+    os.environ['READTHEDOCS'] = 'True'
+
+ignore_everything = os.environ.get('JUST_BUILD_AUTO_DOC', None) == 'True'
+if ignore_everything:
+    exclude_patterns = ['*/*']
+
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'reno.sphinxext'
     #'sphinx.ext.intersphinx',
 ]
 
@@ -37,7 +57,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'networking-cisco'
-copyright = u'2013, OpenStack Foundation'
+copyright = u'2017, Cisco Systems, Inc'
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = True
@@ -56,6 +76,8 @@ pygments_style = 'sphinx'
 # html_theme_path = ["."]
 # html_theme = '_theme'
 # html_static_path = ['static']
+
+html_theme = "sphinx_rtd_theme"
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = '%sdoc' % project

@@ -188,15 +188,13 @@ def is_reserved_binding(binding):
     """Identifies switch & port operational bindings.
 
     There are two types of reserved bindings.
-    1) The Switch binding purpose is to keep track
-       of the switch state for when replay is enabled.
-       Keeping it in the db, allows for all processes
-       to determine known state of each switch.
-    2) The reserved port binding is used with baremetal
-       transactions which don't rely on host to interface
-       mapping in the ini file.  It is learned from
-       the transaction and kept in the data base
-       for further reference.
+
+    1. The Switch binding purpose is to keep track of the switch state for when
+       replay is enabled.  Keeping it in the db, allows for all processes to
+       determine known state of each switch.
+    2. The reserved port binding is used with baremetal transactions which
+       don't rely on host to interface mapping in the ini file.  It is learned
+       from the transaction and kept in the data base for further reference.
     """
 
     return (binding.instance_id in
@@ -307,7 +305,7 @@ def _lookup_nexus_bindings(query_type, session=None, **bfilter):
     :param query_type: 'all', 'one' or 'first'
     :param session: db session
     :param bfilter: filter for bindings query
-    :return: bindings if query gave a result, else
+    :returns: bindings if query gave a result, else
              raise NexusPortBindingNotFound.
     """
     if session is None:
@@ -421,7 +419,7 @@ def _lookup_host_mappings(query_type, session=None, **bfilter):
     :param query_type: 'all', 'one' or 'first'
     :param session: db session
     :param bfilter: filter for mappings query
-    :return: mappings if query gave a result, else
+    :returns: mappings if query gave a result, else
              raise NexusHostMappingNotFound.
     """
     if session is None:
@@ -470,12 +468,11 @@ def get_switch_if_host_mappings(switch_ip, if_id):
 def add_host_mapping(host_id, nexus_ip, interface, ch_grp, is_static):
     """Add Host to interface mapping entry into mapping data base.
 
-    host_id is the name of the host to add
-    interface is the interface for this host
-    nexus_ip  is the ip addr of the nexus switch for this interface
-    ch_grp    is the port channel this interface belos
-    is_static whether this is from conf file or learned
-              from baremetal.
+    :param host_id: is the name of the host to add
+    :param interface: is the interface for this host
+    :param nexus_ip: is the ip addr of the nexus switch for this interface
+    :param ch_grp: is the port channel this interface belos
+    :param is_static: whether this is from conf file or learned from baremetal.
     """
 
     LOG.debug("add_nexusport_binding() called")
@@ -544,7 +541,7 @@ def _lookup_vpc_allocs(query_type, session=None, **bfilter):
     :param query_type: 'all', 'one' or 'first'
     :param session: db session
     :param bfilter: filter for mappings query
-    :return: VPCs if query gave a result, else
+    :returns: VPCs if query gave a result, else
              raise NexusVPCAllocNotFound.
     """
 
@@ -569,7 +566,7 @@ def _lookup_vpc_count_min_max(session=None, **bfilter):
 
     :param session: db session
     :param bfilter: filter for mappings query
-    :return: number of VPCs and min value if query gave a result,
+    :returns: number of VPCs and min value if query gave a result,
              else raise NexusVPCAllocNotFound.
     """
 
@@ -602,7 +599,7 @@ def _lookup_vpcids(query_type, session=None, **bfilter):
     :param query_type: 'all', 'one' or 'first'
     :param session: db session
     :param bfilter: filter for mappings query
-    :return: VPCIDs if query gave a result, else
+    :returns: VPCIDs if query gave a result, else
              raise NexusVPCAllocNotFound.
     """
 

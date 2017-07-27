@@ -131,8 +131,8 @@ class CiscoRoutingPluginApi(object):
 
         :param context: session context
         :param router_ids: list of  routers to fetch
-        :param hd_ids : hosting device ids, only routers assigned to these
-                        hosting devices will be returned.
+        :param hd_ids: hosting device ids, only routers assigned to these
+            hosting devices will be returned.
         """
         cctxt = self.client.prepare(version='1.1')
         return cctxt.call(context, 'cfg_sync_routers', host=self.host,

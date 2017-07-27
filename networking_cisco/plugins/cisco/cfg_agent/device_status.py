@@ -141,6 +141,7 @@ class DeviceStatus(object):
         If the resource is not reachable, it is added to the backlog.
 
         * heartbeat revision
+
         We want to enqueue all hosting-devices into the backlog for
         monitoring purposes
 
@@ -152,7 +153,7 @@ class DeviceStatus(object):
             hd['hd_state']='Unknown'
 
         :param hosting_device : dict of the hosting device
-        :return True if device is reachable, else None
+        :returns: True if device is reachable, else None
         """
         ret_val = False
 
@@ -214,24 +215,33 @@ class DeviceStatus(object):
         The hd_state transitions/actions are represented by the following
         table.
 
-        current /    Active                 Unknown          Dead
-        last state
-        Active       Device is reachable.   Device was       Dead device
-                     No state change        temporarily      recovered.
-                                            unreachable.     Trigger resync
-        Unknown      Device connectivity    Device           Not a valid
-                     test failed.  Set      connectivity     state
-                     backlog timestamp      test failed.     transition.
-                     and wait for dead      Dead timeout
-                     timeout to occur.      has not
-                                            occurred yet.
-        Dead         Not a valid state      Dead timeout     Device is
-                     transition.            for device has   still dead.
-                                            elapsed.         No state
-                                            Notify plugin    change.
+        +------------+---------------------+----------------+----------------+
+        | current /  | Active              | Unknown        | Dead           |
+        | last state |                     |                |                |
+        +============+=====================+================+================+
+        | Active     | Device is reachable.| Device was     | Dead device    |
+        |            | No state change     | temporarily    | recovered.     |
+        |            |                     | unreachable.   | Trigger resync |
+        +------------+---------------------+----------------+----------------+
+        | Unknown    | Device connectivity | Device         | Not a valid    |
+        |            | test failed.  Set   | connectivity   | state          |
+        |            | backlog timestamp   | test failed.   | transition.    |
+        |            | and wait for dead   | Dead timeout   |                |
+        |            | timeout to occur.   | has not        |                |
+        |            |                     | occurred yet.  |                |
+        +------------+---------------------+----------------+----------------+
+        | Dead       | Not a valid state   | Dead timeout   | Device is      |
+        |            | transition.         | for device has | still dead.    |
+        |            |                     | elapsed.       | No state       |
+        |            |                     | Notify plugin  | change.        |
+        +------------+---------------------+----------------+----------------+
 
-        :return A dict of the format:
-        {'reachable': [<hd_id>,..],'dead':[<hd_id>,..],'revived':[<hd_id>,..]}
+        :returns: A dict of the format::
+
+            {'reachable': [<hd_id>,..],
+             'dead':[<hd_id>,..],
+             'revived':[<hd_id>,..]}
+
         reachable - a list of hosting devices that are now reachable
         dead      - a list of hosting devices deemed dead
         revived   - a list of hosting devices (dead to active)

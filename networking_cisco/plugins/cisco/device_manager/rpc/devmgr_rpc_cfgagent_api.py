@@ -93,7 +93,8 @@ class DeviceMgrCfgAgentNotifyAPI(object):
         hosting devices in the <hosting_data> dictionary have been removed
         from the hosting device pool. The <hosting_data> dictionary also
         contains the ids of the affected logical resources for each hosting
-        devices:
+        devices::
+
              {'hd_id1': {'routers': [id1, id2, ...],
                          'fw': [id1, ...],
                          ...},
@@ -101,6 +102,7 @@ class DeviceMgrCfgAgentNotifyAPI(object):
                          'fw': [id1, ...],
                          ...},
               ...}
+
         The <deconfigure> argument is True if any configurations for the
         logical resources should be removed from the hosting devices
         """

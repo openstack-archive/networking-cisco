@@ -229,13 +229,12 @@ class TopoDisc(TopoDiscPubApi):
         But, here no action can be taken for the following reasons, but just
         having it as a place-holder for tomorrow.
         => Can't remove interface from the list since DB in server may appear
-           stale.
-           self.intf_list.remove(intf)
+        stale. self.intf_list.remove(intf)
         => One can just remove the interface DB, but need to retry that till
-           it succeeds, so it has to be in periodic loop.
+        it succeeds, so it has to be in periodic loop.
         => So, currently leaving it as is, since LLDP frames won't be obtained
-           over the bridge, the periodic handler will automatically remove the
-           DB for this interface from server
+        over the bridge, the periodic handler will automatically remove the
+        DB for this interface from server
         """
         pass
 

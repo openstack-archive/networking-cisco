@@ -91,7 +91,7 @@ class CiscoNexusBaseDriver(object):
                            example: ethernet
         :param interface:  String indicating which interface.
                            example: 1/19
-        :returns response:
+        :returns: response
         """
         return None
 
@@ -112,7 +112,7 @@ class CiscoNexusBaseDriver(object):
         """Given the nexus host, get the type of Nexus switch.
 
         :param nexus_host: IP address of Nexus switch
-        :returns Nexus type
+        :returns: Nexus type
         """
         return None
 

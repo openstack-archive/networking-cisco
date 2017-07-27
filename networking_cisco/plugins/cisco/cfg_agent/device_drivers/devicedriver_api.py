@@ -34,7 +34,7 @@ class RoutingDriverBase(object):
         """A logical router was assigned to the hosting device.
 
         :param router_info: RouterInfo object for this router
-        :return None
+        :returns: None
         """
         pass
 
@@ -43,7 +43,7 @@ class RoutingDriverBase(object):
         """A logical router was de-assigned from the hosting device.
 
         :param router_info: RouterInfo object for this router
-        :return None
+        :returns: None
         """
 
         pass
@@ -53,9 +53,9 @@ class RoutingDriverBase(object):
         """An internal network was connected to a router.
 
         :param router_info: RouterInfo object for this router
-        :param port       : port dictionary for the port where the internal
-                            network is connected
-        :return None
+        :param port: port dictionary for the port where the internal network is
+            connected
+        :returns: None
         """
         pass
 
@@ -64,9 +64,9 @@ class RoutingDriverBase(object):
         """An internal network was removed from a router.
 
         :param router_info: RouterInfo object for this router
-        :param port       : port dictionary for the port where the internal
-                            network was connected
-        :return None
+        :param port: port dictionary for the port where the internal network
+            was connected
+        :returns: None
         """
         pass
 
@@ -76,8 +76,8 @@ class RoutingDriverBase(object):
 
         :param router_info: RouterInfo object of the router
         :param ext_gw_port: port dictionary for the port where the external
-                            gateway network is connected
-        :return None
+            gateway network is connected
+        :returns: None
         """
         pass
 
@@ -87,8 +87,8 @@ class RoutingDriverBase(object):
 
         :param router_info: RouterInfo object of the router
         :param ext_gw_port: port dictionary for the port where the external
-                            gateway network was connected
-        :return None
+            gateway network was connected
+        :returns: None
         """
         pass
 
@@ -97,11 +97,11 @@ class RoutingDriverBase(object):
         """Enable NAT on an internal network.
 
         :param router_info: RouterInfo object for this router
-        :param port       : port dictionary for the port where the internal
-                            network is connected
+        :param port: port dictionary for the port where the internal
+            network is connected
         :param ext_gw_port: port dictionary for the port where the external
-                            gateway network is connected
-        :return None
+            gateway network is connected
+        :returns: None
         """
         pass
 
@@ -110,11 +110,11 @@ class RoutingDriverBase(object):
         """Disable NAT on an internal network.
 
         :param router_info: RouterInfo object for this router
-        :param port       : port dictionary for the port where the internal
-                            network is connected
+        :param port: port dictionary for the port where the internal network is
+            connected
         :param ext_gw_port: port dictionary for the port where the external
-                            gateway network is connected
-        :return None
+            gateway network is connected
+        :returns: None
         """
         pass
 
@@ -124,12 +124,11 @@ class RoutingDriverBase(object):
         """A floating IP was added.
 
         :param router_info: RouterInfo object for this router
-        :param ext_gw_port : port dictionary for the port where the external
-                            gateway network is connected
+        :param ext_gw_port: port dictionary for the port where the external
+            gateway network is connected
         :param floating_ip: Floating IP as a string
-        :param fixed_ip   : Fixed IP of internal internal interface as
-                            a string
-        :return None
+        :param fixed_ip: Fixed IP of internal internal interface as a string
+        :returns: None
         """
         pass
 
@@ -143,7 +142,7 @@ class RoutingDriverBase(object):
                             gateway network is connected
         :param floating_ip: Floating IP as a string
         :param fixed_ip:    Fixed IP of internal internal interface as a string
-        :return None
+        :returns: None
         """
         pass
 
@@ -152,9 +151,9 @@ class RoutingDriverBase(object):
         """Routes were updated for router.
 
         :param router_info: RouterInfo object for this router
-        :param action : Action on the route , either 'replace' or 'delete'
+        :param action: Action on the route , either 'replace' or 'delete'
         :param route: route dictionary with keys 'destination' & 'next_hop'
-        :return None
+        :returns: None
         """
         pass
 
@@ -164,7 +163,7 @@ class RoutingDriverBase(object):
 
         :param hosting_device: hosting_device dictionary for backend
         :param routers: list of router dictionaries for routers on backend
-        :return None
+        :returns: None
         """
         pass
 
@@ -172,6 +171,6 @@ class RoutingDriverBase(object):
     def get_configuration(self):
         """Return configuration of hosting_device for driver instance
 
-        :return configuration as a text string
+        :returns: configuration as a text string
         """
         pass

@@ -30,3 +30,4 @@ setuptools*.egg/
 !/.testr.conf
 *.tar.gz
 releasenotes/build
+doc/source/contributor/api/*

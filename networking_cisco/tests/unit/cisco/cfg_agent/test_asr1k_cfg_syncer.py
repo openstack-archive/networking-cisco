@@ -1438,19 +1438,20 @@ class ASR1kCfgSyncer(base.BaseTestCase):
 
     def test_delete_invalid_cfg_empty_routers_list(self):
         """
-        expected invalid_cfg
-        [u'ip nat inside source static 10.2.0.5 172.16.0.126 vrf'
-          ' nrouter-3ea5f9 redundancy neutron-hsrp-1064-3000',
-         u'ip nat inside source list neutron_acl_2564 pool'
-          ' nrouter-3ea5f9_nat_pool vrf nrouter-3ea5f9 overload',
-         u'ip nat pool nrouter-3ea5f9_nat_pool 172.16.0.124'
-          ' 172.16.0.124 netmask 255.255.0.0',
-         u'ip route vrf nrouter-3ea5f9 0.0.0.0 0.0.0.0'
-          ' Port-channel10.3000 172.16.0.1',
-         u'ip access-list standard neutron_acl_2564',
-         <IOSCfgLine # 83 'interface Port-channel10.2564'>,
-         <IOSCfgLine # 96 'interface Port-channel10.3000'>,
-         u'nrouter-3ea5f9']
+        expected invalid_cfg::
+
+            [u'ip nat inside source static 10.2.0.5 172.16.0.126 vrf'
+              ' nrouter-3ea5f9 redundancy neutron-hsrp-1064-3000',
+             u'ip nat inside source list neutron_acl_2564 pool'
+              ' nrouter-3ea5f9_nat_pool vrf nrouter-3ea5f9 overload',
+             u'ip nat pool nrouter-3ea5f9_nat_pool 172.16.0.124'
+              ' 172.16.0.124 netmask 255.255.0.0',
+             u'ip route vrf nrouter-3ea5f9 0.0.0.0 0.0.0.0'
+              ' Port-channel10.3000 172.16.0.1',
+             u'ip access-list standard neutron_acl_2564',
+             <IOSCfgLine # 83 'interface Port-channel10.2564'>,
+             <IOSCfgLine # 96 'interface Port-channel10.3000'>,
+             u'nrouter-3ea5f9']
         """
 
         cfg.CONF.set_override('enable_multi_region', False, 'multi_region')
@@ -1475,20 +1476,21 @@ class ASR1kCfgSyncer(base.BaseTestCase):
         Since the neutron-db router_db_info is empty, all region 0000002
         running-config should be deleted.
 
-        Expect 8 invalid configs found
+        Expect 8 invalid configs found::
 
-        ['ip nat inside source static 10.2.0.5 172.16.0.126'
-          ' vrf nrouter-3ea5f9-0000002 redundancy neutron-hsrp-1064-3000',
-         'ip nat inside source list neutron_acl_0000002_2564 pool '
-         'nrouter-3ea5f9-0000002_nat_pool vrf nrouter-3ea5f9-0000002 overload',
-         'ip nat pool nrouter-3ea5f9-0000002_nat_pool '
-          '172.16.0.124 172.16.0.124 netmask 255.255.0.0',
-         'ip route vrf nrouter-3ea5f9-0000002 0.0.0.0 0.0.0.0'
-          ' Port-channel10.3000 172.16.0.1',
-         'ip access-list standard neutron_acl_0000002_2564',
-         <IOSCfgLine # 83 'interface Port-channel10.2564'>,
-         <IOSCfgLine # 96 'interface Port-channel10.3000'>,
-         'nrouter-3ea5f9-0000002']
+            ['ip nat inside source static 10.2.0.5 172.16.0.126 '
+             'vrf nrouter-3ea5f9-0000002 redundancy neutron-hsrp-1064-3000',
+             'ip nat inside source list neutron_acl_0000002_2564 pool '
+             'nrouter-3ea5f9-0000002_nat_pool vrf nrouter-3ea5f9-0000002 '
+             'overload',
+             'ip nat pool nrouter-3ea5f9-0000002_nat_pool '
+             '172.16.0.124 172.16.0.124 netmask 255.255.0.0',
+             'ip route vrf nrouter-3ea5f9-0000002 0.0.0.0 0.0.0.0 '
+             'Port-channel10.3000 172.16.0.1',
+             'ip access-list standard neutron_acl_0000002_2564',
+             <IOSCfgLine # 83 'interface Port-channel10.2564'>,
+             <IOSCfgLine # 96 'interface Port-channel10.3000'>,
+             'nrouter-3ea5f9-0000002']
         """
 
         cfg.CONF.set_override('enable_multi_region', True, 'multi_region')

@@ -282,15 +282,12 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
         ethernet interface, and initializes trunking on interface.
 
         :param interface: Receive a list of interfaces containing:
-
-        nexus_host: IP address of Nexus switch
-        intf_type:  String which specifies interface type.
-                    example: ethernet
-        interface:  String indicating which interface.
-                       example: 1/19
-        is_native:  Whether native vlan must be configured.
-        ch_grp:     May replace port channel to each entry.
-                    channel number is 0 if none
+            nexus_host: IP address of Nexus switch
+            intf_type: String which specifies interface type. example: ethernet
+            interface: String indicating which interface. example: 1/19
+            is_native: Whether native vlan must be configured.
+            ch_grp: May replace port channel to each entry.  channel number is
+            0 if none
         """
         if not interfaces:
             return
@@ -470,7 +467,7 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
         """Given the nexus host, get the type of Nexus switch.
 
         :param nexus_host: IP address of Nexus switch
-        :returns Nexus type
+        :returns: Nexus type
         """
 
         starttime = time.time()

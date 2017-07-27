@@ -374,7 +374,7 @@ class CiscoNexusSshDriver(basedrvr.CiscoNexusBaseDriver):
         """Given the nexus host, get the type of Nexus switch.
 
         :param nexus_host: IP address of Nexus switch
-        :returns Nexus type
+        :returns: Nexus type
         """
 
         confstr = snipp.EXEC_GET_INVENTORY_SNIPPET

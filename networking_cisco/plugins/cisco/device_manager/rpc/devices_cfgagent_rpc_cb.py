@@ -30,10 +30,9 @@ class DeviceMgrCfgRpcCallback(object):
                                               hosting_device_ids):
         """Report that a hosting device is determined to be dead.
 
-        @param: context - contains user information
-        @param: host - originator of callback
-        @param: hosting_device_ids - list of non-responding hosting devices
-        @return: -
+        :param context: contains user information
+        :param host: originator of callback
+        :param hosting_device_ids: list of non-responding hosting devices
         """
         # let the generic status update callback function handle this callback
         self.update_hosting_device_status(context, host,
@@ -46,12 +45,11 @@ class DeviceMgrCfgRpcCallback(object):
         is ready to take on assignments and before any callbacks to fetch
         logical resources are issued.
 
-        @param: context - contains user information
-        @param: host - originator of callback
-        @return: True if successfully registered, False if not successfully
-                 registered, None if no handler found
-                 If unsuccessful the agent should retry registration a few
-                 seconds later
+        :param context: contains user information
+        :param host: originator of callback
+        :returns: True if successfully registered, False if not successfully
+            registered, None if no handler found. If unsuccessful the agent
+            should retry registration a few seconds later
         """
         # schedule any non-handled hosting devices
         return self._dmplugin.auto_schedule_hosting_devices(context, host)
@@ -60,16 +58,17 @@ class DeviceMgrCfgRpcCallback(object):
     def update_hosting_device_status(self, context, host, status_info):
         """Report status changes for hosting devices.
 
-        @param: context - contains user information
-        @param: host - originator of callback
-        @param: status_info - Dictionary with list of hosting device ids
-                              for each type of hosting device status to be
-                              updated, i.e.,
-              dict {HD_ACTIVE: list_of_ids_of_active_hds,
+        :param context: contains user information
+        :param host: originator of callback
+        :param status_info: Dictionary with list of hosting device ids for
+            each type of hosting device status to be updated i.e.::
+
+                {
+                    HD_ACTIVE: list_of_ids_of_active_hds,
                     HD_NOT_RESPONDING: list_of_ids_of_not_responding_hds,
                     HD_DEAD: list_of_ids_of_dead_hds,
-                    ...}
-        @return: -
+                    ...
+                }
         """
         for status, hd_ids in six.iteritems(status_info):
             # update hosting device entry in db to new status

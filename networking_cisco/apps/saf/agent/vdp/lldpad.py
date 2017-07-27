@@ -279,6 +279,7 @@ class LldpadDriver(object):
         """Clears the OUI specific info.
 
         :param uuid: vNIC UUID
+
         Currently only one OUI per VSI fixme(padkrish)
         """
         if port_uuid in self.oui_vif_map:

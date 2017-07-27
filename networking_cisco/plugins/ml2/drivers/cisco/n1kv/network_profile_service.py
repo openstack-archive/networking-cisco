@@ -265,33 +265,31 @@ class NetworkProfile_db_mixin(network_profile_module.NetworkProfilePluginBase,
                     filter_by(profile_id=prof_id)).first()
 
     def get_network_profile(self, context, prof_id, fields=None):
-        """
-        Retrieve a network profile for the given UUID.
+        """Retrieve a network profile for the given UUID.
 
         :param context: neutron api request context
         :param prof_id: UUID representing network profile to fetch
         :params fields: a list of strings that are valid keys in a network
-                        profile dictionary. Only these fields will be returned
+            profile dictionary. Only these fields will be returned
         :returns: network profile dictionary
         """
         profile = self._get_network_profile(context.session, prof_id)
         return self._make_network_profile_dict(profile, fields)
 
     def get_network_profiles(self, context, filters=None, fields=None):
-        """
-        Retrieve a list of network profiles.
+        """Retrieve a list of network profiles.
 
         Retrieve all network profiles if tenant is admin. For a non-admin
         tenant, retrieve all network profiles belonging to this tenant only.
+
         :param context: neutron api request context
         :param filters: a dictionary with keys that are valid keys for a
-                        network profile object. Values in this dictiontary are
-                        an iterable containing values that will be used for an
-                        exact match comparison for that value. Each result
-                        returned by this function will have matched one of the
-                        values for each key in filters
+            network profile object. Values in this dictiontary are an iterable
+            containing values that will be used for an exact match comparison
+            for that value. Each result returned by this function will have
+            matched one of the values for each key in filters
         :params fields: a list of strings that are valid keys in a network
-                        profile dictionary. Only these fields will be returned
+            profile dictionary. Only these fields will be returned
         :returns: list of all network profiles
         """
         if (context.is_admin or

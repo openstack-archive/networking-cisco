@@ -80,8 +80,7 @@ class PolicyProfile_db_mixin(policy_profile.PolicyProfilePluginBase,
         Add Policy profile and tenant binding.
 
         :param pprofile_id: UUID representing the policy profile
-        :param name: string representing the name for the
-                     policy profile
+        :param name: string representing the name for the policy profile
         :param vsm_ip: VSM IP from which policy profile is retrieved
         :param tenant_id: UUID representing the tenant
         """
@@ -134,13 +133,12 @@ class PolicyProfile_db_mixin(policy_profile.PolicyProfilePluginBase,
             profile_id=pprofile_id).delete()
 
     def get_policy_profile(self, context, pprofile_id, fields=None):
-        """
-        Retrieve a policy profile for the given UUID.
+        """Retrieve a policy profile for the given UUID.
 
         :param context: neutron api request context
         :param pprofile_id: UUID representing policy profile to fetch
         :param fields: a list of strings that are valid keys in a policy
-                       profile dictionary. Only these fields will be returned
+            profile dictionary. Only these fields will be returned
         :returns: policy profile dictionary
         """
         profile = self._get_policy_profile(context.session, pprofile_id)
@@ -171,20 +169,20 @@ class PolicyProfile_db_mixin(policy_profile.PolicyProfilePluginBase,
         return binding
 
     def get_policy_profiles(self, context, filters=None, fields=None):
-        """
-        Retrieve a list of policy profiles.
+        """Retrieve a list of policy profiles.
 
         Retrieve all policy profiles if tenant is admin. For a non-admin
         tenant, retrieve all policy profiles belonging to this tenant only.
+
         :param context: neutron api request context
         :param filters: a dictionary with keys that are valid keys for a
-                        policy profile object. Values in this dictiontary are
-                        an iterable containing values that will be used for an
-                        exact match comparison for that value. Each result
-                        returned by this function will have matched one of the
-                        values for each key in filters
+            policy profile object. Values in this dictiontary are
+            an iterable containing values that will be used for an
+            exact match comparison for that value. Each result
+            returned by this function will have matched one of the
+            values for each key in filters
         :param fields: a list of strings that are valid keys in a policy
-                       profile dictionary. Only these fields will be returned
+            profile dictionary. Only these fields will be returned
         :returns: list of all policy profiles
         """
         db_session = db.get_session()
@@ -303,14 +301,13 @@ class PolicyProfilePlugin(PolicyProfile_db_mixin):
         Return Cisco N1KV policy profiles.
 
         :param context: neutron api request context
-        :param filters: a dictionary with keys that are valid keys for a
-                        subnet object. Values in this dictiontary are an
-                        iterable containing values that will be used for an
-                        exact match comparison for that value. Each result
-                        returned by this function will have matched one of the
-                        values for each key in filters
+        :param filters: a dictionary with keys that are valid keys for a subnet
+            object. Values in this dictiontary are an iterable containing
+            values that will be used for an exact match comparison for that
+            value. Each result returned by this function will have matched one
+            of the values for each key in filters
         :param fields: a list of strings that are valid keys in a subnet
-                       dictionary. Only these fields will be returned.
+            dictionary. Only these fields will be returned.
         :returns: list of dictionaries of policy profiless
         """
         return super(PolicyProfilePlugin, self).get_policy_profiles(context,
@@ -324,7 +321,7 @@ class PolicyProfilePlugin(PolicyProfile_db_mixin):
         :param context: neutron api request context
         :param pprofile_id: UUID representing policy profile to fetch
         :param fields: a list of strings that are valid keys in a policy
-                       profile dictionary. Only these fields will be returned
+            profile dictionary. Only these fields will be returned
         :returns: policy profile dictionary
         """
         return super(PolicyProfilePlugin, self).get_policy_profile(context,

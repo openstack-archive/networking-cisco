@@ -49,13 +49,13 @@ class L3RouterCfgRpcCallback(object):
                          hosting_device_ids=None):
         """Sync routers according to filters to a specific Cisco cfg agent.
 
-        @param context: contains user information
-        @param host: originator of callback
-        @param router_ids: list of router ids to return information about
-        @param hosting_device_ids: list of hosting device ids to get
-        routers for.
-        @return: a list of routers
-                 with their hosting devices, interfaces and floating_ips
+        :param context: contains user information
+        :param host: originator of callback
+        :param router_ids: list of router ids to return information about
+        :param hosting_device_ids: list of hosting device ids to get
+            routers for.
+        :returns: a list of routers with their hosting devices, interfaces and
+            floating_ips
         """
         adm_context = bc.context.get_admin_context()
         try:
@@ -88,14 +88,15 @@ class L3RouterCfgRpcCallback(object):
         on a Neutron router. Note that the agent may include status updates
         for multiple routers in one message.
 
-        @param context: contains user information
-        @param host: originator of callback
-        @param status_list: list of status dicts for routers
-                            Each list item is
-                            {'router_id': <router_id>,
-                             'operation': <attempted operation>
-                             'status': <'SUCCESS'|'FAILURE'>,
-                             'details': <optional explaining details>}
+        :param context: contains user information
+        :param host: originator of callback
+        :param status_list: list of status dicts for routers.
+            Each list item is::
+
+                {'router_id': <router_id>,
+                 'operation': <attempted operation>
+                 'status': <'SUCCESS'|'FAILURE'>,
+                 'details': <optional explaining details>}
         """
         #TODO(bobmel): Update router status
         # State machine: CREATE: SCHEDULING -> PENDING_CREATE -> ACTIVE/ERROR
@@ -115,9 +116,9 @@ class L3RouterCfgRpcCallback(object):
         This is called by Cisco cfg agent to update the status of one or
         several floatingips.
 
-        @param context: contains user information
-        @param router_id: id of router associated with the floatingips
-        @param router_id: dict with floatingip_id as key and status as value
+        :param context: contains user information
+        :param router_id: id of router associated with the floatingips
+        :param router_id: dict with floatingip_id as key and status as value
         """
         with context.session.begin(subtransactions=True):
             for (floatingip_id, status) in six.iteritems(fip_statuses):
@@ -148,12 +149,12 @@ class L3RouterCfgRpcCallback(object):
     def update_port_statuses_cfg(self, context, port_ids, status):
         """Update the operational statuses of a list of router ports.
 
-           This is called by the Cisco cfg agent to update the status of a list
-           of ports.
+        This is called by the Cisco cfg agent to update the status of a list
+        of ports.
 
-           @param context: contains user information
-           @param port_ids: list of ids of all the ports for the given status
-           @param status: PORT_STATUS_ACTIVE/PORT_STATUS_DOWN.
+        :param context: contains user information
+        :param port_ids: list of ids of all the ports for the given status
+        :param status: PORT_STATUS_ACTIVE/PORT_STATUS_DOWN.
         """
         self._l3plugin.update_router_port_statuses(context, port_ids,
                                                    status)

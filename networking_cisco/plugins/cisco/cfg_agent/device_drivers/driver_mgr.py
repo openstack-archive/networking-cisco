@@ -65,12 +65,16 @@ class DeviceDriverManager(object):
     def set_driver(self, resource):
         """Set the driver for a neutron resource.
 
-        :param resource: Neutron resource in dict format. Expected keys:
-                        { 'id': <value>
-                          'hosting_device': { 'id': <value>, }
-                          'router_type': {'cfg_agent_driver': <value>,  }
-                        }
-        :return driver : driver object
+        :param resource: Neutron resource in dict format.
+            Expected keys::
+
+                {
+                    'id': <value>,
+                    'hosting_device': { 'id': <value>, },
+                    'router_type': {'cfg_agent_driver': <value>,  }
+                }
+
+        :returns: driver object
         """
         try:
             resource_id = resource['id']

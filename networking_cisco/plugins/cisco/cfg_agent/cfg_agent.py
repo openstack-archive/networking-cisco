@@ -135,7 +135,7 @@ class CiscoCfgAgent(manager.Manager):
     This class defines a generic configuration agent for cisco devices which
     implement network services in the cloud backend. It is based on the
     (reference) l3-agent, but has been enhanced to support multiple services
-     in addition to routing.
+    in addition to routing.
 
     The agent acts like as a container for services and does not do any
     service specific processing or configuration itself.
@@ -225,17 +225,20 @@ class CiscoCfgAgent(manager.Manager):
         This method goes on to invoke `process_service()` on the
         different service helpers.
 
-        :param device_ids : List of devices that are now available and needs
-         to be processed
-        :param removed_devices_info: Info about the hosting devices which
-        are going to be removed and details of the resources hosted on them.
-        Expected Format:
+        :param device_ids: List of devices that are now available and needs to
+            be processed
+        :param removed_devices_info: Info about the hosting devices which are
+            going to be removed and details of the resources hosted on them.
+            Expected Format::
+
                 {
                  'hosting_data': {'hd_id1': {'routers': [id1, id2, ...]},
                                   'hd_id2': {'routers': [id3, id4, ...]}, ...},
                  'deconfigure': True/False
                 }
-        :return: None
+
+        :returns: None
+
         """
         LOG.debug("Processing services started")
         # Now we process only routing service, additional services will be

@@ -314,7 +314,7 @@ class DhcpPacket(object):
         1. To get client IP Address(ciaddr).
         2. To get relaying gateway IP Address(giaddr).
         3. To get DHCP Relay Agent Information Option Suboption
-        such as Link Selection, VSS, Server Identifier override.
+            such as Link Selection, VSS, Server Identifier override.
         """
 
         pkt = DhcpPacket()

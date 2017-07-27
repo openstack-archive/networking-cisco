@@ -560,17 +560,19 @@ class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase,
 
         The first one should only change the current host_id and remove the
         binding resulting in the mechanism drivers receiving:
-          PortContext.original['binding:host_id']: previous value
-          PortContext.original_top_bound_segment: previous value
-          PortContext.current['binding:host_id']: current (new) value
-          PortContext.top_bound_segment: None
+
+        * PortContext.original['binding:host_id']: previous value
+        * PortContext.original_top_bound_segment: previous value
+        * PortContext.current['binding:host_id']: current (new) value
+        * PortContext.top_bound_segment: None
 
         The second one binds the new host resulting in the mechanism
         drivers receiving:
-          PortContext.original['binding:host_id']: previous value
-          PortContext.original_top_bound_segment: None
-          PortContext.current['binding:host_id']: previous value
-          PortContext.top_bound_segment: new value
+
+        * PortContext.original['binding:host_id']: previous value
+        * PortContext.original_top_bound_segment: None
+        * PortContext.current['binding:host_id']: previous value
+        * PortContext.top_bound_segment: new value
         """
 
         self._basic_create_verify_port_vlan(

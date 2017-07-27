@@ -72,13 +72,12 @@ def is_baremetal(port):
     """Identifies ironic baremetal transactions.
 
     There are two types of transactions.
-    1) A host transaction which is dependent on
-       host to interface mapping config stored in the
-       ml2_conf.ini file. The VNIC type for this is
+
+    1. A host transaction which is dependent on host to interface mapping
+       config stored in the ml2_conf.ini file. The VNIC type for this is
        'normal' which is the assumed condition.
-    2) A baremetal transaction which comes from
-       the ironic project where the interfaces
-       are provided in the port transaction. In this
-       case the VNIC_TYPE is 'baremetal'.
+    2. A baremetal transaction which comes from the ironic project where the
+       interfaces are provided in the port transaction. In this case the
+       VNIC_TYPE is 'baremetal'.
     """
     return port[bc.portbindings.VNIC_TYPE] == bc.portbindings.VNIC_BAREMETAL

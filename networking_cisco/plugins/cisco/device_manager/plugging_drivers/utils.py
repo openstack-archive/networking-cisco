@@ -33,6 +33,7 @@ def retry(ExceptionToCheck, tries=MAX_ATTEMPTS, delay=SECONDS_BETWEEN_ATTEMPTS,
     """Retry calling the decorated function using an exponential backoff.
     Reference: http://www.saltycrane.com/blog/2009/11/trying-out-retry
     -decorator-python/
+
     :param ExceptionToCheck: the exception to check. may be a tuple of
         exceptions to check
     :param tries: number of times to try (not retry) before giving up
