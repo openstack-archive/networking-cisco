@@ -18,7 +18,6 @@ from oslo_log import log
 
 from neutron.callbacks import events
 from neutron.callbacks import registry
-from neutron.extensions import dns
 
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -64,7 +63,7 @@ class NexusTrunkHandler(object):
 
         if (nexus_help.is_baremetal(trunkport) and
             trunkport['status'] == bc.constants.PORT_STATUS_ACTIVE):
-            host_id = trunkport.get(dns.DNSNAME)
+            host_id = trunkport.get(bc.dns.DNSNAME)
             subport = payload.subports[0]
             trunk_subport_dict = subport.to_dict()
 

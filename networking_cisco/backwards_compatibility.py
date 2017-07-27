@@ -170,8 +170,10 @@ else:
 
 if NEUTRON_VERSION >= NEUTRON_PIKE_VERSION:
     from neutron.conf.agent import common as config
+    from neutron_lib.api.definitions import dns
 else:
     from neutron.agent.common import config  # noqa
+    from neutron.extensions import dns  # noqa
 
 core_opts = base_config.core_opts
 

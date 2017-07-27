@@ -19,7 +19,6 @@ import testtools
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import trunk
 
-from neutron.extensions import dns
 from neutron.tests.unit.db import test_db_base_plugin_v2
 
 
@@ -59,7 +58,7 @@ PORT_BAREMETAL = {
     'status': bc.constants.PORT_STATUS_ACTIVE,
     'id': PORT_ID,
     bc.portbindings.VNIC_TYPE: bc.portbindings.VNIC_BAREMETAL,
-    dns.DNSNAME: DNS_NAME,
+    bc.dns.DNSNAME: DNS_NAME,
     bc.portbindings.PROFILE: {"local_link_information": PROFILE_BAREMETAL},
     'trunk_details': {'trunk_id': TRUNK_ID, 'sub_ports': SUBPORTS}}
 

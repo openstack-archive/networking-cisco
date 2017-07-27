@@ -24,7 +24,6 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
 from networking_cisco.services.trunk import nexus_trunk
 
 from neutron.callbacks import events
-from neutron.extensions import dns
 from neutron.tests.unit.db import test_db_base_plugin_v2
 from neutron.tests.unit import testlib_api
 
@@ -62,7 +61,7 @@ SUBPORT = {
 PORT_BAREMETAL = {
     'status': bc.constants.PORT_STATUS_ACTIVE,
     bc.portbindings.VNIC_TYPE: bc.portbindings.VNIC_BAREMETAL,
-    dns.DNSNAME: DNS_NAME,
+    bc.dns.DNSNAME: DNS_NAME,
     bc.portbindings.PROFILE: {"local_link_information": []}}
 
 PORT_VM = {
