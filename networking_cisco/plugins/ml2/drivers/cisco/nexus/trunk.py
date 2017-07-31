@@ -15,7 +15,6 @@
 
 from oslo_log import log
 
-from neutron.api.v2 import attributes
 from neutron.extensions import dns
 
 from networking_cisco import backwards_compatibility as bc
@@ -50,7 +49,7 @@ class NexusMDTrunkHandler(object):
 
         for subport in subports:
             bc.get_plugin().update_port(el_context, subport['port_id'],
-                {attributes.PORT:
+                {'port':
                  {bc.portbindings.HOST_ID: host_id,
                   bc.portbindings.VNIC_TYPE:
                       bc.portbindings.VNIC_BAREMETAL,

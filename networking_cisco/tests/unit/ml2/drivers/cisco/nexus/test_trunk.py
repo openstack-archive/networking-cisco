@@ -19,7 +19,6 @@ import testtools
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import trunk
 
-from neutron.api.v2 import attributes
 from neutron.extensions import dns
 from neutron.tests.unit.db import test_db_base_plugin_v2
 
@@ -115,7 +114,7 @@ class TestNexusTrunkHandler(test_db_base_plugin_v2.NeutronDbPluginV2TestCase):
 
         self.assertEqual(2, self.plugin.update_port.call_count)
         self.plugin.update_port.assert_called_with(mock.ANY, PORT_ID,
-            {attributes.PORT:
+            {'port':
              {bc.portbindings.HOST_ID: host_id,
               bc.portbindings.VNIC_TYPE: bc.portbindings.VNIC_BAREMETAL,
               bc.portbindings.PROFILE: port[bc.portbindings.PROFILE],
