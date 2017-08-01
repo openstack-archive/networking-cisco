@@ -1470,6 +1470,31 @@ class HAL3RouterApplianceVMTestCase(
             for rr in r_routers:
                 self.assertTrue(rr['name'].startswith(rr_name_start))
 
+    def test_name_change_of_redundancy_router_does_not_create_another_one(
+            self):
+        with self.router() as router:
+            r = router['router']
+            params = "&".join(["id=%s" % rr['id'] for rr in
+                               r[ha.DETAILS][ha.REDUNDANCY_ROUTERS]])
+            r_routers = self._list('routers', query_params=params)['routers']
+            self.assertEqual(2, len(r_routers))
+            newName = 'routerOne'
+            admin_ctx = bc.context.get_admin_context()
+            # We call the plugin function directly rather than calling via the
+            # REST API as the latter would be rejected since it's a router
+            # managed by the L3 router service plugin.
+            r_updated = self.l3_plugin.update_router(
+                admin_ctx, r_routers[0]['id'], {'router': {'name': newName}})
+            self.assertEqual(newName, r_updated['name'])
+            routers = self._list('routers')['routers']
+            # should have no new routers
+            self.assertEqual(3, len(routers))
+            r_ids = [rr['id'] for rr in r[ha.DETAILS][ha.REDUNDANCY_ROUTERS]]
+            r_ids.append(r['id'])
+            for r in routers:
+                self.assertIn(r['id'], r_ids)
+                r_ids.remove(r['id'])
+
     def test__notify_subnetpool_address_scope_update(self):
         l3_plugin = bc.get_plugin(bc.constants.L3)
 
