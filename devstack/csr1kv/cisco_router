@@ -34,7 +34,7 @@ function neutron_cisco_router_configure_common() {
     cp $NET_CISCO_SOURCE_CONF_DIR/$CISCO_DEVMGR_PLUGIN_CONF_FILE $PLUGIN_CONFIG_DIR/
 
     NEUTRON_VERSION=$(pip show neutron | grep Version| egrep -o '[0-9]+' | head -1)
-    if [[ NEUTRON_VERSION -ge 10 ]]; then
+    if [[ $NEUTRON_VERSION -ge 10 ]]; then
         Q_CISCO_ROUTER_PLUGIN_CONF_FILE=$NET_CISCO_PLUGIN_DIR/$CISCO_ROUTER_PLUGIN_CONF_FILE
         Q_CISCO_DEVMGR_PLUGIN_CONF_FILE=$NET_CISCO_PLUGIN_DIR/$CISCO_DEVMGR_PLUGIN_CONF_FILE
     else
@@ -53,8 +53,11 @@ function neutron_cisco_router_configure_common() {
 
     _patch_neutron_legacy
 
-    iniset $NEUTRON_CONF_DIR$Q_CISCO_ROUTER_PLUGIN_CONF_FILE routing default_router_type $Q_CISCO_DEFAULT_ROUTER_TYPE
-
+    if [[ $NEUTRON_VERSION -ge 10 ]]; then
+        iniset $NEUTRON_CONF_DIR$Q_CISCO_ROUTER_PLUGIN_CONF_FILE routing default_router_type $Q_CISCO_DEFAULT_ROUTER_TYPE
+    else
+        iniset $Q_CISCO_ROUTER_PLUGIN_CONF_FILE routing default_router_type $Q_CISCO_DEFAULT_ROUTER_TYPE
+    fi
  }
 
 function neutron_cisco_router_configure_driver() {
@@ -70,13 +73,21 @@ function _inject_deployer_config() {
     ROUTER_INJECT_FILE=$TOP_DIR/cisco_router_plugin.inject
     # inject any deployer provided configurations
     if [[ -f $ROUTER_INJECT_FILE ]]; then
-        cat $ROUTER_INJECT_FILE >> $NEUTRON_CONF_DIR$Q_CISCO_ROUTER_PLUGIN_CONF_FILE
+        if [[ $NEUTRON_VERSION -ge 10 ]]; then
+            cat $ROUTER_INJECT_FILE >> $NEUTRON_CONF_DIR$Q_CISCO_ROUTER_PLUGIN_CONF_FILE
+        else
+            cat $ROUTER_INJECT_FILE >> $Q_CISCO_ROUTER_PLUGIN_CONF_FILE
+        fi
     fi
 
     # Inject device manager configs
     DEVMGR_INJECT_FILE=$TOP_DIR/cisco_device_manager_plugin.inject
     if [[ -f $DEVMGR_INJECT_FILE ]]; then
-        cat $DEVMGR_INJECT_FILE >> $NEUTRON_CONF_DIR$Q_CISCO_DEVMGR_PLUGIN_CONF_FILE
+        if [[ $NEUTRON_VERSION -ge 10 ]]; then
+            cat $DEVMGR_INJECT_FILE >> $NEUTRON_CONF_DIR$Q_CISCO_DEVMGR_PLUGIN_CONF_FILE
+        else
+            cat $DEVMGR_INJECT_FILE >> $Q_CISCO_DEVMGR_PLUGIN_CONF_FILE
+        fi
     fi
 }
 
