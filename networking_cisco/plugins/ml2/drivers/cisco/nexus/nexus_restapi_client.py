@@ -41,7 +41,8 @@ class CiscoNexusRestapiClient(object):
                  accepted_codes=ACCEPTED_CODES,
                  scheme=DEFAULT_SCHEME,
                  timeout=30,
-                 max_retries=2):
+                 max_retries=2,
+                 request_cookie=True):
         """Initialize the rest api client for Nexus."""
         self.format = 'json'
         self.accepted_codes = accepted_codes
@@ -53,6 +54,7 @@ class CiscoNexusRestapiClient(object):
         self.max_retries = max_retries
         self.session = requests.Session()
         self.credentials = credentials
+        self.request_cookie = request_cookie
 
     def _get_cookie(self, mgmt_ip, config):
         """Performs authentication and retries cookie."""
@@ -79,7 +81,10 @@ class CiscoNexusRestapiClient(object):
 
         self.status = response.status_code
         if response.status_code == requests.codes.OK:
-            return response.headers.get('Set-Cookie')
+            cookie = response.headers.get('Set-Cookie')
+            headers = {"Content-type": "application/json",
+                       "Accept": "text/plain", "Cookie": cookie}
+            return headers
         else:
             e = "REST API connect returned Error code: "
             e += str(self.status)
@@ -115,11 +120,17 @@ class CiscoNexusRestapiClient(object):
 
         config = action + " : " + body if body else action
 
-        cookie = self._get_cookie(ipaddr, config)
-        if not cookie or self.status != requests.codes.OK:
+        if self.request_cookie:
+            headers = self._get_cookie(ipaddr, config)
+        else:
+            if ipaddr not in self.credentials:
+                raise cexc.NexusCredentialNotFound(switch_ip=ipaddr)
+            else:
+                headers = {'Content-Type': 'application/json'}
+                security_data = self.credentials[ipaddr]
+                self.session.auth = (security_data[0], security_data[1])
+        if self.status != requests.codes.OK:
             return {}
-        headers = {"Content-type": "application/json",
-                   "Accept": "text/plain", "Cookie": cookie}
 
         for attempt in range(self.max_retries + 1):
             try:
@@ -133,7 +144,7 @@ class CiscoNexusRestapiClient(object):
                     timeout=self.timeout)
             except Exception as e:
                 LOG.error(_LE(
-                    "Exception raised %(err)s for Rest API %(cfg)s"),
+                    "Exception raised %(err)s for Rest/NXAPI %(cfg)s"),
                     {'err': str(e), 'cfg': config})
                 raise cexc.NexusConfigFailed(nexus_host=ipaddr,
                                              config=config,
@@ -148,11 +159,33 @@ class CiscoNexusRestapiClient(object):
                 {'status': status_string,
                 'code': response.status_code,
                 'url': action})
-            if 'application/json' in response.headers['content-type']:
+            # 'text/json' used with nxapi else application/json with restapi
+            output = {}
+            if ('application/json' in response.headers['content-type'] or
+                'text/json' in response.headers['content-type']):
                 try:
-                    return response.json()
-                except ValueError:
-                    return {}
+                    output = response.json()
+                except Exception:
+                    pass
+            if 'ins_api' in output:
+                # do special nxapi response handling
+                try:
+                    cli_resp = output['ins_api']['outputs']['output']
+                except Exception:
+                    cli_resp = []
+                # Check results for each command
+                for cli in cli_resp:
+                    try:
+                        status = int((cli['code']))
+                    except ValueError:
+                        status = 'bad_status %s' % cli['code']
+                    if status not in self.accepted_codes:
+                        excpt = "ins_api CLI failure occurred "
+                        "with cli return code %s" % str(status)
+                        raise cexc.NexusConfigFailed(
+                            nexus_host=ipaddr, config=action,
+                            exc=excpt)
+            return output
         else:
             LOG.error(_LE(
                 "Bad status %(status)s(%(code)d) returned for %(url)s"),

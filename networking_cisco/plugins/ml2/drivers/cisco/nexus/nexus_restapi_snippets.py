@@ -23,7 +23,7 @@ PATH_GET_NEXUS_TYPE = 'api/mo/sys/ch.json'
 #     state active
 PATH_ALL = 'api/mo.json'
 BODY_VLAN_ALL_BEG = '{"topSystem": { "children": [ {"bdEntity":'
-BODY_VLAN_ALL_BEG += ' { children": ['
+BODY_VLAN_ALL_BEG += ' { "children": ['
 BODY_VLAN_ALL_INCR = '  {"l2BD": {"attributes": {"fabEncap": "vlan-%s",'
 BODY_VLAN_ALL_INCR += ' "pcTag": "1", "adminSt": "active"}}}'
 BODY_VXLAN_ALL_INCR = '  {"l2BD": {"attributes": {"fabEncap": "vlan-%s",'
@@ -59,6 +59,9 @@ BODY_ADD_PORT_CH += '{ "attributes": { "tDn": "sys/intf/aggr-[po%s]"'
 BODY_ADD_PORT_CH += ' } } } ] } }'
 BODY_ADD_PORT_CH += '] } } ]' + BODY_PORT_CH_END
 
+# BODY_ADD_PORT_CH_P2 does
+# Beneath "int port-channel x" configure
+# "spanning-tree port type edge trunk ;no lacp suspend-individual",
 BODY_ADD_STP_PORT_CH = '{ "stpEntity": { "children": [ '
 BODY_ADD_STP_PORT_CH += ' { "stpInst": { "children": [ '
 BODY_ADD_STP_PORT_CH += ' { "stpIf": { "attributes": { '
@@ -152,3 +155,13 @@ BODY_VNI_UPDATE += ' "yes", "suppressARP": "no", "associateVrfFlag": "no"}}}'
 # and search for ethernet interface.
 PATH_GET_PC_MEMBERS = 'api/mo/sys/intf.json?query-target=subtree&'
 PATH_GET_PC_MEMBERS += 'target-subtree-class=pcRsMbrIfs'
+
+PATH_USER_CMDS = 'ins'
+BODY_USER_CONF_CMDS = '<?xml version="1.0" encoding="ISO-8859-1"?>\n'
+BODY_USER_CONF_CMDS += '<ins_api>\n<type>cli_conf</type>\n'
+BODY_USER_CONF_CMDS += '<version>1.0</version>\n'
+BODY_USER_CONF_CMDS += '<chunk>0</chunk>\n'
+BODY_USER_CONF_CMDS += '<sid>%s</sid>\n'
+BODY_USER_CONF_CMDS += '<input>%s</input>\n'
+BODY_USER_CONF_CMDS += '<output_format>json</output_format>\n'
+BODY_USER_CONF_CMDS += '</ins_api>\n'

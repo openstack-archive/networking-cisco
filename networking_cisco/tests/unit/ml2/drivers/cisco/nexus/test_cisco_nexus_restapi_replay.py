@@ -777,7 +777,6 @@ class TestCiscoNexusRestBaremetalReplayResults(base.TestCiscoNexusBaseResults):
                  'pcAggrIf', '', '+267', 'vlan-267')),
              base.POST]
         ],
-
         'driver_result_unique_auto_vPC_del1': [
             [(snipp.PATH_IF % 'aggr-[po1001]'),
              base.NEXUS_IP_ADDRESS_1,
@@ -811,7 +810,112 @@ class TestCiscoNexusRestBaremetalReplayResults(base.TestCiscoNexusBaseResults):
              base.NEXUS_IP_ADDRESS_2,
              (snipp.BODY_DEL_PORT_CH % ('1001')),
              base.POST]
-        ]
+        ],
+
+        'driver_result_unique_auto_vPC_add1_w_user_cfg': [
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_ADD_PORT_CH % (1001, 1001, 1001)),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_TRUNKVLAN % (
+                 'pcAggrIf', snipp.BODY_PORT_CH_MODE, '')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_ADD_CH_GRP % (1001, 1001, 'phys-[eth1/10]')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_ADD_PORT_CH % (1001, 1001, 1001)),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_TRUNKVLAN % (
+                 'pcAggrIf', snipp.BODY_PORT_CH_MODE, '')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_ADD_CH_GRP % (1001, 1001, 'phys-[eth1/20]')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_VLAN_ADD % 267),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_NATIVE_TRUNKVLAN % (
+                 'pcAggrIf', '', '+267', 'vlan-267')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_VLAN_ADD % 267),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_NATIVE_TRUNKVLAN % (
+                 'pcAggrIf', '', '+267', 'vlan-267')),
+             base.POST]
+        ],
+        'driver_result_unique_auto_vPC_add_usr_cmd_nxapi_cli': [
+            [snipp.PATH_USER_CMDS,
+             base.NEXUS_IP_ADDRESS_1,
+             "int port-channel 1001 ;spanning-tree port type edge trunk "
+             ";no lacp suspend-individual",
+             base.POST],
+            [snipp.PATH_USER_CMDS,
+             base.NEXUS_IP_ADDRESS_2,
+             "int port-channel 1001 ;spanning-tree port type edge trunk "
+             ";no lacp suspend-individual",
+             base.POST],
+        ],
+        'driver_result_unique_auto_vPC_add1_w_user_cfg_replay': [
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_ADD_PORT_CH % (1001, 1001, 1001)),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_TRUNKVLAN % (
+                 'pcAggrIf', snipp.BODY_PORT_CH_MODE, '')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_ADD_CH_GRP % (1001, 1001, 'phys-[eth1/10]')),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_NATIVE_TRUNKVLAN % (
+                 'pcAggrIf', '', '+267', 'vlan-267')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_VLAN_ADD % 267),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_ADD_PORT_CH % (1001, 1001, 1001)),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_TRUNKVLAN % (
+                 'pcAggrIf', snipp.BODY_PORT_CH_MODE, '')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_ADD_CH_GRP % (1001, 1001, 'phys-[eth1/20]')),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_NATIVE_TRUNKVLAN % (
+                 'pcAggrIf', '', '+267', 'vlan-267')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_VLAN_ADD % 267),
+             base.POST]
+        ],
 
     }
 
@@ -934,6 +1038,55 @@ class TestCiscoNexusRestBaremetalReplay(
         (super(TestCiscoNexusRestBaremetalReplay, self).
             test_replay_unique_vPC_ports_chg_to_enet())
         self._init_port_channel(470, 3)
+
+    def test_replay_automated_port_channel_w_user_cfg(self):
+        """Basic replay of auto-port-channel creation with user config."""
+
+        switch_list = ['1.1.1.1', '2.2.2.2']
+
+        for switch_ip in switch_list:
+            nxos_db.init_vpc_entries(switch_ip, 1001, 1025)
+
+        self._cfg_vPC_user_commands(
+            switch_list, "spanning-tree port type edge trunk ;no lacp "
+                         "suspend-individual")
+
+        # _init_port_channel is not called so the vpc nbr gets created.
+
+        def replay_complete():
+            # Add same together cause this  accounts for the initial add
+            # as well as add during replay.
+            myresults = (self.results.get_test_results(
+                'driver_result_unique_auto_vPC_add_usr_cmd_nxapi_cli') +
+                self.results.get_test_results(
+                    'driver_result_unique_auto_vPC_add_usr_cmd_nxapi_cli'))
+            self._verify_nxapi_results(myresults)
+
+        first_add = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_auto_vPC_add1_w_user_cfg'),
+            'nbr_db_entries': 2}
+        second_del = {
+            'driver_results': self.results.get_test_results(
+                'driver_result_unique_auto_vPC_del1'),
+            'nbr_db_entries': 0}
+
+        self._process_replay(
+            'test_replay_unique_vPC',
+            None,
+            [],
+            first_add,
+            None,
+            self.results.get_test_results(
+                'driver_result_unique_auto_vPC_add1_w_user_cfg_replay'),
+            None,
+            second_del,
+            replay_complete=replay_complete)
+
+        for switch_ip in switch_list:
+            self.assertEqual(
+                25, len(nxos_db.get_free_switch_vpc_allocs(switch_ip)))
+        self._remove_vPC_user_commands(switch_list)
 
     def test_replay_automated_vPC_ports_and_vm(self):
         """Provides replay data and result data for unique ports. """

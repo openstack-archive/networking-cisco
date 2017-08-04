@@ -14,6 +14,7 @@
 #    under the License.
 
 from oslo_config import cfg
+import re
 
 from networking_cisco._i18n import _
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -59,6 +60,10 @@ ml2_cisco_opts = [
                deprecated_for_removal=True,
                help=_("Choice of Nexus Config Driver to be loaded from "
                       "the networking_cisco.ml2.nexus_driver namespace.")),
+    cfg.StrOpt('intfcfg.portchannel',
+               help=_("String of Nexus port-channel config cli for use "
+                      "when baremetal port-channels are created. Use ';' "
+                      "to separate each command.")),
 
 ]
 
@@ -90,8 +95,15 @@ class ML2MechCiscoConfig(object):
         All reserved keywords are saved in the nexus_dict and all other
         keys (host systems) are saved in the host mapping db.
         """
+        def insert_space(matchobj):
+            # Command output format must be cmd1 ;cmd2 ; cmdn
+            # and not cmd1;cmd2;cmdn or config will fail in Nexus.
+            # This does formatting before storing in dictionary.
+            test = matchobj.group(0)
+            return test[0] + ' ;'
         defined_attributes = [const.USERNAME, const.PASSWORD, const.SSHPORT,
-                              const.PHYSNET, const.NVE_SRC_INTF, const.VPCPOOL]
+                              const.PHYSNET, const.NVE_SRC_INTF, const.VPCPOOL,
+                              const.IF_PC]
         multi_parser = cfg.MultiConfigParser()
         read_ok = multi_parser.read(cfg.CONF.config_file)
 
@@ -104,7 +116,10 @@ class ML2MechCiscoConfig(object):
                 dev_id, sep, dev_ip = parsed_item.partition(':')
                 if dev_id.lower() == 'ml2_mech_cisco_nexus':
                     for dev_key, value in parsed_file[parsed_item].items():
-                        if dev_key in defined_attributes:
+                        if dev_key == const.IF_PC:
+                            self.nexus_dict[dev_ip, dev_key] = (
+                                re.sub("\w;", insert_space, value[0]))
+                        elif dev_key in defined_attributes:
                             self.nexus_dict[dev_ip, dev_key] = value[0]
                         else:
                             for if_id in value[0].split(','):

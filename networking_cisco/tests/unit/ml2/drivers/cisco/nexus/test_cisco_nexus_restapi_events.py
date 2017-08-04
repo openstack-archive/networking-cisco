@@ -713,6 +713,66 @@ class TestCiscoNexusRestBaremetalResults(base.TestCiscoNexusBaseResults):
              base.POST]
         ],
 
+        'driver_result_unique_auto_vPC_add_usr_cmd_rest': [
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_ADD_PORT_CH % (1001, 1001, 1001)),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_TRUNKVLAN % (
+                 'pcAggrIf', snipp.BODY_PORT_CH_MODE, '')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_ADD_CH_GRP % (1001, 1001, 'phys-[eth1/10]')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_ADD_PORT_CH % (1001, 1001, 1001)),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_TRUNKVLAN % (
+                 'pcAggrIf', snipp.BODY_PORT_CH_MODE, '')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_ADD_CH_GRP % (1001, 1001, 'phys-[eth1/20]')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_VLAN_ADD % 267),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_NATIVE_TRUNKVLAN % (
+                 'pcAggrIf', '', '+267', 'vlan-267')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_VLAN_ADD % 267),
+             base.POST],
+            [(snipp.PATH_IF % 'aggr-[po1001]'),
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_NATIVE_TRUNKVLAN % (
+                 'pcAggrIf', '', '+267', 'vlan-267')),
+             base.POST],
+        ],
+
+        'driver_result_unique_auto_vPC_add_usr_cmd_nxapi_cli': [
+            [snipp.PATH_USER_CMDS,
+             base.NEXUS_IP_ADDRESS_1,
+             "int port-channel 1001 ;spanning-tree port type edge trunk "
+             ";no lacp suspend-individual",
+             base.POST],
+            [snipp.PATH_USER_CMDS,
+             base.NEXUS_IP_ADDRESS_2,
+             "int port-channel 1001 ;spanning-tree port type edge trunk "
+             ";no lacp suspend-individual",
+             base.POST],
+        ],
+
     }
 
 GET_PORT_CH_RESPONSE = {
@@ -891,6 +951,42 @@ class TestCiscoNexusRestBaremetalDevice(
         for switch_ip in switch_list:
             self.assertEqual(
                 25, len(nxos_db.get_free_switch_vpc_allocs(switch_ip)))
+
+    def test_automated_port_channel_w_user_cfg(self):
+        """Basic creation and deletion test of 1 auto port-channel."""
+
+        switch_list = ['1.1.1.1', '2.2.2.2']
+
+        for switch_ip in switch_list:
+            nxos_db.init_vpc_entries(switch_ip, 1001, 1025)
+
+        self._cfg_vPC_user_commands(
+            switch_list, "spanning-tree port type edge trunk ;no lacp "
+                         "suspend-individual")
+
+        self._basic_create_verify_port_vlan(
+            'test_config_vPC',
+            self.results.get_test_results(
+                'driver_result_unique_auto_vPC_add_usr_cmd_rest'),
+            nbr_of_bindings=2)
+
+        self._verify_nxapi_results(
+            self.results.get_test_results(
+                'driver_result_unique_auto_vPC_add_usr_cmd_nxapi_cli'))
+
+        # Clean all the ncclient mock_calls so we can evaluate
+        # results of delete operations.
+        self.mock_ncclient.reset_mock()
+
+        self._basic_delete_verify_port_vlan(
+            'test_config_vPC',
+            self.results.get_test_results(
+                'driver_result_unique_auto_vPC_del1'))
+
+        for switch_ip in switch_list:
+            self.assertEqual(
+                25, len(nxos_db.get_free_switch_vpc_allocs(switch_ip)))
+        self._remove_vPC_user_commands(switch_list)
 
     def test_failure_inconsistent_chgrp(self):
         pass
