@@ -20,22 +20,10 @@
 # stable/mitaka.
 
 TRUNK_SUBPORT_OWNER = ""
-
-
-class NexusMDTrunkHandler(object):
-
-    def _stub_trunk(self, *args):
-        return False
-
-    is_trunk_parentport = _stub_trunk
-    is_trunk_subport = _stub_trunk
-
-
-class NexusTrunkDriver(object):
-
-    def create(self):
-        pass
+VLAN = ""
 
 
 class DriverBase(object):
-    pass
+    def __init__(self, name, interfaces, segmentation_types,
+                 agent_type=None, can_trunk_bound_port=False):
+        pass
