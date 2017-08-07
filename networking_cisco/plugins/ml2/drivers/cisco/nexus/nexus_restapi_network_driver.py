@@ -25,8 +25,6 @@ from oslo_log import log as logging
 from networking_cisco._i18n import _LE, _LW
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
-    config as conf)
-from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     exceptions as cexc)
@@ -46,13 +44,11 @@ LOG = logging.getLogger(__name__)
 
 class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
     """Nexus Driver Restapi Class."""
-    def __init__(self):
-        conf.ML2MechCiscoConfig()
-        credentials = self._build_credentials(
-            conf.ML2MechCiscoConfig.nexus_dict)
+    def __init__(self, nexus_switches):
+        super(CiscoNexusRestapiDriver, self).__init__(nexus_switches)
+        credentials = self._build_credentials(self.nexus_switches)
         self.client = self._import_client(credentials)
         self.nxapi_client = self._get_nxapi_client(credentials)
-        super(CiscoNexusRestapiDriver, self).__init__()
         LOG.debug("ML2 Nexus RESTAPI Drivers initialized.")
 
     def _import_client(self, credentials):
@@ -109,8 +105,7 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
         :returns: vpc_nbr      port channel commands or None
         """
 
-        nexus_dict = conf.ML2MechCiscoConfig.nexus_dict
-        ucmds = nexus_dict.get((switch_ip, const.IF_PC))
+        ucmds = self.nexus_switches.get((switch_ip, const.IF_PC))
         if ucmds:
             prefix = 'int port-channel %d ;' % vpc_nbr
             ucmds = ''.join((prefix, ucmds))

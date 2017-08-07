@@ -280,7 +280,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             loaded_class = neutron_utils.load_class_by_alias_or_classname(
                 'networking_cisco.ml2.nexus_driver',
                 conf.cfg.CONF.ml2_cisco.nexus_driver)
-            return loaded_class()
+            return loaded_class(self._nexus_switches)
         except ImportError:
             LOG.error(_LE("Error loading Nexus Config driver '%s'"),
                       conf.cfg.CONF.ml2_cisco.nexus_driver)
@@ -328,7 +328,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         # Save dynamic switch information
         self._switch_state = {}
 
-        self.driver = self._load_nexus_cfg_driver()
+        self.driver = self._load_nexus_cfg_driver(self._nexus_switches)
         self._initialize_vpc_alloc_pools()
 
         # This method is only called once regardless of number of

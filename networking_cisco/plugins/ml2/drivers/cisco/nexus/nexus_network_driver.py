@@ -52,12 +52,11 @@ warnings.simplefilter('always')
                         removal_version="Cisco 7.0.0")
 class CiscoNexusSshDriver(basedrvr.CiscoNexusBaseDriver):
     """Nexus Driver Main Class."""
-    def __init__(self):
+    def __init__(self, nexus_switches):
+        super(CiscoNexusSshDriver, self).__init__(nexus_switches)
         self.ncclient = None
-        self.nexus_switches = conf.ML2MechCiscoConfig.nexus_dict
         self.connections = {}
         self.init_ssh_caching()
-        super(CiscoNexusSshDriver, self).__init__()
         LOG.debug("ML2 Nexus SSH Drivers initialized.")
 
     # Driver lock introduced to prevent replay thread and

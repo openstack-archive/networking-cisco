@@ -35,8 +35,6 @@ import testtools
 
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
-    config as conf)
-from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_helpers as nexus_help)
@@ -502,7 +500,6 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
             self.mock_init()
 
         def new_nexus_init(mech_instance):
-            mech_instance.driver = mech_instance._load_nexus_cfg_driver()
             mech_instance.monitor_timeout = (
                 cfg.CONF.ml2_cisco.switch_heartbeat_time)
             mech_instance._ppid = os.getpid()
@@ -539,9 +536,8 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
                                 host_name, ip_addr, nexus_port,
                                 0, True)
                 self._config_switch_cred(mech_instance, ip_addr)
-            mech_instance.driver.nexus_switches = (
-                mech_instance._nexus_switches)
             mech_instance.context = bc.get_context()
+            mech_instance.driver = mech_instance._load_nexus_cfg_driver()
 
         mock.patch.object(mech_cisco_nexus.CiscoNexusMechanismDriver,
                           '__init__', new=new_nexus_init).start()
@@ -751,15 +747,7 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         # sending BODY_ADD_PORT_CH_P2.  So
         # BODY_USER_CONF_CMDS will be sent instead.
         for sw_ip in nexus_ips:
-            conf.ML2MechCiscoConfig.nexus_dict[sw_ip, const.IF_PC] = cmds
-
-    def _remove_vPC_user_commands(self, nexus_ips):
-
-        # Use commands provided by user instead of
-        # sending BODY_ADD_PORT_CH_P2.  So
-        # BODY_USER_CONF_CMDS will be sent instead.
-        for sw_ip in nexus_ips:
-            del(conf.ML2MechCiscoConfig.nexus_dict[sw_ip, const.IF_PC])
+            self._cisco_mech_driver._nexus_switches[sw_ip, const.IF_PC] = cmds
 
     def _verify_nxapi_results(self, driver_result):
         """Verifies correct NXAPI entries sent to Nexus."""

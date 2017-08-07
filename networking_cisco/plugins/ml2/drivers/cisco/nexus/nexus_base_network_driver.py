@@ -28,16 +28,13 @@ import time
 
 from oslo_log import log as logging
 
-from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
-    config as conf)
-
 LOG = logging.getLogger(__name__)
 
 
 class CiscoNexusBaseDriver(object):
     """Nexus Driver Base Class."""
-    def __init__(self):
-        self.nexus_switches = conf.ML2MechCiscoConfig.nexus_dict
+    def __init__(self, nexus_switches):
+        self.nexus_switches = nexus_switches
         self.time_stats = {}
 
     def keep_ssh_caching(self):

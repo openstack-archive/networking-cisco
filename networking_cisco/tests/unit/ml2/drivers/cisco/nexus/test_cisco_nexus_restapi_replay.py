@@ -1086,7 +1086,6 @@ class TestCiscoNexusRestBaremetalReplay(
         for switch_ip in switch_list:
             self.assertEqual(
                 25, len(nxos_db.get_free_switch_vpc_allocs(switch_ip)))
-        self._remove_vPC_user_commands(switch_list)
 
     def test_replay_automated_vPC_ports_and_vm(self):
         """Provides replay data and result data for unique ports. """
