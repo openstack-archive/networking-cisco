@@ -58,7 +58,8 @@ ml2_cisco_opts = [
                help=_("String of Nexus port-channel config cli for use "
                       "when baremetal port-channels are created. Use ';' "
                       "to separate each command.")),
-
+    cfg.StrOpt('vpc_pool',
+               help=_("Port-channel/VPC Allocation Pool")),
 ]
 
 

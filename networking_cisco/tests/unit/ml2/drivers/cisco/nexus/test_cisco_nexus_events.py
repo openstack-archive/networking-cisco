@@ -20,6 +20,8 @@ from oslo_config import cfg
 import six
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    constants as const)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_network_driver)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import exceptions
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import nexus_db_v2
@@ -1331,8 +1333,11 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
         switch_list = ['1.1.1.1', '2.2.2.2']
 
         self._init_port_channel(3)
+
         for switch_ip in switch_list:
-            nexus_db_v2.init_vpc_entries(switch_ip, 451, 475)
+            self._cisco_mech_driver._nexus_switches[
+                switch_ip, const.VPCPOOL] = ('451-475')
+        self._cisco_mech_driver._initialize_vpc_alloc_pools()
 
         self._basic_create_verify_port_vlan(
             'test_config_vPC',

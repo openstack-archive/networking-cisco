@@ -32,6 +32,8 @@ import mock
 import six
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    constants as const)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     exceptions)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_db_v2 as nxos_db)
@@ -951,15 +953,20 @@ class TestCiscoNexusRestBaremetalDevice(
         self.mock_ncclient.configure_mock(**data_json)
 
         switch_list = ['1.1.1.1', '2.2.2.2']
-
         for switch_ip in switch_list:
-            nxos_db.init_vpc_entries(switch_ip, 1001, 1025)
+            self._cisco_mech_driver._nexus_switches[
+                switch_ip, const.VPCPOOL] = ('1001-1025, 1030')
+        self._cisco_mech_driver._initialize_vpc_alloc_pools()
 
         self._basic_create_verify_port_vlan(
             'test_config_vPC',
             self.results.get_test_results(
                 'driver_result_unique_auto_vPC_add1'),
             nbr_of_bindings=2)
+
+        for switch_ip in switch_list:
+            self.assertEqual(
+                25, len(nxos_db.get_free_switch_vpc_allocs(switch_ip)))
 
         # Clean all the ncclient mock_calls so we can evaluate
         # results of delete operations.
@@ -972,7 +979,7 @@ class TestCiscoNexusRestBaremetalDevice(
 
         for switch_ip in switch_list:
             self.assertEqual(
-                25, len(nxos_db.get_free_switch_vpc_allocs(switch_ip)))
+                26, len(nxos_db.get_free_switch_vpc_allocs(switch_ip)))
 
     def test_create_delete_automated_vpc_and_vm(self):
         """Basic creation and deletion test of 2 auto port-channel and vm."""
@@ -982,9 +989,10 @@ class TestCiscoNexusRestBaremetalDevice(
         self.mock_ncclient.configure_mock(**data_json)
 
         switch_list = ['1.1.1.1', '2.2.2.2']
-
         for switch_ip in switch_list:
-            nxos_db.init_vpc_entries(switch_ip, 1001, 1025)
+            self._cisco_mech_driver._nexus_switches[
+                switch_ip, const.VPCPOOL] = ('1001-1025, 1030')
+        self._cisco_mech_driver._initialize_vpc_alloc_pools()
 
         self._basic_create_verify_port_vlan(
             'test_config_vPC',
@@ -1002,6 +1010,10 @@ class TestCiscoNexusRestBaremetalDevice(
                 'driver_result_unique_auto_vPC_vm_add1'),
             nbr_of_bindings=4)
 
+        for switch_ip in switch_list:
+            self.assertEqual(
+                25, len(nxos_db.get_free_switch_vpc_allocs(switch_ip)))
+
         self._basic_delete_verify_port_vlan(
             'test_config_vm',
             self.results.get_test_results(
@@ -1015,7 +1027,7 @@ class TestCiscoNexusRestBaremetalDevice(
 
         for switch_ip in switch_list:
             self.assertEqual(
-                25, len(nxos_db.get_free_switch_vpc_allocs(switch_ip)))
+                26, len(nxos_db.get_free_switch_vpc_allocs(switch_ip)))
 
     def test_automated_port_channel_w_user_cfg(self):
         """Basic creation and deletion test of 1 auto port-channel."""
@@ -1027,7 +1039,9 @@ class TestCiscoNexusRestBaremetalDevice(
         switch_list = ['1.1.1.1', '2.2.2.2']
 
         for switch_ip in switch_list:
-            nxos_db.init_vpc_entries(switch_ip, 1001, 1025)
+            self._cisco_mech_driver._nexus_switches[
+                switch_ip, const.VPCPOOL] = ('1001-1025')
+        self._cisco_mech_driver._initialize_vpc_alloc_pools()
 
         self._cfg_vPC_user_commands(
             switch_list, "spanning-tree port type edge trunk ;no lacp "
@@ -1168,7 +1182,8 @@ class TestCiscoNexusRestBaremetalDevice(
         switch_list = ['1.1.1.1', '2.2.2.2']
 
         for switch_ip in switch_list:
-            nxos_db.init_vpc_entries(switch_ip, 1001, 1025)
+            nxos_db.init_vpc_entries(switch_ip,
+                self._make_vpc_list(1001, 1025))
             allocs = nxos_db.get_free_switch_vpc_allocs(switch_ip)
             self.assertEqual(len(allocs), 25)
 
@@ -1213,6 +1228,161 @@ class TestCiscoNexusRestBaremetalDevice(
         # and other mock_call history.
         self.mock_ncclient.reset_mock()
 
+
+class TestCiscoNexusBaremetalVPCConfig(base.TestCiscoNexusBase,
+                                       test_cisco_nexus_events.
+                                       TestCiscoNexusDeviceConfig,
+                                       TestCiscoNexusRestDeviceResults):
+
+    """Unit tests for Cisco ML2 Nexus baremetal VPC Config.
+
+    The purpose of this test case is to validate vpc pool initialization.
+    If vpc-pool is configured, it will be compared with what currently
+    exists in the vpc pool data base. Adds and removals of the data base
+    will occur.  Removal will not occur if the entry is active.
+    """
+
+    def setUp(self):
+
+        super(TestCiscoNexusBaremetalVPCConfig, self).setUp()
+        self.mock_ncclient.reset_mock()
+
+    def _run_vpc_config_test(self, switch_ip, config, count_in,
+                             min_in, max_in):
+        """Config vpc-pool config with garbage. log & no db entries."""
+
+        self._cisco_mech_driver._nexus_switches[switch_ip, const.VPCPOOL] = (
+            config)
+
+        self._cisco_mech_driver._initialize_vpc_alloc_pools()
+
+        # Verify get_switch_vpc_count_min_max() returns correct
+        # count, min, max values for switches.
+        count, min, max = nxos_db.get_switch_vpc_count_min_max(
+            switch_ip)
+        self.assertEqual(count, count_in)
+        self.assertEqual(min, min_in)
+        self.assertEqual(max, max_in)
+
+    def test_vpc_config_db_results_bad_config1(self):
+        """Config vpc-pool config with garbage. log & no db entries."""
+
+        self._run_vpc_config_test('1.1.1.1', 'blahblahblah', 0, None, None)
+
+    def test_vpc_config_db_results_bad_config2(self):
+        """Config vpc-pool config with bad range. log & no db entries."""
+
+        self._run_vpc_config_test('1.1.1.1', '5-7-9,1', 0, None, None)
+
+    def test_vpc_config_db_results_bad_config3(self):
+        """Config vpc-pool config with bad digits. log & no db entries."""
+
+        self._run_vpc_config_test('1.1.1.1', '5-abc,1', 0, None, None)
+
+    def test_vpc_config_db_results_bad_vpc_range(self):
+        """Config vpc-pool config with bad min/max values."""
+
+        # bad_min = 0-5
+        bad_min = str(const.MINVPC - 1) + '-5'
+        self._run_vpc_config_test('1.1.1.1', bad_min, 0, None, None)
+
+        # bad_max = 4096-4097
+        bad_max = str(const.MAXVPC) + '-' + str(const.MAXVPC + 1)
+        self._run_vpc_config_test('1.1.1.1', bad_max, 0, None, None)
+
+    def test_vpc_config_db_results_bad_config_keep_old(self):
+        """Verify on config error, existing db entries stay intact."""
+
+        old_list = [1, 6, 8, 11]
+
+        # Pretend these already existed and make 8 active
+        nxos_db.init_vpc_entries('1.1.1.1', old_list)
+        nxos_db.update_vpc_entry(['1.1.1.1'], 8, True, True)
+
+        # valid port-channel values are 1-4096 on Nexus 9K
+
+        # ERROR: range starts with 0
+        bad_min = str(const.MINVPC - 1) + '-1001, 1002'
+        self._run_vpc_config_test('1.1.1.1', bad_min, 4, 1, 11)
+
+    def test_vpc_config_db_results_removal(self):
+        """Allow user to remove config but only non-active."""
+
+        # 1 no add, already exists
+        # 6 remove not active
+        # 8 no remove, ACTIVE
+        # 11 no add, already exists
+        old_list = [1, 6, 8, 11]
+
+        # Pretend these already existed and make 8 active
+        nxos_db.init_vpc_entries('1.1.1.1', old_list)
+        nxos_db.update_vpc_entry(['1.1.1.1'], 8, True, True)
+
+        self._run_vpc_config_test('1.1.1.1', '', 1, 8, 8)
+
+        # Make 8 inactive and try again.
+        nxos_db.update_vpc_entry(['1.1.1.1'], 8, False, False)
+        self._run_vpc_config_test('1.1.1.1', '', 0, None, None)
+
+    def test_vpc_config_db_results_good_config_not_range(self):
+        """Config valid vpc-pool not range config. """
+
+        self._run_vpc_config_test('1.1.1.1', '1,3,5', 3, 1, 5)
+
+    def test_vpc_config_db_results_good_config_range(self):
+        """Config valid vpc-pool range config. """
+
+        self._run_vpc_config_test('1.1.1.1', '1-5', 5, 1, 5)
+
+    def test_vpc_config_db_results_good_config_all(self):
+        """Config valid vpc-pool range config. Test Min/Max vpc value."""
+
+        # test_range_limits = 1-5,4096
+        test_range_limits = str(const.MINVPC) + '-5,' + str(const.MAXVPC)
+        self._run_vpc_config_test('1.1.1.1', test_range_limits,
+                                  6, const.MINVPC, const.MAXVPC)
+
+    def test_vpc_config_db_results_with_old_config1(self):
+        """Config valid vpc-pool compare with pre-existing entries."""
+
+        # 1 will be removed,
+        # 3 no add, already exists
+        # 4 no add, already exists
+        # 11 will not be removed since active
+        old_list = [1, 3, 4, 11]
+
+        # Pretend these already existed and make 11 active
+        nxos_db.init_vpc_entries('1.1.1.1', old_list)
+        nxos_db.update_vpc_entry(['1.1.1.1'], 11, True, True)
+
+        self._run_vpc_config_test('1.1.1.1', '2-5, 8', 6, 2, 11)
+
+    def test_vpc_config_db_results_with_old_config2(self):
+        """Config valid vpc-pool compare with pre-existing entries."""
+
+        # 1 no add, already exists
+        # 6 remove not active
+        # 8 no remove, ACTIVE
+        # 11 no add, already exists
+        old_list = [1, 6, 8, 11]
+
+        # Pretend these already existed and make 8 active
+        nxos_db.init_vpc_entries('1.1.1.1', old_list)
+        nxos_db.update_vpc_entry(['1.1.1.1'], 8, True, True)
+
+        self._run_vpc_config_test('1.1.1.1', '1-4, 9, 11', 7, 1, 11)
+
+    def test_vpc_config_db_results_with_old_config3(self):
+        """Config valid vpc-pool compare with pre-existing entries."""
+
+        # 1 no add, already exists
+        # 11 no add, already exists
+        old_list = [1, 6, 8, 11]
+
+        # Pretend these already existed and make 8 active
+        nxos_db.init_vpc_entries('1.1.1.1', old_list)
+
+        self._run_vpc_config_test('1.1.1.1', '1-4, 6-9, 11', 9, 1, 11)
 
 # Skipped inheriting event class TestCiscoNexusNonCacheSshDevice
 # since it does not apply to REST API

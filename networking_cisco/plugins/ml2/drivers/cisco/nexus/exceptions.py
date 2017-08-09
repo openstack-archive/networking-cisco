@@ -88,13 +88,6 @@ class NexusVPCAllocFailure(exceptions.NeutronException):
         super(NexusVPCAllocFailure, self).__init__(filters=filters)
 
 
-class NexusVPCAllocInvalidArgValue(exceptions.NeutronException):
-    """Nexus VPC alloc arg values not valid."""
-    message = _("Nexus VPC Alloc init failed. Args "
-                "start (%(vpcstart)s) and end (%(vpcend)s) "
-                "difference should be greater than 0.")
-
-
 class NexusVPCAllocIncorrectArgCount(exceptions.NeutronException):
     """Nexus VPC alloc args count incorrect."""
     message = _("Nexus VPC Alloc init failed. "

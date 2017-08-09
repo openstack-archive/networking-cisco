@@ -286,36 +286,102 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                       conf.cfg.CONF.ml2_cisco.nexus_driver)
             raise SystemExit(1)
 
+    def _validate_vpc_alloc_config(self, switch_ip):
+        # Validates content of user supplied vpc-pool config.
+
+        # :param switch_ip: ip address of a given switch
+        # :returns: list of user configured vpcs for pool.
+        #           empty list returned on error.
+        #           return error indicator
+
+        value = self._nexus_switches.get((switch_ip, const.VPCPOOL))
+        new_list = set()
+        vpc_range = value.split(',')
+        # test != '' handles when value is '' or consecutive ',,' exist
+        vpc_range = [test.strip() for test in vpc_range if test != '']
+        if not vpc_range:
+            return [], False
+        for vpcid in vpc_range:
+            try:
+                minmax = [int(r.strip()) for r in vpcid.split('-')]
+            except Exception:
+                LOG.error(_LE("Unexpected value %(bad)s configured "
+                          "in vpc-pool config %(all)s for switch "
+                          "%(switchip)s. Ignoring entire config."),
+                          {'bad': vpcid, 'all': value,
+                          'switchip': switch_ip})
+                return [], True
+
+            if len(minmax) > 2:
+                LOG.error(_LE("Incorrectly formatted range %(bad)s "
+                          "config in vpc-pool config %(all)s for switch "
+                          "%(switchip)s. Ignoring entire config."),
+                          {'bad': vpcid, 'all': value,
+                          'switchip': switch_ip})
+                return [], True
+
+            # In case user provided 500-400, lets make it 400-500.
+            minmax.sort()
+            start = minmax[0]
+            end = minmax[0] + 1 if len(minmax) == 1 else minmax[1] + 1
+            if (start >= const.MINVPC and start <= const.MAXVPC and
+                end - 1 >= const.MINVPC and end - 1 <= const.MAXVPC):
+                new_list.update(range(start, end))
+            else:
+                LOG.error(_LE("Invalid Port-channel range value %(bad)s "
+                          "received in vpc-pool config %(all)s for "
+                          "switch %(switchip)s. Ignoring entire config."),
+                          {'bad': vpcid, 'all': value,
+                          'switchip': switch_ip})
+                return [], True
+
+        return list(new_list), False
+
+    def _compare_vpcpool_lists(self, old_list, new_list):
+        # Compare existing list and new config list and
+        # return list of those requiring removal and those
+        # requiring addition.
+
+        rm_list = []
+        add_list = list(new_list)  # make copy of new_list
+        for old in old_list:
+            if old.vpc_id in add_list:
+                add_list.remove(old.vpc_id)
+            # else not in add_list only remove those that
+            # are not active
+            elif not old.active:
+                rm_list.append(old.vpc_id)
+
+        return rm_list, add_list
+
+    def _get_vpcpool_changes_needed(self, switch_ip):
+        # Determine which vpcs need addition and removal
+        # from VPC data base.
+
+        # Get list of vpcs already configured
+        old_list = nxos_db.get_all_switch_vpc_allocs(switch_ip)
+
+        # Get list of configured vpcs desired
+        new_list, error = self._validate_vpc_alloc_config(switch_ip)
+
+        # on error, Do nothing. Leave existing db intact.
+        if error:
+            return [], []
+
+        # Compare lists and generate list for those to be added/removed.
+        return self._compare_vpcpool_lists(old_list, new_list)
+
     def _initialize_vpc_alloc_pools(self):
+        # When there is a user vpc_pool configuration,
+        # determine what needs to be added/removed
+        # vpc data base and apply those changes.
+
         for switch_ip, attr in self._nexus_switches:
             if str(attr) == const.VPCPOOL:
-                try:
-                    countvpc, minvpc, maxvpc = (
-                        nxos_db.get_switch_vpc_count_min_max(
-                            switch_ip)
-                    )
-                except excep.NexusVPCAllocNotFound:
-                    countvpc = 0
-                value = self._nexus_switches.get((switch_ip, attr))
-                vpc_range = value.split(',')
-                if len(vpc_range) != 2:
-                    raise excep.NexusVPCAllocIncorrectArgCount(
-                        count=len(vpc_range), content=value)
-
-                fromvpc = int(vpc_range[0])
-                tovpc = int(vpc_range[1])
-                count = tovpc - fromvpc + 1
-                if countvpc == 0:
-                    nxos_db.init_vpc_entries(switch_ip, fromvpc, tovpc)
-                elif (countvpc != count or minvpc != fromvpc or
-                     maxvpc != tovpc):
-                    LOG.warning(_LW("Cannot resize switch vpc_pool config "
-                                 "from %(today)d to %(chg)d entries nor from "
-                                 "%(from)d and to %(to)d values. Ignoring "
-                                 "config change for switch %(ip)s."),
-                                 {'today': countvpc, 'chg': count,
-                                 'from': fromvpc, 'to': tovpc,
-                                 'ip': switch_ip})
+                rm_list, add_list = self._get_vpcpool_changes_needed(switch_ip)
+                nxos_db.init_vpc_entries(switch_ip, add_list)
+                for rm in rm_list:
+                    nxos_db.delete_vpcid_for_switch(rm, switch_ip)
 
     def initialize(self):
         # Create ML2 device dictionary from ml2_conf.ini entries.

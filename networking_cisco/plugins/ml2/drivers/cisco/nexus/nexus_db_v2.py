@@ -564,11 +564,12 @@ def remove_all_static_host_mappings():
         pass
 
 
-def _lookup_vpc_allocs(query_type, session=None, **bfilter):
+def _lookup_vpc_allocs(query_type, session=None, order=None, **bfilter):
     """Look up 'query_type' Nexus VPC Allocs matching the filter.
 
     :param query_type: 'all', 'one' or 'first'
     :param session: db session
+    :param order: select what field to order data
     :param bfilter: filter for mappings query
     :returns: VPCs if query gave a result, else
              raise NexusVPCAllocNotFound.
@@ -577,8 +578,14 @@ def _lookup_vpc_allocs(query_type, session=None, **bfilter):
     if session is None:
         session = db.get_session()
 
-    query_method = getattr(session.query(
-        nexus_models_v2.NexusVPCAlloc).filter_by(**bfilter), query_type)
+    if order:
+        query_method = getattr(session.query(
+            nexus_models_v2.NexusVPCAlloc).filter_by(**bfilter).order_by(
+                order),
+            query_type)
+    else:
+        query_method = getattr(session.query(
+            nexus_models_v2.NexusVPCAlloc).filter_by(**bfilter), query_type)
 
     try:
         vpcs = query_method()
@@ -622,42 +629,12 @@ def _lookup_vpc_count_min_max(session=None, **bfilter):
     raise c_exc.NexusVPCAllocNotFound(**bfilter)
 
 
-def _lookup_vpcids(query_type, session=None, **bfilter):
-    """Look up 'query_type' Nexus VPC Allocs matching the filter.
-
-    :param query_type: 'all', 'one' or 'first'
-    :param session: db session
-    :param bfilter: filter for mappings query
-    :returns: VPCIDs if query gave a result, else
-             raise NexusVPCAllocNotFound.
-    """
-
-    if session is None:
-        session = db.get_session()
-
-    query_method = getattr(session.query(
-        nexus_models_v2.NexusVPCAlloc.vpc_id).filter_by(**bfilter), query_type)
-
-    try:
-        vpcs = query_method()
-        if vpcs:
-            return vpcs
-    except sa_exc.NoResultFound:
-        pass
-
-    raise c_exc.NexusVPCAllocNotFound(**bfilter)
-
-
-def _lookup_all_vpc_allocs(session=None, **bfilter):
-    return _lookup_vpc_allocs('all', session, **bfilter)
+def _lookup_all_vpc_allocs(session=None, order=None, **bfilter):
+    return _lookup_vpc_allocs('all', session, order, **bfilter)
 
 
 def _lookup_one_vpc_allocs(session=None, **bfilter):
     return _lookup_vpc_allocs('one', session, **bfilter)
-
-
-def _lookup_all_vpcids(session=None, **bfilter):
-    return _lookup_vpcids('all', session, **bfilter)
 
 
 def _get_free_vpcids_on_switches(switch_ip_list):
@@ -685,7 +662,13 @@ def _get_free_vpcids_on_switches(switch_ip_list):
 
 
 def get_all_switch_vpc_allocs(switch_ip):
-    return(_lookup_all_vpc_allocs(switch_ip=switch_ip))
+    try:
+        vpc_list = _lookup_all_vpc_allocs(
+            order=nexus_models_v2.NexusVPCAlloc.vpc_id,
+            switch_ip=switch_ip)
+    except c_exc.NexusVPCAllocNotFound:
+        vpc_list = []
+    return vpc_list
 
 
 def get_switch_vpc_count_min_max(switch_ip):
@@ -704,27 +687,23 @@ def get_switch_vpc_alloc(switch_ip, vpc_id):
     return(_lookup_one_vpc_allocs(switch_ip=switch_ip, vpc_id=vpc_id))
 
 
-def init_vpc_entries(nexus_ip, vpc_start, vpc_end):
+def init_vpc_entries(nexus_ip, vpc_list):
     """Initialize switch/vpc entries in vpc alloc data base.
 
-    param: nexus_ip  is the ip addr of the nexus switch for this interface
-    param: vpc_start is the starting vpc id
-    param: vpc_end   is the ending vpc id
+    param: nexus_ip  ip addr of the nexus switch for this interface
+    param: vpc_list  list of vpc integers to create
     """
 
     LOG.debug("init_vpc_entries() called")
 
+    if not vpc_list:
+        return
     session = db.get_session()
-    count = vpc_end - vpc_start + 1
-    if count <= 0:
-        raise c_exc.NexusVPCAllocInvalidArgValue(
-            vpcstart=vpc_start, vpcend=vpc_end)
 
-    vpc_max = vpc_end + 1
-    for count in range(vpc_start, vpc_max):
+    for vpc in vpc_list:
         vpc_alloc = nexus_models_v2.NexusVPCAlloc(
             switch_ip=nexus_ip,
-            vpc_id=count,
+            vpc_id=vpc,
             learned=False,
             active=False)
         session.add(vpc_alloc)
@@ -788,3 +767,20 @@ def free_vpcid_for_switch(vpc_id, nexus_ip):
     LOG.debug("free_vpcid_for_switch() called")
     if vpc_id != 0:
         update_vpc_entry([nexus_ip], vpc_id, False, False)
+
+
+def delete_vpcid_for_switch(vpc_id, switch_ip):
+    """Removes unused vpcid for a switch.
+
+    :param vpc_id: vpc id to remove
+    :param switch_ip: ip address of the switch
+    """
+
+    LOG.debug("delete_vpcid_for_switch called")
+    session = db.get_session()
+
+    vpc = _lookup_one_vpc_allocs(vpc_id=vpc_id,
+                                 switch_ip=switch_ip,
+                                 active=False)
+    session.delete(vpc)
+    session.flush()

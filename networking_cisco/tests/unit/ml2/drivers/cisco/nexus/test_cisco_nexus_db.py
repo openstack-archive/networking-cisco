@@ -211,6 +211,13 @@ class TestCiscoNexusVpcAllocDbTest(testlib_api.SqlTestCase):
 
     """Unit tests for Cisco mechanism driver's Nexus vpc alloc database."""
 
+    def _make_vpc_list(self, from_in, to_in):
+
+        new_list = []
+        for x in range(from_in, (to_in + 1)):
+            new_list.append(x)
+        return new_list
+
     def setUp(self):
         original_intersect = nexus_db_v2._get_free_vpcids_on_switches
 
@@ -230,7 +237,8 @@ class TestCiscoNexusVpcAllocDbTest(testlib_api.SqlTestCase):
         nexus_ips = ['1.1.1.1', '2.2.2.2', '3.3.3.3']
 
         for this_ip in nexus_ips:
-            nexus_db_v2.init_vpc_entries(this_ip, 1001, 1025)
+            nexus_db_v2.init_vpc_entries(
+                this_ip, self._make_vpc_list(1001, 1025))
             allocs = nexus_db_v2.get_free_switch_vpc_allocs(this_ip)
             self.assertEqual(len(allocs), 25)
 
@@ -259,7 +267,8 @@ class TestCiscoNexusVpcAllocDbTest(testlib_api.SqlTestCase):
         nexus_ips = ['1.1.1.1', '2.2.2.2', '3.3.3.3']
 
         for this_ip in nexus_ips:
-            nexus_db_v2.init_vpc_entries(this_ip, 1001, 1025)
+            nexus_db_v2.init_vpc_entries(
+                this_ip, self._make_vpc_list(1001, 1025))
 
         nexus_db_v2.update_vpc_entry(
             nexus_ips, 1001, False, True)
@@ -300,10 +309,12 @@ class TestCiscoNexusVpcAllocDbTest(testlib_api.SqlTestCase):
         nexus_ips = ['1.1.1.1', '2.2.2.2', '3.3.3.3']
 
         for this_ip in nexus_ips:
-            nexus_db_v2.init_vpc_entries(this_ip, 1001, 1025)
+            nexus_db_v2.init_vpc_entries(
+                this_ip, self._make_vpc_list(1001, 1025))
         # IP 4.4.4.4 is added only to return a list of vpc ids
         # in same format as sql will return.
-        nexus_db_v2.init_vpc_entries('4.4.4.4', 1001, 1003)
+        nexus_db_v2.init_vpc_entries(
+                '4.4.4.4', self._make_vpc_list(1001, 1003))
         mock.patch.object(nexus_db_v2,
                          '_get_free_vpcids_on_switches',
                           new=new_get_free_vpcids_on_switches).start()
@@ -324,9 +335,12 @@ class TestCiscoNexusVpcAllocDbTest(testlib_api.SqlTestCase):
     def test_vpcalloc_min_max(self):
 
         # Initialize 3 switch vpc entries
-        nexus_db_v2.init_vpc_entries('1.1.1.1', 1001, 2000)
-        nexus_db_v2.init_vpc_entries('2.2.2.2', 2001, 3000)
-        nexus_db_v2.init_vpc_entries('3.3.3.3', 3001, 4000)
+        nexus_db_v2.init_vpc_entries(
+            '1.1.1.1', self._make_vpc_list(1001, 2000))
+        nexus_db_v2.init_vpc_entries(
+            '2.2.2.2', self._make_vpc_list(2001, 3000))
+        nexus_db_v2.init_vpc_entries(
+            '3.3.3.3', self._make_vpc_list(3001, 4000))
 
         # Verify get_switch_vpc_count_min_max() returns correct
         # count, min, max values for all 3 switches.

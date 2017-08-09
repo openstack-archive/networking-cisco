@@ -31,6 +31,8 @@ redundant.
 import mock
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    constants as const)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_db_v2 as nxos_db)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_restapi_snippets as snipp)
@@ -1079,7 +1081,9 @@ class TestCiscoNexusRestBaremetalReplay(
         switch_list = ['1.1.1.1', '2.2.2.2']
 
         for switch_ip in switch_list:
-            nxos_db.init_vpc_entries(switch_ip, 1001, 1025)
+            self._cisco_mech_driver._nexus_switches[
+                switch_ip, const.VPCPOOL] = ('1001-1025')
+        self._cisco_mech_driver._initialize_vpc_alloc_pools()
 
         self._cfg_vPC_user_commands(
             switch_list, "spanning-tree port type edge trunk ;no lacp "
@@ -1131,7 +1135,9 @@ class TestCiscoNexusRestBaremetalReplay(
         switch_list = ['1.1.1.1', '2.2.2.2']
 
         for switch_ip in switch_list:
-            nxos_db.init_vpc_entries(switch_ip, 1001, 1025)
+            self._cisco_mech_driver._nexus_switches[
+                switch_ip, const.VPCPOOL] = ('1001-1025')
+        self._cisco_mech_driver._initialize_vpc_alloc_pools()
 
         # _init_port_channel is not called so the vpc nbr is created
 

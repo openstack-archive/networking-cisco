@@ -416,6 +416,13 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
 
         return {}
 
+    def _make_vpc_list(self, from_in, to_in):
+
+        new_list = []
+        for x in range(from_in, (to_in + 1)):
+            new_list.append(x)
+        return new_list
+
     def _clear_port_dbs(self):
         nexus_db_v2.remove_all_nexusport_bindings()
 
