@@ -328,7 +328,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         # Save dynamic switch information
         self._switch_state = {}
 
-        self.driver = self._load_nexus_cfg_driver(self._nexus_switches)
+        self.driver = self._load_nexus_cfg_driver()
         self._initialize_vpc_alloc_pools()
 
         # This method is only called once regardless of number of
