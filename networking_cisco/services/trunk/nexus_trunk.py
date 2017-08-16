@@ -43,8 +43,6 @@ class NexusTrunkHandler(object):
         self.plugin.update_port(context, port_id,
                                 {'port':
                                  {bc.portbindings.HOST_ID: None,
-                                  bc.portbindings.VNIC_TYPE: None,
-                                  bc.portbindings.PROFILE: None,
                                   'status': status}})
 
     def trunk_update_postcommit(self, resource, event, trunk_plugin, payload):
@@ -66,23 +64,18 @@ class NexusTrunkHandler(object):
             trunkport['status'] == bc.constants.PORT_STATUS_ACTIVE):
             host_id = trunkport.get(dns.DNSNAME)
             subport = payload.subports[0]
-            trunk_subport_dict = subport.to_dict()
+            trunk_subport = subport.to_dict()
 
             # Set the subport port attributes to match the parent port.
             if event == events.AFTER_CREATE:
                 self.plugin.update_port(
-                    payload.context, trunk_subport_dict['port_id'],
+                    payload.context, trunk_subport['port_id'],
                     {'port':
                      {bc.portbindings.HOST_ID: host_id,
-                      bc.portbindings.VNIC_TYPE:
-                          bc.portbindings.VNIC_BAREMETAL,
-                      bc.portbindings.PROFILE:
-                          trunkport[bc.portbindings.PROFILE],
-                      'device_owner': bc.trunk_consts.TRUNK_SUBPORT_OWNER,
-                      'status': bc.constants.PORT_STATUS_ACTIVE}})
+                      'device_owner': bc.trunk_consts.TRUNK_SUBPORT_OWNER}})
             elif event == events.AFTER_DELETE:
                 self._unbind_subport(
-                    payload.context, trunk_subport_dict['port_id'],
+                    payload.context, trunk_subport['port_id'],
                     bc.constants.PORT_STATUS_DOWN)
 
             # Trunk drivers are responsible for setting the trunk

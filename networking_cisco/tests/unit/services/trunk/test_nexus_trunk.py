@@ -142,26 +142,29 @@ class TestNexusTrunkHandler(test_db_base_plugin_v2.NeutronDbPluginV2TestCase):
         self.plugin.get_port.assert_called_once_with(mock.ANY, PORT_ID)
         self.assertEqual(
             len(TRUNK['sub_ports']), self.plugin.update_port.call_count)
-        self.plugin.update_port.assert_called_with(mock.ANY, PORT_ID, mock.ANY)
+        self.plugin.update_port.assert_called_with(mock.ANY, PORT_ID,
+            {'port':
+             {bc.portbindings.HOST_ID: None,
+              'status': bc.constants.PORT_STATUS_DOWN}})
 
     def test_subport_postcommit_baremetal_after_create(self):
         self._call_test_method(
             "subport_postcommit", PORT_BAREMETAL, event=events.AFTER_CREATE)
 
         self._verify_subport_postcommit()
-        self.plugin.update_port.assert_called_with(mock.ANY, PORT_ID, mock.ANY)
-        self.assertEqual(
-            bc.constants.PORT_STATUS_ACTIVE,
-            self.plugin.update_port.call_args[0][2]['port']['status'])
+        self.plugin.update_port.assert_called_with(mock.ANY, PORT_ID,
+            {'port':
+             {bc.portbindings.HOST_ID: DNS_NAME,
+              'device_owner': bc.trunk_consts.TRUNK_SUBPORT_OWNER}})
 
     def test_subport_postcommit_baremetal_after_delete(self):
         self._call_test_method(
             "subport_postcommit", PORT_BAREMETAL, event=events.AFTER_DELETE)
 
-        self.plugin.update_port.assert_called_with(mock.ANY, PORT_ID, mock.ANY)
-        self.assertEqual(
-            bc.constants.PORT_STATUS_DOWN,
-            self.plugin.update_port.call_args[0][2]['port']['status'])
+        self.plugin.update_port.assert_called_with(mock.ANY, PORT_ID,
+            {'port':
+             {bc.portbindings.HOST_ID: None,
+              'status': bc.constants.PORT_STATUS_DOWN}})
 
     def test_subport_postcommit_baremetal_unsupported_event(self):
         self._call_test_method(
