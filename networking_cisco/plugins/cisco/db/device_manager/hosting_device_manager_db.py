@@ -112,7 +112,9 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
         if cls._keystone_session:
             return cls._keystone_session
         else:
-            auth_url = cfg.CONF.keystone_authtoken.auth_url + "/v3"
+            auth_url = cfg.CONF.keystone_authtoken.auth_url
+            if auth_url.rsplit('/', 1)[-1] != 'v3':
+                auth_url += '/v3'
             # user = cfg.CONF.keystone_authtoken.admin_user
             # pw = cfg.CONF.keystone_authtoken.admin_password
             # project_name = cfg.CONF.keystone_authtoken.admin_tenant_name
