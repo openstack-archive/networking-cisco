@@ -30,18 +30,15 @@ class NexusPortBinding(bc.model_base.BASEV2):
     vni = sa.Column(sa.Integer)
     switch_ip = sa.Column(sa.String(255))
     instance_id = sa.Column(sa.String(255))
-    is_provider_vlan = sa.Column(sa.Boolean(), nullable=False, default=False,
-                                 server_default=sa.sql.false())
     channel_group = sa.Column(sa.Integer, default=0)
     is_native = sa.Column(sa.Boolean(), nullable=False, default=False,
                           server_default=sa.sql.false())
 
     def __repr__(self):
         """Just the binding, without the id key."""
-        return ("<NexusPortBinding(%s,%s,%s,%s,%s,%s,%s,%s)>" %
+        return ("<NexusPortBinding(%s,%s,%s,%s,%s,%s,%s)>" %
                 (self.port_id, self.vlan_id, self.vni, self.switch_ip,
                  self.instance_id,
-                 'True' if self.is_provider_vlan else 'False',
                  self.channel_group,
                  'True' if self.is_native else 'False'))
 
@@ -53,7 +50,6 @@ class NexusPortBinding(bc.model_base.BASEV2):
             self.vni == other.vni and
             self.switch_ip == other.switch_ip and
             self.instance_id == other.instance_id and
-            self.is_provider_vlan == other.is_provider_vlan and
             self.channel_group == other.channel_group and
             self.is_native_vlan == other.is_native_vlan
         )
@@ -126,3 +122,11 @@ class NexusVPCAlloc(bc.model_base.BASEV2):
 
     # active indicates this ch_grp is in use
     active = sa.Column(sa.Boolean, nullable=False)
+
+
+class NexusProviderNetwork(bc.model_base.BASEV2):
+
+    __tablename__ = 'cisco_ml2_nexus_provider_networks'
+
+    network_id = sa.Column(sa.String(36), nullable=False, primary_key=True)
+    vlan_id = sa.Column(sa.Integer, nullable=False, index=True)
