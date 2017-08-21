@@ -449,7 +449,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         to = 0
         # if vlan_range not empty and haven't met requested size
         while size > 0 and vlan_range:
-            vlan_id, vni, vlan_name = vlan_range.pop(0)
+            vlan_id, vni = vlan_range.pop(0)
             size -= 1
             if fr == 0 and to == 0:
                 fr = vlan_id
@@ -1110,24 +1110,14 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                                               is_native)
 
     def _gather_config_parms(self, is_provider_vlan, vlan_id):
-        """Determine vlan_name, auto_create, auto_trunk from config."""
+        """Collect auto_create, auto_trunk from config."""
         if is_provider_vlan:
-            vlan_name = cfg.CONF.ml2_cisco.provider_vlan_name_prefix
             auto_create = cfg.CONF.ml2_cisco.provider_vlan_auto_create
             auto_trunk = cfg.CONF.ml2_cisco.provider_vlan_auto_trunk
         else:
-            vlan_name = cfg.CONF.ml2_cisco.vlan_name_prefix
             auto_create = True
             auto_trunk = True
-        if auto_create:
-            vlan_name_max_len = (
-                const.NEXUS_MAX_VLAN_NAME_LEN - len(str(vlan_id)))
-            if len(vlan_name) > vlan_name_max_len:
-                vlan_name = vlan_name[:vlan_name_max_len]
-                LOG.warning(_LW("Nexus: truncating vlan name to %s"),
-                            vlan_name)
-            vlan_name = vlan_name + str(vlan_id)
-        return vlan_name, auto_create, auto_trunk
+        return auto_create, auto_trunk
 
     def _configure_port_binding(self, is_provider_vlan, duplicate_type,
                                 is_native,
@@ -1140,7 +1130,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         if duplicate_type == const.DUPLICATE_PORT:
             return
 
-        vlan_name, auto_create, auto_trunk = self._gather_config_parms(
+        auto_create, auto_trunk = self._gather_config_parms(
             is_provider_vlan, vlan_id)
 
         # if type DUPLICATE_VLAN, don't create vlan
@@ -1148,17 +1138,15 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             auto_create = False
 
         if auto_create and auto_trunk:
-            LOG.debug("Nexus: create vlan %s and add to interface",
-                vlan_name)
+            LOG.debug("Nexus: create vlan %s and add to interface", vlan_id)
             self.driver.create_and_trunk_vlan(
-                switch_ip, vlan_id, vlan_name, intf_type,
+                switch_ip, vlan_id, intf_type,
                 nexus_port, vni, is_native)
         elif auto_create:
-            LOG.debug("Nexus: create vlan %s", vlan_name)
-            self.driver.create_vlan(switch_ip, vlan_id,
-                                    vlan_name, vni)
+            LOG.debug("Nexus: create vlan %s", vlan_id)
+            self.driver.create_vlan(switch_ip, vlan_id, vni)
         elif auto_trunk:
-            LOG.debug("Nexus: trunk vlan %s", vlan_name)
+            LOG.debug("Nexus: trunk vlan %s", vlan_id)
             self.driver.send_enable_vlan_on_trunk_int(
                 switch_ip, vlan_id,
                 intf_type, nexus_port, is_native)
@@ -1258,7 +1246,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         path_str, conf_str = self.driver.start_create_vlan()
         # At this time, this will only configure vni information when needed
         while vnsegment_sent < const.CREATE_VLAN_BATCH and vlans:
-            vlan_id, vni, vlan_name = vlans.pop(0)
+            vlan_id, vni = vlans.pop(0)
             # Add it to the batch
             conf_str = self.driver.get_create_vlan(
                 switch_ip, vlan_id, vni, conf_str)
@@ -1403,7 +1391,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             if nxos_db.is_reserved_binding(port):
                 continue
 
-            vlan_name, auto_create, auto_trunk = self._gather_config_parms(
+            auto_create, auto_trunk = self._gather_config_parms(
                 nxos_db.is_provider_vlan(port.vlan_id), port.vlan_id)
             if port.port_id == prev_port:
                 if port.vlan_id == prev_vlan and port.vni == prev_vni:
@@ -1414,7 +1402,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                     # Same port/different Vlan - track it
                     vlan_count += 1
                     if auto_create:
-                        vlans.add((port.vlan_id, port.vni, vlan_name))
+                        vlans.add((port.vlan_id, port.vni))
                     if auto_trunk:
                         pvlans.add(port.vlan_id)
                     if port.is_native:
@@ -1435,7 +1423,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                     prev_native_vlan = 0
                 # Start tracking new port
                 if auto_create:
-                    vlans.add((port.vlan_id, port.vni, vlan_name))
+                    vlans.add((port.vlan_id, port.vni))
                 if auto_trunk:
                     pvlans.add(port.vlan_id)
                 prev_port = port.port_id
@@ -1458,7 +1446,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         vlans = list(vlans)
         if vlans:
             vlans.sort()
-            vlan, vni, vlan_name = vlans[0]
+            vlan, vni = vlans[0]
             if vni == 0:
                 self._save_switch_vlan_range(switch_ip, vlans)
             else:

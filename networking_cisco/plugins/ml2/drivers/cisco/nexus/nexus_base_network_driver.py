@@ -129,11 +129,10 @@ class CiscoNexusBaseDriver(object):
         """Returns an XML snippet for terminate of create VLAN."""
         return conf_str
 
-    def create_vlan(self, nexus_host,
-                    vlanid, vlanname, vni):
+    def create_vlan(self, nexus_host, vlanid, vni):
         """Create a VLAN on a Nexus Switch.
 
-        Creates a VLAN given the VLAN ID, name and possible VxLAN ID.
+        Creates a VLAN given the VLAN ID and possible VxLAN ID.
         """
         pass
 
@@ -156,10 +155,8 @@ class CiscoNexusBaseDriver(object):
         """Gathers and sends an interface trunk XML snippet."""
         pass
 
-    def create_and_trunk_vlan(self, nexus_host, vlan_id,
-                              vlan_name, intf_type,
-                              nexus_port, vni,
-                              is_native):
+    def create_and_trunk_vlan(self, nexus_host, vlan_id, intf_type,
+                              nexus_port, vni, is_native):
         """Create VLAN and trunk it on the specified ports."""
         pass
 

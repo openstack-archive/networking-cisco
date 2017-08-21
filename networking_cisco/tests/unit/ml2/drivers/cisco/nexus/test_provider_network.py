@@ -37,8 +37,6 @@ VLAN_ID = 'vlan_id'
 DEVICE_ID = 'device_id'
 HOST_ID = 'host_id'
 PORT_ID = 'port_id'
-PVLAN_NAME_PREFIX = 'prefix_p_'
-VLAN_NAME_PREFIX = 'prefix_'
 IP_ADDR = 'ipaddr'
 INTF_TYPE = 'intf_type'
 NEXUS_PORT = 'nexus_port'
@@ -198,33 +196,28 @@ class TestCiscoNexusProviderConfiguration(base.BaseTestCase):
             mech_cisco_nexus.CiscoNexusMechanismDriver,
             '_delete_port_channel_resources').start()
 
-    def _set_provider_configuration(
-            self, auto_create, auto_trunk, name_prefix):
+    def _set_provider_configuration(self, auto_create, auto_trunk):
         cfg.CONF.set_override('provider_vlan_auto_create', auto_create,
                               'ml2_cisco')
         cfg.CONF.set_override('provider_vlan_auto_trunk', auto_trunk,
                               'ml2_cisco')
-        cfg.CONF.set_override('provider_vlan_name_prefix', name_prefix,
-                              'ml2_cisco')
-        cfg.CONF.set_override('vlan_name_prefix', VLAN_NAME_PREFIX,
-                              'ml2_cisco')
 
     def _test_pnet_configure(
-            self, auto_create, auto_trunk, name_prefix, is_provider_vlan=True):
-        self._set_provider_configuration(auto_create, auto_trunk, name_prefix)
+            self, auto_create, auto_trunk, is_provider_vlan=True):
+        self._set_provider_configuration(auto_create, auto_trunk)
         self._nexus_md._configure_port_binding(
             is_provider_vlan, None, IS_NATIVE, IP_ADDR, VLAN_ID, INTF_TYPE,
             NEXUS_PORT, NO_VNI)
 
     def _test_pnet_delete(
-            self, auto_create, auto_trunk, name_prefix, is_provider_vlan=True):
-        self._set_provider_configuration(auto_create, auto_trunk, name_prefix)
+            self, auto_create, auto_trunk, is_provider_vlan=True):
+        self._set_provider_configuration(auto_create, auto_trunk)
         self._nexus_md._delete_switch_entry(
             PORT, VLAN_ID, DEVICE_ID, HOST_ID, NO_VNI, is_provider_vlan)
 
     def _test_pnet_replay(
-            self, auto_create, auto_trunk, name_prefix, is_provider_vlan=True):
-        self._set_provider_configuration(auto_create, auto_trunk, name_prefix)
+            self, auto_create, auto_trunk, is_provider_vlan=True):
+        self._set_provider_configuration(auto_create, auto_trunk)
         self._is_provider_vlan_mock.return_value = is_provider_vlan
         port_bindings = nexus_models_v2.NexusPortBinding(
             port_id=PORT_ID, vlan_id=VLAN_ID, vni=NO_VNI, switch_ip=IP_ADDR,
@@ -232,27 +225,23 @@ class TestCiscoNexusProviderConfiguration(base.BaseTestCase):
         self._nexus_md.configure_switch_entries(IP_ADDR, [port_bindings])
 
     def test_pnet_configure_create_and_trunk(self):
-        self._test_pnet_configure(
-            auto_create=True, auto_trunk=True, name_prefix=PVLAN_NAME_PREFIX)
+        self._test_pnet_configure(auto_create=True, auto_trunk=True)
 
         self._create_and_trunk_vlan_mock.assert_called_once_with(
-            IP_ADDR, VLAN_ID, PVLAN_NAME_PREFIX + VLAN_ID,
-            INTF_TYPE, NEXUS_PORT, NO_VNI, True)
+            IP_ADDR, VLAN_ID, INTF_TYPE, NEXUS_PORT, NO_VNI, True)
         self.assertFalse(self._create_vlan_mock.call_count)
         self.assertFalse(self._send_enable_vlan_on_trunk_int_mock.call_count)
 
     def test_pnet_configure_create(self):
-        self._test_pnet_configure(
-            auto_create=True, auto_trunk=False, name_prefix=PVLAN_NAME_PREFIX)
+        self._test_pnet_configure(auto_create=True, auto_trunk=False)
 
         self.assertFalse(self._create_and_trunk_vlan_mock.call_count)
         self._create_vlan_mock.assert_called_once_with(
-            IP_ADDR, VLAN_ID, PVLAN_NAME_PREFIX + VLAN_ID, NO_VNI)
+            IP_ADDR, VLAN_ID, NO_VNI)
         self.assertFalse(self._send_enable_vlan_on_trunk_int_mock.call_count)
 
     def test_pnet_configure_trunk(self):
-        self._test_pnet_configure(
-            auto_create=False, auto_trunk=True, name_prefix=PVLAN_NAME_PREFIX)
+        self._test_pnet_configure(auto_create=False, auto_trunk=True)
 
         self.assertFalse(self._create_and_trunk_vlan_mock.call_count)
         self.assertFalse(self._create_vlan_mock.call_count)
@@ -261,18 +250,15 @@ class TestCiscoNexusProviderConfiguration(base.BaseTestCase):
 
     def test_pnet_configure_not_providernet(self):
         self._test_pnet_configure(
-            auto_create=False, auto_trunk=False, name_prefix=PVLAN_NAME_PREFIX,
-            is_provider_vlan=False)
+            auto_create=False, auto_trunk=False, is_provider_vlan=False)
 
         self._create_and_trunk_vlan_mock.assert_called_once_with(
-            IP_ADDR, VLAN_ID, VLAN_NAME_PREFIX + VLAN_ID,
-            INTF_TYPE, NEXUS_PORT, NO_VNI, True)
+            IP_ADDR, VLAN_ID, INTF_TYPE, NEXUS_PORT, NO_VNI, True)
         self.assertFalse(self._create_vlan_mock.call_count)
         self.assertFalse(self._send_enable_vlan_on_trunk_int_mock.call_count)
 
     def test_pnet_delete_create_and_trunk(self):
-        self._test_pnet_delete(
-            auto_create=True, auto_trunk=True, name_prefix=PVLAN_NAME_PREFIX)
+        self._test_pnet_delete(auto_create=True, auto_trunk=True)
 
         self._disable_vlan_on_trunk_int_mock.assert_called_once_with(
             IP_ADDR, VLAN_ID, INTF_TYPE, NEXUS_PORT, IS_NATIVE)
@@ -280,16 +266,14 @@ class TestCiscoNexusProviderConfiguration(base.BaseTestCase):
             VLAN_ID, IP_ADDR)
 
     def test_pnet_delete_trunk(self):
-        self._test_pnet_delete(
-            auto_create=False, auto_trunk=True, name_prefix=PVLAN_NAME_PREFIX)
+        self._test_pnet_delete(auto_create=False, auto_trunk=True)
 
         self._disable_vlan_on_trunk_int_mock.assert_called_once_with(
             IP_ADDR, VLAN_ID, INTF_TYPE, NEXUS_PORT, IS_NATIVE)
         self.assertFalse(self._get_nexusvlan_binding_mock.call_count)
 
     def test_pnet_delete_create(self):
-        self._test_pnet_delete(
-            auto_create=True, auto_trunk=False, name_prefix=PVLAN_NAME_PREFIX)
+        self._test_pnet_delete(auto_create=True, auto_trunk=False)
 
         self.assertFalse(self._disable_vlan_on_trunk_int_mock.call_count)
         self._get_nexusvlan_binding_mock.assert_called_once_with(
@@ -297,8 +281,7 @@ class TestCiscoNexusProviderConfiguration(base.BaseTestCase):
 
     def test_pnet_delete_not_providernet(self):
         self._test_pnet_delete(
-            auto_create=False, auto_trunk=False, name_prefix=PVLAN_NAME_PREFIX,
-            is_provider_vlan=False)
+            auto_create=False, auto_trunk=False, is_provider_vlan=False)
 
         self._disable_vlan_on_trunk_int_mock.assert_called_once_with(
             IP_ADDR, VLAN_ID, INTF_TYPE, NEXUS_PORT, IS_NATIVE)
@@ -307,37 +290,33 @@ class TestCiscoNexusProviderConfiguration(base.BaseTestCase):
 
     def test_pnet_replay_not_providernet(self):
         self._test_pnet_replay(
-            auto_create=False, auto_trunk=False, name_prefix=PVLAN_NAME_PREFIX,
-            is_provider_vlan=False)
+            auto_create=False, auto_trunk=False, is_provider_vlan=False)
 
         self._save_switch_vlan_range_mock.assert_called_once_with(
-            IP_ADDR, [(VLAN_ID, NO_VNI, VLAN_NAME_PREFIX + VLAN_ID)])
+            IP_ADDR, [(VLAN_ID, NO_VNI)])
         self._restore_port_binding_mock.assert_called_once_with(
             IP_ADDR, set([VLAN_ID]), mock.ANY, mock.ANY)
 
     def test_pnet_replay_providernet_create_and_trunk(self):
         self._test_pnet_replay(
-            auto_create=True, auto_trunk=True, name_prefix=PVLAN_NAME_PREFIX,
-            is_provider_vlan=True)
+            auto_create=True, auto_trunk=True, is_provider_vlan=True)
 
         self._save_switch_vlan_range_mock.assert_called_once_with(
-            IP_ADDR, [(VLAN_ID, NO_VNI, PVLAN_NAME_PREFIX + VLAN_ID)])
+            IP_ADDR, [(VLAN_ID, NO_VNI)])
         self._restore_port_binding_mock.assert_called_once_with(
             IP_ADDR, set([VLAN_ID]), mock.ANY, mock.ANY)
 
     def test_pnet_replay_providernet_create(self):
         self._test_pnet_replay(
-            auto_create=True, auto_trunk=False, name_prefix=PVLAN_NAME_PREFIX,
-            is_provider_vlan=True)
+            auto_create=True, auto_trunk=False, is_provider_vlan=True)
 
         self._save_switch_vlan_range_mock.assert_called_once_with(
-            IP_ADDR, [(VLAN_ID, NO_VNI, PVLAN_NAME_PREFIX + VLAN_ID)])
+            IP_ADDR, [(VLAN_ID, NO_VNI)])
         self.assertFalse(self._restore_port_binding_mock.call_count)
 
     def test_pnet_replay_providernet_trunk(self):
         self._test_pnet_replay(
-            auto_create=False, auto_trunk=True, name_prefix=PVLAN_NAME_PREFIX,
-            is_provider_vlan=True)
+            auto_create=False, auto_trunk=True, is_provider_vlan=True)
 
         self.assertFalse(self._save_switch_vlan_range_mock.call_count)
         self._restore_port_binding_mock.assert_called_once_with(
