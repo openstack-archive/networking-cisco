@@ -33,8 +33,8 @@ ml2_cisco_opts = [
     cfg.BoolOpt('never_cache_ssh_connection', default=True,
                 deprecated_for_removal=True,
                 help=_("Prevent caching ssh connections to Nexus device")),
-    cfg.IntOpt('switch_heartbeat_time', default=0,
-        help=_("Periodic time to check switch connection. (0=disabled)")),
+    cfg.IntOpt('switch_heartbeat_time', default=30,
+        help=_("Periodic time to check switch connection. (default=30)")),
     cfg.BoolOpt('provider_vlan_auto_create', default=True,
         help=_('Provider VLANs are automatically created as needed '
                'on the Nexus switch')),

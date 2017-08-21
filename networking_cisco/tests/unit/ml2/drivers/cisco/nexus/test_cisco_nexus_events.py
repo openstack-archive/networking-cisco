@@ -330,6 +330,7 @@ class TestCiscoNexusDevice(test_cisco_nexus_base.TestCiscoNexusBase,
 
         cfg.CONF.set_override('nexus_driver', 'ncclient', 'ml2_cisco')
         cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
+        cfg.CONF.set_override('switch_heartbeat_time', 0, 'ml2_cisco')
         super(TestCiscoNexusDevice, self).setUp()
         self.mock_ncclient.reset_mock()
         self.results = TestCiscoNexusDeviceResults()
@@ -637,6 +638,7 @@ class TestCiscoNexusDeviceFailure(test_cisco_nexus_base.TestCiscoNexusBase,
 
         cfg.CONF.set_override('nexus_driver', 'ncclient', 'ml2_cisco')
         cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
+        cfg.CONF.set_override('switch_heartbeat_time', 0, 'ml2_cisco')
         super(TestCiscoNexusDeviceFailure, self).setUp()
         self.mock_ncclient.reset_mock()
         self.results = TestCiscoNexusDeviceResults()
@@ -1051,6 +1053,7 @@ class TestCiscoNexusDeviceInit(test_cisco_nexus_base.TestCiscoNexusBase,
 
         cfg.CONF.set_override('nexus_driver', 'ncclient', 'ml2_cisco')
         cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
+        cfg.CONF.set_override('switch_heartbeat_time', 0, 'ml2_cisco')
         super(TestCiscoNexusDeviceInit, self).setUp()
         self.results = TestCiscoNexusInitResults()
 
@@ -1266,6 +1269,7 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
 
         cfg.CONF.set_override('nexus_driver', 'ncclient', 'ml2_cisco')
         cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
+        cfg.CONF.set_override('switch_heartbeat_time', 0, 'ml2_cisco')
         super(TestCiscoNexusBaremetalDevice, self).setUp()
         self.results = TestCiscoNexusBaremetalResults()
 
@@ -1589,6 +1593,7 @@ class TestCiscoNexusNonCacheSshDevice(
     def setUp(self):
         cfg.CONF.set_override('nexus_driver', 'ncclient', 'ml2_cisco')
         super(TestCiscoNexusNonCacheSshDevice, self).setUp()
+        cfg.CONF.set_override('switch_heartbeat_time', 0, 'ml2_cisco')
         self.mock_ncclient.reset_mock()
 
     def test_create_delete_basic(self):

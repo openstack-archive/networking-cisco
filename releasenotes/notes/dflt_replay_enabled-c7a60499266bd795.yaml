@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    Nexus: Set default for Configuration Replay to enabled
+
+    Configuration replay is now enabled by default by setting the variable
+    'switch_heartbeat_time' to 30 seconds (defined under the [ml2_cisco]
+    section header).  If the user does not want this feature enabled, set
+    this variable to 0. When enabled, the nexus plugin checks each switch
+    for connectivity and will restore the configuration known to the plugin
+    if a switch recovers from failure.
