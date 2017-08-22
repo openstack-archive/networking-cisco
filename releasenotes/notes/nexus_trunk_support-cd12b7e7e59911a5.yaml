@@ -1,0 +1,11 @@
+---
+
+features:
+  - |
+    Nexus: Neutron Trunk Support
+
+    The Nexus mechanism driver support of the neutron trunk feature
+    (https://docs.openstack.org/ocata/networking-guide/config-trunking.html)
+    is to create and trunk on the Nexus switch the trunk subport's network
+    VLAN(s) configured under the neutron trunk parent port.
+
