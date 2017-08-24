@@ -302,14 +302,14 @@ class TestCiscoNexusRestInitResults(base.TestCiscoNexusBaseResults):
                  snipp.BODY_PORT_CH_MODE, '')),
              base.POST],
 
-            [(snipp.PATH_IF % 'phys-[eth1/10]'),
-             base.NEXUS_IP_ADDRESS_8,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf',
+            [(snipp.PATH_IF % 'aggr-[po2]'),
+             base.NEXUS_IP_ADDRESS_2,
+             (snipp.BODY_TRUNKVLAN % ('pcAggrIf',
                  snipp.BODY_PORT_CH_MODE, '')),
              base.POST],
 
             [(snipp.PATH_IF % 'phys-[eth1/20]'),
-             base.NEXUS_IP_ADDRESS_8,
+             base.NEXUS_IP_ADDRESS_3,
              (snipp.BODY_TRUNKVLAN % ('l1PhysIf',
                  snipp.BODY_PORT_CH_MODE, '')),
              base.POST],
@@ -326,18 +326,6 @@ class TestCiscoNexusRestInitResults(base.TestCiscoNexusBaseResults):
                  snipp.BODY_PORT_CH_MODE, '')),
              base.POST],
 
-            [(snipp.PATH_IF % 'phys-[eth1/20]'),
-             base.NEXUS_IP_ADDRESS_3,
-             (snipp.BODY_TRUNKVLAN % ('l1PhysIf',
-                 snipp.BODY_PORT_CH_MODE, '')),
-             base.POST],
-
-            [(snipp.PATH_IF % 'aggr-[po2]'),
-             base.NEXUS_IP_ADDRESS_2,
-             (snipp.BODY_TRUNKVLAN % ('pcAggrIf',
-                 snipp.BODY_PORT_CH_MODE, '')),
-             base.POST],
-
             [(snipp.PATH_IF % 'aggr-[po2]'),
              base.NEXUS_IP_ADDRESS_6,
              (snipp.BODY_TRUNKVLAN % ('pcAggrIf',
@@ -347,6 +335,18 @@ class TestCiscoNexusRestInitResults(base.TestCiscoNexusBaseResults):
             [(snipp.PATH_IF % 'aggr-[po2]'),
              base.NEXUS_IP_ADDRESS_7,
              (snipp.BODY_TRUNKVLAN % ('pcAggrIf',
+                 snipp.BODY_PORT_CH_MODE, '')),
+             base.POST],
+
+            [(snipp.PATH_IF % 'phys-[eth1/10]'),
+             base.NEXUS_IP_ADDRESS_8,
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf',
+                 snipp.BODY_PORT_CH_MODE, '')),
+             base.POST],
+
+            [(snipp.PATH_IF % 'phys-[eth1/20]'),
+             base.NEXUS_IP_ADDRESS_8,
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf',
                  snipp.BODY_PORT_CH_MODE, '')),
              base.POST],
 

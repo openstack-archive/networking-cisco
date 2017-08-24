@@ -999,41 +999,41 @@ class TestCiscoNexusInitResults(
 
     test_results = {
         # set 1 - switch 1.1.1.1 sets eth 1/10 & 1/20 to None
-        # set 2 - switch 8.8.8.8 sets eth 1/10 & 1/20 to None
-        # set 3 - switch 4.4.4.4 sets eth 1/3 & portchannel 2 to None
-        # set 4 - switch 3.3.3.3 sets eth 1/20 to None
-        # set 5 - switch 2.2.2.2 sets portchannel 2 to None
-        # set 6 - switch 6.6.6.6 sets portchannel 2 to None
-        # set 7 - switch 7.7.7.7 sets portchannel 2 to None
+        # set 2 - switch 2.2.2.2 sets portchannel 2 to None
+        # set 3 - switch 3.3.3.3 sets eth 1/20 to None
+        # set 4 - switch 4.4.4.4 sets eth 1/3 & portchannel 2 to None
+        # set 5 - switch 6.6.6.6 sets portchannel 2 to None
+        # set 6 - switch 7.7.7.7 sets portchannel 2 to None
+        # set 7 - switch 8.8.8.8 sets eth 1/10 & 1/20 to None
         'duplicate_init_port_driver_result1': (
             [test_cisco_nexus_base.RESULT_INTERFACE.
                 format('ethernet', '1\/10', 'None'),
             test_cisco_nexus_base.RESULT_INTERFACE.
-                format('ethernet', '1\/10', 'None'),
-            test_cisco_nexus_base.RESULT_INTERFACE.
-                format('ethernet', '1\/3', 'None'),
+                format('portchannel', '2', 'None'),
             test_cisco_nexus_base.RESULT_INTERFACE.
                 format('ethernet', '1\/20', 'None'),
             test_cisco_nexus_base.RESULT_INTERFACE.
-                format('portchannel', '2', 'None'),
+                format('ethernet', '1\/3', 'None'),
             test_cisco_nexus_base.RESULT_INTERFACE.
                 format('portchannel', '2', 'None'),
             test_cisco_nexus_base.RESULT_INTERFACE.
-                format('portchannel', '2', 'None')]),
+                format('portchannel', '2', 'None'),
+            test_cisco_nexus_base.RESULT_INTERFACE.
+                format('ethernet', '1\/10', 'None')]),
 
         # Only one entry to match for last 3 so make None
         # so count matches in _verify_results
         'duplicate_init_port_driver_result2': (
             [test_cisco_nexus_base.RESULT_INTERFACE.
                 format('ethernet', '1\/20', 'None'),
-            test_cisco_nexus_base.RESULT_INTERFACE.
-                format('ethernet', '1\/20', 'None'),
+            None,
+            None,
             test_cisco_nexus_base.RESULT_INTERFACE.
                 format('portchannel', '2', 'None'),
             None,
             None,
-            None,
-            None])
+            test_cisco_nexus_base.RESULT_INTERFACE.
+                format('ethernet', '1\/20', 'None')]),
     }
 
 

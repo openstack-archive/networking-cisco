@@ -17,6 +17,7 @@ from oslo_config import cfg
 import re
 
 from networking_cisco._i18n import _
+from networking_cisco.config import base
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -54,12 +55,34 @@ ml2_cisco_opts = [
                deprecated_for_removal=True,
                help=_("Choice of Nexus Config Driver to be loaded from "
                       "the networking_cisco.ml2.nexus_driver namespace.")),
-    cfg.StrOpt('intfcfg.portchannel',
-               help=_("String of Nexus port-channel config cli for use "
-                      "when baremetal port-channels are created. Use ';' "
-                      "to separate each command.")),
-    cfg.StrOpt('vpc_pool',
-               help=_("Port-channel/VPC Allocation Pool")),
+    base.SubsectionOpt('ml2_mech_cisco_nexus',
+                       dest='nexus_switches',
+                       subopts=[cfg.StrOpt('username',
+                                    help=_("Nexus switch administrator "
+                                           "user name.")),
+                                cfg.StrOpt('password',
+                                    help=_("Nexus switch administrator "
+                                           "user password.")),
+                                cfg.StrOpt('physnet',
+                                    help=_("Physical network domain"
+                                           "connected to this switch.")),
+                                cfg.StrOpt('nve_src_intf',
+                                    help=_("The source Loopback interface "
+                                           "configured for VXLAN.")),
+                                cfg.StrOpt('vpc_pool',
+                                    help=_("Port-channel/VPC Allocation "
+                                           "Pool of ids")),
+                                cfg.StrOpt('intfcfg.portchannel',
+                                    help=_("String of Nexus port-channel "
+                                           "config cli for use when "
+                                           "baremetal port-channels are "
+                                           "created. Use ';' to separate "
+                                           "each command.")),
+                                cfg.IntOpt('ssh_port', default=22,
+                                    help=_("TCP Port for connecting via "
+                                           "SSH for switch management.")),
+                                base.RemainderOpt('compute_hosts')])
+
 ]
 
 
@@ -81,46 +104,28 @@ class ML2MechCiscoConfig(object):
     nexus_dict = {}
 
     def __init__(self):
-        self._create_ml2_mech_device_cisco_dictionary()
-
-    def _create_ml2_mech_device_cisco_dictionary(self):
-        """Create the ML2 device cisco dictionary.
-
-        Read data from the ml2_conf_cisco.ini device supported sections.
-        All reserved keywords are saved in the nexus_dict and all other
-        keys (host systems) are saved in the host mapping db.
-        """
         def insert_space(matchobj):
             # Command output format must be cmd1 ;cmd2 ; cmdn
             # and not cmd1;cmd2;cmdn or config will fail in Nexus.
             # This does formatting before storing in dictionary.
             test = matchobj.group(0)
             return test[0] + ' ;'
-        defined_attributes = [const.USERNAME, const.PASSWORD, const.SSHPORT,
-                              const.PHYSNET, const.NVE_SRC_INTF, const.VPCPOOL,
-                              const.IF_PC]
-        multi_parser = cfg.MultiConfigParser()
-        read_ok = multi_parser.read(cfg.CONF.config_file)
-
-        if len(read_ok) != len(cfg.CONF.config_file):
-            raise cfg.Error(_("Some config files were not parsed properly"))
-
         nxos_db.remove_all_static_host_mappings()
-        for parsed_file in multi_parser.parsed:
-            for parsed_item in parsed_file.keys():
-                dev_id, sep, dev_ip = parsed_item.partition(':')
-                if dev_id.lower() == 'ml2_mech_cisco_nexus':
-                    for dev_key, value in parsed_file[parsed_item].items():
-                        if dev_key == const.IF_PC:
-                            self.nexus_dict[dev_ip, dev_key] = (
-                                re.sub("\w;", insert_space, value[0]))
-                        elif dev_key in defined_attributes:
-                            self.nexus_dict[dev_ip, dev_key] = value[0]
-                        else:
-                            for if_id in value[0].split(','):
-                                if_type, port = (
-                                    nexus_help.split_interface_name(if_id))
-                                interface = nexus_help.format_interface_name(
-                                    if_type, port)
-                                nxos_db.add_host_mapping(
-                                    dev_key, dev_ip, interface, 0, True)
+        for switch_ip, switch in cfg.CONF.ml2_cisco.nexus_switches.items():
+            for opt_name, value in switch.items():
+                if opt_name == 'compute_hosts':
+                    for host, ports in value.items():
+                        for if_id in ports.split(','):
+                            # first make format consistent
+                            if_type, port = (
+                                nexus_help.split_interface_name(if_id))
+                            interface = nexus_help.format_interface_name(
+                                if_type, port)
+                            nxos_db.add_host_mapping(
+                                host, switch_ip, interface, 0, True)
+                elif value:
+                    if opt_name == const.IF_PC:
+                        self.nexus_dict[switch_ip, opt_name] = (
+                            re.sub("\w;", insert_space, value))
+                    else:
+                        self.nexus_dict[(switch_ip, opt_name)] = value

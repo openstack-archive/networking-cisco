@@ -445,9 +445,8 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
     def _switch_defined(self, switch_ip):
         """Verify this ip address is defined (for Nexus)."""
-
-        if ((switch_ip, const.USERNAME) in self._nexus_switches and
-           (switch_ip, const.PASSWORD) in self._nexus_switches):
+        switch = cfg.CONF.ml2_cisco.nexus_switches.get(switch_ip)
+        if switch and switch.username and switch.password:
             return True
         else:
             return False

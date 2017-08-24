@@ -27,13 +27,15 @@ specifically for Replay testing.
 
 import collections
 import mock
-import os
+from operator import attrgetter
 from oslo_config import cfg
 import re
 import six
 import testtools
 
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    config as nexus_config)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -44,16 +46,15 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_restapi_network_driver)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_restapi_snippets as rest_snipp)
-from networking_cisco.plugins.ml2.drivers.cisco.nexus import constants
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import exceptions
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import mech_cisco_nexus
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import nexus_db_v2
-from networking_cisco.plugins.ml2.drivers.cisco.nexus import trunk
 
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import driver_api as api
 from neutron.tests.unit import testlib_api
 
+from networking_cisco.tests import base as nc_base
 
 # Static variables used in testing
 NEXUS_IP_ADDRESS_1 = '1.1.1.1'
@@ -341,6 +342,14 @@ class FakePortContext(object):
         self._new_bound_segment = None
         self._next_segments_to_bind = None
 
+NEXUS_CONF_TEMPLATE = """
+[ml2_mech_cisco_nexus:%(ip_addr)s]
+ssh_port=%(ssh_port)s
+username=admin
+password=password
+physnet=%(physnet)s
+"""
+
 
 class FakeUnbindPortContext(FakePortContext):
     """Port context used during migration to unbind port."""
@@ -458,18 +467,20 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
                 ipaddrs.append(link_info['switch_info']['switch_ip'])
             return ipaddrs
 
-    def _config_switch_cred(self, mech_instance, ip_addr):
-        mech_instance._nexus_switches[(ip_addr,
-                                      'ssh_port')] = NEXUS_SSH_PORT
-        mech_instance._nexus_switches[(ip_addr,
-                                      constants.USERNAME)] = 'admin'
-        mech_instance._nexus_switches[(ip_addr,
-                                      constants.PASSWORD)] = 'password'
-        mech_instance._nexus_switches[(ip_addr,
-                                      'physnet')] = PHYSNET
+    def _config_switch_cred(self, test_config_parts, ip_addr):
+        if ip_addr not in test_config_parts:
+            test_config_parts[ip_addr] = {}
+            test_config_parts[ip_addr]['main'] = (
+                NEXUS_CONF_TEMPLATE % {'ip_addr': ip_addr,
+                                       'ssh_port': NEXUS_SSH_PORT,
+                                       'physnet': PHYSNET})
 
     def setUp(self):
         """Sets up mock client, switch, and credentials dictionaries."""
+
+        #Clear all configuration parsing
+        nexus_config.ML2MechCiscoConfig.nexus_dict = collections.OrderedDict()
+        cfg.CONF.clear()
 
         super(TestCiscoNexusBase, self).setUp()
 
@@ -498,6 +509,70 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
                 return_value=self.mock_ncclient).start()
             self._verify_results = self._verify_ssh_results
 
+        original_get_switch_ips = (
+            mech_cisco_nexus.CiscoNexusMechanismDriver.get_switch_ips)
+
+        original_get_switch_host_mappings = (
+            nexus_db_v2.get_switch_host_mappings)
+
+        original_get_host_mappings = (
+            nexus_db_v2.get_host_mappings)
+
+        def new_get_switch_ips(self):
+            switch_ips = original_get_switch_ips(self)
+            switch_ips.sort()
+            return switch_ips
+
+        def new_get_switch_host_mappings(switch_ip):
+            map = original_get_switch_host_mappings(switch_ip)
+            map = sorted(map, key=attrgetter('if_id'))
+            return map
+
+        def new_get_host_mappings(host_id):
+            map = original_get_host_mappings(host_id)
+            map = sorted(map, key=attrgetter('switch_ip', 'if_id'))
+            return map
+
+        mock.patch.object(nexus_db_v2,
+                         'get_switch_host_mappings',
+                         new=new_get_switch_host_mappings).start()
+        mock.patch.object(nexus_db_v2,
+                         'get_host_mappings',
+                         new=new_get_host_mappings).start()
+        mock.patch.object(mech_cisco_nexus.CiscoNexusMechanismDriver,
+                         'get_switch_ips',
+                         new=new_get_switch_ips).start()
+        test_config_parts = {}
+        for name, config in self.test_configs.items():
+            host_name = config.host_name
+            nexus_port = config.nexus_port
+            if not config.nexus_ip_addr:
+                if not config.profile:
+                    continue
+                all_link_info = config.profile['local_link_information']
+                for link_info in all_link_info:
+                    ip_addr = link_info['switch_info']['switch_ip']
+                    self._config_switch_cred(test_config_parts, ip_addr)
+            else:
+                ip_addr = config.nexus_ip_addr
+                self._config_switch_cred(test_config_parts, ip_addr)
+
+            if (host_name is not HOST_NAME_UNUSED and
+               HOST_NAME_Baremetal not in host_name):
+                if host_name in test_config_parts[ip_addr]:
+                    test_config_parts[ip_addr][host_name].add(nexus_port)
+                else:
+                    test_config_parts[ip_addr][host_name] = set([nexus_port])
+        test_config_file = ""
+        for ip, subparts in test_config_parts.items():
+            switch_config = subparts['main']
+            for name, subpart in subparts.items():
+                if name == "main":
+                    continue
+                switch_config += "%s=%s\n" % (name, ','.join(subpart))
+            test_config_file += switch_config
+        nc_base.load_config_file(test_config_file)
+
         self.mock_continue_binding = mock.patch.object(
             FakePortContext,
             'continue_binding').start()
@@ -506,55 +581,11 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
             self.restapi_mock_init()
         else:
             self.mock_init()
-
-        def new_nexus_init(mech_instance):
-            mech_instance.monitor_timeout = (
-                cfg.CONF.ml2_cisco.switch_heartbeat_time)
-            mech_instance._ppid = os.getpid()
-
-            mech_instance._switch_state = {}
-            mech_instance._nexus_switches = collections.OrderedDict()
-            mech_instance.trunk = trunk.NexusMDTrunkHandler()
-            for name, config in self.test_configs.items():
-                host_name = config.host_name
-                # baremetal config done differently
-                if not config.nexus_ip_addr:
-                    if not config.profile:
-                        continue
-                    all_link_info = config.profile['local_link_information']
-                    for link_info in all_link_info:
-                        nexus_ports = link_info['port_id']
-                        ip_addr = link_info['switch_info']['switch_ip']
-                        self._config_switch_cred(mech_instance, ip_addr)
-                else:
-                    ip_addr = config.nexus_ip_addr
-                    nexus_ports = config.nexus_port
-                ## if VNIC_TYPE is baremetal
-                ## VMs that reference this baremetal
-                ## do not configure an entry in the host mapping db
-                ## since code learns this information.
-                if (host_name is not HOST_NAME_UNUSED and
-                    HOST_NAME_Baremetal not in host_name):
-                    for nexus_port in nexus_ports.split(','):
-                        try:
-                            nexus_db_v2.get_switch_if_host_mappings(
-                                ip_addr, nexus_port)
-                        except exceptions.NexusHostMappingNotFound:
-                            nexus_db_v2.add_host_mapping(
-                                host_name, ip_addr, nexus_port,
-                                0, True)
-                self._config_switch_cred(mech_instance, ip_addr)
-            mech_instance.context = bc.get_context()
-            mech_instance.driver = mech_instance._load_nexus_cfg_driver()
-
-        mock.patch.object(mech_cisco_nexus.CiscoNexusMechanismDriver,
-                          '__init__', new=new_nexus_init).start()
-        self._cisco_mech_driver = (mech_cisco_nexus.
-                                   CiscoNexusMechanismDriver())
-        self._cfg_monitor = (mech_cisco_nexus.
-                             CiscoNexusCfgMonitor(
-                                 self._cisco_mech_driver.driver,
-                                 self._cisco_mech_driver))
+        self._cisco_mech_driver = mech_cisco_nexus.CiscoNexusMechanismDriver()
+        self._cisco_mech_driver.initialize()
+        self._cfg_monitor = self._cisco_mech_driver.monitor
+        self._cisco_mech_driver.driver.nexus_switches = (
+            self._cisco_mech_driver._nexus_switches)
         self.addCleanup(self._clear_port_dbs)
 
     def _generate_port_context(self, port_config,

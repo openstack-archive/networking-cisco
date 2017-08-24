@@ -15,7 +15,25 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
+import tempfile
+
+from oslo_config import cfg
 from oslotest import base
+
+from neutron.tests import base as n_base
+
+
+def load_config_file(string):
+    cfile = tempfile.NamedTemporaryFile(delete=False)
+    cfile.write(string.encode('utf-8'))
+    cfile.close()
+    n_base.BaseTestCase.config_parse(
+        cfg.CONF, args=['--config-file', cfile.name])
+
+    def cleanup():
+        os.unlink(cfile.name)
+    return cleanup
 
 
 class TestCase(base.BaseTestCase):
