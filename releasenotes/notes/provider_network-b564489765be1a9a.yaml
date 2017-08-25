@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Nexus: Provider Network Limited Operations
+
+    The Openstack administrator may want to control how the neutron port
+    events program the Nexus switch for provider networks. Two configuration
+    variables have been introduced to suppress vlan creation and the vlan trunk
+    port setting on the Nexus switch for provider networks. These variables,
+    'provider_vlan_auto_create' and 'provider_vlan_auto_trunk', are defined under
+    the [ml2_cisco] section header.
+
