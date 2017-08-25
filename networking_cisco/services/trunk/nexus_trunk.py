@@ -16,7 +16,6 @@
 from oslo_config import cfg
 from oslo_log import log
 
-from neutron.api.v2 import attributes
 from neutron.callbacks import events
 from neutron.callbacks import registry
 from neutron.extensions import dns
@@ -42,7 +41,7 @@ class NexusTrunkHandler(object):
 
     def _unbind_subport(self, context, port_id, status):
         self.plugin.update_port(context, port_id,
-                                {attributes.PORT:
+                                {'port':
                                  {bc.portbindings.HOST_ID: None,
                                   bc.portbindings.VNIC_TYPE: None,
                                   bc.portbindings.PROFILE: None,
@@ -73,7 +72,7 @@ class NexusTrunkHandler(object):
             if event == events.AFTER_CREATE:
                 self.plugin.update_port(
                     payload.context, trunk_subport_dict['port_id'],
-                    {attributes.PORT:
+                    {'port':
                      {bc.portbindings.HOST_ID: host_id,
                       bc.portbindings.VNIC_TYPE:
                           bc.portbindings.VNIC_BAREMETAL,
