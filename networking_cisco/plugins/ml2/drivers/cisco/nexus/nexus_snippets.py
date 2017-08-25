@@ -47,19 +47,6 @@ EXEC_GET_VLAN_SNIPPET = """
     <cmd>show run vlan</cmd>
 """
 
-CMD_VLAN_CONF_SNIPPET = """
-            <vlan>
-              <vlan-id-create-delete>
-                <__XML__PARAM_value>%s</__XML__PARAM_value>
-                <__XML__MODE_vlan>
-                  <name>
-                    <vlan-name>%s</vlan-name>
-                  </name>
-                </__XML__MODE_vlan>
-              </vlan-id-create-delete>
-            </vlan>
-"""
-
 CMD_VLAN_CONF_VNSEGMENT_SNIPPET = """
             <vlan>
               <vlan-id-create-delete>

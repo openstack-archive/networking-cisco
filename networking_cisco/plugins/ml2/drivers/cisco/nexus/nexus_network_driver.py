@@ -431,11 +431,10 @@ class CiscoNexusSshDriver(basedrvr.CiscoNexusBaseDriver):
         conf_str += snippet
         return conf_str
 
-    def create_vlan(self, nexus_host,
-                    vlanid, vlanname, vni):
+    def create_vlan(self, nexus_host, vlanid, vni):
         """Create a VLAN on a Nexus Switch.
 
-        Creates a VLAN given the VLAN ID, name and possible VxLAN ID.
+        Creates a VLAN given the VLAN ID possibly VxLAN ID.
         """
 
         LOG.debug("NexusDriver: ")
@@ -546,13 +545,11 @@ class CiscoNexusSshDriver(basedrvr.CiscoNexusBaseDriver):
                       intf_type, interface, is_native)
         self.send_edit_string(nexus_host, None, confstr)
 
-    def create_and_trunk_vlan(self, nexus_host, vlan_id,
-                              vlan_name, intf_type,
-                              nexus_port, vni,
-                              is_native):
+    def create_and_trunk_vlan(self, nexus_host, vlan_id, intf_type,
+                              nexus_port, vni, is_native):
         """Create VLAN and trunk it on the specified ports."""
         starttime = time.time()
-        self.create_vlan(nexus_host, vlan_id, vlan_name, vni)
+        self.create_vlan(nexus_host, vlan_id, vni)
         LOG.debug("NexusDriver created VLAN: %s", vlan_id)
         if nexus_port:
             self.send_enable_vlan_on_trunk_int(

@@ -25,14 +25,8 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_helpers as nexus_help)
 
 ml2_cisco_opts = [
-    cfg.StrOpt('vlan_name_prefix', default='q-',
-               help=_("VLAN Name prefix")),
-    cfg.BoolOpt('svi_round_robin', default=False,
-                help=_("Distribute SVI interfaces over all switches")),
     cfg.StrOpt('managed_physical_network',
                help=_("The physical network managed by the switches.")),
-    cfg.StrOpt('provider_vlan_name_prefix', default='p-',
-        help=_("VLAN Name prefix for provider vlans")),
     cfg.BoolOpt('persistent_switch_config', default=False,
                 deprecated_for_removal=True,
                 help=_("To make Nexus configuration persistent")),

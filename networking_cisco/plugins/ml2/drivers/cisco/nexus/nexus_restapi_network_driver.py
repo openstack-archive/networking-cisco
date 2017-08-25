@@ -657,8 +657,7 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
             starttime, "set_all_vlan_states",
             switch=nexus_host)
 
-    def create_vlan(self, nexus_host,
-                    vlanid, vlanname, vni):
+    def create_vlan(self, nexus_host, vlanid, vni):
         """Given switch, vlanid, vni, Create a VLAN on Switch."""
 
         starttime = time.time()
@@ -789,15 +788,13 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
             is_native, False, add_mode)
         self.send_edit_string(nexus_host, path_snip, body_snip)
 
-    def create_and_trunk_vlan(self, nexus_host, vlan_id,
-                              vlan_name, intf_type,
-                              nexus_port, vni,
-                              is_native):
+    def create_and_trunk_vlan(self, nexus_host, vlan_id, intf_type,
+                              nexus_port, vni, is_native):
         """Create VLAN and trunk it on the specified ports."""
 
         starttime = time.time()
 
-        self.create_vlan(nexus_host, vlan_id, vlan_name, vni)
+        self.create_vlan(nexus_host, vlan_id, vni)
         LOG.debug("NexusDriver created VLAN: %s", vlan_id)
 
         if nexus_port:
