@@ -30,7 +30,6 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
 from networking_cisco._i18n import _, _LE, _LI, _LW
 from networking_cisco import backwards_compatibility as bc
 
-from neutron.db import api as db_api
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import driver_api as api
 from neutron_lib import exceptions as exc
@@ -177,7 +176,7 @@ class NexusVxlanTypeDriver(bc.VXLAN_TUNNEL_TYPE):
         for tun_min, tun_max in self.tunnel_ranges:
             vxlan_vnis |= set(six.moves.range(tun_min, tun_max + 1))
 
-        session = db_api.get_session()
+        session = bc.get_writer_session()
         with session.begin(subtransactions=True):
             # remove from table unallocated tunnels not currently allocatable
             # fetch results as list via all() because we'll be iterating

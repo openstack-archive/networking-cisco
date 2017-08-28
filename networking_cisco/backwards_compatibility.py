@@ -52,6 +52,7 @@ else:
 
 
 if NEUTRON_VERSION >= NEUTRON_OCATA_VERSION:
+    from neutron.db import api as db_api
     from neutron.db.models import agent as agent_model
     from neutron.db.models import l3 as l3_models
     from neutron.objects import trunk as trunk_objects
@@ -87,6 +88,13 @@ if NEUTRON_VERSION >= NEUTRON_OCATA_VERSION:
 
     def get_novaclient_images(nclient):
         return nclient.glance
+
+    def get_reader_session():
+        return db_api.get_reader_session()
+
+    def get_writer_session():
+        return db_api.get_writer_session()
+
 else:
     from networking_cisco.services.trunk import (  # noqa
         trunkstubs as trunk_objects)  # noqa
@@ -152,6 +160,13 @@ else:
 
     def get_novaclient_images(nclient):
         return nclient.images
+
+    def get_reader_session():
+        return db_api.get_session()
+
+    def get_writer_session():
+        return db_api.get_session()
+
 
 if NEUTRON_VERSION >= NEUTRON_PIKE_VERSION:
     from neutron.conf.agent import common as config

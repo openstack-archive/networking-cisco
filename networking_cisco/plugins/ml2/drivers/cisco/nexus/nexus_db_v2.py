@@ -23,8 +23,7 @@ from sqlalchemy.sql import func
 
 from networking_cisco._i18n import _LW
 
-import neutron.db.api as db
-
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -98,7 +97,7 @@ def update_reserved_binding(vlan_id, switch_ip, instance_id,
         LOG.warning(_LW("update_reserved_binding called with no state"))
         return
     LOG.debug("update_reserved_binding called")
-    session = db.get_session()
+    session = bc.get_writer_session()
     if is_switch_binding:
         # For reserved switch binding
         binding = _lookup_one_nexus_binding(session=session,
@@ -140,7 +139,7 @@ def remove_reserved_binding(vlan_id, switch_ip, instance_id,
         LOG.warning(_LW("remove_reserved_binding called with no state"))
         return
     LOG.debug("remove_reserved_binding called")
-    session = db.get_session()
+    session = bc.get_writer_session()
     binding = _lookup_one_nexus_binding(session=session,
                                         vlan_id=vlan_id,
                                         switch_ip=switch_ip,
@@ -202,7 +201,7 @@ def is_reserved_binding(binding):
 
 
 def add_provider_network(network_id, vlan_id):
-    session = db.get_session()
+    session = bc.get_writer_session()
     row = nexus_models_v2.NexusProviderNetwork(network_id=network_id,
                                                vlan_id=vlan_id)
     session.add(row)
@@ -211,7 +210,7 @@ def add_provider_network(network_id, vlan_id):
 
 
 def delete_provider_network(network_id):
-    session = db.get_session()
+    session = bc.get_writer_session()
     row = session.query(nexus_models_v2.NexusProviderNetwork).filter_by(
         network_id=network_id).one_or_none()
     if row:
@@ -220,14 +219,14 @@ def delete_provider_network(network_id):
 
 
 def is_provider_network(network_id):
-    session = db.get_session()
+    session = bc.get_reader_session()
     row = session.query(nexus_models_v2.NexusProviderNetwork).filter_by(
         network_id=network_id).one_or_none()
     return True if row else False
 
 
 def is_provider_vlan(vlan_id):
-    session = db.get_session()
+    session = bc.get_reader_session()
     row = session.query(nexus_models_v2.NexusProviderNetwork).filter_by(
         vlan_id=vlan_id).one_or_none()
     return True if row else False
@@ -243,7 +242,7 @@ def add_nexusport_binding(port_id, vlan_id, vni, switch_ip, instance_id,
                           is_native=False, ch_grp=0):
     """Adds a nexusport binding."""
     LOG.debug("add_nexusport_binding() called")
-    session = db.get_session()
+    session = bc.get_writer_session()
     binding = nexus_models_v2.NexusPortBinding(port_id=port_id,
                   vlan_id=vlan_id,
                   vni=vni,
@@ -259,7 +258,7 @@ def add_nexusport_binding(port_id, vlan_id, vni, switch_ip, instance_id,
 def remove_nexusport_binding(port_id, vlan_id, vni, switch_ip, instance_id):
     """Removes a nexusport binding."""
     LOG.debug("remove_nexusport_binding() called")
-    session = db.get_session()
+    session = bc.get_writer_session()
     binding = _lookup_all_nexus_bindings(session=session,
                                          vlan_id=vlan_id,
                                          vni=vni,
@@ -278,7 +277,7 @@ def update_nexusport_binding(port_id, new_vlan_id):
         LOG.warning(_LW("update_nexusport_binding called with no vlan"))
         return
     LOG.debug("update_nexusport_binding called")
-    session = db.get_session()
+    session = bc.get_writer_session()
     binding = _lookup_one_nexus_binding(session=session, port_id=port_id)
     binding.vlan_id = new_vlan_id
     session.merge(binding)
@@ -290,7 +289,7 @@ def remove_all_nexusport_bindings():
     """Removes all nexusport bindings."""
 
     LOG.debug("remove_all_nexusport_bindings() called")
-    session = db.get_session()
+    session = bc.get_writer_session()
     session.query(nexus_models_v2.NexusPortBinding).delete()
     session.flush()
 
@@ -338,7 +337,7 @@ def _lookup_nexus_bindings(query_type, session=None, **bfilter):
              raise NexusPortBindingNotFound.
     """
     if session is None:
-        session = db.get_session()
+        session = bc.get_reader_session()
     query_method = getattr(session.query(
         nexus_models_v2.NexusPortBinding).filter_by(**bfilter), query_type)
     try:
@@ -365,7 +364,7 @@ def _lookup_first_nexus_binding(session=None, **bfilter):
 def add_nexusnve_binding(vni, switch_ip, device_id, mcast_group):
     """Adds a nexus nve binding."""
     LOG.debug("add_nexusnve_binding() called")
-    session = db.get_session()
+    session = bc.get_writer_session()
     binding = nexus_models_v2.NexusNVEBinding(vni=vni,
                                               switch_ip=switch_ip,
                                               device_id=device_id,
@@ -378,7 +377,7 @@ def add_nexusnve_binding(vni, switch_ip, device_id, mcast_group):
 def remove_nexusnve_binding(vni, switch_ip, device_id):
     """Remove the nexus nve binding."""
     LOG.debug("remove_nexusnve_binding() called")
-    session = db.get_session()
+    session = bc.get_writer_session()
     binding = (session.query(nexus_models_v2.NexusNVEBinding).
                filter_by(vni=vni, switch_ip=switch_ip,
                          device_id=device_id).one())
@@ -392,7 +391,7 @@ def remove_all_nexusnve_bindings():
     """Removes all nexusnve bindings."""
 
     LOG.debug("remove_all_nexusport_bindings() called")
-    session = db.get_session()
+    session = bc.get_writer_session()
     session.query(nexus_models_v2.NexusNVEBinding).delete()
     session.flush()
 
@@ -400,7 +399,7 @@ def remove_all_nexusnve_bindings():
 def get_nve_vni_switch_bindings(vni, switch_ip):
     """Return the nexus nve binding(s) per switch."""
     LOG.debug("get_nve_vni_switch_bindings() called")
-    session = db.get_session()
+    session = bc.get_reader_session()
     try:
         return (session.query(nexus_models_v2.NexusNVEBinding).
                 filter_by(vni=vni, switch_ip=switch_ip).all())
@@ -411,7 +410,7 @@ def get_nve_vni_switch_bindings(vni, switch_ip):
 def get_nve_vni_member_bindings(vni, switch_ip, device_id):
     """Return the nexus nve binding per switch and device_id."""
     LOG.debug("get_nve_vni_member_bindings() called")
-    session = db.get_session()
+    session = bc.get_reader_session()
     try:
         return (session.query(nexus_models_v2.NexusNVEBinding).
                 filter_by(vni=vni, switch_ip=switch_ip,
@@ -423,7 +422,7 @@ def get_nve_vni_member_bindings(vni, switch_ip, device_id):
 def get_nve_switch_bindings(switch_ip):
     """Return all the nexus nve bindings for one switch."""
     LOG.debug("get_nve_switch_bindings() called")
-    session = db.get_session()
+    session = bc.get_reader_session()
     try:
         return (session.query(nexus_models_v2.NexusNVEBinding).
                 filter_by(switch_ip=switch_ip).all())
@@ -434,7 +433,7 @@ def get_nve_switch_bindings(switch_ip):
 def get_nve_vni_deviceid_bindings(vni, device_id):
     """Return all the nexus nve bindings for one vni/one device_id."""
     LOG.debug("get_nve_vni_deviceid_bindings() called")
-    session = db.get_session()
+    session = bc.get_reader_session()
     try:
         return (session.query(nexus_models_v2.NexusNVEBinding).
                 filter_by(vni=vni, device_id=device_id).all())
@@ -452,7 +451,7 @@ def _lookup_host_mappings(query_type, session=None, **bfilter):
              raise NexusHostMappingNotFound.
     """
     if session is None:
-        session = db.get_session()
+        session = bc.get_reader_session()
     query_method = getattr(session.query(
         nexus_models_v2.NexusHostMapping).filter_by(**bfilter), query_type)
     try:
@@ -505,7 +504,7 @@ def add_host_mapping(host_id, nexus_ip, interface, ch_grp, is_static):
     """
 
     LOG.debug("add_nexusport_binding() called")
-    session = db.get_session()
+    session = bc.get_writer_session()
     mapping = nexus_models_v2.NexusHostMapping(host_id=host_id,
                   if_id=interface,
                   switch_ip=nexus_ip,
@@ -520,7 +519,7 @@ def update_host_mapping(host_id, interface, nexus_ip, new_ch_grp):
     """Change channel_group in host/interface mapping data base."""
 
     LOG.debug("update_host_mapping called")
-    session = db.get_session()
+    session = bc.get_writer_session()
     mapping = _lookup_one_host_mapping(
                   session=session,
                   host_id=host_id,
@@ -536,7 +535,7 @@ def remove_host_mapping(interface, nexus_ip):
     """Remove host to interface mapping entry from mapping data base."""
 
     LOG.debug("remove_host_mapping() called")
-    session = db.get_session()
+    session = bc.get_writer_session()
     try:
         mapping = _lookup_one_host_mapping(
                       session=session,
@@ -552,7 +551,7 @@ def remove_all_static_host_mappings():
     """Remove all entries defined in config file from mapping data base."""
 
     LOG.debug("remove_host_mapping() called")
-    session = db.get_session()
+    session = bc.get_writer_session()
     try:
         mapping = _lookup_all_host_mappings(
                       session=session,
@@ -576,7 +575,7 @@ def _lookup_vpc_allocs(query_type, session=None, order=None, **bfilter):
     """
 
     if session is None:
-        session = db.get_session()
+        session = bc.get_reader_session()
 
     if order:
         query_method = getattr(session.query(
@@ -607,7 +606,7 @@ def _lookup_vpc_count_min_max(session=None, **bfilter):
     """
 
     if session is None:
-        session = db.get_session()
+        session = bc.get_reader_session()
 
     try:
         res = session.query(
@@ -640,7 +639,7 @@ def _lookup_one_vpc_allocs(session=None, **bfilter):
 def _get_free_vpcids_on_switches(switch_ip_list):
     '''Get intersect list of free vpcids in list of switches.'''
 
-    session = db.get_session()
+    session = bc.get_reader_session()
 
     prev_view = aliased(nexus_models_v2.NexusVPCAlloc)
     query = session.query(prev_view.vpc_id)
@@ -698,7 +697,7 @@ def init_vpc_entries(nexus_ip, vpc_list):
 
     if not vpc_list:
         return
-    session = db.get_session()
+    session = bc.get_writer_session()
 
     for vpc in vpc_list:
         vpc_alloc = nexus_models_v2.NexusVPCAlloc(
@@ -715,7 +714,7 @@ def update_vpc_entry(nexus_ips, vpc_id, learned, active):
 
     LOG.debug("update_vpc_entry called")
 
-    session = db.get_session()
+    session = bc.get_writer_session()
 
     with session.begin():
         for n_ip in nexus_ips:
@@ -777,7 +776,7 @@ def delete_vpcid_for_switch(vpc_id, switch_ip):
     """
 
     LOG.debug("delete_vpcid_for_switch called")
-    session = db.get_session()
+    session = bc.get_writer_session()
 
     vpc = _lookup_one_vpc_allocs(vpc_id=vpc_id,
                                  switch_ip=switch_ip,
