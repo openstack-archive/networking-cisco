@@ -28,7 +28,7 @@ redundant.
 """
 
 import mock
-
+from oslo_config import cfg
 import six
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -232,6 +232,9 @@ class TestCiscoNexusRestDevice(test_cisco_nexus_events.TestCiscoNexusDevice):
     """Unit tests for Cisco ML2 Nexus restapi device driver"""
 
     def setUp(self):
+
+        cfg.CONF.set_override('switch_heartbeat_time', 0, 'ml2_cisco')
+
         # Call Grandfather's setUp(); otherwise parent will set driver to
         # 'ncclient' instead of 'restapi'.
         super(test_cisco_nexus_events.TestCiscoNexusDevice, self).setUp()
@@ -415,6 +418,8 @@ class TestCiscoNexusRestDeviceInit(
 
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
+
+        cfg.CONF.set_override('switch_heartbeat_time', 0, 'ml2_cisco')
 
         # Call Grandfather's setUp(); otherwise parent will set driver to
         # 'ncclient' instead of 'restapi'.
@@ -918,6 +923,9 @@ class TestCiscoNexusRestBaremetalDevice(
         mock.patch.object(nxos_db,
                          '_get_free_vpcids_on_switches',
                          new=new_get_free_vpcids_on_switches).start()
+
+        cfg.CONF.set_override('switch_heartbeat_time', 0, 'ml2_cisco')
+
         # Call Grandfather's setUp(); otherwise parent will set driver to
         # 'ncclient' instead of 'restapi'.
         super(test_cisco_nexus_events.TestCiscoNexusBaremetalDevice,

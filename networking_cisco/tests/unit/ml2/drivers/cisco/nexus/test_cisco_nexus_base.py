@@ -1105,7 +1105,6 @@ class TestCiscoNexusReplayBase(TestCiscoNexusBase):
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
 
-        cfg.CONF.set_override('switch_heartbeat_time', 30, 'ml2_cisco')
         super(TestCiscoNexusReplayBase, self).setUp()
 
     def _process_replay(self, test1, test2,

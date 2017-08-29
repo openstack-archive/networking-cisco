@@ -29,6 +29,9 @@ redundant.
 """
 
 
+from oslo_config import cfg
+
+
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_restapi_snippets as snipp)
 from networking_cisco.tests.unit.ml2.drivers.cisco.nexus import (
@@ -240,6 +243,8 @@ class TestCiscoNexusRestVxlanDevice(
 
     def setUp(self):
         """Sets up mock ncclient, and switch and credentials dictionaries."""
+
+        cfg.CONF.set_override('switch_heartbeat_time', 0, 'ml2_cisco')
 
         # Call Grandfather's setUp(); otherwise parent will set driver to
         # 'ncclient' instead of 'restapi'.
