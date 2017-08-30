@@ -5,7 +5,8 @@ upgrade:
 
     Configuration replay is now enabled by default by setting the variable
     'switch_heartbeat_time' to 30 seconds (defined under the [ml2_cisco]
-    section header).  If the user does not want this feature enabled, set
-    this variable to 0. When enabled, the nexus driver checks each switch
+    section header).  If the administrator does not want this feature enabled,
+    set this variable to 0. When enabled, the nexus driver checks each switch
     for connectivity and will restore the configuration known to the driver
-    if a switch recovers from failure.
+    if a switch recovers from failure.  For details, refer to
+    https://bugs.launchpad.net/networking-cisco/+bug/1712090

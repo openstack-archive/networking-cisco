@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Nexus:  Eliminate warning message for 'neutron.db.api.get_session'
+
+    The 'neutron.db.api.get_session' API is deprecated as seen by warnings in
+    the neutron log file so it is replaced.  For details, refer to
+    https://bugs.launchpad.net/networking-cisco/+bug/1713498

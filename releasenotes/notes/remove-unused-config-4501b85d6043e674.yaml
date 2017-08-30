@@ -1,0 +1,10 @@
+---
+other:
+  - |
+    Nexus: Remove unused configuration variables
+
+    The configuration variables 'svi_round_robin',
+    'provider_vlan_name_prefix', and 'vlan_name_prefix'
+    are no longer used by the nexus driver and can be removed.
+    For further details, refer to
+    https://bugs.launchpad.net/networking-cisco/+bug/1712118
