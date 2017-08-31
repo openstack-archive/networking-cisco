@@ -1,12 +1,15 @@
-=====================================
-How to contribute to networking-cisco
-=====================================
+==================
+Contributor Guides
+==================
 
 .. include:: ../../../CONTRIBUTING.rst
 
 .. toctree::
+  :maxdepth: 3
 
-   faq
+  faq
+  ml2-nexus
+
 
 Python Module Docs
 ==================
