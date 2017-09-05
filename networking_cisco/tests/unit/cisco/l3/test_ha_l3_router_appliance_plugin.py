@@ -1646,6 +1646,40 @@ class L3CfgAgentHARouterApplianceTestCase(
             'routes': routes}})
         self._router_interface_action('remove', router_id, subnet_id, port_id)
 
+    def _test_ha_routes_op_cfg_agent(self, notifyApi):
+        routes = [{'destination': '135.207.0.0/16', 'nexthop': '10.0.1.199'},
+                  {'destination': '12.0.0.0/8', 'nexthop': '10.0.1.200'},
+                  {'destination': '141.212.0.0/16', 'nexthop': '10.0.1.201'}]
+        with self.router() as router,\
+                self.subnet(cidr='10.0.1.0/24') as subnet,\
+                self.port(subnet=subnet) as port:
+            r = router['router']
+            p = port['port']
+            self._routes_update_prepare(r['id'], None, p['id'], r['id'],
+                                        routes)
+            rr_ids = [
+                rr['id'] for rr in r['cisco_ha:details']['redundancy_routers']]
+
+            # notifications for interface add etc are sent first which we
+            # don't care about in this test
+            # Then when the update for routes is triggered,
+            # notification is sent for redundant routers first
+            call_args_rr_notif = (
+                notifyApi.routers_updated.call_args_list[3][0][1])
+            rr_ids_in_notification = [rr['id'] for rr in call_args_rr_notif]
+            # Check if the notification includes all redundant routers
+            self.assertEqual(sorted(rr_ids_in_notification),
+                sorted(rr_ids))
+            # notification is sent for user visible router next
+            call_args_user_r_notif = (
+                notifyApi.routers_updated.call_args_list[4][0][1])
+            r_id_in_notification = call_args_user_r_notif[0]['id']
+            self.assertEqual(r_id_in_notification, r['id'])
+            self._routes_update_cleanup(p['id'], None, r['id'], r['id'], [])
+
+    def test_ha_routes_op_cfg_agent(self):
+        self._test_notify_op_agent(self._test_ha_routes_op_cfg_agent)
+
     def test_l3_cfg_agent_query_ha_rdcy_router_routes_is_from_user_vsbl_router(
             self):
         routes = [{'destination': '135.207.0.0/16', 'nexthop': '10.0.1.199'},

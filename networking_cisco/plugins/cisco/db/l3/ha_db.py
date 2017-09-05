@@ -415,7 +415,8 @@ class HA_db_mixin(object):
         if 'name' in update_specification['router']:
             other_updates_spec['router']['name'] = (
                 update_specification['router']['name'])
-        if other_updates_spec['router']:
+        if (other_updates_spec['router'] or
+            'routes' in update_specification['router']):
             self._process_other_router_updates(e_context, updated_router_db,
                                                other_updates_spec)
         # Ensure we get latest state from DB
@@ -453,13 +454,14 @@ class HA_db_mixin(object):
         rr_ids = []
         new_name_stub = update_spec['router'].get('name')
         for r_b_db in router_db.redundancy_bindings:
-            if new_name_stub is not None:
-                idx = r_b_db.redundancy_router.name.split('_')[-1]
-                update_spec['router']['name'] = (
-                    new_name_stub + REDUNDANCY_ROUTER_SUFFIX + idx)
-            update_spec['router'][ha.ENABLED] = False
-            self._update_router_no_notify(
-                context, r_b_db.redundancy_router_id, update_spec)
+            if update_spec['router']:
+                if new_name_stub is not None:
+                    idx = r_b_db.redundancy_router.name.split('_')[-1]
+                    update_spec['router']['name'] = (
+                        new_name_stub + REDUNDANCY_ROUTER_SUFFIX + idx)
+                update_spec['router'][ha.ENABLED] = False
+                self._update_router_no_notify(
+                    context, r_b_db.redundancy_router_id, update_spec)
             rr_ids.append(r_b_db.redundancy_router_id)
         self.notify_routers_updated(context, rr_ids)
 
