@@ -1,0 +1,10 @@
+---
+fixes:
+    - |
+      ASR1k: Fix greenpool.py traceback in Ocata
+
+      The ASR1k plugin was wrapping neutron and plugin DB operations
+      in common transactions that was generating a lot of strange
+      tracebacks in the neutron server logs. This commit removes
+      the transaction wrapper to make the operations more independent
+      of each other, eliminating the tracebacks entirely.

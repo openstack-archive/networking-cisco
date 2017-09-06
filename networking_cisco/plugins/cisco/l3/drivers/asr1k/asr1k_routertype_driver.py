@@ -307,23 +307,21 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
                                               filters=filters)[0]
         fixed_ips = self._get_fixed_ips_subnets(context, gw_port)
         global_router_id = global_router['id']
-        setattr(context, 'GUARD_TRANSACTION', False)
-        with context.session.begin(subtransactions=True):
-            aux_gw_port = self._core_plugin.create_port(context, {
-                'port': {
-                    'tenant_id': '',  # intentionally not set
-                    'network_id': ext_net_id,
-                    'mac_address': bc.constants.ATTR_NOT_SPECIFIED,
-                    'fixed_ips': fixed_ips,
-                    'device_id': global_router_id,
-                    'device_owner': port_type,
-                    'admin_state_up': True,
-                    'name': ''}})
-            router_port = bc.RouterPort(
+        aux_gw_port = self._core_plugin.create_port(context, {
+            'port': {
+                'tenant_id': '',  # intentionally not set
+                'network_id': ext_net_id,
+                'mac_address': bc.constants.ATTR_NOT_SPECIFIED,
+                'fixed_ips': fixed_ips,
+                'device_id': global_router_id,
+                'device_owner': port_type,
+                'admin_state_up': True,
+                'name': ''}})
+        router_port = bc.RouterPort(
                 port_id=aux_gw_port['id'],
                 router_id=global_router_id,
                 port_type=port_type)
-            context.session.add(router_port)
+        context.session.add(router_port)
         return aux_gw_port
 
     def _create_global_router(
