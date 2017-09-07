@@ -51,8 +51,8 @@ class CiscoIOSXESimulator(object):
         self._set_default_config()
 
     def get_config(self):
-        change_date = timeutils.strtime(self.last_update, '%a %b %d %Y')
-        change_time = timeutils.strtime(self.last_update, '%H:%M:%S')
+        change_date = self.last_update.strftime('%a %b %d %Y')
+        change_time = self.last_update.strftime('%H:%M:%S')
         intro_lines = ("! Last configuration change at " + change_time + " " +
                        "UTC " + change_date + " by " + self.username + "\n!\n")
         intro_lines += ("hostname ASR-1002X-" +
