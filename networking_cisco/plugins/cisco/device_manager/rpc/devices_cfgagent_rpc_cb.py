@@ -83,3 +83,22 @@ class DeviceMgrCfgRpcCallback(object):
             # For status == const.HD_ACTIVE the change in status to active will
             # make the router scheduler consider the now active hosting devices
             # and that is enough so we do nothing more here.
+
+    def get_hosting_devices_for_agent(self, context, host):
+        """Fetches routers that a Cisco cfg agent is managing.
+
+        This function is supposed to be called when the agent has started,
+        is ready to take on assignments and before any callbacks to fetch
+        logical resources are issued.
+
+        :param context: contains user information
+        :param host: originator of callback
+        :returns: dict of hosting devices managed by the cfg agent
+        """
+        agent_ids = self._dmplugin.get_cfg_agents(context, active=None,
+                                                  filters={'host': [host]})
+        if agent_ids:
+            return [self._dmplugin.get_device_info_for_agent(context, hd_db)
+                    for hd_db in self._dmplugin.get_hosting_devices_db(
+                    context, filters={'cfg_agent_id': [agent_ids[0].id]})]
+        return []
