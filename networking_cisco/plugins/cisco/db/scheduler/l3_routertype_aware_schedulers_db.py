@@ -230,7 +230,7 @@ class L3RouterTypeAwareSchedulerDbMixin(
         """Filters only active agents, if requested."""
         if not check_active:
             return True
-        return not agents_db.AgentDbMixin.is_agent_down(last_heartbeat)
+        return not bc.is_agent_down(last_heartbeat)
 
     def get_hosts_for_routers(self, context, routers, admin_state_up=None,
                               check_active=False):
