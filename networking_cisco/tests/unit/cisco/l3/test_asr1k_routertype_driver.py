@@ -52,6 +52,7 @@ ROUTER_ROLE_GLOBAL = cisco_constants.ROUTER_ROLE_GLOBAL
 ROUTER_ROLE_LOGICAL_GLOBAL = cisco_constants.ROUTER_ROLE_LOGICAL_GLOBAL
 ROUTER_ROLE_HA_REDUNDANCY = cisco_constants.ROUTER_ROLE_HA_REDUNDANCY
 LOGICAL_ROUTER_ROLE_NAME = cisco_constants.LOGICAL_ROUTER_ROLE_NAME
+ROUTER_INFO_INCOMPLETE = cisco_constants.ROUTER_INFO_INCOMPLETE
 
 DEVICE_OWNER_GLOBAL_ROUTER_GW = cisco_constants.DEVICE_OWNER_GLOBAL_ROUTER_GW
 AUXILIARY_GATEWAY_KEY = cisco_constants.AUXILIARY_GATEWAY_KEY
@@ -1155,7 +1156,7 @@ class L3CfgAgentAsr1kRouterTypeDriverTestCase(
             new_sync_routers = self.l3_plugin.get_sync_data_ext(e_context,
                                                                 g_l_rtr_rr_ids)
             for s_r in new_sync_routers:
-                if s_r['status'] != cisco_constants.ROUTER_INFO_INCOMPLETE:
+                if s_r['status'] != ROUTER_INFO_INCOMPLETE:
                     sync_routers.append(s_r)
                 else:
                     incomplete_router_dicts.append(s_r['id'])
@@ -1220,7 +1221,15 @@ class L3CfgAgentAsr1kRouterTypeDriverTestCase(
                 r2 = router2['router']
                 r3 = router3['router']
                 self.l3_plugin._process_backlogged_routers()
-                r1_after = self._show('routers', r1['id'])['router']
+                attempt = 0
+                complete_router_dict = False
+                while complete_router_dict is False and attempt < 10:
+                    r1_after = self._show('routers', r1['id'])['router']
+                    if (ha.ENABLED in r1_after and
+                        ha.DETAILS in r1_after and
+                            r1_after['status'] != ROUTER_INFO_INCOMPLETE):
+                        complete_router_dict = True
+                    attempt += 1
                 r_ids = [r1['id'], r2['id'], r3['id']]
                 self._verify_sync_data(r1_after, r_ids, ext_net_ids)
 
