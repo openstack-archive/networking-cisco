@@ -357,6 +357,10 @@ class TestRoutertypeDBPlugin(test_db_base_plugin_v2.NeutronDbPluginV2TestCase,
                                   self.l3_plugin.get_routertype, ctx, rt_id)
 
     def test_routertype_policy(self):
+        if (bc.NEUTRON_VERSION < bc.NEUTRON_OCATA_VERSION):
+            expect_code = webob.exc.HTTPNotFound.code
+        else:
+            expect_code = webob.exc.HTTPForbidden.code
         with self.hosting_device_template() as hdt:
             hdt_id = hdt['hosting_device_template']['id']
             tenant_id = hdt['hosting_device_template']['tenant_id']
@@ -377,4 +381,4 @@ class TestRoutertypeDBPlugin(test_db_base_plugin_v2.NeutronDbPluginV2TestCase,
                              webob.exc.HTTPForbidden.code, non_admin_ctx)
                 # delete fails
                 self._delete('routertypes', rt_id,
-                             webob.exc.HTTPNotFound.code, non_admin_ctx)
+                             expect_code, non_admin_ctx)

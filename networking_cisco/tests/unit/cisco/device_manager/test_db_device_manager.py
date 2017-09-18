@@ -522,6 +522,10 @@ class TestDeviceManagerDBPlugin(
 
     def test_hosting_device_policy(self):
         device_id = "device_XYZ"
+        if (bc.NEUTRON_VERSION < bc.NEUTRON_OCATA_VERSION):
+            expect_code = webob.exc.HTTPForbidden.code
+        else:
+            expect_code = webob.exc.HTTPNotFound.code
         with self.hosting_device_template() as hdt:
             hdt_id = hdt['hosting_device_template']['id']
             tenant_id = hdt['hosting_device_template']['tenant_id']
@@ -546,7 +550,7 @@ class TestDeviceManagerDBPlugin(
                     # update fails
                     self._update('hosting_devices', hd_id,
                                  {'hosting_device': {'name': 'new_name'}},
-                                 webob.exc.HTTPForbidden.code, non_admin_ctx)
+                                 expect_code, non_admin_ctx)
                     # delete fails
                     self._delete('hosting_devices', hd_id,
                                  webob.exc.HTTPNotFound.code, non_admin_ctx)
@@ -653,6 +657,10 @@ class TestDeviceManagerDBPlugin(
         with self.hosting_device_template() as hdt:
             hdt_id = hdt['hosting_device_template']['id']
             tenant_id = hdt['hosting_device_template']['tenant_id']
+            if (bc.NEUTRON_VERSION < bc.NEUTRON_OCATA_VERSION):
+                expect_code = webob.exc.HTTPForbidden.code
+            else:
+                expect_code = webob.exc.HTTPNotFound.code
             # create fails
             self._create_hosting_device_template(
                 self.fmt, 'my_template', True, 'Hardware',
@@ -665,7 +673,7 @@ class TestDeviceManagerDBPlugin(
             # update fail
             self._update('hosting_device_templates', hdt_id,
                          {'hosting_device_template': {'enabled': False}},
-                         webob.exc.HTTPForbidden.code, non_admin_ctx)
+                         expect_code, non_admin_ctx)
             # delete fail
             self._delete('hosting_device_templates', hdt_id,
                          webob.exc.HTTPNotFound.code, non_admin_ctx)
