@@ -20,8 +20,6 @@ from networking_cisco.apps.saf.server.services.firewall.native import (
 from networking_cisco.apps.saf.server.services.firewall.native.drivers import (
     dev_mgr_plug)
 
-from networking_cisco._i18n import _LI
-
 LOG = logging.getLogger(__name__)
 
 
@@ -146,8 +144,8 @@ class DeviceMgr(object):
                                                                     mgmt_ip,
                                                                     new)
                 if drvr_dict is None or mgmt_ip is None:
-                    LOG.info(_LI("Pop cache for FW sch: drvr_dict or mgmt_ip "
-                             "is None"))
+                    LOG.info("Pop cache for FW sch: drvr_dict or mgmt_ip "
+                             "is None")
 
     def drvr_initialize(self, cfg):
         """Initialize the driver routines. """
@@ -227,7 +225,7 @@ class DeviceMgr(object):
         for ip in self.obj_dict:
             drvr_obj = self.obj_dict.get(ip).get('drvr_obj')
             ret = drvr_obj.network_create_notif(tenant_id, tenant_name, cidr)
-            LOG.info(_LI("Driver with IP %(ip)s return %(ret)s"),
+            LOG.info("Driver with IP %(ip)s return %(ret)s",
                      {'ip': ip, 'ret': ret})
 
     def network_delete_notif(self, tenant_id, tenant_name, net_id):
@@ -241,5 +239,5 @@ class DeviceMgr(object):
             drvr_obj = self.obj_dict.get(ip).get('drvr_obj')
             ret = drvr_obj.network_delete_notif(tenant_id, tenant_name,
                                                 net_id)
-            LOG.info(_LI("Driver with IP %(ip)s return %(ret)s for network "
-                         "delete notification"), {'ip': ip, 'ret': ret})
+            LOG.info("Driver with IP %(ip)s return %(ret)s for network "
+                     "delete notification", {'ip': ip, 'ret': ret})

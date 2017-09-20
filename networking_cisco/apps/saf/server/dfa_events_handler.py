@@ -17,8 +17,6 @@
 
 import socket
 
-from networking_cisco._i18n import _LE
-
 from keystoneauth1.identity import generic
 from keystoneauth1 import session
 from keystoneclient import client as k_client
@@ -115,7 +113,7 @@ class EventsHandler(object):
             try:
                 host_ip = socket.gethostbyname(thishost)
             except socket.gaierror:
-                LOG.error(_LE('Invalid host name for agent: %s'), thishost)
+                LOG.error('Invalid host name for agent: %s', thishost)
             else:
                 clnt = rpc.DfaRpcClient(self._url,
                                         '_'.join((self._q_agent, thishost)),
@@ -148,14 +146,14 @@ class EventsHandler(object):
             self._pq.put((pri, timestamp, data))
 
         except Exception as exc:
-            LOG.exception(_LE('Error: %(err)s for event %(event)s'),
+            LOG.exception('Error: %(err)s for event %(event)s',
                           {'err': str(exc), 'event': event_type})
 
     def event_handler(self):
         """Wait on queue for listening to the events."""
 
         if not self._notify_queue:
-            LOG.error(_LE('event_handler: no notification queue for %s'),
+            LOG.error('event_handler: no notification queue for %s',
                       self._service_name)
             return
 

@@ -31,10 +31,7 @@ from six.moves import queue
 import sys
 import time
 
-
-from networking_cisco._i18n import _LE, _LI, _LW
 from oslo_serialization import jsonutils
-
 
 from networking_cisco.apps.saf.common import config
 from networking_cisco.apps.saf.common import constants
@@ -173,12 +170,12 @@ class RpcCallBacks(object):
                                    utils.utc_time(args.get('heartbeat'))})
                 params = dict(columns=new_config)
                 self.obj.topology_db.add_update_topology_db(**params)
-                LOG.info(_LI("Updated topo discovery %s in DB"), new_config)
+                LOG.info("Updated topo discovery %s in DB", new_config)
             else:
                 params = {'host': agent,
                           'protocol_interface': protocol_interface}
                 self.obj.topology_db.delete_topology_entry(**params)
-                LOG.info(_LI("Deleted topo discovery %s in DB"), new_config)
+                LOG.info("Deleted topo discovery %s in DB", new_config)
         # Config not yet created
         else:
             if mand_arg:
@@ -188,14 +185,14 @@ class RpcCallBacks(object):
                     args.get('heartbeat'))})
                 params = dict(columns=args)
                 self.obj.topology_db.add_update_topology_db(**params)
-                LOG.info(_LI("Added topo discovery %s in DB"), args)
+                LOG.info("Added topo discovery %s in DB", args)
         return True
 
     def save_topo_disc_params(self, context, msg):
         try:
             return self._save_topo_disc_params(context, msg)
         except Exception as exc:
-            LOG.error(_LE("Exception in RPC save_topo_disc_params %s"),
+            LOG.error("Exception in RPC save_topo_disc_params %s",
                       str(exc))
 
     def set_static_ip_address(self, context, msg):
@@ -375,7 +372,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
             self.project_info_cache[proj.id] = dict(name=proj.name,
                                                     dci_id=proj.dci_id)
 
-            LOG.info(_LI('Project info cache: %(proj)s'),
+            LOG.info('Project info cache: %(proj)s',
                      {'proj': self.project_info_cache})
 
     def get_project_name(self, tenant_id):
@@ -404,7 +401,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
             def_part = self._cfg.dcnm.default_partition_name
             self.network[net.network_id]['partition'] = def_part
 
-        LOG.info(_LI('Network info cache: %s'), self.network)
+        LOG.info('Network info cache: %s', self.network)
 
     def _setup_rpc(self):
         """Setup RPC server for dfa server."""
@@ -443,8 +440,8 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
                                                             seg_id_min,
                                                             seg_id_max)
         except dexc.DfaClientRequestFailed as exc:
-            LOG.error(_LE("Segment ID range could not be created/updated"
-                          " on DCNM: %s"), exc)
+            LOG.error("Segment ID range could not be created/updated"
+                      " on DCNM: %s", exc)
             raise SystemExit(exc)
 
     def update_project_info_cache(self, pid, dci_id=None,
@@ -508,8 +505,8 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         # it is created by openstack.
         part_name = self.cfg.dcnm.default_partition_name
         if len(':'.join((proj_name, part_name))) > 32:
-            LOG.error(_LE('Invalid project name length: %s. The length of '
-                          'org:part name is greater than 32'),
+            LOG.error('Invalid project name length: %s. The length of '
+                      'org:part name is greater than 32',
                       len(':'.join((proj_name, part_name))))
             return
         try:
@@ -522,7 +519,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
             self.update_project_info_cache(proj_id, name=proj_name,
                                            dci_id=dci_id,
                                            result=constants.CREATE_FAIL)
-            LOG.error(_LE("Failed to create project %s on DCNM."), proj_name)
+            LOG.error("Failed to create project %s on DCNM.", proj_name)
         else:
             self.update_project_info_cache(proj_id, name=proj_name,
                                            dci_id=dci_id)
@@ -553,7 +550,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         try:
             proj = self.keystone_event._service.projects.get(proj_id)
         except Exception:
-            LOG.error(_LE("Failed to find project %s."), proj_id)
+            LOG.error("Failed to find project %s.", proj_id)
             return
 
         new_proj_name, new_dci_id = self._get_dci_id_and_proj_name(proj.name)
@@ -562,9 +559,9 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         orig_dci_id = self.get_dci_id(proj_id)
         if orig_proj_name == new_proj_name and new_dci_id == orig_dci_id:
             # This is an invalid update event.
-            LOG.warning(_LW('Project update event for %(proj)s is received '
-                            'without changing in the project name: '
-                            '%(orig_proj)s. Ignoring the event.'),
+            LOG.warning('Project update event for %(proj)s is received '
+                        'without changing in the project name: '
+                        '%(orig_proj)s. Ignoring the event.',
                         {'proj': proj_id, 'orig_proj': orig_proj_name})
             return
 
@@ -593,7 +590,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         except dexc.DfaClientRequestFailed:
             # Failed to update project in DCNM.
             # Save the info and mark it as failure and retry it later.
-            LOG.error(_LE("Failed to update project %s on DCNM."),
+            LOG.error("Failed to update project %s on DCNM.",
                       new_proj_name)
             self.update_project_info_cache(proj_id, name=new_proj_name,
                                            dci_id=new_dci_id,
@@ -620,7 +617,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
             except dexc.DfaClientRequestFailed:
                 # Failed to delete project in DCNM.
                 # Save the info and mark it as failure and retry it later.
-                LOG.error(_LE("Failed to create project %s on DCNM."),
+                LOG.error("Failed to create project %s on DCNM.",
                           proj_name)
                 self.update_project_info_cache(proj_id, name=proj_name,
                                                opcode='delete',
@@ -651,7 +648,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         # If yes, this event is ignored.
         if self.fw_api.is_subnet_source_fw(snet.get('tenant_id'),
                                            snet.get('cidr')):
-            LOG.info(_LI("Service subnet %s, returning"), snet.get('cidr'))
+            LOG.info("Service subnet %s, returning", snet.get('cidr'))
             return
         if snet_id not in self.subnet:
             self.subnet[snet_id] = {}
@@ -659,7 +656,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
 
         net = self.network.get(self.subnet[snet_id].get('network_id'))
         if not net:
-            LOG.error(_LE('Network %(network_id)s does not exist.'),
+            LOG.error('Network %(network_id)s does not exist.',
                       {'network_id': self.subnet[snet_id].get('network_id')})
             return
 
@@ -671,16 +668,16 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         if query_net and query_net.source.lower() == 'dcnm':
             # The network is created by DCNM.
             # No need to process this event.
-            LOG.info(_LI('create_subnet: network %(name)s '
-                         'was created by DCNM. Ignoring processing the '
-                         'event.'), {'name': query_net.name})
+            LOG.info('create_subnet: network %(name)s '
+                     'was created by DCNM. Ignoring processing the '
+                     'event.', {'name': query_net.name})
             return
 
         tenant_name = self.get_project_name(snet['tenant_id'])
         subnet = utils.Dict2Obj(snet)
         dcnm_net = utils.Dict2Obj(net)
         if not tenant_name:
-            LOG.error(_LE('Project %(tenant_id)s does not exist.'),
+            LOG.error('Project %(tenant_id)s does not exist.',
                       {'tenant_id': subnet.tenant_id})
             self.update_network_db(dcnm_net.id, constants.CREATE_FAIL)
             return
@@ -690,7 +687,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
                                             self.dcnm_dhcp)
             self.update_network_db(net.get('id'), constants.RESULT_SUCCESS)
         except dexc.DfaClientRequestFailed:
-            LOG.exception(_LE('Failed to create network %(net)s.'),
+            LOG.exception('Failed to create network %(net)s.',
                           {'net': dcnm_net.name})
             # Update network database with failure result.
             self.update_network_db(dcnm_net.id, constants.CREATE_FAIL)
@@ -715,7 +712,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         # Check if there's a way to read the DB from service class
         # TODO(padkrish)
         if self.fw_api.is_network_source_fw(network_db_elem, net_name):
-            LOG.info(_LI("Service network %s, returning"), net_name)
+            LOG.info("Service network %s, returning", net_name)
             return
         if not network_db_elem:
             self.network[net_id] = {}
@@ -759,14 +756,14 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
                         net_id, body=body).get('network')
                     LOG.debug('Updated network %(network)s', dcnm_net)
                 except Exception as exc:
-                    LOG.exception(_LE('Failed to update network '
-                                  '%(network)s. Reason %(err)s.'),
+                    LOG.exception('Failed to update network '
+                                  '%(network)s. Reason %(err)s.',
                                   {'network': updated_net_name,
                                    'err': str(exc)})
                     return
 
-            LOG.info(_LI('network_create_event: network %(name)s was created '
-                     'by %(source)s. Ignoring processing the event.'),
+            LOG.info('network_create_event: network %(name)s was created '
+                     'by %(source)s. Ignoring processing the event.',
                      {'name': net_name, 'source': 'dcnm'})
             return
         if network_db_elem:
@@ -776,8 +773,8 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         # Check if project (i.e. tenant) exist.
         tenant_name = self.get_project_name(tenant_id)
         if not tenant_name:
-            LOG.error(_LE('Failed to create network %(name)s. Project '
-                      '%(tenant_id)s does not exist.'),
+            LOG.error('Failed to create network %(name)s. Project '
+                      '%(tenant_id)s does not exist.',
                       {'name': net_name, 'tenant_id': tenant_id})
             return
 
@@ -799,7 +796,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
             # to DCNM later.
             self.add_network_db(net_id, self.network[net_id], 'openstack',
                                 constants.CREATE_FAIL)
-            LOG.error(_LE('Failed to create network=%s.'), self.network)
+            LOG.error('Failed to create network=%s.', self.network)
 
     def network_create_event(self, network_info):
         """Process network create event.
@@ -814,7 +811,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
 
         net_id = network_info['network_id']
         if net_id not in self.network:
-            LOG.error(_LE('network_delete_event: net_id %s does not exist.'),
+            LOG.error('network_delete_event: net_id %s does not exist.',
                       net_id)
             return
 
@@ -823,7 +820,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         tenant_name = self.get_project_name(tenant_id)
         net = utils.Dict2Obj(self.network[net_id])
         if not tenant_name:
-            LOG.error(_LE('Project %(tenant_id)s does not exist.'),
+            LOG.error('Project %(tenant_id)s does not exist.',
                       {'tenant_id': tenant_id})
             self.update_network_db(net.id, constants.DELETE_FAIL)
             return
@@ -840,7 +837,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
                 self.subnet[k].get('network_id') == net_id)]
             [self.subnet.pop(s) for s in snets]
         except dexc.DfaClientRequestFailed:
-            LOG.error(_LE('Failed to create network %(net)s.'),
+            LOG.error('Failed to create network %(net)s.',
                       {'net': net.name})
             self.update_network_db(net_id, constants.DELETE_FAIL)
         # deleting all related VMs
@@ -861,13 +858,13 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         pre_project_name = network_info.get('project_name')
         pre_partition_name = network_info.get('partition_name')
         if not pre_seg_id or not pre_partition_name or not pre_project_name:
-            LOG.error(_LE('Invalid network event: %s'), network_info)
+            LOG.error('Invalid network event: %s', network_info)
             return
 
         # Check if partition name is the one that openstack created.
         if pre_partition_name != self.cfg.dcnm.default_partition_name:
-            LOG.error(_LE('Failed to create network. Partition %(part)s is '
-                          'not %(os_part)s which is created by openstack.'),
+            LOG.error('Failed to create network. Partition %(part)s is '
+                      'not %(os_part)s which is created by openstack.',
                       {'part': pre_partition_name,
                        'os_part': self.cfg.dcnm.default_partition_name})
             return
@@ -875,15 +872,15 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         query_net = self.get_network_by_segid(pre_seg_id)
         if query_net:
             # The network is already created no need to process the event.
-            LOG.info(_LI('dcnm_network_create_event: network %(name)s was '
-                     'created. Ignoring processing the event.'),
+            LOG.info('dcnm_network_create_event: network %(name)s was '
+                     'created. Ignoring processing the event.',
                      {'name': query_net.name})
             return
 
         dcnm_net_info = self.dcnm_client.get_network(pre_project_name,
                                                      pre_seg_id)
         if not dcnm_net_info:
-            LOG.info(_LI('No network details for %(org)s and %(segid)s'),
+            LOG.info('No network details for %(org)s and %(segid)s',
                      {'org': pre_project_name, 'segid': pre_seg_id})
             return
 
@@ -905,20 +902,20 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
             net_mask = dcnm_net_info.get('netmaskLength')
             cidr = utils.make_cidr(gw_addr, net_mask)
             if not cidr:
-                LOG.error(_LE('Failed to create network: '
-                          'cidr is None for %(gw)s %(mask)s'),
+                LOG.error('Failed to create network: '
+                          'cidr is None for %(gw)s %(mask)s',
                           {'gw': gw_addr, 'mask': net_mask})
                 return
             subnet = dict(gateway=gw_addr, subnet=cidr)
 
         # Check if parameters are provided.
         if not (net_name and tenant_id and seg_id and subnet):
-            LOG.error(_LE('Invalid value: network %(name)s tenant_id '
+            LOG.error('Invalid value: network %(name)s tenant_id '
                       '%(tenant_id)s segmentation_id %(seg_id)s '
-                          'subnet %(subnet)s.'), {'name': net_name,
-                                                  'tenant_id': tenant_id,
-                                                  'seg_id': seg_id,
-                                                  'subnet': subnet})
+                      'subnet %(subnet)s.', {'name': net_name,
+                                             'tenant_id': tenant_id,
+                                             'seg_id': seg_id,
+                                             'subnet': subnet})
             return
 
         # Update network cache and add the network to the database.
@@ -963,8 +960,8 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
             # Remove the entry from database and local cache.
             del self.network[net_id]
             self.delete_network_db(net_id)
-            LOG.exception(_LE('dcnm_network_create_event: Failed to create '
-                          '%(network)s. Reason %(err)s.'),
+            LOG.exception('dcnm_network_create_event: Failed to create '
+                          '%(network)s. Reason %(err)s.',
                           {'network': body, 'err': str(exc)})
             return
 
@@ -998,8 +995,8 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
             self.subnet[subnet_id].update(body.get('subnet'))
         except Exception as exc:
             # Failed to create network, do clean up if necessary.
-            LOG.exception(_LE('Failed to create subnet %(subnet)s for DCNM '
-                          'request. Error %(err)s'),
+            LOG.exception('Failed to create subnet %(subnet)s for DCNM '
+                          'request. Error %(err)s',
                           {'subnet': body['subnet'], 'err': str(exc)})
 
         LOG.debug('dcnm_network_create_event: Created subnet %(subnet)s', (
@@ -1009,15 +1006,15 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         """Process network delete event from DCNM."""
         seg_id = network_info.get('segmentation_id')
         if not seg_id:
-            LOG.error(_LE('Failed to delete network. Invalid network '
-                          'info %s.'), network_info)
+            LOG.error('Failed to delete network. Invalid network '
+                      'info %s.', network_info)
         query_net = self.get_network_by_segid(seg_id)
         if not query_net:
-            LOG.info(_LI('dcnm_network_delete_event: network %(segid)s '
-                         'does not exist.'), {'segid': seg_id})
+            LOG.info('dcnm_network_delete_event: network %(segid)s '
+                     'does not exist.', {'segid': seg_id})
             return
         if self.fw_api.is_network_source_fw(query_net, query_net.name):
-            LOG.info(_LI("Service network %s, returning"), query_net.name)
+            LOG.info("Service network %s, returning", query_net.name)
             return
         # Send network delete request to neutron
         try:
@@ -1028,8 +1025,8 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
             # Failed to delete network.
             # Put back the entry to the local cache???
             self.network[query_net.network_id] = del_net
-            LOG.exception(_LE('dcnm_network_delete_event: Failed to delete '
-                          '%(network)s. Reason %(err)s.'),
+            LOG.exception('dcnm_network_delete_event: Failed to delete '
+                          '%(network)s. Reason %(err)s.',
                           {'network': query_net.name, 'err': str(exc)})
 
     def _make_vm_info(self, port, status, vm_prefix=None):
@@ -1104,7 +1101,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
             # Failed to send info to the agent. Keep the data in the
             # database as failure to send it later.
             self.add_vms_db(vm_info, constants.CREATE_FAIL)
-            LOG.error(_LE('Failed to send VM info to agent.'))
+            LOG.error('Failed to send VM info to agent.')
         else:
             self.add_vms_db(vm_info, constants.RESULT_SUCCESS)
 
@@ -1124,14 +1121,14 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         # Get the port info from DB and check if the instance is migrated.
         vm = self.get_vm(port_id)
         if not vm:
-            LOG.error(_LE("port_update_event: port %s does not exist."),
+            LOG.error("port_update_event: port %s does not exist.",
                       port_id)
             return
 
         if vm.host == bhost_id:
             # Port update is received without binding host change.
-            LOG.info(_LI('Port %(port)s update event is received but host '
-                         '%(host)s is the same.'),
+            LOG.info('Port %(port)s update event is received but host '
+                     '%(host)s is the same.',
                      {'port': port_id, 'host': vm.host})
             return
 
@@ -1147,7 +1144,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
             except (rpc.MessagingTimeout, rpc.RPCException, rpc.RemoteError):
                 # Failed to send info to the agent. Keep the data in the
                 # database as failure to send it later.
-                LOG.error(_LE('Failed to send VM info to agent %s.'), bhost_id)
+                LOG.error('Failed to send VM info to agent %s.', bhost_id)
                 params = dict(columns=dict(host=bhost_id,
                                            instance_id=vm_info.get('oui').
                                            get('vm_uuid'),
@@ -1186,7 +1183,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         if not vm:
             vm = self.get_vm(port_id)
         if not vm:
-            LOG.error(_LE("port %s does not exist."),
+            LOG.error("port %s does not exist.",
                       port_id)
             return
         if not vm.host:
@@ -1219,7 +1216,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
             self.update_vm_db(vm.port_id, **params)
 
     def service_vnic_create(self, vnic_info_arg):
-        LOG.info(_LI("Service vnic create %s"), vnic_info_arg)
+        LOG.info("Service vnic create %s", vnic_info_arg)
         vnic_info = vnic_info_arg.get('service')
         vm_info = {'status': vnic_info.get('status'),
                    'vm_mac': vnic_info.get('mac'),
@@ -1240,8 +1237,8 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
             # Failed to send info to the agent. Keep the data in the
             # database as failure to send it later.
             self.add_vms_db(vm_info, constants.CREATE_FAIL)
-            LOG.error(_LE("Failed to send VM info to agent. host %(host)s "
-                          "Port ID %(id)s VM name %(name)s"),
+            LOG.error("Failed to send VM info to agent. host %(host)s "
+                      "Port ID %(id)s VM name %(name)s",
                       {'host': vnic_info.get('host'),
                        'id': vnic_info.get('port_id'),
                        'name': vnic_info.get('vm_name')})
@@ -1249,7 +1246,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
             self.add_vms_db(vm_info, constants.RESULT_SUCCESS)
 
     def service_vnic_delete(self, vnic_info_arg):
-        LOG.info(_LI("Service vnic delete %s"), vnic_info_arg)
+        LOG.info("Service vnic delete %s", vnic_info_arg)
         vnic_info = vnic_info_arg.get('service')
         vm_info = dict(status=vnic_info.get('status'),
                        vm_mac=vnic_info.get('mac'),
@@ -1271,19 +1268,19 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
             # database as failure to send it later.
             params = dict(columns=dict(result=constants.DELETE_FAIL))
             self.update_vm_db(vnic_info.get('port_id'), **params)
-            LOG.error(_LE('Failed to send VM info to agent'))
+            LOG.error('Failed to send VM info to agent')
         else:
             self.delete_vm_db(vnic_info.get('port_id'))
 
     def process_data(self, data):
-        LOG.info(_LI('process_data: event: %(event)s, payload: %(payload)s'),
+        LOG.info('process_data: event: %(event)s, payload: %(payload)s',
                  {'event': data[0], 'payload': data[1]})
         if self.events.get(data[0]):
             try:
                 self.events[data[0]](data[1])
             except Exception as exc:
-                LOG.exception(_LE('Failed to process %(data)s. '
-                                  'Reason: %(exc)s'),
+                LOG.exception('Failed to process %(data)s. '
+                              'Reason: %(exc)s',
                               {'data': data[0], 'exc': str(exc)})
                 raise exc
 
@@ -1297,7 +1294,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
                 except queue.Empty:
                     pass
                 except Exception as exc:
-                    LOG.exception(_LE('ERROR %s:Failed to process queue'),
+                    LOG.exception('ERROR %s:Failed to process queue',
                                   str(exc))
 
                 pri = events[0]
@@ -1319,7 +1316,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
                                 username=self.cfg.dcnm.dcnm_user,
                                 password=self.cfg.dcnm.dcnm_password)
         except Exception:
-            LOG.exception(_LE('Failed to establish connection with DCNM.'))
+            LOG.exception('Failed to establish connection with DCNM.')
             if ssh_session:
                 ssh_session.close()
             return
@@ -1334,7 +1331,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         except IOError:
             ftp_session.close()
             ssh_session.close()
-            LOG.error(_LE('Cannot open %(file)s.'),
+            LOG.error('Cannot open %(file)s.',
                       {'file': self.cfg.dcnm.dcnm_dhcp_leases})
 
     def update_port_ip_address(self):
@@ -1361,7 +1358,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
                     ip_addr = line.split()[1]
                 if 'hardware ethernet' in line:
                     if vm.mac == line.replace(';', '').split()[2]:
-                        LOG.info(_LI('Find IP address %(ip)s for %(mac)s'),
+                        LOG.info('Find IP address %(ip)s for %(mac)s',
                                  {'ip': ip_addr, 'mac': vm.mac})
                         try:
                             rule_info = dict(ip=ip_addr, mac=vm.mac,
@@ -1371,8 +1368,8 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
                                                               str(rule_info))
                         except (rpc.MessagingTimeout, rpc.RPCException,
                                 rpc.RemoteError):
-                            LOG.error(_LE("RPC error: Failed to update"
-                                          "rules."))
+                            LOG.error("RPC error: Failed to update"
+                                      "rules.")
                         else:
                             params = dict(columns=dict(ip=ip_addr))
                             self.update_vm_db(vm.port_id, **params)
@@ -1393,8 +1390,8 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
                                                                 str(vm_info))
                             except (rpc.MessagingTimeout, rpc.RPCException,
                                     rpc.RemoteError):
-                                LOG.error(_LE('Failed to send VM info to '
-                                              'agent.'))
+                                LOG.error('Failed to send VM info to '
+                                          'agent.')
 
     def turn_on_dhcp_check(self):
         self.dhcp_consist_check = constants.DHCP_PORT_CHECK
@@ -1492,7 +1489,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         try:
             self.neutron_event.send_vm_info(agent, str(vm_info))
         except (rpc.MessagingTimeout, rpc.RPCException, rpc.RemoteError):
-            LOG.error(_LE('Failed to send VM info to agent.'))
+            LOG.error('Failed to send VM info to agent.')
 
     def request_uplink_info(self, payload):
         """Get the uplink from the database and send the info to the agent."""
@@ -1509,7 +1506,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
                                                  constants.UPLINK_NAME,
                                                  config_res)
         except (rpc.MessagingTimeout, rpc.RPCException, rpc.RemoteError):
-            LOG.error(_LE("RPC error: Failed to send uplink name to agent."))
+            LOG.error("RPC error: Failed to send uplink name to agent.")
 
     def set_static_ip_address(self, payload):
         """Set static ip address for a VM."""
@@ -1523,7 +1520,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         req = dict(mac=macaddr)
         instances = self.get_vms_for_this_req(**req)
         for vm in instances:
-            LOG.info(_LI('Updating IP address: %(ip)s %(mac)s.'),
+            LOG.info('Updating IP address: %(ip)s %(mac)s.',
                      {'ip': ipaddr, 'mac': macaddr})
             # Send request to update the rule.
             try:
@@ -1534,7 +1531,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
                                                   str(rule_info))
             except (rpc.MessagingTimeout, rpc.RPCException,
                     rpc.RemoteError):
-                LOG.error(_LE("RPC error: Failed to update rules."))
+                LOG.error("RPC error: Failed to update rules.")
             else:
                 # Update the database.
                 params = dict(columns=dict(ip=ipaddr))
@@ -1556,7 +1553,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
                                                     str(vm_info))
                 except (rpc.MessagingTimeout, rpc.RPCException,
                         rpc.RemoteError):
-                    LOG.error(_LE('Failed to send VM info to agent.'))
+                    LOG.error('Failed to send VM info to agent.')
 
     def vm_result_update(self, payload):
         """Update the result field in VM database.
@@ -1779,7 +1776,7 @@ def save_my_pid(cfg):
             if not os.path.exists(pid_path):
                 os.makedirs(pid_path)
         except OSError:
-            LOG.error(_LE('Fail to create %s'), pid_path)
+            LOG.error('Fail to create %s', pid_path)
             return
 
         pid_file_path = os.path.join(pid_path, pid_file)
@@ -1804,7 +1801,7 @@ def dfa_server():
 
             for trd in dfa.dfa_threads:
                 if not trd.am_i_active:
-                    LOG.info(_LI("Thread %s is not active."), trd.name)
+                    LOG.info("Thread %s is not active.", trd.name)
                 try:
                     exc = trd._excq.get(block=False)
                 except queue.Empty:
@@ -1812,22 +1809,22 @@ def dfa_server():
                 else:
                     trd_name = eval(exc).get('name')
                     exc_tb = eval(exc).get('tb')
-                    LOG.error(_LE('Exception occurred in %(name)s thread. '
-                                  '%(tb)s'), {'name': trd_name, 'tb': exc_tb})
+                    LOG.error('Exception occurred in %(name)s thread. '
+                              '%(tb)s', {'name': trd_name, 'tb': exc_tb})
             # Check on dfa agents
             cur_time = time.time()
             for agent, time_s in six.iteritems(dfa.agents_status_table):
                 last_seen = time.mktime(time.strptime(time_s))
                 if abs(cur_time - last_seen -
                        constants.MAIN_INTERVAL) > constants.HB_INTERVAL:
-                    LOG.error(_LE("Agent on %(host)s is not seen for %(sec)s. "
-                              "Last seen was %(time)s."),
+                    LOG.error("Agent on %(host)s is not seen for %(sec)s. "
+                              "Last seen was %(time)s.",
                               {'host': agent,
                                'sec': abs(cur_time - last_seen),
                                'time': time_s})
 
     except Exception as exc:
-        LOG.exception(_LE("ERROR: %s"), exc)
+        LOG.exception("ERROR: %s", exc)
 
     except KeyboardInterrupt:
         pass

@@ -16,8 +16,6 @@
 
 """This file contains the public API's for interacting with LLDPAD. """
 
-from networking_cisco._i18n import _LE
-
 from networking_cisco.apps.saf.common import dfa_logger as logging
 from networking_cisco.apps.saf.common import dfa_sys_lib as utils
 
@@ -41,8 +39,8 @@ class LldpApi(object):
             reply = self.run_lldptool(["-L", "-i", port_name, "-g", "nb",
                                        "adminStatus=rxtx"])
         else:
-            LOG.error(_LE("Both NCB and NB are not selected to "
-                          "enable LLDP"))
+            LOG.error("Both NCB and NB are not selected to "
+                      "enable LLDP")
             return False
         if reply is None:
             return False
@@ -62,8 +60,8 @@ class LldpApi(object):
             reply = self.run_lldptool(["get-tlv", "-n", "-i", port_name,
                                        "-g", "nb"])
         else:
-            LOG.error(_LE("Both NCB and NB are not selected to "
-                          "query LLDP"))
+            LOG.error("Both NCB and NB are not selected to "
+                      "query LLDP")
         return reply
 
     def run_lldptool(self, args):
@@ -72,8 +70,8 @@ class LldpApi(object):
         try:
             return utils.execute(full_args, root_helper=self.root_helper)
         except Exception as exc:
-            LOG.error(_LE("Unable to execute %(cmd)s. "
-                          "Exception: %(exception)s"),
+            LOG.error("Unable to execute %(cmd)s. "
+                      "Exception: %(exception)s",
                       {'cmd': full_args, 'exception': str(exc)})
 
     def _check_common_tlv_format(self, tlv_complete_data, tlv_data_pattern,

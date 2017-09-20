@@ -24,8 +24,6 @@ import sys
 
 from oslo_serialization import jsonutils
 
-from networking_cisco._i18n import _LE, _LI
-
 from networking_cisco.apps.saf.common import dfa_exceptions as dexc
 from networking_cisco.apps.saf.common import dfa_logger as logging
 
@@ -90,7 +88,7 @@ class DFARESTClient(object):
             elif int(v1.group(2)) == int(v2.group(2)):
                 self._is_iplus = v1.group(3) >= v2.group(3)
 
-        LOG.info(_LI("DCNM version: %(cur_ver)s, iplus: %(is_iplus)s"),
+        LOG.info("DCNM version: %(cur_ver)s, iplus: %(is_iplus)s",
                  {'cur_ver': self._cur_ver, 'is_iplus': self._is_iplus})
 
     def _failure_msg(self, response):
@@ -115,8 +113,8 @@ class DFARESTClient(object):
 
         res = self._send_request('POST', url, payload, 'segment-id range')
         if not (res and res.status_code in self._resp_ok):
-            LOG.error(_LE("Failed to set segment id range for orchestrator "
-                          "%(orch)s on DCNM: %(text)s"),
+            LOG.error("Failed to set segment id range for orchestrator "
+                      "%(orch)s on DCNM: %(text)s",
                       {'orch': orchestrator_id, 'text': res.text})
             raise dexc.DfaClientRequestFailed(reason=self._failure_msg(res))
 
@@ -129,8 +127,8 @@ class DFARESTClient(object):
 
         res = self._send_request('PUT', url, payload, 'segment-id range')
         if not (res and res.status_code in self._resp_ok):
-            LOG.error(_LE("Failed to update segment id range for orchestrator "
-                          "%(orch)s on DCNM: %(text)s"),
+            LOG.error("Failed to update segment id range for orchestrator "
+                      "%(orch)s on DCNM: %(text)s",
                       {'orch': orchestrator_id, 'text': res.text})
             raise dexc.DfaClientRequestFailed(reason=self._failure_msg(res))
 
@@ -148,7 +146,7 @@ class DFARESTClient(object):
                                             if self._is_iplus else
                                             'defaultNetworkIpv4EfProfile')
         except dexc.DfaClientRequestFailed:
-            LOG.error(_LE("Failed to send requst to DCNM."))
+            LOG.error("Failed to send requst to DCNM.")
             self.default_cfg_profile = 'defaultNetworkIpv4EfProfile'
 
     def _create_network(self, network_info):
@@ -160,7 +158,7 @@ class DFARESTClient(object):
                                           network_info['partitionName'])
         payload = network_info
 
-        LOG.info(_LI('url %(url)s payload %(payload)s'),
+        LOG.info('url %(url)s payload %(payload)s',
                  {'url': url, 'payload': payload})
         return self._send_request('POST', url, payload, 'network')
 
@@ -186,7 +184,7 @@ class DFARESTClient(object):
             if res and res.status_code in self._resp_ok:
                 return res.json()
         except dexc.DfaClientRequestFailed:
-            LOG.error(_LE("Failed to send requst to DCNM."))
+            LOG.error("Failed to send requst to DCNM.")
 
     def _get_settings(self):
         """Get global mobility domain from DCNM."""
@@ -198,12 +196,12 @@ class DFARESTClient(object):
 
     def _set_default_mobility_domain(self):
         settings = self._get_settings()
-        LOG.info(_LI("settings is %s") % settings)
+        LOG.info("settings is %s" % settings)
 
         if ('globalMobilityDomain' in settings.keys()):
             global_md = settings.get('globalMobilityDomain')
             self._default_md = global_md.get('name')
-            LOG.info(_LI("setting default md to be %s") % self._default_md)
+            LOG.info("setting default md to be %s" % self._default_md)
         else:
             self._default_md = "md0"
 
@@ -420,13 +418,13 @@ class DFARESTClient(object):
                                    headers=self._req_headers,
                                    timeout=self.timeout_resp, verify=False)
             desc += desc_lookup.get(operation, operation.lower())
-            LOG.info(_LI("DCNM-send_request: %(desc)s %(url)s %(pld)s"),
+            LOG.info("DCNM-send_request: %(desc)s %(url)s %(pld)s",
                      {'desc': desc, 'url': url, 'pld': payload})
 
             self._logout()
         except (requests.HTTPError, requests.Timeout,
                 requests.ConnectionError) as exc:
-            LOG.exception(_LE('Error during request: %s'), exc)
+            LOG.exception('Error during request: %s', exc)
             raise dexc.DfaClientRequestFailed(reason=exc)
 
         return res
@@ -523,13 +521,13 @@ class DFARESTClient(object):
                 # Otherwise, it should be left empty.
                 network_info["vrfName"] = ""
 
-        LOG.info(_LI("Creating %s network in DCNM."), network_info)
+        LOG.info("Creating %s network in DCNM.", network_info)
 
         res = self._create_network(network_info)
         if res and res.status_code in self._resp_ok:
-            LOG.info(_LI("Created %s network in DCNM."), network_info)
+            LOG.info("Created %s network in DCNM.", network_info)
         else:
-            LOG.error(_LE("Failed to create %s network in DCNM."),
+            LOG.error("Failed to create %s network in DCNM.",
                       network_info)
             raise dexc.DfaClientRequestFailed(reason=res)
 
@@ -605,13 +603,13 @@ class DFARESTClient(object):
                 # Otherwise, it should be left empty.
                 network_info["vrfName"] = ""
 
-        LOG.info(_LI("Creating %s network in DCNM."), network_info)
+        LOG.info("Creating %s network in DCNM.", network_info)
 
         res = self._create_network(network_info)
         if res and res.status_code in self._resp_ok:
-            LOG.info(_LI("Created %s network in DCNM."), network_info)
+            LOG.info("Created %s network in DCNM.", network_info)
         else:
-            LOG.error(_LE("Failed to create %s network in DCNM."),
+            LOG.error("Failed to create %s network in DCNM.",
                       network_info)
             raise dexc.DfaClientRequestFailed(reason=self._failure_msg(res))
 
@@ -633,7 +631,7 @@ class DFARESTClient(object):
         if res and res.status_code in self._resp_ok:
             LOG.debug("Deleted %s network in DCNM.", network_info)
         else:
-            LOG.error(_LE("Failed to delete %s network in DCNM."),
+            LOG.error("Failed to delete %s network in DCNM.",
                       network_info)
             raise dexc.DfaClientRequestFailed(reason=res)
 
@@ -679,7 +677,7 @@ class DFARESTClient(object):
         if res and res.status_code in self._resp_ok:
             LOG.debug("Deleted %s network in DCNM.", network_info)
         else:
-            LOG.error(_LE("Failed to delete %s network in DCNM."),
+            LOG.error("Failed to delete %s network in DCNM.",
                       network_info)
             raise dexc.DfaClientRequestFailed(reason=self._failure_msg(res))
 
@@ -693,16 +691,16 @@ class DFARESTClient(object):
         if res and res.status_code in self._resp_ok:
             LOG.debug("Deleted %s partition in DCNM.", part_name)
         else:
-            LOG.error(_LE("Failed to delete %(part)s partition in DCNM."
-                      "Response: %(res)s"), {'part': part_name, 'res': res})
+            LOG.error("Failed to delete %(part)s partition in DCNM."
+                      "Response: %(res)s", {'part': part_name, 'res': res})
             raise dexc.DfaClientRequestFailed(reason=res)
 
         res = self._delete_org(tenant_name)
         if res and res.status_code in self._resp_ok:
             LOG.debug("Deleted %s organization in DCNM.", tenant_name)
         else:
-            LOG.error(_LE("Failed to delete %(org)s organization in DCNM."
-                      "Response: %(res)s"), {'org': tenant_name, 'res': res})
+            LOG.error("Failed to delete %(org)s organization in DCNM."
+                      "Response: %(res)s", {'org': tenant_name, 'res': res})
             raise dexc.DfaClientRequestFailed(reason=res)
 
     def delete_partition(self, org_name, partition_name):
@@ -714,8 +712,8 @@ class DFARESTClient(object):
         if res and res.status_code in self._resp_ok:
             LOG.debug("Deleted %s partition in DCNM.", partition_name)
         else:
-            LOG.error(_LE("Failed to delete %(part)s partition in DCNM."
-                      "Response: %(res)s"),
+            LOG.error("Failed to delete %(part)s partition in DCNM."
+                      "Response: %(res)s",
                       ({'part': partition_name, 'res': res}))
             raise dexc.DfaClientRequestFailed(reason=self._failure_msg(res))
 
@@ -733,8 +731,8 @@ class DFARESTClient(object):
         if res and res.status_code in self._resp_ok:
             LOG.debug("Created %s organization in DCNM.", org_name)
         else:
-            LOG.error(_LE("Failed to create %(org)s organization in DCNM."
-                      "Response: %(res)s"), {'org': org_name, 'res': res})
+            LOG.error("Failed to create %(org)s organization in DCNM."
+                      "Response: %(res)s", {'org': org_name, 'res': res})
             raise dexc.DfaClientRequestFailed(reason=res)
 
         self.create_partition(org_name, part_name, dci_id,
@@ -759,8 +757,8 @@ class DFARESTClient(object):
         if res and res.status_code in self._resp_ok:
             LOG.debug("Update %s partition in DCNM.", part_name)
         else:
-            LOG.error(_LE("Failed to update %(part)s partition in DCNM."
-                      "Response: %(res)s"), {'part': part_name, 'res': res})
+            LOG.error("Failed to update %(part)s partition in DCNM."
+                      "Response: %(res)s", {'part': part_name, 'res': res})
             raise dexc.DfaClientRequestFailed(reason=res)
 
     def create_partition(self, org_name, part_name, dci_id, vrf_prof,
@@ -782,8 +780,8 @@ class DFARESTClient(object):
         if res and res.status_code in self._resp_ok:
             LOG.debug("Created %s partition in DCNM.", part_name)
         else:
-            LOG.error(_LE("Failed to create %(part)s partition in DCNM."
-                      "Response: %(res)s"), ({'part': part_name, 'res': res}))
+            LOG.error("Failed to create %(part)s partition in DCNM."
+                      "Response: %(res)s", ({'part': part_name, 'res': res}))
             raise dexc.DfaClientRequestFailed(reason=self._failure_msg(res))
 
     def get_partition_vrfProf(self, org_name, part_name=None, part_info=None):
@@ -795,7 +793,7 @@ class DFARESTClient(object):
         vrf_profile = None
         if part_info is None:
             part_info = self._get_partition(org_name, part_name)
-            LOG.info(_LI("query result from dcnm for partition info is %s"),
+            LOG.info("query result from dcnm for partition info is %s",
                      part_info)
         if ("vrfProfileName" in part_info):
             vrf_profile = part_info.get("vrfProfileName")
@@ -809,7 +807,7 @@ class DFARESTClient(object):
         """
         if part_info is None:
             part_info = self._get_partition(org_name, part_name)
-            LOG.info(_LI("query result from dcnm for partition info is %s"),
+            LOG.info("query result from dcnm for partition info is %s",
                      part_info)
         if part_info is not None and "dciId" in part_info:
             return part_info.get("dciId")
@@ -822,7 +820,7 @@ class DFARESTClient(object):
         """
         if part_info is None:
             part_info = self._get_partition(org_name, part_name)
-            LOG.info(_LI("query result from dcnm for partition info is %s"),
+            LOG.info("query result from dcnm for partition info is %s",
                      part_info)
         if part_info is not None and "serviceNodeIpAddress" in part_info:
             return part_info.get("serviceNodeIpAddress")
@@ -835,7 +833,7 @@ class DFARESTClient(object):
         """
         if part_info is None:
             part_info = self._get_partition(org_name, part_name)
-            LOG.info(_LI("query result from dcnm for partition info is %s"),
+            LOG.info("query result from dcnm for partition info is %s",
                      part_info)
         if part_info is not None and "partitionSegmentId" in part_info:
             return part_info.get("partitionSegmentId")
@@ -861,7 +859,7 @@ class DFARESTClient(object):
             if res and res.status_code in self._resp_ok:
                 return res.json()
         except dexc.DfaClientRequestFailed:
-            LOG.error(_LE("Failed to send request to DCNM."))
+            LOG.error("Failed to send request to DCNM.")
 
     def get_network(self, org, segid):
         """Return given network from DCNM.
@@ -889,8 +887,8 @@ class DFARESTClient(object):
             if res and res.status_code in self._resp_ok:
                 return res.json().get('Dcnm-Version')
         except dexc.DfaClientRequestFailed as exc:
-            LOG.error(_LE("Failed to get DCNM version."))
-            sys.exit(_LE("ERROR: Failed to connect to DCNM: %s"), exc)
+            LOG.error("Failed to get DCNM version.")
+            sys.exit("ERROR: Failed to connect to DCNM: %s", exc)
 
     def _verify_protocol(self, protocol):
         try:
@@ -898,7 +896,7 @@ class DFARESTClient(object):
             self._logout_request("%s://%s/rest/logout" % (protocol, self._ip))
         except (requests.HTTPError, requests.Timeout,
                 requests.ConnectionError) as exc:
-            LOG.error(_LE("Login Test failed for %(protocol)s Exc %(exc)s."),
+            LOG.error("Login Test failed for %(protocol)s Exc %(exc)s.",
                       {'protocol': protocol, 'exc': exc})
             return False
         return True
@@ -917,7 +915,7 @@ class DFARESTClient(object):
             return 'https'
         if self._verify_protocol('http'):
             return 'http'
-        sys.exit(_LE("ERROR: Both http and https test failed"))
+        sys.exit("ERROR: Both http and https test failed")
 
     def _build_url(self, url_remaining):
         """This function builds the URL from host, protocol and string. """

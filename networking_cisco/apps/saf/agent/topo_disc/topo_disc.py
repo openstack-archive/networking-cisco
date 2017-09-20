@@ -20,8 +20,6 @@ their associated leaf switches using Open source implementation of LLDP.
 www.open-lldp.org
 """
 
-from networking_cisco._i18n import _LE
-
 from networking_cisco.apps.saf.agent.topo_disc import (
     topo_disc_constants as constants)
 from networking_cisco.apps.saf.agent.topo_disc import pub_lldp_api as pub_lldp
@@ -182,7 +180,7 @@ class TopoDiscPubApi(object):
     def get_lldp_status(cls, intf):
         """Retrieves the LLDP status. """
         if intf not in cls.topo_intf_obj_dict:
-            LOG.error(_LE("Interface %s not configured at all"), intf)
+            LOG.error("Interface %s not configured at all", intf)
             return False
         intf_obj = cls.topo_intf_obj_dict.get(intf)
         return intf_obj.get_lldp_status()
@@ -302,7 +300,7 @@ class TopoDisc(TopoDiscPubApi):
         try:
             self._periodic_task_int()
         except Exception as exc:
-            LOG.error(_LE("Exception caught in periodic discovery task %s"),
+            LOG.error("Exception caught in periodic discovery task %s",
                       str(exc))
 
     def _check_bond_interface_change(self, phy_interface, attr_obj):

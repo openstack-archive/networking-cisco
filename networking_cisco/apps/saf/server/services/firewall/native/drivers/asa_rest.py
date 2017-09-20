@@ -27,8 +27,6 @@ try:
 except ImportError:
     import urllib.request as urllib2
 
-from networking_cisco._i18n import _LE, _LI
-
 LOG = logging.getLogger(__name__)
 
 
@@ -60,15 +58,15 @@ class Asa5585(object):
         try:
             f = urllib2.urlopen(req)
             status_code = f.getcode()
-            LOG.info(_LI("Status code is %d"), status_code)
+            LOG.info("Status code is %d", status_code)
 
         except (urllib2.HTTPError, netaddr.err):
-            LOG.error(_LE("Error received from server. HTTP status code "
-                      "is %d"), netaddr.err.code)
+            LOG.error("Error received from server. HTTP status code "
+                      "is %d", netaddr.err.code)
             try:
                 json_error = jsonutils.loads(netaddr.err.read())
                 if json_error:
-                    LOG.error(_LE("Error in Json Loads"),
+                    LOG.error("Error in Json Loads",
                               jsonutils.dumps(json_error, sort_keys=True,
                                               indent=4,
                                               separators=(',', ': ')))
@@ -82,8 +80,8 @@ class Asa5585(object):
     def setup(self, **kwargs):
         """setup ASA context for an edge tenant pair. """
         params = kwargs.get('params')
-        LOG.info(_LI("asa_setup: tenant %(tenant)s %(in_vlan)d %(out_vlan)d"
-                     " %(in_ip)s %(in_mask)s %(out_ip)s %(out_mask)s"),
+        LOG.info("asa_setup: tenant %(tenant)s %(in_vlan)d %(out_vlan)d"
+                 " %(in_ip)s %(in_mask)s %(out_ip)s %(out_mask)s",
                  {'tenant': params.get('tenant_name'),
                   'in_vlan': params.get('in_vlan'),
                   'out_vlan': params.get('out_vlan'),
@@ -141,8 +139,8 @@ class Asa5585(object):
     def cleanup(self, **kwargs):
         """cleanup ASA context for an edge tenant pair. """
         params = kwargs.get('params')
-        LOG.info(_LI("asa_cleanup: tenant %(tenant)s %(in_vlan)d %(out_vlan)d"
-                     " %(in_ip)s %(in_mask)s %(out_ip)s %(out_mask)s"),
+        LOG.info("asa_cleanup: tenant %(tenant)s %(in_vlan)d %(out_vlan)d"
+                 " %(in_ip)s %(in_mask)s %(out_ip)s %(out_mask)s",
                  {'tenant': params.get('tenant_name'),
                   'in_vlan': params.get('in_vlan'),
                   'out_vlan': params.get('out_vlan'),
@@ -186,22 +184,22 @@ class Asa5585(object):
         try:
             f = urllib2.urlopen(req)
             status_code = f.getcode()
-            LOG.info(_LI("Status code is %d"), status_code)
+            LOG.info("Status code is %d", status_code)
             if status_code in range(200, 300):
                 resp = jsonutils.loads(f.read())
                 try:
                     max_ctx_count = int(resp.get('response')[-1].split()[3])
                 except ValueError:
                     max_ctx_count = 0
-                LOG.info(_LI("Max Context Count is %d"), max_ctx_count)
+                LOG.info("Max Context Count is %d", max_ctx_count)
 
         except (urllib2.HTTPError, netaddr.err):
-            LOG.info(_LI("Error received from server. HTTP status code is %d"),
+            LOG.info("Error received from server. HTTP status code is %d",
                      netaddr.err.code)
             try:
                 json_error = jsonutils.loads(netaddr.err.read())
                 if json_error:
-                    LOG.info(_LI("Error in Json loads"),
+                    LOG.info("Error in Json loads",
                              jsonutils.dumps(json_error, sort_keys=True,
                                              indent=4,
                                              separators=(',', ': ')))
@@ -269,18 +267,18 @@ class Asa5585(object):
         tenant_name = policy['tenant_name']
         fw_id = policy['fw_id']
         fw_name = policy['fw_name']
-        LOG.info(_LI("asa_apply_policy: tenant=%(tenant)s fw_id=%(fw_id)s "
-                     "fw_name=%(fw_name)s"),
+        LOG.info("asa_apply_policy: tenant=%(tenant)s fw_id=%(fw_id)s "
+                 "fw_name=%(fw_name)s",
                  {'tenant': tenant_name, 'fw_id': fw_id, 'fw_name': fw_name})
         cmds = ["conf t", "changeto context " + tenant_name]
 
         for rule_id, rule in policy['rules'].items():
             acl = self.build_acl(tenant_name, rule)
 
-            LOG.info(_LI("rule[%(rule_id)s]: name=%(name)s enabled=%(enabled)s"
-                         " protocol=%(protocol)s dport=%(dport)s "
-                         "sport=%(sport)s dip=%(dport)s "
-                         "sip=%(sip)s action=%(dip)s"),
+            LOG.info("rule[%(rule_id)s]: name=%(name)s enabled=%(enabled)s"
+                     " protocol=%(protocol)s dport=%(dport)s "
+                     "sport=%(sport)s dip=%(dport)s "
+                     "sip=%(sip)s action=%(dip)s",
                      {'rule_id': rule_id, 'name': rule.get('name'),
                       'enabled': rule.get('enabled'),
                       'protocol': rule.get('protocol'),
@@ -302,6 +300,6 @@ class Asa5585(object):
         cmds.append("access-group " + tenant_name + " global")
         cmds.append("write memory")
 
-        LOG.info(_LI("cmds sent is %s"), cmds)
+        LOG.info("cmds sent is %s", cmds)
         data = {"commands": cmds}
         return self.rest_send_cli(data)

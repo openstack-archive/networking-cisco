@@ -22,8 +22,6 @@ pls visit http://www.ieee802.org/1/pages/802.1bg.html
 
 import six
 
-from networking_cisco._i18n import _LE, _LI
-
 from networking_cisco.apps.saf.agent.vdp import (
     lldpad_constants as vdp_const)
 from networking_cisco.apps.saf.common import config
@@ -122,7 +120,7 @@ class LldpadDriver(object):
             ret = self.enable_gpid()
             return ret
         else:
-            LOG.error(_LE("EVB cannot be set on NB"))
+            LOG.error("EVB cannot be set on NB")
             return False
 
     def enable_gpid(self):
@@ -135,7 +133,7 @@ class LldpadDriver(object):
                                "-V", "evb", "-c", "evbgpid=yes"])
             return True
         else:
-            LOG.error(_LE("GPID cannot be set on NB"))
+            LOG.error("GPID cannot be set on NB")
             return False
 
     # fixme(padkrish)
@@ -180,7 +178,7 @@ class LldpadDriver(object):
                             sw_resp=True)
                 # check validity.
                 if not utils.is_valid_vlan_tag(vdp_vlan):
-                    LOG.error(_LE("Returned vlan %(vlan)s is invalid."),
+                    LOG.error("Returned vlan %(vlan)s is invalid.",
                               {'vlan': vdp_vlan})
                     # Need to invoke CB. So no return here.
                     vdp_vlan = 0
@@ -203,7 +201,7 @@ class LldpadDriver(object):
                 else:
                     lvdp_dict['callback_count'] += 1
         except Exception as e:
-            LOG.error(_LE("Exception in Refrsh %s"), str(e))
+            LOG.error("Exception in Refrsh %s", str(e))
 
     def run_lldptool(self, args):
         """Function for invoking the lldptool utility. """
@@ -211,8 +209,8 @@ class LldpadDriver(object):
         try:
             utils.execute(full_args, root_helper=self.root_helper)
         except Exception as e:
-            LOG.error(_LE("Unable to execute %(cmd)s. "
-                      "Exception: %(exception)s"),
+            LOG.error("Unable to execute %(cmd)s. "
+                      "Exception: %(exception)s",
                       {'cmd': full_args, 'exception': e})
 
     def store_oui(self, port_uuid, oui_type, oui_data):
@@ -298,7 +296,7 @@ class LldpadDriver(object):
                        'uuid': self.vdp_vif_map[port_uuid].get('vsiid')})
             del self.vdp_vif_map[port_uuid]
         except Exception:
-            LOG.error(_LE("VSI does not exist"))
+            LOG.error("VSI does not exist")
         self.clear_oui(port_uuid)
 
     def gen_cisco_vdp_oui(self, oui_id, oui_data):
@@ -364,33 +362,33 @@ class LldpadDriver(object):
             vsiid_str = "uuid=%s" % vsiid
         else:
             # Only format supported for now
-            LOG.error(_LE("Unsupported VSIID Format1"))
+            LOG.error("Unsupported VSIID Format1")
             return vdp_keyword_str
         if vlan == constants.INVALID_VLAN:
             vlan = 0
         if int(filter_frmt) == vdp_const.VDP_FILTER_GIDMACVID:
             if not mac or gid == 0:
-                LOG.error(_LE("Incorrect Filter Format Specified"))
+                LOG.error("Incorrect Filter Format Specified")
                 return vdp_keyword_str
             else:
                 f = "filter=%s-%s-%s"
                 filter_str = f % (vlan, mac, gid)
         elif int(filter_frmt) == vdp_const.VDP_FILTER_GIDVID:
             if gid == 0:
-                LOG.error(_LE("NULL GID Specified"))
+                LOG.error("NULL GID Specified")
                 return vdp_keyword_str
             else:
                 filter_str = "filter=" + '%d' % vlan + "--" + '%ld' % gid
         elif int(filter_frmt) == vdp_const.VDP_FILTER_MACVID:
             if not mac:
-                LOG.error(_LE("NULL MAC Specified"))
+                LOG.error("NULL MAC Specified")
                 return vdp_keyword_str
             else:
                 filter_str = "filter=" + '%d' % vlan + "-" + mac
         elif int(filter_frmt) == vdp_const.VDP_FILTER_VID:
             filter_str = "filter=" + '%d' % vlan
         else:
-            LOG.error(_LE("Incorrect Filter Format Specified"))
+            LOG.error("Incorrect Filter Format Specified")
             return vdp_keyword_str
         oui_list = []
         if oui_id is not None and oui_data is not None:
@@ -426,14 +424,14 @@ class LldpadDriver(object):
         :return reply: Reply from vdptool
         """
         if not self.is_ncb:
-            LOG.error(_LE("EVB cannot be set on NB"))
+            LOG.error("EVB cannot be set on NB")
             return
         vdp_key_str = self.construct_vdp_dict(mode, mgrid, typeid,
                                               typeid_ver, vsiid_frmt, vsiid,
                                               filter_frmt, gid, mac, vlan,
                                               None, None)
         if len(vdp_key_str) == 0:
-            LOG.error(_LE("NULL List"))
+            LOG.error("NULL List")
             return
         reply = self.run_vdptool(["-t", "-i", self.port_name, "-R", "-V", mode,
                                   "-c", vdp_key_str['mode'],
@@ -466,14 +464,14 @@ class LldpadDriver(object):
         :return reply: Reply from vdptool
         """
         if not self.is_ncb:
-            LOG.error(_LE("EVB cannot be set on NB"))
+            LOG.error("EVB cannot be set on NB")
             return
         vdp_key_str = self.construct_vdp_dict(mode, mgrid, typeid,
                                               typeid_ver, vsiid_frmt, vsiid,
                                               filter_frmt, gid, mac, vlan,
                                               oui_id, oui_data)
         if len(vdp_key_str) == 0:
-            LOG.error(_LE("NULL List"))
+            LOG.error("NULL List")
             return
         oui_cmd_str = self.gen_oui_str(vdp_key_str['oui_list'])
         if sw_resp:
@@ -509,13 +507,13 @@ class LldpadDriver(object):
         if vsiid != vsiid_reply:
             fail_reason = vdp_const.vsi_mismatch_failure_reason % (
                 vsiid, vsiid_reply)
-            LOG.error(_LE("%s"), fail_reason)
+            LOG.error("%s", fail_reason)
             return False, fail_reason
         mac_reply = reply.partition("filter = ")[2].split('-')[1]
         if mac != mac_reply:
             fail_reason = vdp_const.mac_mismatch_failure_reason % (
                 mac, mac_reply)
-            LOG.error(_LE("%s"), fail_reason)
+            LOG.error("%s", fail_reason)
             return False, fail_reason
         return True, None
 
@@ -525,13 +523,13 @@ class LldpadDriver(object):
         if vsiid != vsiid_reply:
             fail_reason = vdp_const.vsi_mismatch_failure_reason % (
                 vsiid, vsiid_reply)
-            LOG.error(_LE("%s"), fail_reason)
+            LOG.error("%s", fail_reason)
             return False, fail_reason
         mac_reply = reply.partition("filter")[2].split('-')[1]
         if mac != mac_reply:
             fail_reason = vdp_const.mac_mismatch_failure_reason % (
                 mac, mac_reply)
-            LOG.error(_LE("%s"), fail_reason)
+            LOG.error("%s", fail_reason)
             return False, fail_reason
         return True, None
 
@@ -553,12 +551,12 @@ class LldpadDriver(object):
             l_ind = reply.rindex(filter_str)
         except Exception:
             fail_reason = vdp_const.filter_failure_reason % (reply)
-            LOG.error(_LE("%s"), fail_reason)
+            LOG.error("%s", fail_reason)
             return False, fail_reason
         if f_ind != l_ind:
             # Currently not supported if reply contains a filter keyword
             fail_reason = vdp_const.multiple_filter_failure_reason % (reply)
-            LOG.error(_LE("%s"), fail_reason)
+            LOG.error("%s", fail_reason)
             return False, fail_reason
         return True, None
 
@@ -575,7 +573,7 @@ class LldpadDriver(object):
                 return constants.INVALID_VLAN, fail_reason
         except Exception:
             fail_reason = vdp_const.mode_failure_reason % (reply)
-            LOG.error(_LE("%s"), fail_reason)
+            LOG.error("%s", fail_reason)
             return constants.INVALID_VLAN, fail_reason
         check_filter, fail_reason = self.check_filter_validity(
             reply, "filter = ")
@@ -586,7 +584,7 @@ class LldpadDriver(object):
             vlan = int(vlan_val)
         except ValueError:
             fail_reason = vdp_const.format_failure_reason % (reply)
-            LOG.error(_LE("%s"), fail_reason)
+            LOG.error("%s", fail_reason)
             return constants.INVALID_VLAN, fail_reason
         return vlan, None
 
@@ -597,12 +595,12 @@ class LldpadDriver(object):
             l_ind = reply.rindex("hints")
         except Exception:
             fail_reason = vdp_const.hints_failure_reason % (reply)
-            LOG.error(_LE("%s"), fail_reason)
+            LOG.error("%s", fail_reason)
             return False, fail_reason
         if f_ind != l_ind:
             # Currently not supported if reply contains a filter keyword
             fail_reason = vdp_const.multiple_hints_failure_reason % (reply)
-            LOG.error(_LE("%s"), fail_reason)
+            LOG.error("%s", fail_reason)
             return False, fail_reason
         try:
             hints_compl = reply.partition("hints")[2]
@@ -615,7 +613,7 @@ class LldpadDriver(object):
                 return False, fail_reason
         except ValueError:
             fail_reason = vdp_const.format_failure_reason % (reply)
-            LOG.error(_LE("%s"), fail_reason)
+            LOG.error("%s", fail_reason)
             return False, fail_reason
         return True, None
 
@@ -623,7 +621,7 @@ class LldpadDriver(object):
         """Parse the query reply from VDP daemon to get the VLAN value. """
         hints_ret, fail_reason = self.check_hints(reply)
         if not hints_ret:
-            LOG.error(_LE("Incorrect hints found %s"), reply)
+            LOG.error("Incorrect hints found %s", reply)
             return constants.INVALID_VLAN, fail_reason
         check_filter, fail_reason = self.check_filter_validity(reply, "filter")
         if not check_filter:
@@ -639,7 +637,7 @@ class LldpadDriver(object):
             vlan = int(vlan_val)
         except ValueError:
             fail_reason = vdp_const.format_failure_reason % (reply)
-            LOG.error(_LE("%s"), fail_reason)
+            LOG.error("%s", fail_reason)
             return constants.INVALID_VLAN, fail_reason
         return vlan, None
 
@@ -720,9 +718,9 @@ class LldpadDriver(object):
             # knowing unless all flows are read and compared.
             if vlan_resp != constants.INVALID_VLAN:
                 if vlan != vlan_resp:
-                    LOG.info(_LI("vlan_resp %(resp)s different from passed "
-                                 "VLAN %(vlan)s"), {'resp': vlan_resp,
-                                                    'vlan': vlan})
+                    LOG.info("vlan_resp %(resp)s different from passed "
+                             "VLAN %(vlan)s", {'resp': vlan_resp,
+                                               'vlan': vlan})
                     vlan = vlan_resp
         self.send_vdp_msg("deassoc", mgrid, typeid, typeid_ver,
                           vsiid_frmt, vsiid, filter_frmt, gid, mac, vlan,
@@ -805,7 +803,7 @@ class LldpadDriver(object):
                                       mac=mac, vlan=vlan)
                 self.clear_vdp_vsi(port_uuid)
         except Exception as e:
-            LOG.error(_LE("VNIC Down exception %s"), e)
+            LOG.error("VNIC Down exception %s", e)
 
     def run_vdptool(self, args, oui_args=None):
         """Function that runs the vdptool utility. """
@@ -815,6 +813,6 @@ class LldpadDriver(object):
         try:
             return utils.execute(full_args, root_helper=self.root_helper)
         except Exception as e:
-            LOG.error(_LE("Unable to execute %(cmd)s. "
-                          "Exception: %(exception)s"),
+            LOG.error("Unable to execute %(cmd)s. "
+                      "Exception: %(exception)s",
                       {'cmd': full_args, 'exception': e})

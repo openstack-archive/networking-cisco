@@ -20,8 +20,6 @@ import time
 
 from oslo_serialization import jsonutils
 
-from networking_cisco._i18n import _LE, _LI
-
 from networking_cisco.apps.saf.agent import detect_uplink as uplink_det
 from networking_cisco.apps.saf.agent.topo_disc import topo_disc
 from networking_cisco.apps.saf.agent.vdp import ovs_vdp
@@ -196,20 +194,20 @@ class VdpMgr(object):
             resp = self.rpc_clnt.call(msg)
             return resp
         except rpc.MessagingTimeout:
-            LOG.error(_LE("RPC timeout: Failed to update VM result on the"
-                          " server"))
+            LOG.error("RPC timeout: Failed to update VM result on the"
+                      " server")
 
     def vdp_vlan_change_cb(self, port_uuid, lvid, vdp_vlan, fail_reason):
         """Callback function for updating the VDP VLAN in DB. """
-        LOG.info(_LI("Vlan change CB lvid %(lvid)s VDP %(vdp)s"),
+        LOG.info("Vlan change CB lvid %(lvid)s VDP %(vdp)s",
                  {'lvid': lvid, 'vdp': vdp_vlan})
         self.update_vm_result(port_uuid, constants.RESULT_SUCCESS,
                               lvid=lvid, vdp_vlan=vdp_vlan,
                               fail_reason=fail_reason)
 
     def process_vm_event(self, msg, phy_uplink):
-        LOG.info(_LI("In processing VM Event status %(status)s for MAC "
-                     "%(mac)s UUID %(uuid)s oui %(oui)s"),
+        LOG.info("In processing VM Event status %(status)s for MAC "
+                 "%(mac)s UUID %(uuid)s oui %(oui)s",
                  {'status': msg.get_status(), 'mac': msg.get_mac(),
                   'uuid': msg.get_port_uuid(), 'oui': msg.get_oui()})
         time.sleep(10)
@@ -219,7 +217,7 @@ class VdpMgr(object):
             res_fail = constants.DELETE_FAIL
         if (not self.uplink_det_compl or
                 phy_uplink not in self.ovs_vdp_obj_dict):
-            LOG.error(_LE("Uplink Port Event not received yet"))
+            LOG.error("Uplink Port Event not received yet")
             self.update_vm_result(msg.get_port_uuid(), res_fail)
             return
         ovs_vdp_obj = self.ovs_vdp_obj_dict[phy_uplink]
@@ -227,12 +225,12 @@ class VdpMgr(object):
             msg.get_port_uuid(), msg.get_mac(), msg.get_net_uuid(),
             msg.get_segmentation_id(), msg.get_status(), msg.get_oui())
         if not port_event_reply.get('result'):
-            LOG.error(_LE("Error in VDP port event, Err Queue enq"))
+            LOG.error("Error in VDP port event, Err Queue enq")
             self.update_vm_result(
                 msg.get_port_uuid(), res_fail,
                 fail_reason=port_event_reply.get('fail_reason'))
         else:
-            LOG.info(_LI("Success in VDP port event"))
+            LOG.info("Success in VDP port event")
             lvid, vdp_vlan = ovs_vdp_obj.get_lvid_vdp_vlan(msg.get_net_uuid(),
                                                            msg.get_port_uuid())
             self.update_vm_result(
@@ -248,8 +246,8 @@ class VdpMgr(object):
                 phy_uplink not in self.ovs_vdp_obj_dict):
             # This condition shouldn't be hit as only when uplink is obtained,
             # save_uplink is called and that in turns calls this process_bulk.
-            LOG.error(_LE("Uplink Port Event not received,"
-                          "yet in bulk process"))
+            LOG.error("Uplink Port Event not received,"
+                      "yet in bulk process")
             return
         ovs_vdp_obj = self.ovs_vdp_obj_dict[phy_uplink]
         for vm_dict in msg.msg_dict.get('vm_bulk_list'):
@@ -271,7 +269,7 @@ class VdpMgr(object):
             self.process_vm_event(vm_msg, phy_uplink)
 
     def process_uplink_event(self, msg, phy_uplink):
-        LOG.info(_LI("Received New uplink Msg %(msg)s for uplink %(uplink)s"),
+        LOG.info("Received New uplink Msg %(msg)s for uplink %(uplink)s",
                  {'msg': msg.get_status(), 'uplink': phy_uplink})
         if msg.get_status() == 'up':
             ovs_exc_raised = False
@@ -282,7 +280,7 @@ class VdpMgr(object):
                     msg.get_root_helper(), self.vdp_vlan_change_cb)
             except Exception as exc:
                 ovs_exc_reason = str(exc)
-                LOG.error(_LE("OVS VDP Object creation failed %s"),
+                LOG.error("OVS VDP Object creation failed %s",
                           str(ovs_exc_reason))
                 ovs_exc_raised = True
             if (ovs_exc_raised or not self.ovs_vdp_obj_dict[phy_uplink].
@@ -293,7 +291,7 @@ class VdpMgr(object):
                                           get_uplink_fail_reason())
                 else:
                     uplink_fail_reason = ovs_exc_reason
-                LOG.error(_LE("UP Event Processing NOT Complete"))
+                LOG.error("UP Event Processing NOT Complete")
                 self.err_que.enqueue(constants.Q_UPL_PRIO, msg)
                 self.save_uplink(uplink=self.phy_uplink,
                                  fail_reason=uplink_fail_reason)
@@ -301,8 +299,8 @@ class VdpMgr(object):
                 self.uplink_det_compl = True
                 veth_intf = (self.ovs_vdp_obj_dict[self.phy_uplink].
                              get_lldp_local_bridge_port())
-                LOG.info(_LI("UP Event Processing Complete Saving uplink "
-                             "%(ul)s and veth %(veth)s"),
+                LOG.info("UP Event Processing Complete Saving uplink "
+                         "%(ul)s and veth %(veth)s",
                          {'ul': self.phy_uplink, 'veth': veth_intf})
                 self.save_uplink(uplink=self.phy_uplink, veth_intf=veth_intf)
                 self.topo_disc.uncfg_intf(self.phy_uplink)
@@ -320,12 +318,12 @@ class VdpMgr(object):
             self.topo_disc.cfg_intf(phy_uplink)
 
     def process_queue(self):
-        LOG.info(_LI("Entered process_q"))
+        LOG.info("Entered process_q")
         while True:
             prio, msg = self.que.dequeue()
             msg_type = msg.msg_type
             phy_uplink = msg.get_uplink()
-            LOG.info(_LI("Msg dequeued type is %d"), msg_type)
+            LOG.info("Msg dequeued type is %d", msg_type)
             try:
                 if msg_type == constants.VM_MSG_TYPE:
                     self.process_vm_event(msg, phy_uplink)
@@ -335,24 +333,24 @@ class VdpMgr(object):
                     try:
                         self.process_uplink_event(msg, phy_uplink)
                     except Exception as eu:
-                        LOG.exception(_LE("Exception caught in process_uplink"
-                                          " %s"), str(eu))
+                        LOG.exception("Exception caught in process_uplink"
+                                      " %s", str(eu))
                     self.process_uplink_ongoing = False
             except Exception as e:
-                LOG.exceptin(_LE("Exception caught in process_q %s"), str(e))
+                LOG.exception("Exception caught in process_q %s", str(e))
 
     def process_err_queue(self):
-        LOG.info(_LI("Entered Err process_q"))
+        LOG.info("Entered Err process_q")
         try:
             while self.err_que.is_not_empty():
                 prio, msg = self.err_que.dequeue_nonblock()
                 msg_type = msg.msg_type
-                LOG.info(_LI("Msg dequeued from err queue type is %d"),
+                LOG.info("Msg dequeued from err queue type is %d",
                          msg_type)
                 if msg_type == constants.UPLINK_MSG_TYPE:
                     self.que.enqueue(constants.Q_UPL_PRIO, msg)
         except Exception as e:
-            LOG.exceptin(_LE("Exception caught in proc_err_que %s "), str(e))
+            LOG.exception("Exception caught in proc_err_que %s ", str(e))
 
     def start(self):
         # Spawn the thread
@@ -377,14 +375,14 @@ class VdpMgr(object):
             else:
                 return False
         except Exception as e:
-            LOG.error(_LE("Exception in is_openstack_running %s"), str(e))
+            LOG.error("Exception in is_openstack_running %s", str(e))
             return False
 
     def vdp_uplink_proc_top(self):
         try:
             self.vdp_uplink_proc()
         except Exception as e:
-            LOG.error(_LE("VDP uplink proc exception %s"), e)
+            LOG.error("VDP uplink proc exception %s", e)
 
     def save_uplink(self, uplink="", veth_intf="", fail_reason=""):
         context = {}
@@ -400,8 +398,8 @@ class VdpMgr(object):
             resp = self.rpc_clnt.call(msg)
             return resp
         except rpc.MessagingTimeout:
-            LOG.error(_LE("RPC timeout: Failed to save link name on the "
-                          "server"))
+            LOG.error("RPC timeout: Failed to save link name on the "
+                      "server")
 
     def _fill_topology_cfg(self, topo_dict):
         """Fills the extra configurations in the topology. """
@@ -505,10 +503,10 @@ class VdpMgr(object):
                 self.bulk_vm_check_cnt = 0
                 self.save_uplink(uplink=self.phy_uplink,
                                  veth_intf=self.veth_intf)
-                LOG.info(_LI("Doing save_uplink again to request "
-                             "Bulk VM's"))
+                LOG.info("Doing save_uplink again to request "
+                         "Bulk VM's")
             else:
-                LOG.info(_LI("Bulk VM not received, incrementing count"))
+                LOG.info("Bulk VM not received, incrementing count")
                 self.bulk_vm_check_cnt += 1
 
     def static_uplink_detect(self, veth):
@@ -522,7 +520,7 @@ class VdpMgr(object):
         If user modified the uplink configuration and restarted, a 'down'
         will be returned to clear the old uplink.
         """
-        LOG.info(_LI("In static_uplink_detect %(veth)s"), {'veth': veth})
+        LOG.info("In static_uplink_detect %(veth)s", {'veth': veth})
         if self.static_uplink_first:
             self.static_uplink_first = False
             if self.phy_uplink is not None and (
@@ -545,23 +543,23 @@ class VdpMgr(object):
         -> phy_uplink: Is the uplink interface
         -> veth_intf : Signifies the veth interface.
         """
-        LOG.info(_LI("In Periodic Uplink Task"))
+        LOG.info("In Periodic Uplink Task")
         if not self.is_os_run:
             if not self.is_openstack_running():
-                LOG.info(_LI("OpenStack is not running"))
+                LOG.info("OpenStack is not running")
                 return
             else:
                 self.is_os_run = True
         if not self.restart_uplink_called or self.process_uplink_ongoing:
-            LOG.info(_LI("Uplink before restart not refreshed yet..states "
-                         "%(ruc)d %(puo)d"),
+            LOG.info("Uplink before restart not refreshed yet..states "
+                     "%(ruc)d %(puo)d",
                      {'ruc': self.restart_uplink_called,
                       'puo': self.process_uplink_ongoing})
             return
         if self.phy_uplink is not None:
             if (self.uplink_det_compl and (
                self.phy_uplink not in self.ovs_vdp_obj_dict)):
-                LOG.error(_LE("Not Initialized for phy %s"), self.phy_uplink)
+                LOG.error("Not Initialized for phy %s", self.phy_uplink)
                 return
             if self.phy_uplink in self.ovs_vdp_obj_dict:
                 self.veth_intf = (self.ovs_vdp_obj_dict[self.phy_uplink].
@@ -570,7 +568,7 @@ class VdpMgr(object):
             # and openstack is not running fixme(padkrish)
             else:
                 if self.veth_intf is None:
-                    LOG.error(_LE("Incorrect state, Bug"))
+                    LOG.error("Incorrect state, Bug")
                     return
         if self.static_uplink:
             ret = self.static_uplink_detect(self.veth_intf)
@@ -578,7 +576,7 @@ class VdpMgr(object):
             ret = uplink_det.detect_uplink(self.veth_intf)
         if ret is 'down':
             if self.phy_uplink is None:
-                LOG.error(_LE("Wrong status down"))
+                LOG.error("Wrong status down")
                 return
             # Call API to set the uplink as "" DOWN event
             self.uplink_down_cnt = self.uplink_down_cnt + 1
@@ -598,13 +596,13 @@ class VdpMgr(object):
             self.uplink_down_cnt = 0
         elif ret is None:
             if self.veth_intf is not None:
-                LOG.error(_LE("Wrong status None"))
+                LOG.error("Wrong status None")
                 return
             # Call API to set the uplink as "" Uplink not discovered yet
             self.save_uplink(fail_reason=constants.uplink_undiscovered_reason)
         elif ret is 'normal':
             if self.veth_intf is None:
-                LOG.error(_LE("Wrong status Normal"))
+                LOG.error("Wrong status Normal")
                 return
             # Uplink already discovered, nothing to be done here
             # Resetting it back, happens when uplink was down for a very short
@@ -622,7 +620,7 @@ class VdpMgr(object):
             # so the below lines ensures it's done.
             if not self.uplink_det_compl and not bond_det:
                 if self.phy_uplink is None:
-                    LOG.error(_LE("Incorrect state, bug"))
+                    LOG.error("Incorrect state, bug")
                     return
                 self.process_uplink_ongoing = True
                 upl_msg = VdpQueMsg(constants.UPLINK_MSG_TYPE,
@@ -632,14 +630,14 @@ class VdpMgr(object):
                                     root_helper=self.root_helper)
                 self.que.enqueue(constants.Q_UPL_PRIO, upl_msg)
                 # yield
-                LOG.info(_LI("Enqueued Uplink Msg from normal"))
+                LOG.info("Enqueued Uplink Msg from normal")
             self.check_periodic_bulk_vm_notif_rcvd()
         else:
-            LOG.info(_LI("In Periodic Uplink Task uplink found %s"), ret)
+            LOG.info("In Periodic Uplink Task uplink found %s", ret)
             bond_intf = sys_utils.get_bond_intf(ret)
             if bond_intf is not None:
                 ret = bond_intf
-                LOG.info(_LI("Interface %(memb)s part of bond %(bond)s") %
+                LOG.info("Interface %(memb)s part of bond %(bond)s" %
                          {'memb': ret, 'bond': bond_intf})
             # Call API to set the uplink as ret
             self.save_uplink(uplink=ret, veth_intf=self.veth_intf)
@@ -652,7 +650,7 @@ class VdpMgr(object):
                                 root_helper=self.root_helper)
             self.que.enqueue(constants.Q_UPL_PRIO, upl_msg)
             # yield
-            LOG.info(_LI("Enqueued Uplink Msg"))
+            LOG.info("Enqueued Uplink Msg")
 
     def vdp_vm_event(self, vm_dict_list):
         if isinstance(vm_dict_list, list):
@@ -662,8 +660,8 @@ class VdpMgr(object):
             self.bulk_vm_rcvd_flag = True
         else:
             vm_dict = vm_dict_list
-            LOG.info(_LI("Obtained VM event Enqueueing Status %(status)s "
-                         "MAC %(mac)s uuid %(uuid)s oui %(oui)s"),
+            LOG.info("Obtained VM event Enqueueing Status %(status)s "
+                     "MAC %(mac)s uuid %(uuid)s oui %(oui)s",
                      {'status': vm_dict['status'], 'mac': vm_dict['vm_mac'],
                       'uuid': vm_dict['net_uuid'], 'oui': vm_dict['oui']})
             vm_msg = VdpQueMsg(constants.VM_MSG_TYPE,
@@ -696,13 +694,13 @@ class VdpMgr(object):
                 if not self.restart_uplink_called:
                     self._dfa_uplink_restart(uplink_dict)
         except Exception as exc:
-            LOG.error(_LE("Exception in dfa_uplink_restart %s") % str(exc))
+            LOG.error("Exception in dfa_uplink_restart %s" % str(exc))
 
     def _dfa_uplink_restart(self, uplink_dict):
-        LOG.info(_LI("Obtained uplink after restart %s "), uplink_dict)
+        LOG.info("Obtained uplink after restart %s ", uplink_dict)
         # This shouldn't happen
         if self.phy_uplink is not None:
-            LOG.error(_LE("Uplink detection already done %s"), self.phy_uplink)
+            LOG.error("Uplink detection already done %s", self.phy_uplink)
             return
         uplink = uplink_dict.get('uplink')
         veth_intf = uplink_dict.get('veth_intf')
@@ -716,16 +714,16 @@ class VdpMgr(object):
         # If DB has uplink, but no veth, it's an error condition and in
         # which case remove the uplink port from bridge and start fresh
         if uplink is None or len(uplink) == 0:
-            LOG.info(_LI("uplink not discovered yet"))
+            LOG.info("uplink not discovered yet")
             self.restart_uplink_called = True
             return
         if veth_intf is not None and len(veth_intf) != 0:
-            LOG.info(_LI("veth interface is already added, %(ul)s %(veth)s"),
+            LOG.info("veth interface is already added, %(ul)s %(veth)s",
                      {'ul': uplink, 'veth': veth_intf})
             self.phy_uplink = uplink
             self.veth_intf = veth_intf
             self.restart_uplink_called = True
             return
-        LOG.info(_LI("Error case removing the uplink %s from bridge"), uplink)
+        LOG.info("Error case removing the uplink %s from bridge", uplink)
         ovs_vdp.delete_uplink_and_flows(self.root_helper, self.br_ex, uplink)
         self.restart_uplink_called = True

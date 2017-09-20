@@ -20,7 +20,6 @@ import time
 from oslo_config import cfg
 import oslo_messaging as messaging
 
-from networking_cisco._i18n import _LE
 from networking_cisco.apps.saf.common import dfa_logger as logging
 
 LOG = logging.getLogger(__name__)
@@ -86,7 +85,7 @@ class DfaRpcServer(object):
             while True:
                 time.sleep(1)
         except Exception as exc:
-            LOG.exception(_LE('RPC Server: Exception %s occurred'), str(exc))
+            LOG.exception('RPC Server: Exception %s occurred', str(exc))
             self.stop()
 
     def stop(self):
@@ -130,7 +129,7 @@ class DfaNotifcationListener(object):
             while True:
                 time.sleep(1)
         except Exception as exc:
-            LOG.exception(_LE('RPC Server: Exception %s occurred'), str(exc))
+            LOG.exception('RPC Server: Exception %s occurred', str(exc))
             self.stop()
 
     def stop(self):

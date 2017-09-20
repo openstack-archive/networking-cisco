@@ -16,8 +16,6 @@
 
 import time
 
-from networking_cisco._i18n import _LE, _LI
-
 from networking_cisco.apps.saf.common import constants
 from networking_cisco.apps.saf.common import dfa_exceptions as dexc
 from networking_cisco.apps.saf.common import dfa_logger as logging
@@ -54,7 +52,7 @@ class DfaFailureRecovery(object):
             event_q.put((pri, timestamp, data))
             LOG.debug('Added failure recovery event to the queue.')
         except Exception as exc:
-            LOG.exception(_LE('Error: %(exc)s for event %(event)s'),
+            LOG.exception('Error: %(exc)s for event %(event)s',
                           {'exc': str(exc), 'event': event_type})
             raise exc
 
@@ -68,7 +66,7 @@ class DfaFailureRecovery(object):
         # (create/delete - depends on failure type) to DCNM
 
         # 1. Try failure recovery for create project.
-        LOG.info(_LI("Started failure_recovery."))
+        LOG.info("Started failure_recovery.")
         projs = self.get_fialed_projects_entries(constants.CREATE_FAIL)
         for proj in projs:
             LOG.debug("Failure recovery for project %(name)s.", (
@@ -81,8 +79,8 @@ class DfaFailureRecovery(object):
                                                 default_partition_name,
                                                 proj.dci_id)
             except dexc.DfaClientRequestFailed as e:
-                LOG.error(_LE("failure_recovery: Failed to create %(proj)s "
-                              "on DCNM : %(reason)s"),
+                LOG.error("failure_recovery: Failed to create %(proj)s "
+                          "on DCNM : %(reason)s",
                           {'proj': proj.name, 'reason': str(e)})
             else:
                 # Request is sent successfully, update the database.
@@ -104,8 +102,8 @@ class DfaFailureRecovery(object):
                                                 default_partition_name,
                                                 proj.dci_id)
             except dexc.DfaClientRequestFailed as exc:
-                LOG.error(_LE("failure_recovery: Failed to update %(proj)s "
-                              "on DCNM : %(reason)s"),
+                LOG.error("failure_recovery: Failed to update %(proj)s "
+                          "on DCNM : %(reason)s",
                           {'proj': proj.name, 'reason': str(exc)})
             else:
                 # Request is sent successfully, update the database.
@@ -126,7 +124,7 @@ class DfaFailureRecovery(object):
                     subnets = self.neutron_event.nclient.list_subnets(
                         network_id=net_id).get('subnets')
                 except dexc.ConnectionFailed:
-                    LOG.exception(_LE('Failed to get subnets list.'))
+                    LOG.exception('Failed to get subnets list.')
                     continue
 
                 for subnet in subnets:
@@ -144,7 +142,7 @@ class DfaFailureRecovery(object):
                                                         self.dcnm_dhcp)
                     except dexc.DfaClientRequestFailed:
                         # Still is failure, only log the error.
-                        LOG.error(_LE('Failed to create network %(net)s.'),
+                        LOG.error('Failed to create network %(net)s.',
                                   {'net': net.name})
                     else:
                         # Request is sent to DCNM, update the database
@@ -177,13 +175,13 @@ class DfaFailureRecovery(object):
                 except Exception as e:
                     # Failed to send info to the agent. Keep the data in the
                     # database as failure to send it later.
-                    LOG.error(_LE('Failed to send VM info to agent. '
-                                  'Reason %s'), str(e))
+                    LOG.error('Failed to send VM info to agent. '
+                              'Reason %s', str(e))
                 else:
                     params = dict(columns=dict(
                         result=constants.RESULT_SUCCESS))
                     self.update_vm_db(vm.port_id, **params)
-                    LOG.info(_LI('Created VM %(vm)s.'), {'vm': vm.name})
+                    LOG.info('Created VM %(vm)s.', {'vm': vm.name})
 
         for vm in instances:
             if vm.result == constants.DELETE_FAIL:
@@ -191,11 +189,11 @@ class DfaFailureRecovery(object):
                 try:
                     self.neutron_event.send_vm_info(str(vm.host), str(vm_info))
                 except Exception as e:
-                    LOG.error(_LE('Failed to send VM info to agent. '
-                                  'Reason %s'), str(e))
+                    LOG.error('Failed to send VM info to agent. '
+                              'Reason %s', str(e))
                 else:
                     self.delete_vm_db(vm.port_id)
-                    LOG.info(_LI('Deleted VM %(vm)s from DB.'),
+                    LOG.info('Deleted VM %(vm)s from DB.',
                              {'vm': vm.name})
 
         # 4. Try failure recovery for delete network.
@@ -209,7 +207,7 @@ class DfaFailureRecovery(object):
                     self.dcnm_client.delete_network(tenant_name, net)
                 except dexc.DfaClientRequestFailed:
                     # Still is failure, only log the error.
-                    LOG.error(_LE('Failed to delete network %(net)s.'),
+                    LOG.error('Failed to delete network %(net)s.',
                               {'net': net.name})
                 else:
                     # Request is sent to DCNM, delete the entry
@@ -233,8 +231,8 @@ class DfaFailureRecovery(object):
             except dexc.DfaClientRequestFailed as e:
                 # Failed to delete project in DCNM.
                 # Save the info and mark it as failure and retry it later.
-                LOG.error(_LE("Failure recovery is failed to delete "
-                          "%(project)s on DCNM : %(reason)s"),
+                LOG.error("Failure recovery is failed to delete "
+                          "%(project)s on DCNM : %(reason)s",
                           {'project': proj.name, 'reason': str(e)})
             else:
                 # Delete was successful, now update the database.
@@ -253,4 +251,4 @@ class DfaFailureRecovery(object):
                 LOG.debug("dhcp consistency check for net id %s", net_id)
                 self.correct_dhcp_ports(net_id)
             self.decrement_dhcp_check()
-        LOG.info(_LI("Finished failure_recovery."))
+        LOG.info("Finished failure_recovery.")

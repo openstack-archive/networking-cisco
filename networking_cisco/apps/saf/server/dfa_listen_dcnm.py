@@ -23,8 +23,6 @@ import traceback
 
 from oslo_serialization import jsonutils
 
-from networking_cisco._i18n import _LE, _LI
-
 from networking_cisco.apps.saf.common import dfa_logger as logging
 
 LOG = logging.getLogger(__name__)
@@ -99,7 +97,7 @@ class DCNMListener(object):
 
             LOG.debug('DCNM Listener initialization done....')
         except Exception as ex:
-            LOG.exception(_LE('Failed to initialize DCNMListener %s'), ex)
+            LOG.exception('Failed to initialize DCNMListener %s', ex)
 
     def _cb_dcnm_msg(self, method, body):
         """Callback function to process DCNM network creation/update/deletion
@@ -156,7 +154,7 @@ class DCNMListener(object):
         queue.
         """
 
-        LOG.info(_LI('Starting process_amqp_msgs...'))
+        LOG.info('Starting process_amqp_msgs...')
         while True:
             (mtd_fr, hdr_fr, body) = (None, None, None)
             try:
@@ -165,7 +163,7 @@ class DCNMListener(object):
                         self._dcnm_queue_name)
                 if mtd_fr:
                     # Queue has messages.
-                    LOG.info(_LI('RX message: %s'), body)
+                    LOG.info('RX message: %s', body)
                     self._cb_dcnm_msg(mtd_fr, body)
                     self.consume_channel.basic_ack(mtd_fr.delivery_tag)
                 else:
@@ -178,8 +176,8 @@ class DCNMListener(object):
                 exc_type, exc_value, exc_tb = sys.exc_info()
                 tb_str = traceback.format_exception(exc_type,
                                                     exc_value, exc_tb)
-                LOG.exception(_LE("Failed to read from queue: %(queue)s "
-                              "%(exc_type)s, %(exc_value)s, %(exc_tb)s."), {
+                LOG.exception("Failed to read from queue: %(queue)s "
+                              "%(exc_type)s, %(exc_value)s, %(exc_tb)s.", {
                                   'queue': self._dcnm_queue_name,
                                   'exc_type': exc_type,
                                   'exc_value': exc_value,

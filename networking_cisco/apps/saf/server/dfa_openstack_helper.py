@@ -19,8 +19,6 @@ from networking_cisco.apps.saf.common import dfa_logger as logging
 from networking_cisco.apps.saf.common import dfa_sys_lib as utils
 from networking_cisco.apps.saf.server import dfa_events_handler as deh
 
-from networking_cisco._i18n import _LE
-
 LOG = logging.getLogger(__name__)
 
 
@@ -49,7 +47,7 @@ class DfaNeutronHelper(object):
             net_dict = netw.get('network')
             net_id = net_dict.get('id')
         except Exception as exc:
-            LOG.error(_LE("Failed to create network %(name)s, Exc %(exc)s"),
+            LOG.error("Failed to create network %(name)s, Exc %(exc)s",
                       {'name': name, 'exc': str(exc)})
             return None, None
 
@@ -71,12 +69,12 @@ class DfaNeutronHelper(object):
             subnet_dict = subnet_ret.get('subnet')
             subnet_id = subnet_dict.get('id')
         except Exception as exc:
-            LOG.error(_LE("Failed to create subnet %(sub)s, exc %(exc)s"),
+            LOG.error("Failed to create subnet %(sub)s, exc %(exc)s",
                       {'sub': subnet, 'exc': str(exc)})
             try:
                 self.neutronclient.delete_network(net_id)
             except Exception as exc:
-                LOG.error(_LE("Failed to delete network %(net)s, exc %(exc)s"),
+                LOG.error("Failed to delete network %(net)s, exc %(exc)s",
                           {'net': net_id, 'exc': str(exc)})
             return None, None
         return net_id, subnet_id
@@ -86,13 +84,13 @@ class DfaNeutronHelper(object):
         try:
             self.neutronclient.delete_subnet(subnet_id)
         except Exception as exc:
-            LOG.error(_LE("Failed to delete subnet %(sub)s exc %(exc)s"),
+            LOG.error("Failed to delete subnet %(sub)s exc %(exc)s",
                       {'sub': subnet_id, 'exc': str(exc)})
             return
         try:
             self.neutronclient.delete_network(net_id)
         except Exception as exc:
-            LOG.error(_LE("Failed to delete network %(name)s exc %(exc)s"),
+            LOG.error("Failed to delete network %(name)s exc %(exc)s",
                       {'name': name, 'exc': str(exc)})
 
     # Pass
@@ -107,13 +105,13 @@ class DfaNeutronHelper(object):
                     subnet_id = subnet.get('id')
                     self.neutronclient.delete_subnet(subnet_id)
         except Exception as exc:
-            LOG.error(_LE("Failed to delete subnet for net %(net)s "
-                      "Exc %(exc)s"), {'net': net_id, 'exc': str(exc)})
+            LOG.error("Failed to delete subnet for net %(net)s "
+                      "Exc %(exc)s", {'net': net_id, 'exc': str(exc)})
             return False
         try:
             self.neutronclient.delete_network(net_id)
         except Exception as exc:
-            LOG.error(_LE("Failed to delete network %(net)s Exc %(exc)s"),
+            LOG.error("Failed to delete network %(net)s Exc %(exc)s",
                       {'net': net_id, 'exc': str(exc)})
             return False
         return True
@@ -128,7 +126,7 @@ class DfaNeutronHelper(object):
                     return True
             return False
         except Exception as exc:
-            LOG.error(_LE("Failed to list subnet %(sub)s, Exc %(exc)s"),
+            LOG.error("Failed to list subnet %(sub)s, Exc %(exc)s",
                       {'sub': subnet_addr, 'exc': str(exc)})
             return False
 
@@ -145,7 +143,7 @@ class DfaNeutronHelper(object):
                 else:
                     subnet_cidrs.append(sub.get('cidr'))
         except Exception as exc:
-            LOG.error(_LE("Failed to list subnet Exc %s"), str(exc))
+            LOG.error("Failed to list subnet Exc %s", str(exc))
         return subnet_cidrs
 
     def get_subnets_for_net(self, net):
@@ -155,7 +153,7 @@ class DfaNeutronHelper(object):
             subnet_dat = subnet_list.get('subnets')
             return subnet_dat
         except Exception as exc:
-            LOG.error(_LE("Failed to list subnet net %(net)s, Exc: %(exc)s"),
+            LOG.error("Failed to list subnet net %(net)s, Exc: %(exc)s",
                       {'net': net, 'exc': str(exc)})
             return None
 
@@ -166,8 +164,8 @@ class DfaNeutronHelper(object):
             subnet_dat = subnet_list.get('subnets')[0]
             return subnet_dat.get('cidr')
         except Exception as exc:
-            LOG.error(_LE("Failed to list subnet for ID %(subnet)s, "
-                          "exc %(exc)s"), {'subnet': subnet_id, 'exc': exc})
+            LOG.error("Failed to list subnet for ID %(subnet)s, "
+                      "exc %(exc)s", {'subnet': subnet_id, 'exc': exc})
             return None
 
     def delete_network_subname(self, sub_name):
@@ -179,8 +177,8 @@ class DfaNeutronHelper(object):
                 if net.get('name').find(sub_name) != -1:
                     self.delete_network_all_subnets(net.get('net_id'))
         except Exception as exc:
-            LOG.error(_LE("Failed to get network by subname %(name)s, "
-                          "Exc %(exc)s"),
+            LOG.error("Failed to get network by subname %(name)s, "
+                      "Exc %(exc)s",
                       {'name': sub_name, 'exc': str(exc)})
 
     def get_network_by_name(self, nwk_name):
@@ -194,8 +192,8 @@ class DfaNeutronHelper(object):
                 if net.get('name') == nwk_name:
                     ret_net_lst.append(net)
         except Exception as exc:
-            LOG.error(_LE("Failed to get network by name %(name)s, "
-                          "Exc %(exc)s"),
+            LOG.error("Failed to get network by name %(name)s, "
+                      "Exc %(exc)s",
                       {'name': nwk_name, 'exc': str(exc)})
         return ret_net_lst
 
@@ -208,8 +206,8 @@ class DfaNeutronHelper(object):
                 if net.get('tenant_id') == tenant_id:
                     ret_net_lst.append(net)
         except Exception as exc:
-            LOG.error(_LE("Failed to get network by tenant %(tenant)s, "
-                          "Exc %(exc)s"),
+            LOG.error("Failed to get network by tenant %(tenant)s, "
+                      "Exc %(exc)s",
                       {'tenant': tenant_id, 'exc': str(exc)})
         return ret_net_lst
 
@@ -223,8 +221,8 @@ class DfaNeutronHelper(object):
                 if rtr_name == rtr['name']:
                     upd_rtr_list.append(rtr)
         except Exception as exc:
-            LOG.error(_LE("Failed to get router by name %(name)s, "
-                          "Exc %(exc)s"),
+            LOG.error("Failed to get router by name %(name)s, "
+                      "Exc %(exc)s",
                       {'name': rtr_name, 'exc': str(exc)})
         return upd_rtr_list
 
@@ -237,8 +235,8 @@ class DfaNeutronHelper(object):
             rout_dict = router.get('router')
             rout_id = rout_dict.get('id')
         except Exception as exc:
-            LOG.error(_LE("Failed to create router with name %(name)s"
-                          " Exc %(exc)s"), {'name': name, 'exc': str(exc)})
+            LOG.error("Failed to create router with name %(name)s"
+                      " Exc %(exc)s", {'name': name, 'exc': str(exc)})
             return None
 
         ret = self.add_intf_router(rout_id, tenant_id, subnet_lst)
@@ -246,7 +244,7 @@ class DfaNeutronHelper(object):
             try:
                 ret = self.neutronclient.delete_router(rout_id)
             except Exception as exc:
-                LOG.error(_LE("Failed to delete router %(name)s, Exc %(exc)s"),
+                LOG.error("Failed to delete router %(name)s, Exc %(exc)s",
                           {'name': name, 'exc': str(exc)})
             return None
         return rout_id
@@ -260,8 +258,8 @@ class DfaNeutronHelper(object):
                                                                body=body)
                 intf.get('port_id')
         except Exception as exc:
-            LOG.error(_LE("Failed to create router intf ID %(id)s,"
-                      " Exc %(exc)s"), {'id': rout_id, 'exc': str(exc)})
+            LOG.error("Failed to create router intf ID %(id)s,"
+                      " Exc %(exc)s", {'id': rout_id, 'exc': str(exc)})
             return False
         return True
 
@@ -278,8 +276,8 @@ class DfaNeutronHelper(object):
         try:
             ret = self.neutronclient.delete_router(rout_id)
         except Exception as exc:
-            LOG.error(_LE("Failed to delete router %(name)s ret %(ret)s "
-                          "Exc %(exc)s"),
+            LOG.error("Failed to delete router %(name)s ret %(ret)s "
+                      "Exc %(exc)s",
                       {'name': name, 'ret': str(ret), 'exc': str(exc)})
             return False
         return True
@@ -293,8 +291,8 @@ class DfaNeutronHelper(object):
                                                                   body=body)
                 intf.get('id')
         except Exception as exc:
-            LOG.error(_LE("Failed to delete router interface %(name)s, "
-                          " Exc %(exc)s"), {'name': name, 'exc': str(exc)})
+            LOG.error("Failed to delete router interface %(name)s, "
+                      " Exc %(exc)s", {'name': name, 'exc': str(exc)})
             return False
         return True
 
@@ -311,8 +309,8 @@ class DfaNeutronHelper(object):
                 if rtr_name == rtr['name']:
                     self.neutronclient.delete_router(rtr['id'])
         except Exception as exc:
-            LOG.error(_LE("Failed to get and delete router by name %(name)s, "
-                          "Exc %(exc)s"),
+            LOG.error("Failed to get and delete router by name %(name)s, "
+                      "Exc %(exc)s",
                       {'name': rtr_name, 'exc': str(exc)})
             return False
         return True
@@ -323,8 +321,8 @@ class DfaNeutronHelper(object):
             body = {}
             self.neutronclient.show_router(router_id, body=body)
         except Exception as exc:
-            LOG.error(_LE("Failed to show router interface %(id)s "
-                          "Exc %(exc)s"), {'id': router_id, 'exc': str(exc)})
+            LOG.error("Failed to show router interface %(id)s "
+                      "Exc %(exc)s", {'id': router_id, 'exc': str(exc)})
             return
         # Complete fixme(padkrish)
 
@@ -339,8 +337,8 @@ class DfaNeutronHelper(object):
                     return port
             return None
         except Exception as exc:
-            LOG.error(_LE("Failed to get router port subnet %(net)s, "
-                          "Exc: %(exc)s"), {'net': subnet_id, 'exc': str(exc)})
+            LOG.error("Failed to get router port subnet %(net)s, "
+                      "Exc: %(exc)s", {'net': subnet_id, 'exc': str(exc)})
             return None
 
     def get_rtr_name(self, router_id):
@@ -350,8 +348,8 @@ class DfaNeutronHelper(object):
             router = self.neutronclient.show_router(router_id, body=body)
             return router.get('router').get('name')
         except Exception as exc:
-            LOG.error(_LE("Failed to show router interface %(id)s "
-                          "Exc %(exc)s"), {'id': router_id, 'exc': str(exc)})
+            LOG.error("Failed to show router interface %(id)s "
+                      "Exc %(exc)s", {'id': router_id, 'exc': str(exc)})
 
     def find_rtr_namespace(self, rout_id):
         """Find the namespace associated with the router. """
@@ -361,7 +359,7 @@ class DfaNeutronHelper(object):
         try:
             ns_list = utils.execute(args, root_helper=self.root_helper)
         except Exception as exc:
-            LOG.error(_LE("Unable to find the namespace list Exception %s"),
+            LOG.error("Unable to find the namespace list Exception %s",
                       exc)
             return None
         for ns in ns_list.split():
@@ -373,14 +371,14 @@ class DfaNeutronHelper(object):
         if namespace is None:
             namespace = self.find_rtr_namespace(rout_id)
         if namespace is None:
-            LOG.error(_LE("Unable to find namespace for router %s"), rout_id)
+            LOG.error("Unable to find namespace for router %s", rout_id)
             return False
         final_args = ['ip', 'netns', 'exec', namespace] + args
         try:
             utils.execute(final_args, root_helper=self.root_helper)
         except Exception as e:
-            LOG.error(_LE("Unable to execute %(cmd)s. "
-                      "Exception: %(exception)s"),
+            LOG.error("Unable to execute %(cmd)s. "
+                      "Exception: %(exception)s",
                       {'cmd': final_args, 'exception': e})
             return False
         return True
@@ -390,14 +388,14 @@ class DfaNeutronHelper(object):
         if namespace is None:
             namespace = self.find_rtr_namespace(rout_id)
         if namespace is None:
-            LOG.error(_LE("Unable to find namespace for router %s"), rout_id)
+            LOG.error("Unable to find namespace for router %s", rout_id)
             return False
         final_args = ['ip', 'netns', 'exec', namespace] + args
         try:
             return utils.execute(final_args, root_helper=self.root_helper)
         except Exception as e:
-            LOG.error(_LE("Unable to execute %(cmd)s. "
-                      "Exception: %(exception)s"),
+            LOG.error("Unable to execute %(cmd)s. "
+                      "Exception: %(exception)s",
                       {'cmd': final_args, 'exception': e})
             return None
 
@@ -406,7 +404,7 @@ class DfaNeutronHelper(object):
         args = ['route', 'add', 'default', 'gw', gw]
         ret = self.program_rtr(args, rout_id)
         if not ret:
-            LOG.error(_LE("Program router returned error for %s"), rout_id)
+            LOG.error("Program router returned error for %s", rout_id)
             return False
         return True
 
@@ -437,7 +435,7 @@ class DfaNeutronHelper(object):
         """Program the next hop for all networks of a tenant. """
         namespace = self.find_rtr_namespace(rout_id)
         if namespace is None:
-            LOG.error(_LE("Unable to find namespace for router %s"), rout_id)
+            LOG.error("Unable to find namespace for router %s", rout_id)
             return False
 
         net_list = self.get_network_by_tenant(tenant_id)
@@ -451,7 +449,7 @@ class DfaNeutronHelper(object):
                             next_hop]
                     ret = self.program_rtr(args, rout_id, namespace=namespace)
                     if not ret:
-                        LOG.error(_LE("Program router returned error for %s"),
+                        LOG.error("Program router returned error for %s",
                                   rout_id)
                         return False
         return True
@@ -460,13 +458,13 @@ class DfaNeutronHelper(object):
         """Program the next hop for all networks of a tenant. """
         namespace = self.find_rtr_namespace(rout_id)
         if namespace is None:
-            LOG.error(_LE("Unable to find namespace for router %s"), rout_id)
+            LOG.error("Unable to find namespace for router %s", rout_id)
             return False
 
         args = ['route', 'add', '-net', cidr, 'gw', next_hop]
         ret = self.program_rtr(args, rout_id, namespace=namespace)
         if not ret:
-            LOG.error(_LE("Program router returned error for %s"), rout_id)
+            LOG.error("Program router returned error for %s", rout_id)
             return False
         return True
 
@@ -475,13 +473,13 @@ class DfaNeutronHelper(object):
         """Remove the next hop for all networks of a tenant. """
         namespace = self.find_rtr_namespace(rout_id)
         if namespace is None:
-            LOG.error(_LE("Unable to find namespace for router %s"), rout_id)
+            LOG.error("Unable to find namespace for router %s", rout_id)
             return False
 
         args = ['ip', 'route']
         ret = self.program_rtr_return(args, rout_id, namespace=namespace)
         if ret is None:
-            LOG.error(_LE("Get routes return None %s"), rout_id)
+            LOG.error("Get routes return None %s", rout_id)
             return False
         routes = ret.split('\n')
         concat_lst = subnet_lst + excl_list
@@ -496,7 +494,7 @@ class DfaNeutronHelper(object):
                 args = ['route', 'del', '-net', nwk, 'gw', next_hop]
                 ret = self.program_rtr(args, rout_id, namespace=namespace)
                 if not ret:
-                    LOG.error(_LE("Program router returned error for %s"),
+                    LOG.error("Program router returned error for %s",
                               rout_id)
                     return False
         return True
@@ -507,8 +505,8 @@ class DfaNeutronHelper(object):
         try:
             fw = self.neutronclient.show_firewall(fw_id)
         except Exception as exc:
-            LOG.error(_LE("Failed to get firewall list for id %(id)s, "
-                          "Exc %(exc)s"), {'id': fw_id, 'exc': str(exc)})
+            LOG.error("Failed to get firewall list for id %(id)s, "
+                      "Exc %(exc)s", {'id': fw_id, 'exc': str(exc)})
         return fw
 
     # Tested
@@ -518,8 +516,8 @@ class DfaNeutronHelper(object):
         try:
             rule = self.neutronclient.show_firewall_rule(rule_id)
         except Exception as exc:
-            LOG.error(_LE("Failed to get firewall rule for id %(id)s "
-                          "Exc %(exc)s"), {'id': rule_id, 'exc': str(exc)})
+            LOG.error("Failed to get firewall rule for id %(id)s "
+                      "Exc %(exc)s", {'id': rule_id, 'exc': str(exc)})
         return rule
 
     # Tested
@@ -529,7 +527,7 @@ class DfaNeutronHelper(object):
         try:
             policy = self.neutronclient.show_firewall_policy(policy_id)
         except Exception as exc:
-            LOG.error(_LE("Failed to get firewall plcy for id %(id)s "
-                          "Exc %(exc)s"),
+            LOG.error("Failed to get firewall plcy for id %(id)s "
+                      "Exc %(exc)s",
                       {'id': policy_id, 'exc': str(exc)})
         return policy

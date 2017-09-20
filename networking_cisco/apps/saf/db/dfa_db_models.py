@@ -21,8 +21,6 @@ import sqlalchemy as sa
 import sqlalchemy.orm.exc as orm_exc
 import time
 
-from networking_cisco._i18n import _LE, _LI
-
 from networking_cisco.apps.saf.common import constants as const
 from networking_cisco.apps.saf.common import dfa_logger as logging
 from networking_cisco.apps.saf.common import utils
@@ -192,7 +190,7 @@ class DfaSegmentTypeDriver(object):
             for attempt in range(DB_MAX_RETRIES + 1):
                 alloc = select.first()
                 if not alloc:
-                    LOG.info(_LI("No segment resource available"))
+                    LOG.info("No segment resource available")
                     # No resource available
                     return
 
@@ -204,8 +202,8 @@ class DfaSegmentTypeDriver(object):
                 if count:
                     return alloc
 
-        LOG.error(_LE("ERROR: Failed to allocate segment for net %(net)s"
-                      " source %(src)s"),
+        LOG.error("ERROR: Failed to allocate segment for net %(net)s"
+                  " source %(src)s",
                   {'net': net_id, 'src': source})
 
     def _reserve_provider_segment(self, session, net_id=None, seg_id=None,
@@ -214,16 +212,16 @@ class DfaSegmentTypeDriver(object):
         if seg_id is None:
             alloc = self._allocate_segment(session, net_id, source)
             if not alloc:
-                LOG.error(_LE("ERROR: No segment is available for net %(net)s"
-                              " source %(src)s"),
+                LOG.error("ERROR: No segment is available for net %(net)s"
+                          " source %(src)s",
                           {'net': net_id, 'src': source})
                 return
         else:
             # TODO(padkrish) net_id not passed here
             alloc = self._allocate_specified_segment(session, seg_id, source)
             if not alloc:
-                LOG.error(_LE("ERROR: Segmentation_id %(seg)s is in use. for "
-                              "net %(net)s source %(src)s"),
+                LOG.error("ERROR: Segmentation_id %(seg)s is in use. for "
+                          "net %(net)s source %(src)s",
                           {'seg': seg_id, 'net': net_id, 'src': source})
                 return
 
@@ -242,16 +240,16 @@ class DfaSegmentTypeDriver(object):
                                       "source": None,
                                       "delete_time": del_time})
                 if count:
-                    LOG.info(_LI("Releasing segmentation id %s to pool") %
+                    LOG.info("Releasing segmentation id %s to pool" %
                              seg_id)
             else:
                 count = query.delete()
                 if count:
-                    LOG.info(_LI("Releasing segmentation_id %s outside pool") %
+                    LOG.info("Releasing segmentation_id %s outside pool" %
                              seg_id)
 
         if not count:
-            LOG.info(_LI("segmentation_id %s not found") % seg_id)
+            LOG.info("segmentation_id %s not found" % seg_id)
 
     # Tested for both Segment and VLAN
     def _seg_id_allocations(self):
@@ -271,7 +269,7 @@ class DfaSegmentTypeDriver(object):
                     # it's not allocatable, so check if its allocated
                     if not alloc.allocated:
                         # it's not, so remove it from table
-                        LOG.info(_LI("Removing seg_id %s from pool") %
+                        LOG.info("Removing seg_id %s from pool" %
                                  alloc.segmentation_id)
                         session.delete(alloc)
 
@@ -436,9 +434,9 @@ class DfaDBMixin(object):
                 ent = session.query(DfaTenants).filter_by(id=pid).one()
                 session.delete(ent)
         except orm_exc.NoResultFound:
-            LOG.info(_LI('Project %(id)s does not exist'), {'id': pid})
+            LOG.info('Project %(id)s does not exist', {'id': pid})
         except orm_exc.MultipleResultsFound:
-            LOG.error(_LE('More than one enty found for project %(id)s.'),
+            LOG.error('More than one enty found for project %(id)s.',
                       {'id': pid})
 
     def get_project_name(self, pid):
@@ -448,9 +446,9 @@ class DfaDBMixin(object):
                 ent = session.query(DfaTenants).filter_by(id=pid).one()
             return ent and ent.name
         except orm_exc.NoResultFound:
-            LOG.info(_LI('Project %(id)s does not exist'), {'id': pid})
+            LOG.info('Project %(id)s does not exist', {'id': pid})
         except orm_exc.MultipleResultsFound:
-            LOG.error(_LE('More than one enty found for project %(id)s.'),
+            LOG.error('More than one enty found for project %(id)s.',
                       {'id': pid})
 
     def get_project_id(self, name):
@@ -460,9 +458,9 @@ class DfaDBMixin(object):
                 ent = session.query(DfaTenants).filter_by(name=name).one()
             return ent and ent.id
         except orm_exc.NoResultFound:
-            LOG.info(_LI('Project %(name)s does not exist'), {'name': name})
+            LOG.info('Project %(name)s does not exist', {'name': name})
         except orm_exc.MultipleResultsFound:
-            LOG.error(_LE('More than one enty found for project %(name)s.'),
+            LOG.error('More than one enty found for project %(name)s.',
                       {'name': name})
 
     def get_all_projects(self):
@@ -511,9 +509,9 @@ class DfaDBMixin(object):
                     network_id=net_id).one()
             return net
         except orm_exc.NoResultFound:
-            LOG.info(_LI('Network %(id)s does not exist'), {'id': net_id})
+            LOG.info('Network %(id)s does not exist', {'id': net_id})
         except orm_exc.MultipleResultsFound:
-            LOG.error(_LE('More than one enty found for network %(id)s.'),
+            LOG.error('More than one enty found for network %(id)s.',
                       {'id': net_id})
 
     def get_network_by_name(self, name):
@@ -523,7 +521,7 @@ class DfaDBMixin(object):
                 net = session.query(DfaNetwork).filter_by(name=name).all()
             return net
         except orm_exc.NoResultFound:
-            LOG.info(_LI('Network %(name)s does not exist'), {'name': name})
+            LOG.info('Network %(name)s does not exist', {'name': name})
 
     def get_network_by_segid(self, segid):
         session = db.get_session()
@@ -533,9 +531,9 @@ class DfaDBMixin(object):
                     segmentation_id=segid).one()
             return net
         except orm_exc.NoResultFound:
-            LOG.info(_LI('Network %(segid)s does not exist'), {'segid': segid})
+            LOG.info('Network %(segid)s does not exist', {'segid': segid})
         except orm_exc.MultipleResultsFound:
-            LOG.error(_LE('More than one enty found for seg-id %(id)s.'),
+            LOG.error('More than one enty found for seg-id %(id)s.',
                       {'id': segid})
 
     def update_network_db(self, net_id, result):
@@ -591,9 +589,9 @@ class DfaDBMixin(object):
                     port_id=port_id).one()
             return port
         except orm_exc.NoResultFound:
-            LOG.info(_LI('Port %(id)s does not exist'), {'id': port_id})
+            LOG.info('Port %(id)s does not exist', {'id': port_id})
         except orm_exc.MultipleResultsFound:
-            LOG.error(_LE('More than one enty found for Port %(id)s.'),
+            LOG.error('More than one enty found for Port %(id)s.',
                       {'id': port_id})
 
     def get_vms(self):
@@ -626,7 +624,7 @@ class DfaDBMixin(object):
                 session.query(DfaAgentsDb).filter_by(host=host).update(
                     {'heartbeat': agent_info.get('timestamp')})
             except orm_exc.NoResultFound:
-                LOG.info(_LI('Creating new entry for agent on %(host)s.'),
+                LOG.info('Creating new entry for agent on %(host)s.',
                          {'host': host})
                 agent = DfaAgentsDb(host=host,
                                     created=agent_info.get('timestamp'),
@@ -634,7 +632,7 @@ class DfaDBMixin(object):
                                     configurations=agent_info.get('config'))
                 session.add(agent)
             except orm_exc.MultipleResultsFound:
-                LOG.error(_LE('More than one enty found for agent %(host)s.'),
+                LOG.error('More than one enty found for agent %(host)s.',
                           {'host': host})
 
     def get_agent_configurations(self, host):
@@ -644,9 +642,9 @@ class DfaDBMixin(object):
                 ent = session.query(DfaAgentsDb).filter_by(host=host).one()
                 return ent.configurations
             except orm_exc.NoResultFound:
-                LOG.info(_LI('Agent %(host)s does not exist.'), {'host': host})
+                LOG.info('Agent %(host)s does not exist.', {'host': host})
             except orm_exc.MultipleResultsFound:
-                LOG.error(_LE('More than one enty found for agent %(host)s.'),
+                LOG.error('More than one enty found for agent %(host)s.',
                           {'host': host})
 
     def update_agent_configurations(self, host, configs):
@@ -694,9 +692,9 @@ class DfaDBMixin(object):
                 rule_str = fw.rules
                 rule_dict = jsonutils.loads(rule_str)
         except orm_exc.NoResultFound:
-            LOG.info(_LI("FWID %(fwid)s does not exist"), ({'fw_id': fw_id}))
+            LOG.info("FWID %(fwid)s does not exist", ({'fw_id': fw_id}))
         except orm_exc.MultipleResultsFound:
-            LOG.error(_LE("More than one enty found for fw-id %(id)s.") %
+            LOG.error("More than one enty found for fw-id %(id)s." %
                       ({'id': fw_id}))
         return rule_dict
 
@@ -778,9 +776,9 @@ class DfaDBMixin(object):
                     (DfaFwInfo.out_network_id == netid)).one()
             return fw
         except orm_exc.NoResultFound:
-            LOG.info(_LI('FW %(netid)s does not exist'), ({'netid': netid}))
+            LOG.info('FW %(netid)s does not exist', ({'netid': netid}))
         except orm_exc.MultipleResultsFound:
-            LOG.error(_LE("More than one enty found for netid-id %(id)s."),
+            LOG.error("More than one enty found for netid-id %(id)s.",
                       ({'id': netid}))
         return None
 
@@ -793,9 +791,9 @@ class DfaDBMixin(object):
                 fw_dict = self.conv_db_dict(fw)
             return fw_dict
         except orm_exc.NoResultFound:
-            LOG.info(_LI('FW %s does not exist') % tenant_id)
+            LOG.info('FW %s does not exist' % tenant_id)
         except orm_exc.MultipleResultsFound:
-            LOG.error(_LE("More than one enty found for tenant-id %(id)s."),
+            LOG.error("More than one enty found for tenant-id %(id)s.",
                       ({'id': tenant_id}))
 
     def get_fw_by_rtr_netid(self, netid):
@@ -806,10 +804,10 @@ class DfaDBMixin(object):
                     router_net_id=netid).one()
             return net
         except orm_exc.NoResultFound:
-            LOG.info(_LI('Network %(segid)s does not exist') %
+            LOG.info('Network %(segid)s does not exist' %
                      ({'netid': netid}))
         except orm_exc.MultipleResultsFound:
-            LOG.error(_LE("More than one enty found for netid-id %(id)s."),
+            LOG.error("More than one enty found for netid-id %(id)s.",
                       ({'id': netid}))
 
     def get_fw_by_rtrid(self, rtrid):
@@ -818,9 +816,9 @@ class DfaDBMixin(object):
             with session.begin(subtransactions=True):
                 rtr = session.query(DfaFwInfo).filter_by(router_id=rtrid)
         except orm_exc.NoResultFound:
-            LOG.info(_LI('rtr %(rtrid)s does not exist') % ({'rtrid': rtrid}))
+            LOG.info('rtr %(rtrid)s does not exist' % ({'rtrid': rtrid}))
         except orm_exc.MultipleResultsFound:
-            LOG.error(_LE("More than one enty found for rtrid-id %(id)s."),
+            LOG.error("More than one enty found for rtrid-id %(id)s.",
                       ({'id': rtrid}))
         return rtr
 
@@ -838,9 +836,9 @@ class DfaDBMixin(object):
                 fw = session.query(DfaFwInfo).filter_by(fw_id=fw_id).first()
                 fw_dict = self.conv_db_dict(fw)
         except orm_exc.NoResultFound:
-            LOG.info(_LI('fw %(fwid)s does not exist') % ({'fw_id': fw_id}))
+            LOG.info('fw %(fwid)s does not exist' % ({'fw_id': fw_id}))
         except orm_exc.MultipleResultsFound:
-            LOG.error(_LE("More than one enty found for fwid-id %(id)s."),
+            LOG.error("More than one enty found for fwid-id %(id)s.",
                       ({'id': fw_id}))
         return fw, fw_dict
 
@@ -925,7 +923,7 @@ class DfasubnetDriver(object):
                     # it's not allocatable, so check if its allocated
                     if not alloc.allocated:
                         # it's not, so remove it from table
-                        LOG.info(_LI("Removing subnet %s from pool") %
+                        LOG.info("Removing subnet %s from pool" %
                                  alloc.subnet_address)
                         session.delete(alloc)
 
@@ -957,7 +955,7 @@ class DfasubnetDriver(object):
             for attempt in range(DB_MAX_RETRIES + 1):
                 alloc = select.first()
                 if not alloc:
-                    LOG.info(_LI("No subnet resource available"))
+                    LOG.info("No subnet resource available")
                     return
                 count = (session.query(self.model).
                          filter_by(subnet_address=alloc.subnet_address,
@@ -966,7 +964,7 @@ class DfasubnetDriver(object):
                 if count:
                     return alloc.subnet_address
 
-        LOG.error(_LE("ERROR: Failed to allocate subnet for net %(net)s"),
+        LOG.error("ERROR: Failed to allocate subnet for net %(net)s",
                   {'net': net_id})
         return None
 
@@ -990,16 +988,16 @@ class DfasubnetDriver(object):
                 count = query.update({"allocated": False, "network_id": None,
                                       "subnet_id": None})
                 if count:
-                    LOG.info(_LI("Releasing subnet id %s to pool") %
+                    LOG.info("Releasing subnet id %s to pool" %
                              subnet_address)
             else:
                 count = query.delete()
                 if count:
-                    LOG.info(_LI("Releasing subnet %s outside pool") %
+                    LOG.info("Releasing subnet %s outside pool" %
                              subnet_address)
 
         if not count:
-            LOG.info(_LI("subnet %s not found") % subnet_address)
+            LOG.info("subnet %s not found" % subnet_address)
 
     def release_subnet_by_netid(self, netid):
 
@@ -1010,7 +1008,7 @@ class DfasubnetDriver(object):
                     allocated=True, network_id=netid).update(
                         {"allocated": False})
         except orm_exc.NoResultFound:
-            LOG.info(_LI("Network %(netid)s does not exist") %
+            LOG.info("Network %(netid)s does not exist" %
                      ({'netid': netid}))
 
     def release_subnet_no_netid(self):
@@ -1023,7 +1021,7 @@ class DfasubnetDriver(object):
                     allocated=True, network_id=net).update(
                         {"allocated": False}))
         except orm_exc.NoResultFound:
-            LOG.error(_LE("Query failed in release subnet no netid"))
+            LOG.error("Query failed in release subnet no netid")
 
     def get_subnet_by_netid(self, netid):
         session = db.get_session()
@@ -1034,10 +1032,10 @@ class DfasubnetDriver(object):
                     one()
             return net.subnet_address
         except orm_exc.NoResultFound:
-            LOG.error(_LE('Network %(netid)s does not exist'),
+            LOG.error('Network %(netid)s does not exist',
                       ({'netid': netid}))
         except orm_exc.MultipleResultsFound:
-            LOG.error(_LE("More than one enty found for netid-id %(id)s."),
+            LOG.error("More than one enty found for netid-id %(id)s.",
                       ({'id': netid}))
         return None
 
@@ -1050,9 +1048,9 @@ class DfasubnetDriver(object):
                     one()
             return net
         except orm_exc.NoResultFound:
-            LOG.info(_LI('subnet %(sub)s does not exist'), ({'sub': sub}))
+            LOG.info('subnet %(sub)s does not exist', ({'sub': sub}))
         except orm_exc.MultipleResultsFound:
-            LOG.error(_LE("More than one enty found for sub %(sub)s."),
+            LOG.error("More than one enty found for sub %(sub)s.",
                       ({'sub': sub}))
         return None
 
@@ -1081,8 +1079,8 @@ class TopologyDiscoveryDb(object):
                     host=host, protocol_interface=protocol_interface).update(
                     topo_dict)
             except orm_exc.NoResultFound:
-                LOG.info(_LI("Creating new topology entry for host "
-                             "%(host)s on Interface %(intf)s"),
+                LOG.info("Creating new topology entry for host "
+                         "%(host)s on Interface %(intf)s",
                          {'host': host, 'intf': protocol_interface})
                 topo_disc = DfaTopologyDb(
                     host=host, protocol_interface=protocol_interface,
@@ -1101,11 +1099,11 @@ class TopologyDiscoveryDb(object):
                     configurations=topo_dict.get('configurations'))
                 session.add(topo_disc)
             except orm_exc.MultipleResultsFound:
-                LOG.error(_LE("More than one enty found for agent %(host)s."
-                              "Interface %(intf)s"),
+                LOG.error("More than one enty found for agent %(host)s."
+                          "Interface %(intf)s",
                           {'host': host, 'intf': protocol_interface})
             except Exception as exc:
-                LOG.error(_LE("Exception in add_update_topology_db %s"), exc)
+                LOG.error("Exception in add_update_topology_db %s", exc)
 
     def _convert_topo_obj_dict(self, topology_objs):
         """Convert topology object to dict. """
@@ -1136,7 +1134,7 @@ class TopologyDiscoveryDb(object):
                 # Check if entry exists.
                 topo_disc = session.query(DfaTopologyDb).filter_by(**req).all()
             except orm_exc.NoResultFound:
-                LOG.info(_LI("No Topology results found for %s"), req)
+                LOG.info("No Topology results found for %s", req)
                 return None
         if dict_convert:
             return self._convert_topo_obj_dict(topo_disc)
@@ -1149,10 +1147,10 @@ class TopologyDiscoveryDb(object):
             try:
                 rows = session.query(DfaTopologyDb).filter_by(**req).all()
             except orm_exc.NoResultFound:
-                LOG.info(_LI("No Topology results found for %s"), req)
+                LOG.info("No Topology results found for %s", req)
                 return
             try:
                 for row in rows:
                     session.delete(row)
             except Exception as exc:
-                LOG.error(_LE("Exception raised %s"), str(exc))
+                LOG.error("Exception raised %s", str(exc))
