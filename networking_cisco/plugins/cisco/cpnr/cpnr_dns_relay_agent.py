@@ -27,7 +27,7 @@ from neutron_lib import exceptions
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from networking_cisco._i18n import _, _LE, _LW
+from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cpnr.cpnr_client import UnexpectedError
 from networking_cisco.plugins.cisco.cpnr import debug_stats
@@ -127,7 +127,7 @@ class DnsRelayAgent(object):
             try:
                 curr_ns = set(netns.nslist())
             except Exception:
-                LOG.error(_LE('Failed to get current namespace set'))
+                LOG.error('Failed to get current namespace set')
                 continue
 
             # For each unknown namespace, start a relay thread
@@ -151,8 +151,8 @@ class DnsRelayAgent(object):
             self.ext_sock, self.ext_addr, ext_port = (
                 self._open_dns_ext_socket())
         except Exception:
-            LOG.exception(_LE('Failed to open dns external '
-                              'socket in global ns'))
+            LOG.exception('Failed to open dns external '
+                          'socket in global ns')
             return
         recvbuf = bytearray(RECV_BUFFER_SIZE)
         LOG.debug("Opened dns external server socket on addr:%s:%i",
@@ -182,7 +182,7 @@ class DnsRelayAgent(object):
             except socket.timeout:
                 pass
             except Exception:
-                LOG.exception(_LE('Failed to forward dns response'))
+                LOG.exception('Failed to forward dns response')
         LOG.debug('Server Network relay exiting')
 
     def _client_network_relay(self, namespace):
@@ -192,7 +192,7 @@ class DnsRelayAgent(object):
             with self.ns_lock, netns.Namespace(namespace):
                 int_sock, int_addr, int_port = self._open_dns_int_socket()
         except exceptions.BaseException:
-            LOG.exception(_LE('Failed to open dns server socket in %s'),
+            LOG.exception('Failed to open dns server socket in %s',
                           namespace)
             del self.ns_states[namespace]
             return
@@ -229,8 +229,8 @@ class DnsRelayAgent(object):
             except socket.timeout:
                 pass
             except Exception:
-                LOG.exception(_LE('Failed to forward dns request to server '
-                                'from %s'), namespace)
+                LOG.exception('Failed to forward dns request to server '
+                              'from %s', namespace)
 
         # Cleanup socket and internal state
         try:
@@ -238,7 +238,7 @@ class DnsRelayAgent(object):
             self.debug_stats.del_network_stats(viewid)
             int_sock.close()
         except Exception:
-            LOG.warning(_LW('Failed to cleanup dns relay for %s'), namespace)
+            LOG.warning('Failed to cleanup dns relay for %s', namespace)
         LOG.debug('Client network relay exiting')
 
     def _open_dns_ext_socket(self):
@@ -454,10 +454,10 @@ def main():
     try:
         netns.increase_ulimit(RLIMIT_NOFILE_LIMIT)
     except Exception:
-        LOG.error(_LE('Failed to increase ulimit for DNS relay'))
+        LOG.error('Failed to increase ulimit for DNS relay')
     if os.getuid() != 0:
         config.setup_logging()
-        LOG.error(_LE('Must run dns relay as root'))
+        LOG.error('Must run dns relay as root')
         return
     eventlet.monkey_patch()
     config.setup_logging()
