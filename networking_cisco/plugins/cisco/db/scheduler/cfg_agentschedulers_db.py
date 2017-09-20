@@ -21,7 +21,7 @@ import six
 from neutron.db import agentschedulers_db
 from neutron.extensions import agent as ext_agent
 
-from networking_cisco._i18n import _, _LI
+from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
@@ -177,9 +177,9 @@ class CfgAgentSchedulerDbMixin(
                             schedule):
                         # hosting device is handled by dead cfg agent so we'll
                         # try to reassign it to another cfg agent
-                        LOG.info(_LI('Config agent %(agent_id)s is not alive. '
-                                     'Un-assigning hosting device %(hd_id)s '
-                                     'managed by it.'),
+                        LOG.info('Config agent %(agent_id)s is not alive. '
+                                 'Un-assigning hosting device %(hd_id)s '
+                                 'managed by it.',
                                  {'agent_id': current_agent_db.id,
                                   'hd_id': hosting_device_db.id})
                         hosting_device_db.cfg_agent = None
@@ -212,8 +212,8 @@ class CfgAgentSchedulerDbMixin(
             if not hosting_device_db:
                 LOG.debug('Hosting device to schedule not specified')
                 return
-            LOG.info(_LI('Assigning hosting device %(hd_id)s to config agent '
-                         '%(agent_id)s.'),
+            LOG.info('Assigning hosting device %(hd_id)s to config agent '
+                     '%(agent_id)s.',
                      {'hd_id': hosting_device_db.id,
                       'agent_id':
                           cfg_agent_db.id if cfg_agent_db else None})
@@ -259,8 +259,8 @@ class CfgAgentSchedulerDbMixin(
                     continue
                 info['timestamp'] = timeutils.utcnow()
                 if self.is_agent_down(agent['heartbeat_timestamp']):
-                    LOG.info(_LI('Config agent %s is not alive. Un-assigning '
-                                 'hosting devices managed by it.'),
+                    LOG.info('Config agent %s is not alive. Un-assigning '
+                             'hosting devices managed by it.',
                              cfg_agent_id)
                     self._reschedule_hosting_devices(e_context, cfg_agent_id)
         for cfg_agent_id in to_remove:
@@ -276,8 +276,8 @@ class CfgAgentSchedulerDbMixin(
                                                     filters=filters):
                 agent_db = self.cfg_agent_scheduler.schedule_hosting_device(
                     self, context, hd_db)
-                LOG.info(_LI('Un-assigning hosting device %(hd_id)s from '
-                             'config agent %(agent_id)s.'),
+                LOG.info('Un-assigning hosting device %(hd_id)s from '
+                         'config agent %(agent_id)s.',
                          {'hd_id': hd_db.id, 'agent_id': cfg_agent_id})
                 if agent_db is None:
                     hd_db.cfg_agent_id = None

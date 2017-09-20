@@ -20,8 +20,6 @@ from oslo_utils import uuidutils
 from sqlalchemy import exc as sql_exc
 from sqlalchemy.orm import exc
 
-from networking_cisco._i18n import _LE
-
 from networking_cisco.plugins.cisco.db.l3 import l3_models
 import networking_cisco.plugins.cisco.extensions.routertype as routertype
 
@@ -104,8 +102,8 @@ class RoutertypeDbMixin(routertype.RoutertypePluginBase):
             return query.one()
         except exc.MultipleResultsFound:
             with excutils.save_and_reraise_exception():
-                LOG.error(_LE('Database inconsistency: Multiple router types '
-                              'with same id %s'), id_or_name)
+                LOG.error('Database inconsistency: Multiple router types '
+                          'with same id %s', id_or_name)
                 raise routertype.RouterTypeNotFound(router_type=id_or_name)
         except exc.NoResultFound:
             query = context.session.query(l3_models.RouterType)
@@ -120,7 +118,7 @@ class RoutertypeDbMixin(routertype.RoutertypePluginBase):
                     raise routertype.MultipleRouterTypes(name=id_or_name)
             except exc.NoResultFound:
                 with excutils.save_and_reraise_exception():
-                    LOG.error(_LE('No router type with name %s found.'),
+                    LOG.error('No router type with name %s found.',
                               id_or_name)
                     raise routertype.RouterTypeNotFound(id=id_or_name)
 

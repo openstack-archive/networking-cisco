@@ -29,7 +29,7 @@ from neutron.db import models_v2
 from neutron.extensions import l3
 from neutron_lib import exceptions as n_exc
 
-from networking_cisco._i18n import _, _LW
+from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.common import utils as cisco_utils
@@ -252,9 +252,9 @@ class HA_db_mixin(object):
                 probe_interval=ha_spec[ha.PROBE_INTERVAL])
             context.session.add(r_ha_s_db)
         if r_ha_s_db.probe_connectivity and r_ha_s_db.probe_target is None:
-            LOG.warning(_LW("Connectivity probing for high-availability is "
-                            "enabled but probe target is not specified. Please"
-                            " configure option \'default_probe_target\'."))
+            LOG.warning("Connectivity probing for high-availability is "
+                        "enabled but probe target is not specified. Please"
+                        " configure option \'default_probe_target\'.")
         e_context = context.elevated()
         if new_router_db.gw_port:
             # generate ha settings and extra port for router gateway (VIP) port
