@@ -28,8 +28,6 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 
-from networking_cisco._i18n import _LW
-
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     config as conf)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -391,7 +389,7 @@ class CiscoNexusSshDriver(basedrvr.CiscoNexusBaseDriver):
                 LOG.debug("GET call returned Nexus type %d",
                     int(nexus_type[0]))
                 return int(nexus_type[0])
-        LOG.warning(_LW("GET call failed to return Nexus type"))
+        LOG.warning("GET call failed to return Nexus type")
         return -1
 
     def _extract_line_item_data(self, obj, which, re_str):

@@ -35,7 +35,6 @@ from neutron.plugins.common import constants as p_const
 
 from neutron.plugins.ml2 import driver_api as api
 
-from networking_cisco._i18n import _LE, _LI, _LW
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     config as conf)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -52,7 +51,7 @@ from networking_cisco.services.trunk import nexus_trunk
 
 LOG = logging.getLogger(__name__)
 
-HOST_NOT_FOUND = _LW("Host %s not defined in switch configuration section.")
+HOST_NOT_FOUND = "Host %s not defined in switch configuration section."
 
 # Delay the start of the monitor thread to avoid problems with Neutron server
 # process forking. One problem observed was ncclient RPC sync close_session
@@ -82,8 +81,8 @@ class CiscoNexusCfgMonitor(object):
     def _configure_nexus_type(self, switch_ip, nexus_type):
         if nexus_type not in (const.NEXUS_3K, const.NEXUS_5K,
             const.NEXUS_7K, const.NEXUS_9K):
-            LOG.error(_LE("Received invalid Nexus type %(nexus_type)d "
-                "for switch ip %(switch_ip)s"),
+            LOG.error("Received invalid Nexus type %(nexus_type)d "
+                "for switch ip %(switch_ip)s",
                 {'nexus_type': nexus_type, 'switch_ip': switch_ip})
             return
         if (self._mdriver.get_switch_nexus_type(switch_ip) ==
@@ -108,8 +107,8 @@ class CiscoNexusCfgMonitor(object):
                 switch_ifs, switch_ip)
         except Exception:
             with excutils.save_and_reraise_exception():
-                LOG.warning(_LW("Unable to initialize interfaces to "
-                                "switch %(switch_ip)s"),
+                LOG.warning("Unable to initialize interfaces to "
+                            "switch %(switch_ip)s",
                             {'switch_ip': switch_ip})
                 self._mdriver.register_switch_as_inactive(switch_ip,
                     'replay init_interface')
@@ -122,9 +121,9 @@ class CiscoNexusCfgMonitor(object):
         try:
                 self._driver.close_session(switch_ip)
         except Exception:
-                LOG.warning(_LW("Failed to release connection after "
-                                "initialize interfaces for switch "
-                                "%(switch_ip)s"),
+                LOG.warning("Failed to release connection after "
+                            "initialize interfaces for switch "
+                            "%(switch_ip)s",
                             {'switch_ip': switch_ip})
 
     def replay_config(self, switch_ip):
@@ -157,9 +156,9 @@ class CiscoNexusCfgMonitor(object):
                 self._driver.create_nve_member(switch_ip,
                     const.NVE_INT_NUM, x.vni, x.mcast_group)
             except Exception as e:
-                LOG.error(_LE("Failed to configure nve_member for "
+                LOG.error("Failed to configure nve_member for "
                     "switch %(switch_ip)s, vni %(vni)s"
-                    "Reason:%(reason)s "),
+                    "Reason:%(reason)s ",
                     {'switch_ip': switch_ip, 'vni': x.vni,
                      'reason': e})
                 self._mdriver.register_switch_as_inactive(switch_ip,
@@ -169,8 +168,8 @@ class CiscoNexusCfgMonitor(object):
         try:
             port_bindings = nxos_db.get_nexusport_switch_bindings(switch_ip)
         except excep.NexusPortBindingNotFound:
-            LOG.warning(_LW("No port entries found for switch ip "
-                            "%(switch_ip)s during replay."),
+            LOG.warning("No port entries found for switch ip "
+                        "%(switch_ip)s during replay.",
                         {'switch_ip': switch_ip})
             return
 
@@ -178,8 +177,8 @@ class CiscoNexusCfgMonitor(object):
             self._mdriver.configure_switch_entries(
                 switch_ip, port_bindings)
         except Exception as e:
-                LOG.error(_LE("Unexpected exception while replaying "
-                    "entries for switch %(switch_ip)s, Reason:%(reason)s "),
+                LOG.error("Unexpected exception while replaying "
+                    "entries for switch %(switch_ip)s, Reason:%(reason)s ",
                     {'switch_ip': switch_ip, 'reason': e})
                 self._mdriver.register_switch_as_inactive(switch_ip,
                     'replay switch_entries')
@@ -208,8 +207,8 @@ class CiscoNexusCfgMonitor(object):
                 nexus_type = self._driver.get_nexus_type(switch_ip)
             except Exception:
                 if state != const.SWITCH_INACTIVE:
-                    LOG.error(_LE("Lost connection to switch ip "
-                        "%(switch_ip)s"), {'switch_ip': switch_ip})
+                    LOG.error("Lost connection to switch ip "
+                        "%(switch_ip)s", {'switch_ip': switch_ip})
                     self._mdriver.set_switch_ip_and_active_state(
                         switch_ip, const.SWITCH_INACTIVE)
                 else:
@@ -220,9 +219,9 @@ class CiscoNexusCfgMonitor(object):
                     try:
                         self._mdriver.configure_next_batch_of_vlans(switch_ip)
                     except Exception as e:
-                        LOG.error(_LE("Unexpected exception while replaying "
+                        LOG.error("Unexpected exception while replaying "
                                   "entries for switch %(switch_ip)s, "
-                                  "Reason:%(reason)s "),
+                                  "Reason:%(reason)s ",
                                   {'switch_ip': switch_ip, 'reason': e})
                         self._mdriver.register_switch_as_inactive(
                             switch_ip, 'replay next_vlan_batch')
@@ -230,8 +229,8 @@ class CiscoNexusCfgMonitor(object):
 
                 if state == const.SWITCH_INACTIVE:
                     self._configure_nexus_type(switch_ip, nexus_type)
-                    LOG.info(_LI("Re-established connection to switch "
-                        "ip %(switch_ip)s"),
+                    LOG.info("Re-established connection to switch "
+                        "ip %(switch_ip)s",
                         {'switch_ip': switch_ip})
 
                     self._mdriver.set_switch_ip_and_active_state(
@@ -249,16 +248,16 @@ class CiscoNexusCfgMonitor(object):
                         switch_ip) == const.SWITCH_INACTIVE:
                         self._mdriver.incr_switch_replay_failure(
                             const.FAIL_CONFIG, switch_ip)
-                        LOG.warning(_LW("Replay config failed for "
-                                        "ip %(switch_ip)s"),
+                        LOG.warning("Replay config failed for "
+                                    "ip %(switch_ip)s",
                                     {'switch_ip': switch_ip})
                     else:
                         self._mdriver.reset_switch_replay_failure(
                             const.FAIL_CONFIG, switch_ip)
                         self._mdriver.reset_switch_replay_failure(
                             const.FAIL_CONTACT, switch_ip)
-                        LOG.info(_LI("Replay config successful for "
-                            "ip %(switch_ip)s"),
+                        LOG.info("Replay config successful for "
+                            "ip %(switch_ip)s",
                             {'switch_ip': switch_ip})
 
 
@@ -277,7 +276,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 conf.cfg.CONF.ml2_cisco.nexus_driver)
             return loaded_class(self._nexus_switches)
         except ImportError:
-            LOG.error(_LE("Error loading Nexus Config driver '%s'"),
+            LOG.error("Error loading Nexus Config driver '%s'",
                       conf.cfg.CONF.ml2_cisco.nexus_driver)
             raise SystemExit(1)
 
@@ -300,17 +299,17 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             try:
                 minmax = [int(r.strip()) for r in vpcid.split('-')]
             except Exception:
-                LOG.error(_LE("Unexpected value %(bad)s configured "
+                LOG.error("Unexpected value %(bad)s configured "
                           "in vpc-pool config %(all)s for switch "
-                          "%(switchip)s. Ignoring entire config."),
+                          "%(switchip)s. Ignoring entire config.",
                           {'bad': vpcid, 'all': value,
                           'switchip': switch_ip})
                 return [], True
 
             if len(minmax) > 2:
-                LOG.error(_LE("Incorrectly formatted range %(bad)s "
+                LOG.error("Incorrectly formatted range %(bad)s "
                           "config in vpc-pool config %(all)s for switch "
-                          "%(switchip)s. Ignoring entire config."),
+                          "%(switchip)s. Ignoring entire config.",
                           {'bad': vpcid, 'all': value,
                           'switchip': switch_ip})
                 return [], True
@@ -323,9 +322,9 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 end - 1 >= const.MINVPC and end - 1 <= const.MAXVPC):
                 new_list.update(range(start, end))
             else:
-                LOG.error(_LE("Invalid Port-channel range value %(bad)s "
+                LOG.error("Invalid Port-channel range value %(bad)s "
                           "received in vpc-pool config %(all)s for "
-                          "switch %(switchip)s. Ignoring entire config."),
+                          "switch %(switchip)s. Ignoring entire config.",
                           {'bad': vpcid, 'all': value,
                           'switchip': switch_ip})
                 return [], True
@@ -403,9 +402,9 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         self.context = bc.get_context()
         self.trunk = trunk.NexusMDTrunkHandler()
         nexus_trunk.NexusTrunkDriver.create()
-        LOG.info(_LI("CiscoNexusMechanismDriver: initialize() called "
-                    "pid %(pid)d thid %(tid)d"), {'pid': self._ppid,
-                    'tid': threading.current_thread().ident})
+        LOG.info("CiscoNexusMechanismDriver: initialize() called "
+                 "pid %(pid)d thid %(tid)d", {'pid': self._ppid,
+                 'tid': threading.current_thread().ident})
         # Start the monitor thread
         if self.is_replay_enabled():
             eventlet.spawn_after(DELAY_MONITOR_THREAD, self._monitor_thread)
@@ -449,7 +448,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
     def register_switch_as_inactive(self, switch_ip, func_name):
         self.set_switch_ip_and_active_state(switch_ip, const.SWITCH_INACTIVE)
         LOG.exception(
-            _LE("Nexus Driver cisco_nexus failed in %(func_name)s"),
+            "Nexus Driver cisco_nexus failed in %(func_name)s",
             {'func_name': func_name})
 
     def is_switch_active(self, switch_ip):
@@ -567,7 +566,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         try:
             bindings = nxos_db.get_reserved_switch_binding()
         except excep.NexusPortBindingNotFound:
-            LOG.error(_LE("No switch bindings in the port data base"))
+            LOG.error("No switch bindings in the port data base")
             bindings = []
         for switch in bindings:
             switch_connections.append(switch.switch_ip)
@@ -610,7 +609,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             if not isinstance(switch_info, dict):
                 switch_info = jsonutils.loads(switch_info)
         except Exception as e:
-            LOG.error(_LE("switch_info can't be decoded: %(exp)s"),
+            LOG.error("switch_info can't be decoded: %(exp)s",
                       {"exp": e})
             switch_info = {}
 
@@ -677,8 +676,8 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             if self._switch_defined(switch_ip):
                 selected = True
             else:
-                LOG.warning(_LW("Skip switch %s.  Not configured "
-                          "in ini file") % switch_ip)
+                LOG.warning("Skip switch %s.  Not configured "
+                            "in ini file" % switch_ip)
 
         if not selected:
             return False
@@ -1283,8 +1282,8 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                     switch_ip, next_range)
             except Exception:
                 with excutils.save_and_reraise_exception():
-                    LOG.error(_LE("Error encountered restoring vlans "
-                        "for switch %(switch_ip)s"),
+                    LOG.error("Error encountered restoring vlans "
+                        "for switch %(switch_ip)s",
                         {'switch_ip': switch_ip})
                     self._save_switch_vlan_range(switch_ip, [])
 
@@ -1294,8 +1293,8 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 self._restore_vxlan_entries(switch_ip, vxlan_range)
             except Exception:
                 with excutils.save_and_reraise_exception():
-                    LOG.error(_LE("Error encountered restoring vxlans "
-                        "for switch %(switch_ip)s"),
+                    LOG.error("Error encountered restoring vxlans "
+                        "for switch %(switch_ip)s",
                         {'switch_ip': switch_ip})
                     self._save_switch_vxlan_range(switch_ip, [])
 
@@ -1304,8 +1303,8 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             not self._get_switch_vxlan_range(switch_ip)):
             self.set_switch_ip_and_active_state(
                 switch_ip, const.SWITCH_ACTIVE)
-            LOG.info(_LI("Restore of Nexus switch "
-                "ip %(switch_ip)s is complete"),
+            LOG.info("Restore of Nexus switch "
+                "ip %(switch_ip)s is complete",
                 {'switch_ip': switch_ip})
         else:
             LOG.debug(("Restored batch of VLANS on "
@@ -1575,17 +1574,17 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 return current_host_id != original_host_id
 
     def _log_missing_segment(self):
-        LOG.warning(_LW("Nexus: Segment is None, Event not processed."))
+        LOG.warning("Nexus: Segment is None, Event not processed.")
 
     def _is_valid_segment(self, segment):
         valid_segment = True
         if segment:
             if (segment[api.NETWORK_TYPE] != p_const.TYPE_VLAN or
                 not self._valid_network_segment(segment)):
-                LOG.warning(_LW("Nexus: Segment is an invalid type or not "
-                                "supported by this driver. Network type = "
-                                "%(network_type)s Physical network = "
-                                "%(phy_network)s. Event not processed."),
+                LOG.warning("Nexus: Segment is an invalid type or not "
+                            "supported by this driver. Network type = "
+                            "%(network_type)s Physical network = "
+                            "%(phy_network)s. Event not processed.",
                             {'network_type': segment[api.NETWORK_TYPE],
                              'phy_network': segment[api.PHYSICAL_NETWORK]})
                 valid_segment = False
@@ -1711,8 +1710,8 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                     self.driver.get_nexus_type(switch_ip)
                     verified_active_switches.append(switch_ip)
                 except Exception as e:
-                    LOG.error(_LE("Failed to ping "
-                        "switch ip %(switch_ip)s error %(exp_err)s"),
+                    LOG.error("Failed to ping "
+                        "switch ip %(switch_ip)s error %(exp_err)s",
                         {'switch_ip': switch_ip, 'exp_err': e})
 
             LOG.debug("Create Stats:  thread %(thid)d, "
