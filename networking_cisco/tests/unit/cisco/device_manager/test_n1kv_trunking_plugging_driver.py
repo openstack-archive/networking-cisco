@@ -106,7 +106,7 @@ class TestN1kvTrunkingPluggingDriver(
         plugging_driver = self.test_driver()
         p_id = plugging_driver._get_profile_id('port_profile', 'N1kv port '
                                                'profile', 'the_profile')
-        self.assertEqual(p_id, None)
+        self.assertIsNone(p_id)
 
     def test__get_profile_id_no_match(self):
         m1 = mock.MagicMock(return_value=[])
@@ -114,7 +114,7 @@ class TestN1kvTrunkingPluggingDriver(
         plugging_driver = self.test_driver()
         p_id = plugging_driver._get_profile_id('port_profile', 'N1kv port '
                                                'profile', 'the_profile')
-        self.assertEqual(p_id, None)
+        self.assertIsNone(p_id)
 
     def test__get_network_profile_id(self):
         m1 = mock.MagicMock(return_value=[{'id': 'profile_uuid1'}])
@@ -131,7 +131,7 @@ class TestN1kvTrunkingPluggingDriver(
         plugging_driver = self.test_driver()
         p_id = plugging_driver._get_profile_id('net_profile', 'net profile',
                                                'the_profile')
-        self.assertEqual(p_id, None)
+        self.assertIsNone(p_id)
 
     def test__get_network_profile_id_no_match(self):
         m1 = mock.MagicMock(return_value=[])
@@ -139,7 +139,7 @@ class TestN1kvTrunkingPluggingDriver(
         plugging_driver = self.test_driver()
         p_id = plugging_driver._get_profile_id('net_profile', 'net profile',
                                                'the_profile')
-        self.assertEqual(p_id, None)
+        self.assertIsNone(p_id)
 
     def test_create_hosting_device_resources(self):
 

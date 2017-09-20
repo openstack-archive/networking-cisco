@@ -20,7 +20,7 @@ from oslo_log import log as logging
 
 from neutron_lib import exceptions as nexception
 
-from networking_cisco._i18n import _, _LE
+from networking_cisco._i18n import _
 
 LOG = logging.getLogger(__name__)
 
@@ -78,6 +78,6 @@ def convert_validate_driver_class(driver_class_name):
             if parts[-1] in dir(mod):
                 return driver_class_name
         except ImportError as e:
-            LOG.error(_LE('Failed to verify driver module %(name)s: %(err)s'),
+            LOG.error('Failed to verify driver module %(name)s: %(err)s',
                       {'name': driver_class_name, 'err': e})
     raise DriverNotFound(driver=driver_class_name)
