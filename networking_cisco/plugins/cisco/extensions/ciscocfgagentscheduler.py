@@ -26,7 +26,7 @@ from neutron import policy
 from neutron import wsgi
 from neutron_lib import exceptions
 
-from networking_cisco._i18n import _, _LE
+from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.extensions import ciscohostingdevicemanager
@@ -67,8 +67,8 @@ class HostingDeviceSchedulerController(wsgi.Controller):
     def get_plugin(self):
         plugin = bc.get_plugin(cisco_constants.DEVICE_MANAGER)
         if not plugin:
-            LOG.error(_LE('No Device manager service plugin registered to '
-                          'handle hosting device scheduling'))
+            LOG.error('No Device manager service plugin registered to '
+                      'handle hosting device scheduling')
             msg = _('The resource could not be found.')
             raise webob.exc.HTTPNotFound(msg)
         return plugin
@@ -109,8 +109,8 @@ class CfgAgentsHandlingHostingDeviceController(wsgi.Controller):
     def get_plugin(self):
         plugin = bc.get_plugin(cisco_constants.DEVICE_MANAGER)
         if not plugin:
-            LOG.error(_LE('No device manager service plugin registered to '
-                          'handle hosting device scheduling'))
+            LOG.error('No device manager service plugin registered to '
+                      'handle hosting device scheduling')
             msg = _('The resource could not be found.')
             raise webob.exc.HTTPNotFound(msg)
         return plugin

@@ -26,7 +26,7 @@ from neutron_lib import exceptions as n_exc
 from oslo_log import log as logging
 import webob.exc
 
-from networking_cisco._i18n import _, _LE
+from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.extensions import ciscohostingdevicemanager
 
@@ -77,8 +77,8 @@ class RouterHostingDeviceSchedulerController(wsgi.Controller):
     def get_plugin(self):
         plugin = bc.get_plugin(bc.constants.L3)
         if not plugin:
-            LOG.error(_LE('No L3 router service plugin registered to '
-                          'handle routertype-aware scheduling'))
+            LOG.error('No L3 router service plugin registered to '
+                      'handle routertype-aware scheduling')
             msg = _('The resource could not be found.')
             raise webob.exc.HTTPNotFound(msg)
         return plugin
@@ -116,8 +116,8 @@ class HostingDevicesHostingRouterController(wsgi.Controller):
     def get_plugin(self):
         plugin = bc.get_plugin(bc.constants.L3)
         if not plugin:
-            LOG.error(_LE('No L3 router service plugin registered to '
-                          'handle routertype-aware scheduling'))
+            LOG.error('No L3 router service plugin registered to '
+                      'handle routertype-aware scheduling')
             msg = _('The resource could not be found.')
             raise webob.exc.HTTPNotFound(msg)
         return plugin
