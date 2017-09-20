@@ -17,7 +17,8 @@ import netaddr
 
 from oslo_config import cfg
 
-from networking_cisco._i18n import _, _LE, _LI
+from networking_cisco._i18n import _
+
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions as cfg_exc
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
@@ -412,7 +413,7 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                    if i['subnet_id'] == subnet_id), None)
         if ip is None:
             # there will be KeyError exception later if this happens
-            LOG.error(_LE('Port %(p_id)s lacks IP address on subnet %(s_id)s'),
+            LOG.error('Port %(p_id)s lacks IP address on subnet %(s_id)s',
                       {'p_id': port['id'], 's_id': subnet_id})
             return
         subnet = next(sn for sn in port['subnets'] if sn['id'] == subnet_id)
@@ -493,7 +494,7 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         vlan = self._get_interface_vlan_from_hosting_port(port)
         if (self._fullsync and
                 int(vlan) in self._existing_cfg_dict['interfaces']):
-            LOG.info(_LI("Sub-interface already exists, will not create it"))
+            LOG.info("Sub-interface already exists, will not create it")
             return
         vrf_name = self._get_vrf_name(ri)
         net_mask = netaddr.IPNetwork(port['ip_info']['ip_cidr']).netmask
@@ -509,7 +510,7 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         vlan = self._get_interface_vlan_from_hosting_port(port)
         if (self._fullsync and
                 int(vlan) in self._existing_cfg_dict['interfaces']):
-            LOG.info(_LI("Sub-interface already exists, will not create it"))
+            LOG.info("Sub-interface already exists, will not create it")
             return
         net_mask = netaddr.IPNetwork(port['ip_info']['ip_cidr']).netmask
         # get port's ip address for the subnet we're processing
@@ -631,7 +632,7 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         pool_net = "%s/%s" % (pool_ip, pool_ip_prefix_len)
         pool_net = netaddr.IPNetwork(pool_net)
         if self._fullsync and pool_ip in self._existing_cfg_dict['pools']:
-            LOG.info(_LI("Pool already exists, skipping"))
+            LOG.info("Pool already exists, skipping")
             return
 
         try:
@@ -647,7 +648,7 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                 self._edit_running_config(conf_str, 'CREATE_NAT_POOL')
         #except cfg_exc.CSR1kvConfigException as cse:
         except Exception as cse:
-            LOG.error(_LE("Temporary disable NAT_POOL exception handling: %s"),
+            LOG.error("Temporary disable NAT_POOL exception handling: %s",
                       cse)
 
     def _add_default_route(self, ri, ext_gw_port):
@@ -712,10 +713,10 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                 ip = self._get_item(port['fixed_ips'],
                                     port['ip_info']['subnet_id'])['ip_address']
                 LOG.warning(
-                    _LI("Could not remove HSRP VIP address for port %(p_id)s "
-                        "with interface IP %(addr)s because plugin did not "
-                        "provide needed information. Manual removal by admin "
-                        "required."), {'p_id': port['id'], 'addr': ip})
+                    "Could not remove HSRP VIP address for port %(p_id)s "
+                    "with interface IP %(addr)s because plugin did not "
+                    "provide needed information. Manual removal by admin "
+                    "required.", {'p_id': port['id'], 'addr': ip})
                 return
         else:
             return
@@ -881,9 +882,9 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         try:
             self._edit_running_config(conf_str, 'SET_DYN_SRC_TRL_POOL')
         except Exception as dyn_nat_e:
-            LOG.info(_LI("Ignore exception for SET_DYN_SRC_TRL_POOL: %s. "
-                         "The config seems to be applied properly but netconf "
-                         "seems to report an error."), dyn_nat_e)
+            LOG.info("Ignore exception for SET_DYN_SRC_TRL_POOL: %s. "
+                     "The config seems to be applied properly but netconf "
+                     "seems to report an error.", dyn_nat_e)
 
         conf_str = snippets.SET_NAT % (inner_itfc, 'inside')
         self._edit_running_config(conf_str, 'SET_NAT')
@@ -938,8 +939,8 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                 (acl_no, pool_name, vrf_name))
             self._edit_running_config(confstr, 'REMOVE_DYN_SRC_TRL_POOL')
         except cfg_exc.CSR1kvConfigException as cse:
-            LOG.error(_LE("temporary disable REMOVE_DYN_SRC_TRL_POOL"
-                      " exception handling: %s"), (cse))
+            LOG.error("temporary disable REMOVE_DYN_SRC_TRL_POOL"
+                      " exception handling: %s", (cse))
 
         conf_str = snippets.REMOVE_ACL % acl_no
         self._edit_running_config(conf_str, 'REMOVE_ACL')

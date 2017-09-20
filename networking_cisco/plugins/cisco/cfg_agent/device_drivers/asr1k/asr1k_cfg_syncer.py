@@ -21,7 +21,6 @@ import xml.etree.ElementTree as ET
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from networking_cisco._i18n import _LI
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
     asr1k_snippets as asr_snippets)
@@ -264,15 +263,15 @@ class ConfigSyncer(object):
         if not conn:
             conn = self.driver._get_connection()
 
-        LOG.info(_LI("neutron router db records"))
+        LOG.info("neutron router db records")
 
         for router_id, router in six.iteritems(router_id_dict):
-            LOG.info(_LI("ROUTER_ID: %s"), router_id)
+            LOG.info("ROUTER_ID: %s", router_id)
 
-        LOG.info(_LI("\n"))
+        LOG.info("\n")
 
         for segment_id, intf_list in six.iteritems(intf_segment_dict):
-            LOG.info(_LI("SEGMENT_ID: %s"), (segment_id))
+            LOG.info("SEGMENT_ID: %s", (segment_id))
             for intf in intf_list:
                 dev_owner = intf['device_owner']
                 dev_id = intf['device_id'][0:6]
@@ -352,15 +351,15 @@ class ConfigSyncer(object):
             vrf_regex_new = VRF_REGEX_NEW
 
         for parsed_obj in parsed_cfg.find_objects(vrf_regex_new):
-            LOG.info(_LI("VRF object: %s"), (str(parsed_obj)))
+            LOG.info("VRF object: %s", (str(parsed_obj)))
             match_obj = re.match(vrf_regex_new, parsed_obj.text)
             router_id = match_obj.group(1)
-            LOG.info(_LI("    First 6 digits of router ID: %s\n"),
-                        (router_id))
+            LOG.info("    First 6 digits of router ID: %s\n",
+                     (router_id))
             if (is_multi_region_enabled):
                 region_id = match_obj.group(2)
-                LOG.info(_LI("    region ID: %s\n"),
-                            (region_id))
+                LOG.info("    region ID: %s\n",
+                         (region_id))
                 my_region_id = cfg.CONF.multi_region.region_id
                 if (my_region_id == region_id):
                     rconf_ids.append(router_id)
@@ -379,8 +378,8 @@ class ConfigSyncer(object):
         # add_set = source_set.difference(dest_set)
         del_set = dest_set.difference(source_set)
 
-        LOG.info(_LI("VRF DB set: %s"), (source_set))
-        LOG.info(_LI("VRFs to delete: %s"), (del_set))
+        LOG.info("VRF DB set: %s", (source_set))
+        LOG.info("VRFs to delete: %s", (del_set))
         # LOG.info("VRFs to add: %s" % (add_set))
 
         is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
@@ -423,7 +422,7 @@ class ConfigSyncer(object):
 
         pools = parsed_cfg.find_objects(nat_pool_regex)
         for pool in pools:
-            LOG.info(_LI("\nNAT pool: %s"), (pool))
+            LOG.info("\nNAT pool: %s", (pool))
             match_obj = re.match(nat_pool_regex, pool.text)
             if (is_multi_region_enabled):
                 router_id, region_id, start_ip, end_ip, netmask = (
@@ -443,15 +442,15 @@ class ConfigSyncer(object):
 
             # Check that VRF exists in openstack DB info
             if router_id not in router_id_dict:
-                LOG.info(_LI("router not found for NAT pool, deleting"))
+                LOG.info("router not found for NAT pool, deleting")
                 delete_pool_list.append(pool.text)
                 continue
 
             # Check that router has external network
             router = router_id_dict[router_id]
             if "gw_port" not in router:
-                LOG.info(_LI("router has no gw_port, pool is invalid,"
-                             " deleting"))
+                LOG.info("router has no gw_port, pool is invalid,"
+                         " deleting")
                 delete_pool_list.append(pool.text)
                 continue
 
@@ -468,23 +467,23 @@ class ConfigSyncer(object):
                     break
 
             if found is False:
-                LOG.info(_LI("start IP %(start_ip)s for "
-                             "pool does not match %(pool_ip)s, deleting") %
+                LOG.info("start IP %(start_ip)s for "
+                         "pool does not match %(pool_ip)s, deleting" %
                          {'start_ip': start_ip, 'pool_ip': pool_ip})
                 delete_pool_list.append(pool.text)
                 continue
 
             if end_ip != pool_ip:
-                LOG.info(_LI("end IP for pool does not match, deleting"))
+                LOG.info("end IP for pool does not match, deleting")
                 delete_pool_list.append(pool.text)
                 continue
 
             pool_net = netaddr.IPNetwork(the_port['subnets'][i]['cidr'])
             if netmask != str(pool_net.netmask):
                 LOG.info(
-                    _LI("netmask for pool does not match, netmask:%(netmask)s,"
-                      " pool_netmask:%(pool_netmask)s, deleting") %
-                      {'netmask': netmask, 'pool_netmask': pool_net.netmask})
+                    "netmask for pool does not match, netmask:%(netmask)s,"
+                    " pool_netmask:%(pool_netmask)s, deleting" %
+                    {'netmask': netmask, 'pool_netmask': pool_net.netmask})
                 delete_pool_list.append(pool.text)
                 continue
 
@@ -494,7 +493,7 @@ class ConfigSyncer(object):
             for pool_cfg in delete_pool_list:
                 del_cmd = XML_CMD_TAG % ("no %s" % (pool_cfg))
                 confstr = XML_FREEFORM_SNIPPET % (del_cmd)
-                LOG.info(_LI("Delete pool: %s"), del_cmd)
+                LOG.info("Delete pool: %s", del_cmd)
                 conn.edit_config(target='running', config=confstr)
         LOG.debug("delete_pool_list = %s " % (pp.pformat(delete_pool_list)))
         return delete_pool_list
@@ -509,15 +508,15 @@ class ConfigSyncer(object):
         delete_route_list = []
         routes = parsed_cfg.find_objects(route_regex)
         for route in routes:
-            LOG.info(_LI("\ndefault route: %s"), (route))
+            LOG.info("\ndefault route: %s", (route))
             match_obj = re.match(route_regex, route.text)
             is_multi_region_enabled = cfg.CONF.multi_region.enable_multi_region
             if (is_multi_region_enabled):
                 router_id, region_id, segment_id, next_hop = (
                     match_obj.group(1, 2, 3, 4))
-                LOG.info(_LI("    router_id: %(router_id)s,"
-                             ", region_id: %(region_id)s, segment_id:"
-                             " %(segment_id)s, next_hop: %(next_hop)s") %
+                LOG.info("    router_id: %(router_id)s,"
+                         ", region_id: %(region_id)s, segment_id:"
+                         " %(segment_id)s, next_hop: %(next_hop)s" %
                          {'router_id': router_id,
                           'region_id': region_id,
                           'segment_id': segment_id,
@@ -535,31 +534,31 @@ class ConfigSyncer(object):
                 router_id, segment_id, next_hop = (
                     match_obj.group(1, 2, 3))
 
-            LOG.info(_LI("    router_id: %(router_id)s, segment_id:"
-                         " %(segment_id)s, next_hop: %(next_hop)s") %
+            LOG.info("    router_id: %(router_id)s, segment_id:"
+                     " %(segment_id)s, next_hop: %(next_hop)s" %
                      {'router_id': router_id,
                       'segment_id': segment_id,
                       'next_hop': next_hop})
 
             # Check that VRF exists in openstack DB info
             if router_id not in router_id_dict:
-                LOG.info(_LI("router not found for route, deleting"))
+                LOG.info("router not found for route, deleting")
                 delete_route_list.append(route.text)
                 continue
 
             # Check that router has external network and segment_id matches
             router = router_id_dict[router_id]
             if "gw_port" not in router:
-                LOG.info(_LI("router has no gw_port, route is invalid,"
-                             " deleting"))
+                LOG.info("router has no gw_port, route is invalid,"
+                         " deleting")
                 delete_route_list.append(route.text)
                 continue
 
             gw_port = router['gw_port']
             gw_segment_id = gw_port['hosting_info']['segmentation_id']
             if int(segment_id) != gw_segment_id:
-                LOG.info(_LI("route segment_id does not match router's gw"
-                         " segment_id, deleting"))
+                LOG.info("route segment_id does not match router's gw"
+                         " segment_id, deleting")
                 delete_route_list.append(route.text)
                 continue
 
@@ -575,7 +574,7 @@ class ConfigSyncer(object):
                     found = True
                     break
             if found is False:
-                LOG.info(_LI("route has incorrect next-hop, deleting"))
+                LOG.info("route has incorrect next-hop, deleting")
                 delete_route_list.append(route.text)
                 continue
 
@@ -585,7 +584,7 @@ class ConfigSyncer(object):
             for route_cfg in delete_route_list:
                 del_cmd = XML_CMD_TAG % ("no %s" % (route_cfg))
                 confstr = XML_FREEFORM_SNIPPET % (del_cmd)
-                LOG.info(_LI("Delete default route: %(del_cmd)s") %
+                LOG.info("Delete default route: %(del_cmd)s" %
                          {'del_cmd': del_cmd})
                 conn.edit_config(target='running', config=confstr)
 
@@ -606,14 +605,14 @@ class ConfigSyncer(object):
         # Delete any entries with old style 'hsrp-grp-x-y' grp name
         floating_ip_old_rules = parsed_cfg.find_objects(snat_regex_old)
         for snat_rule in floating_ip_old_rules:
-            LOG.info(_LI("\n Rule is old format, deleting: %(snat_rule)s") %
+            LOG.info("\n Rule is old format, deleting: %(snat_rule)s" %
                      {'snat_rule': snat_rule.text})
 
             delete_fip_list.append(snat_rule.text)
 
         floating_ip_nats = parsed_cfg.find_objects(snat_regex)
         for snat_rule in floating_ip_nats:
-            LOG.info(_LI("\nstatic nat rule: %(snat_rule)s") %
+            LOG.info("\nstatic nat rule: %(snat_rule)s" %
                      {'snat_rule': snat_rule})
             match_obj = re.match(snat_regex, snat_rule.text)
             if is_multi_region_enabled:
@@ -635,9 +634,9 @@ class ConfigSyncer(object):
             segment_id = int(segment_id)
             hsrp_num = int(hsrp_num)
 
-            LOG.info(_LI("   in_ip: %(inner_ip)s, out_ip: %(outer_ip)s, "
-                         "router_id: %(router_id)s, hsrp_num: %(hsrp_num)s,"
-                         " segment_id: %(segment_id)s") %
+            LOG.info("   in_ip: %(inner_ip)s, out_ip: %(outer_ip)s, "
+                     "router_id: %(router_id)s, hsrp_num: %(hsrp_num)s,"
+                     " segment_id: %(segment_id)s" %
                      {'inner_ip': inner_ip,
                       'outer_ip': outer_ip,
                       'router_id': router_id,
@@ -646,15 +645,15 @@ class ConfigSyncer(object):
 
             # Check that VRF exists in openstack DB info
             if router_id not in router_id_dict:
-                LOG.info(_LI("router not found for rule, deleting"))
+                LOG.info("router not found for rule, deleting")
                 delete_fip_list.append(snat_rule.text)
                 continue
 
             # Check that router has external network and segment_id matches
             router = router_id_dict[router_id]
             if "gw_port" not in router:
-                LOG.info(_LI("router has no gw_port,"
-                             " snat is invalid, deleting"))
+                LOG.info("router has no gw_port,"
+                         " snat is invalid, deleting")
                 delete_fip_list.append(snat_rule.text)
                 continue
 
@@ -663,21 +662,21 @@ class ConfigSyncer(object):
             gw_hsrp_num = int(gw_port[ha.HA_INFO]['group'])
             gw_segment_id = int(gw_port['hosting_info']['segmentation_id'])
             if segment_id != gw_segment_id:
-                LOG.info(_LI("snat segment_id does not match router's"
-                         " gw segment_id, deleting"))
+                LOG.info("snat segment_id does not match router's"
+                         " gw segment_id, deleting")
                 delete_fip_list.append(snat_rule.text)
                 continue
 
             if hsrp_num != gw_hsrp_num:
-                LOG.info(_LI("snat hsrp group does not match router gateway's"
-                         " hsrp group, deleting"))
+                LOG.info("snat hsrp group does not match router gateway's"
+                         " hsrp group, deleting")
                 delete_fip_list.append(snat_rule.text)
                 continue
 
             # Check that in,out ip pair matches a floating_ip defined on router
             if '_floatingips' not in router:
-                LOG.info(_LI("Router has no floating IPs defined,"
-                         " snat rule is invalid, deleting"))
+                LOG.info("Router has no floating IPs defined,"
+                         " snat rule is invalid, deleting")
                 delete_fip_list.append(snat_rule.text)
                 continue
 
@@ -688,8 +687,8 @@ class ConfigSyncer(object):
                     fip_match_found = True
                     break
             if fip_match_found is False:
-                LOG.info(_LI("snat rule does not match defined floating IPs,"
-                         " deleting"))
+                LOG.info("snat rule does not match defined floating IPs,"
+                         " deleting")
                 delete_fip_list.append(snat_rule.text)
                 continue
 
@@ -699,7 +698,7 @@ class ConfigSyncer(object):
             for fip_cfg in delete_fip_list:
                 del_cmd = XML_CMD_TAG % ("no %s" % (fip_cfg))
                 confstr = XML_FREEFORM_SNIPPET % (del_cmd)
-                LOG.info(_LI("Delete SNAT: %(del_cmd)s") %
+                LOG.info("Delete SNAT: %(del_cmd)s" %
                          {'del_cmd': del_cmd})
                 conn.edit_config(target='running', config=confstr)
 
@@ -722,7 +721,7 @@ class ConfigSyncer(object):
 
         nat_overloads = parsed_cfg.find_objects(nat_pool_overload_regex)
         for nat_rule in nat_overloads:
-            LOG.info(_LI("\nnat overload rule: %(nat_rule)s") %
+            LOG.info("\nnat overload rule: %(nat_rule)s" %
                      {'nat_rule': nat_rule})
             match_obj = re.match(nat_pool_overload_regex, nat_rule.text)
             if is_multi_region_enabled:
@@ -730,7 +729,7 @@ class ConfigSyncer(object):
                  pool_router_id, pool_region_id, router_id) = (
                     match_obj.group(1, 2, 3, 4, 5, 6))
                 if (region_id != pool_region_id):
-                    LOG.info(_LI("region id mismatch, deleting"))
+                    LOG.info("region id mismatch, deleting")
                     delete_nat_list.append(nat_rule.text)
                     continue
 
@@ -753,21 +752,21 @@ class ConfigSyncer(object):
 
             # Check that VRF exists in openstack DB info
             if router_id not in router_id_dict:
-                LOG.info(_LI("router not found for rule, deleting"))
+                LOG.info("router not found for rule, deleting")
                 delete_nat_list.append(nat_rule.text)
                 continue
 
             # Check that correct pool is specified
             if pool_router_id != router_id:
-                LOG.info(_LI("Pool and VRF name mismatch, deleting"))
+                LOG.info("Pool and VRF name mismatch, deleting")
                 delete_nat_list.append(nat_rule.text)
                 continue
 
             # Check that router has external network
             router = router_id_dict[router_id]
             if "gw_port" not in router:
-                LOG.info(_LI("router has no gw_port,"
-                         " nat overload is invalid, deleting"))
+                LOG.info("router has no gw_port,"
+                         " nat overload is invalid, deleting")
                 delete_nat_list.append(nat_rule.text)
                 continue
 
@@ -784,8 +783,8 @@ class ConfigSyncer(object):
                             break
 
             if intf_match_found is False:
-                LOG.info(_LI("router does not have this internal network"
-                         " assigned, deleting rule"))
+                LOG.info("router does not have this internal network"
+                         " assigned, deleting rule")
                 delete_nat_list.append(nat_rule.text)
                 continue
 
@@ -795,7 +794,7 @@ class ConfigSyncer(object):
             for nat_cfg in delete_nat_list:
                 del_cmd = XML_CMD_TAG % ("no %s" % (nat_cfg))
                 confstr = XML_FREEFORM_SNIPPET % (del_cmd)
-                LOG.info(_LI("Delete NAT overload: %(del_cmd)s") %
+                LOG.info("Delete NAT overload: %(del_cmd)s" %
                          {'del_cmd': del_cmd})
                 conn.edit_config(target='running', config=confstr)
 
@@ -805,7 +804,7 @@ class ConfigSyncer(object):
     def check_acl_permit_rules_valid(self, segment_id, acl, intf_segment_dict):
         permit_rules = acl.re_search_children(ACL_CHILD_REGEX)
         for permit_rule in permit_rules:
-            LOG.info(_LI("   permit rule: %(permit_rule)s") %
+            LOG.info("   permit rule: %(permit_rule)s" %
                      {'permit_rule': permit_rule})
             match_obj = re.match(ACL_CHILD_REGEX, permit_rule.text)
             net_ip, hostmask = match_obj.group(1, 2)
@@ -822,11 +821,11 @@ class ConfigSyncer(object):
                         db_subnet = netaddr.IPNetwork(subnet_cidr)
                         break
             except KeyError:
-                LOG.info(_LI("KeyError when attemping to validate segment_id"))
+                LOG.info("KeyError when attemping to validate segment_id")
                 return False
 
-            LOG.info(_LI("   cfg_subnet: %(cfg_net)s/%(cfg_prefix_len)s,"
-                     " db_subnet: %(db_net)s/%(db_prefix_len)s") %
+            LOG.info("   cfg_subnet: %(cfg_net)s/%(cfg_prefix_len)s,"
+                     " db_subnet: %(db_net)s/%(db_prefix_len)s" %
                      {'cfg_net': cfg_subnet.network,
                       'cfg_prefix_len': cfg_subnet.prefixlen,
                       'db_net': db_subnet.network,
@@ -834,8 +833,8 @@ class ConfigSyncer(object):
 
             if cfg_subnet.network != db_subnet.network or \
                cfg_subnet.prefixlen != db_subnet.prefixlen:
-                LOG.info(_LI("ACL subnet does not match subnet info"
-                         " in openstack DB, deleting ACL"))
+                LOG.info("ACL subnet does not match subnet info"
+                         " in openstack DB, deleting ACL")
                 return False
 
         return True
@@ -852,7 +851,7 @@ class ConfigSyncer(object):
 
         acls = parsed_cfg.find_objects(acl_regex)
         for acl in acls:
-            LOG.info(_LI("\nacl: %(acl)s") % {'acl': acl})
+            LOG.info("\nacl: %(acl)s" % {'acl': acl})
             match_obj = re.match(acl_regex, acl.text)
 
             if (is_multi_region_enabled):
@@ -870,12 +869,12 @@ class ConfigSyncer(object):
                 segment_id = int(match_obj.group(1))
                 port_id = match_obj.group(2)
 
-            LOG.info(_LI("   segment_id: %(seg_id)s, port_id: %(port_id)s") %
+            LOG.info("   segment_id: %(seg_id)s, port_id: %(port_id)s" %
                      {'seg_id': segment_id, 'port_id': port_id})
 
             # Check that segment_id exists in openstack DB info
             if segment_id not in intf_segment_dict:
-                LOG.info(_LI("Segment ID not found, deleting acl"))
+                LOG.info("Segment ID not found, deleting acl")
                 delete_acl_list.append(acl.text)
                 continue
 
@@ -892,7 +891,7 @@ class ConfigSyncer(object):
             for acl_cfg in delete_acl_list:
                 del_cmd = XML_CMD_TAG % ("no %s" % (acl_cfg))
                 confstr = XML_FREEFORM_SNIPPET % (del_cmd)
-                LOG.info(_LI("Delete ACL: %(del_cmd)s") % {'del_cmd': del_cmd})
+                LOG.info("Delete ACL: %(del_cmd)s" % {'del_cmd': del_cmd})
                 conn.edit_config(target='running', config=confstr)
 
         LOG.debug("delete_acl_list = %s" % (pp.pformat(delete_acl_list)))
@@ -911,14 +910,14 @@ class ConfigSyncer(object):
                     found = True
                     break
             if found is False:
-                LOG.info(_LI("Subintf real IP is incorrect, deleting"))
+                LOG.info("Subintf real IP is incorrect, deleting")
                 return False
             subnet_id = gw_port['fixed_ips'][i]['subnet_id']
             subnet = next(
                 sn for sn in gw_port['subnets'] if sn['id'] == subnet_id)
             target_net = netaddr.IPNetwork(subnet['cidr'])
             if netmask != str(target_net.netmask):
-                LOG.info(_LI("Subintf has incorrect netmask, deleting"))
+                LOG.info("Subintf has incorrect netmask, deleting")
                 return False
 
             return True
@@ -930,18 +929,18 @@ class ConfigSyncer(object):
         for target_intf in intf_list:
             target_ip = target_intf['fixed_ips'][0]['ip_address']
             target_net = netaddr.IPNetwork(target_intf['subnets'][0]['cidr'])
-            LOG.info(_LI("target ip,net: %(target_ip)s,%(target_net)s,"
-                         " actual ip,net %(ip_addr)s,%(netmask)s") %
+            LOG.info("target ip,net: %(target_ip)s,%(target_net)s,"
+                     " actual ip,net %(ip_addr)s,%(netmask)s" %
                      {'target_ip': target_ip,
                       'target_net': target_net,
                       'ip_addr': ip_addr,
                       'netmask': netmask})
 
             if ip_addr != target_ip:
-                LOG.info(_LI("Subintf real IP is incorrect, deleting"))
+                LOG.info("Subintf real IP is incorrect, deleting")
                 return False
             if netmask != str(target_net.netmask):
-                LOG.info(_LI("Subintf has incorrect netmask, deleting"))
+                LOG.info("Subintf has incorrect netmask, deleting")
                 return False
 
             return True
@@ -970,21 +969,21 @@ class ConfigSyncer(object):
                     netaddr.IPNetwork(
                         target_intf['subnets'][0]['cidr']).prefixlen
 
-                LOG.info(_LI("target ip,prefixlen: %(target_ip)s,"
-                             "%(target_prefixlen)s, actual ip,"
-                             "prefixlen %(ipv6_addr)s,%(prefixlen)s") %
+                LOG.info("target ip,prefixlen: %(target_ip)s,"
+                         "%(target_prefixlen)s, actual ip,"
+                         "prefixlen %(ipv6_addr)s,%(prefixlen)s" %
                          {'target_ip': target_ip,
                           'target_prefixlen': target_prefixlen,
                           'ipv6_addr': ipv6_addr,
                           'prefixlen': prefixlen})
 
                 if target_ip != netaddr.IPAddress(ipv6_addr):
-                    LOG.info(_LI("Subintf IPv6 addr is incorrect, deleting"))
+                    LOG.info("Subintf IPv6 addr is incorrect, deleting")
                     return False
 
                 if target_prefixlen != int(prefixlen):
-                    LOG.info(_LI("Subintf IPv6 prefix length"
-                             " is incorrect, deleting"))
+                    LOG.info("Subintf IPv6 prefix length"
+                             " is incorrect, deleting")
                     return False
 
                 return True
@@ -997,23 +996,23 @@ class ConfigSyncer(object):
             ha_port = gw_port[ha.HA_INFO]['ha_port']
             for fixed_ip in ha_port['fixed_ips']:
                 target_ip = fixed_ip['ip_address']
-                LOG.info(_LI("target_ip: %(target_ip)s, "
-                             "actual_ip: %(ip_addr)s") %
+                LOG.info("target_ip: %(target_ip)s, "
+                         "actual_ip: %(ip_addr)s" %
                          {'target_ip': target_ip, 'ip_addr': ip_addr})
                 if ip_addr == target_ip:
                     return True
-            LOG.info(_LI("HSRP VIP mismatch on gw_port, deleting"))
+            LOG.info("HSRP VIP mismatch on gw_port, deleting")
         return False
 
     def subintf_hsrp_ip_check(self, intf_list, is_external, ip_addr):
         for target_intf in intf_list:
             ha_intf = target_intf[ha.HA_INFO]['ha_port']
             target_ip = ha_intf['fixed_ips'][0]['ip_address']
-            LOG.info(_LI("target_ip: %(target_ip)s, actual_ip: %(ip_addr)s") %
+            LOG.info("target_ip: %(target_ip)s, actual_ip: %(ip_addr)s" %
                      {'target_ip': target_ip,
                       'ip_addr': ip_addr})
             if ip_addr != target_ip:
-                LOG.info(_LI("HSRP VIP mismatch, deleting"))
+                LOG.info("HSRP VIP mismatch, deleting")
                 return False
 
             return True
@@ -1028,7 +1027,7 @@ class ConfigSyncer(object):
         if intf_nat_type is not None:
             intf_nat_type = intf_nat_type.re_match(INTF_NAT_REGEX, group=1)
 
-        LOG.info(_LI("NAT Type: %s"), intf_nat_type)
+        LOG.info("NAT Type: %s", intf_nat_type)
 
         intf.nat_type = intf_nat_type
 
@@ -1039,21 +1038,21 @@ class ConfigSyncer(object):
                     nat_cmd = XML_CMD_TAG % (intf.text)
                     nat_cmd += XML_CMD_TAG % ("ip nat outside")
                     confstr = XML_FREEFORM_SNIPPET % (nat_cmd)
-                    LOG.info(_LI("NAT type mismatch, should be outside"))
+                    LOG.info("NAT type mismatch, should be outside")
                     return False
             else:
                 if intf_nat_type != "inside":
                     nat_cmd = XML_CMD_TAG % (intf.text)
                     nat_cmd += XML_CMD_TAG % ("ip nat inside")
                     confstr = XML_FREEFORM_SNIPPET % (nat_cmd)
-                    LOG.info(_LI("NAT type mismatch, should be inside"))
+                    LOG.info("NAT type mismatch, should be inside")
                     return False
         else:
             if intf_nat_type is not None:
                 nat_cmd = XML_CMD_TAG % (intf.text)
                 nat_cmd += XML_CMD_TAG % ("no ip nat %s" % (intf_nat_type))
                 confstr = XML_FREEFORM_SNIPPET % (nat_cmd)
-                LOG.info(_LI("NAT type mismatch, should have no NAT, %s"),
+                LOG.info("NAT type mismatch, should have no NAT, %s",
                          (confstr))
                 return False
 
@@ -1065,11 +1064,11 @@ class ConfigSyncer(object):
         num_vips = len(hsrp_vip_cfg_list)
         num_vips_db = len(intf_db_dict[intf.segment_id][0]['fixed_ips'])
         if num_vips < 1:
-            LOG.info(_LI("Interface is missing HSRP VIP, deleting"))
+            LOG.info("Interface is missing HSRP VIP, deleting")
             return False
         elif num_vips != num_vips_db:
-            LOG.info(_LI("Subintf has wrong number of HSRP VIP addresses ("
-                         "should have %(n_v)d, but has %(n_v_d)d), deleting"),
+            LOG.info("Subintf has wrong number of HSRP VIP addresses ("
+                     "should have %(n_v)d, but has %(n_v_d)d), deleting",
                      {'n_v': num_vips, 'n_v_d': num_vips_db})
             return False
 
@@ -1097,11 +1096,11 @@ class ConfigSyncer(object):
         num_addrs = len(ipv4_addr)
         num_addrs_db = len(intf_db_dict[intf.segment_id][0]['fixed_ips'])
         if num_addrs < 1:
-            LOG.info(_LI("Subintf has no IP address, deleting"))
+            LOG.info("Subintf has no IP address, deleting")
             return False
         elif num_addrs != num_addrs_db:
-            LOG.info(_LI("Subintf has wrong number of addresses (should have "
-                         "%(n_a)d, but has %(n_a_d)d), deleting"), num_addrs,
+            LOG.info("Subintf has wrong number of addresses (should have "
+                     "%(n_a)d, but has %(n_a_d)d), deleting", num_addrs,
                      num_addrs_db)
             return False
 
@@ -1125,7 +1124,7 @@ class ConfigSyncer(object):
         # Check that real IP address is correct
         ipv6_addr = intf.re_search_children(INTF_V6_ADDR_REGEX)
         if len(ipv6_addr) < 1:
-            LOG.info(_LI("Subintf has no IPv6 address, deleting"))
+            LOG.info("Subintf has no IPv6 address, deleting")
             return False
 
         ipv6_addr_cfg = ipv6_addr[0]
@@ -1152,7 +1151,7 @@ class ConfigSyncer(object):
 
         # TODO(nh0556) split this big function into smaller functions
         for intf in runcfg_intfs:
-            LOG.info(_LI("ASR interface: %s"), (intf))
+            LOG.info("ASR interface: %s", (intf))
 
             # check for region-id
             if is_multi_region_enabled:
@@ -1160,9 +1159,9 @@ class ConfigSyncer(object):
                 intf_desc = self.get_single_cfg(intf_desc)
 
                 if not intf_desc:
-                    LOG.info(_LI("Interface doesn't have "
-                                 "a interface description, ignoring %s") % (
-                             intf.text))
+                    LOG.info("Interface doesn't have "
+                             "a interface description, ignoring %s" % (
+                                 intf.text))
                     continue
                 else:
                     intf_desc_region_id = (
@@ -1171,8 +1170,8 @@ class ConfigSyncer(object):
                     if (intf_desc_region_id is None):
                         # if no matching description field is found,
                         # assume that the interface is not owned by Openstack
-                        LOG.info(_LI("Interface description doesn't have"
-                                     "region-id, ignoring %s") % intf.text)
+                        LOG.info("Interface description doesn't have"
+                                 "region-id, ignoring %s" % intf.text)
                         continue
                     else:
                         # since region-id was found, check if it's valid
@@ -1189,7 +1188,7 @@ class ConfigSyncer(object):
 
             # obtain segment_id from interface definition
             intf.segment_id = int(intf.re_match(INTF_REGEX, group=1))
-            LOG.info(_LI("  segment_id: %s"), (intf.segment_id))
+            LOG.info("  segment_id: %s", (intf.segment_id))
 
             # Delete any interfaces where config doesn't match DB
             # Correct config will be added after clearing invalid cfg
@@ -1200,7 +1199,7 @@ class ConfigSyncer(object):
             # Check that the interface segment_id exists in the current DB data
             if (intf.segment_id not in intf_segment_dict and
                intf.segment_id not in self.segment_gw_dict):
-                LOG.info(_LI("Invalid segment ID, delete interface"))
+                LOG.info("Invalid segment ID, delete interface")
                 pending_delete_list.append(intf)
                 continue
 
@@ -1214,13 +1213,13 @@ class ConfigSyncer(object):
             dot1q_cfg = self.get_single_cfg(dot1q_cfg)
 
             if dot1q_cfg is None:
-                LOG.info(_LI("Missing DOT1Q config, delete interface"))
+                LOG.info("Missing DOT1Q config, delete interface")
                 pending_delete_list.append(intf)
                 continue
             else:
                 dot1q_num = int(dot1q_cfg.re_match(DOT1Q_REGEX, group=1))
                 if dot1q_num != int(intf.segment_id):
-                    LOG.info(_LI("DOT1Q mismatch, delete interface"))
+                    LOG.info("DOT1Q mismatch, delete interface")
                     pending_delete_list.append(intf)
                     continue
 
@@ -1236,20 +1235,20 @@ class ConfigSyncer(object):
             if intf.is_external:
                 vrf_cfg = intf.re_search_children(VRF_EXT_INTF_REGEX_NEW)
                 vrf_cfg = self.get_single_cfg(vrf_cfg)
-                LOG.info(_LI("VRF: %s"), (vrf_cfg))
+                LOG.info("VRF: %s", (vrf_cfg))
 
                 if vrf_cfg is not None:  # external network has no vrf
-                    LOG.info(_LI("External network shouldn't"
-                             " have VRF, deleting intf"))
+                    LOG.info("External network shouldn't"
+                             " have VRF, deleting intf")
                     pending_delete_list.append(intf)
                     continue
             else:
                 vrf_cfg = intf.re_search_children(vrf_intf_regex_new)
                 vrf_cfg = self.get_single_cfg(vrf_cfg)
-                LOG.info(_LI("VRF: %s"), (vrf_cfg))
+                LOG.info("VRF: %s", (vrf_cfg))
                 if not vrf_cfg:
-                    LOG.info(_LI("Internal network missing valid VRF,"
-                             " deleting intf"))
+                    LOG.info("Internal network missing valid VRF,"
+                             " deleting intf")
                     pending_delete_list.append(intf)
                     continue
 
@@ -1279,10 +1278,10 @@ class ConfigSyncer(object):
                     (ha_port_device_id is not None and
                      router_id != ha_port_device_id[0:6])):
 
-                    LOG.info(_LI("Internal network VRF mismatch,"
-                                 " deleting intf,"
-                                 " router_id: %(router_id)s,"
-                                 " db_intf_dev_id: %(db_intf_dev_id)s") %
+                    LOG.info("Internal network VRF mismatch,"
+                             " deleting intf,"
+                             " router_id: %(router_id)s,"
+                             " db_intf_dev_id: %(db_intf_dev_id)s" %
                              {'router_id': router_id,
                               'db_intf_dev_id': db_intf["device_id"]})
                     pending_delete_list.append(intf)
@@ -1321,7 +1320,7 @@ class ConfigSyncer(object):
                     needs_hsrp_delete = True
 
             if needs_hsrp_delete:
-                LOG.info(_LI("Bad HSRP config for interface, deleting"))
+                LOG.info("Bad HSRP config for interface, deleting")
                 pending_delete_list.append(intf)
                 continue
 
@@ -1331,7 +1330,7 @@ class ConfigSyncer(object):
             for intf in pending_delete_list:
                 del_cmd = XML_CMD_TAG % ("no %s" % (intf.text))
                 confstr = XML_FREEFORM_SNIPPET % (del_cmd)
-                LOG.info(_LI("Deleting %s"), (intf.text))
+                LOG.info("Deleting %s", (intf.text))
                 conn.edit_config(target='running', config=confstr)
 
         LOG.debug("pending_delete_list (interfaces) = %s" %

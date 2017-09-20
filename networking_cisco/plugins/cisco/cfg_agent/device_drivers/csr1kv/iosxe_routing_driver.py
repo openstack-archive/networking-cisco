@@ -22,7 +22,6 @@ import xml.etree.ElementTree as ET
 from oslo_config import cfg
 from oslo_utils import importutils
 
-from networking_cisco._i18n import _LE, _LI, _LW
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions as cfg_exc
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers import (
     devicedriver_api)
@@ -65,8 +64,8 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
             self._ncc_connection = None
             self._itfcs_enabled = False
         except KeyError as e:
-            LOG.error(_LE("Missing device parameter:%s. Aborting "
-                          "IosXeRoutingDriver initialization"), e)
+            LOG.error("Missing device parameter:%s. Aborting "
+                      "IosXeRoutingDriver initialization", e)
             raise cfg_exc.InitializationException()
 
     ###### Public Functions ########
@@ -245,7 +244,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         elif action is 'delete':
             self._remove_static_route(dest, dest_mask, next_hop, vrf_name)
         else:
-            LOG.error(_LE('Unknown route command %s'), action)
+            LOG.error('Unknown route command %s', action)
 
     def _create_vrf(self, ri):
         vrf_name = self._get_vrf_name(ri)
@@ -352,7 +351,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
                 ip_address = line.strip().split(' ')[2]
                 LOG.debug("IP Address:%s", ip_address)
                 return ip_address
-        LOG.warning(_LW("Cannot find interface: %s"), interface_name)
+        LOG.warning("Cannot find interface: %s", interface_name)
         return None
 
     def _interface_exists(self, interface):
@@ -387,7 +386,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
                 conf_str = snippets.ENABLE_INTF % i
                 rpc_obj = conn.edit_config(target='running', config=conf_str)
                 if self._check_response(rpc_obj, 'ENABLE_INTF'):
-                    LOG.info(_LI("Enabled interface %s "), i)
+                    LOG.info("Enabled interface %s ", i)
                     time.sleep(1)
         except Exception:
             return False
@@ -406,7 +405,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
             #  raw format ['ip vrf <vrf-name>',....]
             vrf_name = line.strip().split(' ')[2]
             vrfs.append(vrf_name)
-        LOG.info(_LI("VRFs:%s"), vrfs)
+        LOG.info("VRFs:%s", vrfs)
         return vrfs
 
     def _get_capabilities(self):
@@ -454,7 +453,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         if acls_raw:
             if exp_cfg_lines[1] in acls_raw:
                 return True
-            LOG.error(_LE("Mismatch in ACL configuration for %s"), acl_no)
+            LOG.error("Mismatch in ACL configuration for %s", acl_no)
             return False
         LOG.debug("%s is not present in config", acl_no)
         return False
@@ -487,7 +486,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
     def _do_create_sub_interface(self, sub_interface, vlan_id, vrf_name, ip,
                                  mask):
         if vrf_name not in self._get_vrfs():
-            LOG.error(_LE("VRF %s not present"), vrf_name)
+            LOG.error("VRF %s not present", vrf_name)
         conf_str = snippets.CREATE_SUBINTERFACE % (sub_interface, vlan_id,
                                                    vrf_name, ip, mask)
         self._edit_running_config(conf_str, 'CREATE_SUBINTERFACE')
@@ -500,7 +499,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
 
     def _do_add_ha_hsrp(self, sub_interface, vrf_name, priority, group, ip):
         if vrf_name not in self._get_vrfs():
-            LOG.error(_LE("VRF %s not present"), vrf_name)
+            LOG.error("VRF %s not present", vrf_name)
         conf_str = snippets.SET_INTC_HSRP % (sub_interface, vrf_name, group,
                                              priority, group, ip)
         action = "SET_INTC_HSRP (Group: %s, Priority: % s)" % (group, priority)
@@ -648,8 +647,8 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
 
     def _edit_running_config(self, conf_str, snippet):
         conn = self._get_connection()
-        LOG.info(_LI("Config generated for [%(device)s] %(snip)s is:%(conf)s "
-                 "caller:%(caller)s"),
+        LOG.info("Config generated for [%(device)s] %(snip)s is:%(conf)s "
+                 "caller:%(caller)s",
                  {'device': self.hosting_device['id'],
                   'snip': snippet,
                   'conf': conf_str,
@@ -668,7 +667,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
             # also the proper error. Hence this code can be changed when the
             # ncclient version is increased.
             if re.search(r"REMOVE_|DELETE_", snippet):
-                LOG.warning(_LW("Pass exception for %s"), snippet)
+                LOG.warning("Pass exception for %s", snippet)
                 pass
             elif isinstance(e, ncclient.operations.rpc.RPCError):
                 e_tag = e.tag
@@ -709,7 +708,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         xml_str = rpc_obj.xml
         if "<ok />" in xml_str:
             # LOG.debug("RPCReply for %s is OK", snippet_name)
-            LOG.info(_LI("%s was successfully executed"), snippet_name)
+            LOG.info("%s was successfully executed", snippet_name)
             return True
         # Not Ok, we throw a ConfigurationException
         e_type = rpc_obj._root[0][0].text
