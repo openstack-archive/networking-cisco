@@ -19,8 +19,6 @@ from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import uuidutils
 
-from networking_cisco._i18n import _LE
-
 from neutron.api import extensions as api_extensions
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2.common import exceptions as ml2_exc
@@ -81,8 +79,8 @@ class CiscoN1kvExtensionDriver(api.ExtensionDriver):
                                             tenant_id=tenant_id,
                                             profile_id=policy_profile.id)
             except n1kv_exc.PolicyProfileNotFound:
-                LOG.error(_LE("Policy Profile %(profile)s does "
-                              "not exist."), {"profile": policy_profile_attr})
+                LOG.error("Policy Profile %(profile)s does "
+                          "not exist.", {"profile": policy_profile_attr})
                 raise ml2_exc.ExtensionDriverError(driver='N1Kv ML2')
             except n1kv_exc.ProfileTenantBindingNotFound:
                 if context.is_admin:
@@ -91,8 +89,8 @@ class CiscoN1kvExtensionDriver(api.ExtensionDriver):
                         policy_profile.id, tenant_id, session)
                 elif (cfg.CONF.ml2_cisco_n1kv.restrict_policy_profiles and
                         policy_profile.name != default_policy_profile_name):
-                    LOG.error(_LE("Policy Profile %s is "
-                                  "not owned by this tenant.") %
+                    LOG.error("Policy Profile %s is "
+                              "not owned by this tenant." %
                               policy_profile_attr)
                     raise ml2_exc.ExtensionDriverError(driver='N1Kv ML2')
             n1kv_db.add_policy_binding(port_id,
@@ -141,16 +139,16 @@ class CiscoN1kvExtensionDriver(api.ExtensionDriver):
                                             tenant_id=tenant_id,
                                             profile_id=net_prof_attr.id)
             except n1kv_exc.NetworkProfileNotFound:
-                LOG.error(_LE("Network Profile %s does "
-                              "not exist.") % net_prof_attr)
+                LOG.error("Network Profile %s does "
+                          "not exist." % net_prof_attr)
                 raise ml2_exc.ExtensionDriverError(driver='N1Kv ML2')
             except n1kv_exc.ProfileTenantBindingNotFound:
                 if (cfg.CONF.ml2_cisco_n1kv.restrict_network_profiles and
                         net_prof_attr.name not in [
                             constants.DEFAULT_VLAN_NETWORK_PROFILE_NAME,
                             constants.DEFAULT_VXLAN_NETWORK_PROFILE_NAME]):
-                    LOG.error(_LE("Network Profile %s is "
-                                  "not owned by this tenant.") %
+                    LOG.error("Network Profile %s is "
+                              "not owned by this tenant." %
                               net_prof_attr.name)
                     raise ml2_exc.ExtensionDriverError(driver='N1Kv ML2')
             segment_type = net_prof_attr.segment_type

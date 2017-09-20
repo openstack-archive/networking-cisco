@@ -23,8 +23,6 @@ from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import excutils
 
-from networking_cisco._i18n import _LE, _LI, _LW
-
 from neutron.db import db_base_plugin_v2
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2.common import exceptions as ml2_exc
@@ -73,7 +71,7 @@ class N1KVMechanismDriver(api.MechanismDriver):
         try:
             self._ensure_network_profiles_created_on_vsm()
         except (n1kv_exc.VSMConnectionFailed, n1kv_exc.VSMError):
-            LOG.error(_LE("VSM failed to create default network profiles."))
+            LOG.error("VSM failed to create default network profiles.")
         self.vif_type = bc.portbindings.VIF_TYPE_OVS
         self.vif_details = {bc.portbindings.CAP_PORT_FILTER: True,
                             bc.portbindings.OVS_HYBRID_PLUG: True}
@@ -105,18 +103,18 @@ class N1KVMechanismDriver(api.MechanismDriver):
     def _is_segment_valid_for_n1kv(self, segment_id, network_type):
         """Validate the segment for Cisco Nexus1000V."""
         if network_type not in self.supported_network_types:
-            LOG.info(_LI("Cisco Nexus1000V: Ignoring request for "
-                         "unsupported network type: %s. Network type VLAN "
-                         "and VXLAN supported.") % network_type)
+            LOG.info("Cisco Nexus1000V: Ignoring request for "
+                     "unsupported network type: %s. Network type VLAN "
+                     "and VXLAN supported." % network_type)
             return False
         if ((network_type == p_const.TYPE_VLAN and
              (n1kv_const.NEXUS_VLAN_RESERVED_MIN <= segment_id <=
               n1kv_const.NEXUS_VLAN_RESERVED_MAX))
             or (network_type == p_const.TYPE_VXLAN and
                 segment_id < n1kv_const.NEXUS_VXLAN_MIN)):
-            LOG.warning(_LW("Segment ID: %(seg_id)s for network type: "
-                            "%(net_type)s is unsupported on Cisco Nexus "
-                            "devices.") %
+            LOG.warning("Segment ID: %(seg_id)s for network type: "
+                        "%(net_type)s is unsupported on Cisco Nexus "
+                        "devices." %
                         {"seg_id": segment_id,
                          "net_type": network_type})
             return False
@@ -154,9 +152,9 @@ class N1KVMechanismDriver(api.MechanismDriver):
             self.n1kvclient.create_network_segment(network, netp)
         except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
             raise ml2_exc.MechanismDriverError()
-        LOG.info(_LI("Create network(postcommit) succeeded for network: "
-                     "%(network_id)s of type: %(network_type)s with segment "
-                     "id: %(segment_id)s"),
+        LOG.info("Create network(postcommit) succeeded for network: "
+                 "%(network_id)s of type: %(network_type)s with segment "
+                 "id: %(segment_id)s",
                  {"network_id": network['id'],
                   "network_type": network_type,
                   "segment_id": segment['segmentation_id']})
@@ -179,7 +177,7 @@ class N1KVMechanismDriver(api.MechanismDriver):
                 self.n1kvclient.update_network_segment(updated_network)
             except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
                 raise ml2_exc.MechanismDriverError()
-        LOG.info(_LI("Update network(postcommit) succeeded for network: %s") %
+        LOG.info("Update network(postcommit) succeeded for network: %s" %
                  old_network['id'])
 
     def delete_network_postcommit(self, context):
@@ -195,9 +193,9 @@ class N1KVMechanismDriver(api.MechanismDriver):
             self.n1kvclient.delete_network_segment(network['id'], network_type)
         except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
             raise ml2_exc.MechanismDriverError()
-        LOG.info(_LI("Delete network(postcommit) succeeded for network: "
-                     "%(network_id)s of type: %(network_type)s with segment "
-                     "ID: %(segment_id)s"),
+        LOG.info("Delete network(postcommit) succeeded for network: "
+                 "%(network_id)s of type: %(network_type)s with segment "
+                 "ID: %(segment_id)s",
                  {"network_id": network['id'],
                   "network_type": network_type,
                   "segment_id": segment['segmentation_id']})
@@ -209,8 +207,8 @@ class N1KVMechanismDriver(api.MechanismDriver):
             self.n1kvclient.create_ip_pool(subnet)
         except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
             raise ml2_exc.MechanismDriverError()
-        LOG.info(_LI("Create subnet(postcommit) succeeded for subnet: "
-                     "ID: %s"), subnet['id'])
+        LOG.info("Create subnet(postcommit) succeeded for subnet: "
+                 "ID: %s", subnet['id'])
 
     def update_subnet_postcommit(self, context):
         """Send updated subnet parameters to the VSM."""
@@ -219,8 +217,8 @@ class N1KVMechanismDriver(api.MechanismDriver):
             self.n1kvclient.update_ip_pool(updated_subnet)
         except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
             raise ml2_exc.MechanismDriverError()
-        LOG.info(_LI("Update subnet(postcommit) succeeded for subnet: "
-                     "ID: %s"), updated_subnet['id'])
+        LOG.info("Update subnet(postcommit) succeeded for subnet: "
+                 "ID: %s", updated_subnet['id'])
 
     def delete_subnet_postcommit(self, context):
         """Send delete subnet notification to the VSM."""
@@ -228,8 +226,8 @@ class N1KVMechanismDriver(api.MechanismDriver):
             self.n1kvclient.delete_ip_pool(context.current['id'])
         except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
             raise ml2_exc.MechanismDriverError()
-        LOG.info(_LI("Delete subnet(postcommit) succeeded for subnet: "
-                     "ID: %s"), context.current['id'])
+        LOG.info("Delete subnet(postcommit) succeeded for subnet: "
+                 "ID: %s", context.current['id'])
 
     def create_port_postcommit(self, context):
         """Send port parameters to the VSM."""
@@ -249,9 +247,9 @@ class N1KVMechanismDriver(api.MechanismDriver):
                                              policy_profile)
         except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
             raise ml2_exc.MechanismDriverError()
-        LOG.info(_LI("Create port(postcommit) succeeded for port: "
-                     "%(id)s on network: %(network_id)s with policy "
-                     "profile ID: %(profile_id)s"),
+        LOG.info("Create port(postcommit) succeeded for port: "
+                 "%(id)s on network: %(network_id)s with policy "
+                 "profile ID: %(profile_id)s",
                  {"network_id": port['network_id'],
                   "id": port['id'],
                   "profile_id": policy_profile.id})
@@ -281,9 +279,9 @@ class N1KVMechanismDriver(api.MechanismDriver):
                                                  policy_profile)
             except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
                 raise ml2_exc.MechanismDriverError()
-            LOG.info(_LI("Update port(postcommit) succeeded for port: "
-                         "%(id)s on network: %(network_id)s with policy "
-                         "profile ID: %(profile_id)s"),
+            LOG.info("Update port(postcommit) succeeded for port: "
+                     "%(id)s on network: %(network_id)s with policy "
+                     "profile ID: %(profile_id)s",
                      {"network_id": port['network_id'],
                       "id": port['id'],
                       "profile_id": policy_profile.id})
@@ -305,9 +303,9 @@ class N1KVMechanismDriver(api.MechanismDriver):
             self.n1kvclient.delete_n1kv_port(vmnetwork_name, port['id'])
         except(n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
             raise ml2_exc.MechanismDriverError()
-        LOG.info(_LI("Delete port(postcommit) succeeded for port: "
-                     "%(id)s on network: %(network_id)s with policy "
-                     "profile ID: %(profile_id)s"),
+        LOG.info("Delete port(postcommit) succeeded for port: "
+                 "%(id)s on network: %(network_id)s with policy "
+                 "profile ID: %(profile_id)s",
                  {"network_id": port['network_id'],
                   "id": port['id'],
                   "profile_id": profile_id})
@@ -322,9 +320,9 @@ class N1KVMechanismDriver(api.MechanismDriver):
                                     status=bc.constants.PORT_STATUS_ACTIVE)
                 return
             else:
-                LOG.info(_LI("Port binding ignored for segment ID %(id)s, "
-                             "segment %(segment)s and network type "
-                             "%(nettype)s"),
+                LOG.info("Port binding ignored for segment ID %(id)s, "
+                         "segment %(segment)s and network type "
+                         "%(nettype)s",
                          {'id': segment[api.ID],
                           'segment': segment[api.SEGMENTATION_ID],
                           'nettype': segment[api.NETWORK_TYPE]})

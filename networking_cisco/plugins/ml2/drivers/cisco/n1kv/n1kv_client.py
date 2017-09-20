@@ -28,7 +28,7 @@ from oslo_utils import netutils
 from neutron.plugins.common import constants as p_const
 from neutron_lib import exceptions as n_exc
 
-from networking_cisco._i18n import _, _LE, _LI
+from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
 
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
@@ -510,10 +510,10 @@ class Client(object):
                     LOG.debug("[VSM %(vsm)s attempt %(id)s]: Conn timeout." %
                         {"vsm": vsm_ip, "id": attempt})
                     if attempt == self.max_vsm_retries:
-                        LOG.error(_LE("VSM %s, Conn failed."), vsm_ip)
+                        LOG.error("VSM %s, Conn failed.", vsm_ip)
                         raise n1kv_exc.VSMConnectionFailed(reason=e)
             if resp.status_code != requests.codes.OK:
-                LOG.error(_LE("VSM %(vsm)s, Got error: %(err)s"),
+                LOG.error("VSM %(vsm)s, Got error: %(err)s",
                     {"vsm": vsm_ip, "err": resp.text})
                 raise n1kv_exc.VSMError(reason=resp.text)
         if 'application/json' in resp.headers['content-type']:
@@ -522,7 +522,7 @@ class Client(object):
             except ValueError:
                 return {}
         elif 'text/plain' in resp.headers['content-type']:
-            LOG.info(_LI("VSM: %s"), resp.text)
+            LOG.info("VSM: %s", resp.text)
 
     def _delete(self, action, body=None, headers=None, vsm_ip=None):
         return self._do_request("DELETE", action, body=body,

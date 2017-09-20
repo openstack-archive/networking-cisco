@@ -24,7 +24,6 @@ import six
 from oslo_config import cfg
 from oslo_log import log
 
-from networking_cisco._i18n import _LE, _LW
 from networking_cisco import backwards_compatibility as bc
 
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
@@ -111,13 +110,13 @@ class N1kvSyncDriver(object):
                     try:
                         self._sync_vsm(vsm_ip=vsm_ip)
                     except n1kv_exc.VSMConnectionFailed:
-                        LOG.warning(_LW('Sync thread exception: VSM '
-                                        '%s unreachable.') % vsm_ip)
+                        LOG.warning('Sync thread exception: VSM '
+                                    '%s unreachable.' % vsm_ip)
                     except n1kv_exc.VSMError:
-                        LOG.warning(_LW('Sync thread exception: Internal '
-                                        'server error on VSM %s.') % vsm_ip)
+                        LOG.warning('Sync thread exception: Internal '
+                                    'server error on VSM %s.' % vsm_ip)
             except Exception as e:
-                LOG.warning(_LW('Sync thread exception: %s') % e.message)
+                LOG.warning('Sync thread exception: %s' % e.message)
             eventlet.sleep(seconds=self.sync_sleep_duration)
 
     def _sync_vsm(self, vsm_ip):
@@ -277,8 +276,8 @@ class N1kvSyncDriver(object):
                 try:
                     self.n1kvclient.create_network_segment_pool(np_obj, vsm_ip)
                 except (n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
-                    LOG.warning(_LW('Sync exception: Network profile creation '
-                                    'failed for %s.') % np_obj['id'])
+                    LOG.warning('Sync exception: Network profile creation '
+                                'failed for %s.' % np_obj['id'])
 
     def _sync_delete_network_profiles(self, combined_res_info, vsm_ip):
         """Sync network profiles by deleting extraneous ones from VSM."""
@@ -294,8 +293,8 @@ class N1kvSyncDriver(object):
                 self.n1kvclient.delete_logical_network(log_net_name,
                                                        vsm_ip=vsm_ip)
             except (n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
-                LOG.warning(_LW('Sync exception: Network profile deletion '
-                                'failed. for %s') % np_id)
+                LOG.warning('Sync exception: Network profile deletion '
+                            'failed. for %s' % np_id)
 
     def _sync_create_networks(self, combined_res_info, vsm_ip):
         """Sync networks by creating missing ones on VSM."""
@@ -314,8 +313,8 @@ class N1kvSyncDriver(object):
                                                            network_profile,
                                                            vsm_ip=vsm_ip)
                 except (n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
-                    LOG.warning(_LW('Sync exception: Network create failed '
-                                    'for %s.') % network['id'])
+                    LOG.warning('Sync exception: Network create failed '
+                                'for %s.' % network['id'])
 
     def _sync_delete_networks(self, combined_res_info, vsm_ip):
         """Sync networks by deleting extraneous ones from VSM."""
@@ -333,8 +332,8 @@ class N1kvSyncDriver(object):
                 self.n1kvclient.delete_network_segment(net_id, segment_type,
                                                        vsm_ip=vsm_ip)
             except (n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
-                LOG.warning(_LW('Sync exception: Network delete failed for '
-                                '%s.') % net_id)
+                LOG.warning('Sync exception: Network delete failed for '
+                            '%s.' % net_id)
 
     def _sync_create_subnets(self, combined_res_info, vsm_ip):
         """Sync subnets by creating missing ones on VSM."""
@@ -345,8 +344,8 @@ class N1kvSyncDriver(object):
             try:
                 self.n1kvclient.create_ip_pool(subnet, vsm_ip=vsm_ip)
             except (n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
-                LOG.warning(_LW('Sync Exception: Subnet create failed for '
-                                '%s.') % subnet['id'])
+                LOG.warning('Sync Exception: Subnet create failed for '
+                            '%s.' % subnet['id'])
 
     def _sync_delete_subnets(self, combined_res_info, vsm_ip):
         """Sync subnets by deleting extraneous ones from VSM."""
@@ -358,8 +357,8 @@ class N1kvSyncDriver(object):
             try:
                 self.n1kvclient.delete_ip_pool(sub_id, vsm_ip=vsm_ip)
             except (n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
-                LOG.warning(_LW('Sync Exception: Subnet delete failed for '
-                                '%s.') % sub_id)
+                LOG.warning('Sync Exception: Subnet delete failed for '
+                            '%s.' % sub_id)
 
     def _sync_create_ports(self, combined_res_info, vsm_ip):
         """Sync ports by creating missing ones on VSM."""
@@ -380,9 +379,9 @@ class N1kvSyncDriver(object):
                 policy_profile = n1kv_db.get_policy_profile_by_uuid(
                     db.get_session(), policy_profile_id)
                 if not policy_profile:
-                    LOG.error(_LE("Cannot sync port with id %(port_id)s "
-                                  "because policy profile with id "
-                                  "%(profile_id)s does not exist."),
+                    LOG.error("Cannot sync port with id %(port_id)s "
+                              "because policy profile with id "
+                              "%(profile_id)s does not exist.",
                               {"port_id": port['id'],
                                "profile_name": policy_profile})
                     continue
@@ -391,11 +390,11 @@ class N1kvSyncDriver(object):
                 self.n1kvclient.create_n1kv_port(port, vmnetwork_name,
                                                  policy_profile, vsm_ip=vsm_ip)
             except (n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
-                LOG.warning(_LW('Sync Exception: Port create failed for '
-                                '%s.') % port['id'])
+                LOG.warning('Sync Exception: Port create failed for '
+                            '%s.' % port['id'])
             except n1kv_exc.PolicyProfileNotFound:
-                LOG.warning(_LW('Sync Exception: Port create failed as Policy '
-                                'profile %s does not exist on all VSM'),
+                LOG.warning('Sync Exception: Port create failed as Policy '
+                            'profile %s does not exist on all VSM',
                             policy_profile_id)
 
     def _sync_delete_ports(self, combined_res_info, vsm_ip):
@@ -419,8 +418,8 @@ class N1kvSyncDriver(object):
                     self.n1kvclient.delete_n1kv_port(vmnetwork_name, port_id,
                                                      vsm_ip=vsm_ip)
                 except (n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
-                    LOG.warning(_LW('Sync Exception: Port delete failed for %s'
-                                    '.') % port_id)
+                    LOG.warning('Sync Exception: Port delete failed for %s'
+                                '.' % port_id)
 
     def _sync_bridge_domains(self, combined_res_info, vsm_ip):
         """
@@ -447,8 +446,8 @@ class N1kvSyncDriver(object):
                                                          netp,
                                                          vsm_ip=vsm_ip)
                 except(n1kv_exc.VSMConnectionFailed, n1kv_exc.VSMError):
-                    LOG.warning(_LW('Sync Exception: Bridge domain creation '
-                                    'failed for %s.') % bd_name)
+                    LOG.warning('Sync Exception: Bridge domain creation '
+                                'failed for %s.' % bd_name)
                     need_bd_sync = True
         # delete extraneous BDs from VSM
         neutron_bds = {net_id + n1kv_const.BRIDGE_DOMAIN_SUFFIX for net_id in
@@ -459,7 +458,7 @@ class N1kvSyncDriver(object):
                 # delete this BD from VSM
                 self.n1kvclient.delete_bridge_domain(bd, vsm_ip=vsm_ip)
             except (n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
-                LOG.warning(_LW('Sync Exception: Bridge domain deletion '
-                                'failed for %s.') % bd)
+                LOG.warning('Sync Exception: Bridge domain deletion '
+                            'failed for %s.' % bd)
                 need_bd_sync = True
         self.sync_bds[vsm_ip] = need_bd_sync

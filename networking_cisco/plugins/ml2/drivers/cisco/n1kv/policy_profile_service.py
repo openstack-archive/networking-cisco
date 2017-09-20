@@ -18,8 +18,6 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 
-from networking_cisco._i18n import _LW
-
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
     constants as n1kv_const)
 from networking_cisco.plugins.ml2.drivers.cisco.n1kv import (
@@ -290,10 +288,10 @@ class PolicyProfilePlugin(PolicyProfile_db_mixin):
                         if not n1kv_db.policy_profile_in_use(pid):
                             self._remove_policy_profile(pid, vsm_ip)
                         else:
-                            LOG.warning(_LW('Policy profile %s in use'), pid)
+                            LOG.warning('Policy profile %s in use', pid)
             except (n1kv_exc.VSMError, n1kv_exc.VSMConnectionFailed):
                 with excutils.save_and_reraise_exception(reraise=False):
-                    LOG.warning(_LW('No policy profile populated from VSM'))
+                    LOG.warning('No policy profile populated from VSM')
         self.sanitize_policy_profile_table()
 
     def get_policy_profiles(self, context, filters=None, fields=None):
@@ -355,8 +353,8 @@ class PolicyProfilePlugin(PolicyProfile_db_mixin):
                     db_session.delete(pprofile)
                     db_session.flush()
                 else:
-                    LOG.warning(_LW('Cannot delete policy profile %s '
-                                    'as it is in use.'), pprofile['id'])
+                    LOG.warning('Cannot delete policy profile %s '
+                                'as it is in use.', pprofile['id'])
 
     def update_policy_profile(self, context, prof_id, policy_profile):
         session = context.session
