@@ -20,7 +20,7 @@ from oslo_utils import excutils
 from oslo_utils import uuidutils
 import six
 
-from networking_cisco._i18n import _, _LE
+from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
 
 LOG = logging.getLogger(__name__)
@@ -114,9 +114,9 @@ def uuidify(val):
             int_val = int(val, 16)
         except ValueError:
             with excutils.save_and_reraise_exception():
-                LOG.error(_LE("Invalid UUID format %s. Please provide an "
-                              "integer in decimal (0-9) or hex (0-9a-e) "
-                              "format"), val)
+                LOG.error("Invalid UUID format %s. Please provide an "
+                          "integer in decimal (0-9) or hex (0-9a-e) "
+                          "format", val)
         res = str(int_val)
         num = 12 - len(res)
         return "00000000-0000-0000-0000-" + "0" * num + res

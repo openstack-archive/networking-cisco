@@ -19,7 +19,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 
-from networking_cisco._i18n import _, _LE, _LI
+from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
@@ -71,7 +71,7 @@ class ServiceVMManager(object):
         # There are several individual Nova client exceptions but they have
         # no other common base than Exception, hence the long list.
         except Exception as e:
-            LOG.error(_LE('Failure determining running Nova services: %s'), e)
+            LOG.error('Failure determining running Nova services: %s', e)
             return False
         return not bool(required.difference(
             [service.binary for service in services
@@ -83,8 +83,8 @@ class ServiceVMManager(object):
         # There are several individual Nova client exceptions but they have
         # no other common base than Exception, hence the long list.
         except Exception as e:
-            LOG.error(_LE('Failed to get status of service VM instance '
-                          '%(id)s, due to %(err)s'), {'id': vm_id, 'err': e})
+            LOG.error('Failed to get status of service VM instance '
+                      '%(id)s, due to %(err)s', {'id': vm_id, 'err': e})
             status = c_constants.SVM_ERROR
         return status
 
@@ -116,7 +116,7 @@ class ServiceVMManager(object):
                 bc.get_novaclient_images(self._nclient), vm_image)
             flavor = n_utils.find_resource(self._nclient.flavors, vm_flavor)
         except (nova_exc.CommandError, Exception) as e:
-            LOG.error(_LE('Failure finding needed Nova resource: %s'), e)
+            LOG.error('Failure finding needed Nova resource: %s', e)
             return
 
         try:
@@ -134,7 +134,7 @@ class ServiceVMManager(object):
         # There are several individual Nova client exceptions but they have
         # no other common base than Exception, therefore the long list.
         except Exception as e:
-            LOG.error(_LE('Failed to create service VM instance: %s'), e)
+            LOG.error('Failed to create service VM instance: %s', e)
             return
         return {'id': server.id}
 
@@ -152,8 +152,8 @@ class ServiceVMManager(object):
         # There are several individual Nova client exceptions but they have
         # no other common base than Exception, therefore the long list.
         except Exception as e:
-            LOG.error(_LE('Failed to delete service VM instance %(id)s, '
-                          'due to %(err)s'), {'id': vm_id, 'err': e})
+            LOG.error('Failed to delete service VM instance %(id)s, '
+                      'due to %(err)s', {'id': vm_id, 'err': e})
             return False
 
     # TODO(bobmel): Move this to fake_service_vm_lib.py file with
@@ -202,7 +202,7 @@ class ServiceVMManager(object):
             for port in ports:
                 self._core_plugin.delete_port(context, port['id'])
         except Exception as e:
-            LOG.error(_LE('Failed to delete service VM %(id)s due to %(err)s'),
+            LOG.error('Failed to delete service VM %(id)s due to %(err)s',
                       {'id': vm_id, 'err': e})
             result = False
         return result
@@ -223,5 +223,5 @@ class ServiceVMManager(object):
         ips = []
         for s in servers:
             ips.append(s.fixed_ips[0]['ip_address'])
-        LOG.info(_LI('Interfaces connected on VM:%(vm_id)s is %(ips)s'),
+        LOG.info('Interfaces connected on VM:%(vm_id)s is %(ips)s',
                  {'ips': ips, 'vm_id': vm_id})

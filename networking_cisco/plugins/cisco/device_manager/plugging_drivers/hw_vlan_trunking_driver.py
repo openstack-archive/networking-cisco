@@ -16,7 +16,6 @@ from neutron.extensions import providernet as pr_net
 from oslo_log import log as logging
 from oslo_utils import excutils
 
-from networking_cisco._i18n import _LE
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.device_manager import config
@@ -100,9 +99,9 @@ class HwVLANTrunkingPlugDriver(plug.PluginSidePluggingDriver):
                 return dev_info['internal'].get(network_id,
                                                 dev_info['internal']['*'])
         except (TypeError, KeyError):
-            LOG.error(_LE('Failed to lookup interface on device %(dev)s'
-                          'for network %(net)s'), {'dev': device_id,
-                                                   'net': network_id})
+            LOG.error('Failed to lookup interface on device %(dev)s'
+                      'for network %(net)s', {'dev': device_id,
+                                              'net': network_id})
             return
 
     @classmethod
@@ -124,8 +123,8 @@ class HwVLANTrunkingPlugDriver(plug.PluginSidePluggingDriver):
                 except (ValueError, KeyError):
                     with excutils.save_and_reraise_exception() as ctx:
                         ctx.reraise = False
-                        LOG.error(_LE('Invalid network to interface mapping '
-                                      '%(key)s, %(value)s in configuration '
-                                      'file for device = %(dev)s'),
+                        LOG.error('Invalid network to interface mapping '
+                                  '%(key)s, %(value)s in configuration '
+                                  'file for device = %(dev)s',
                                   {'key': k, 'value': v, 'dev': hd_uuid})
         cls._device_network_interface_map = temp

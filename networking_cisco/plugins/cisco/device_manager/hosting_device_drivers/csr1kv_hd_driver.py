@@ -16,7 +16,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 
-from networking_cisco._i18n import _, _LE
+from networking_cisco._i18n import _
 
 from networking_cisco.plugins.cisco.device_manager import (
     hosting_device_drivers)
@@ -66,5 +66,5 @@ class CSR1kvHostingDeviceDriver(hosting_device_drivers.HostingDeviceDriver):
             return {'iosxe_config.txt': vm_cfg_data}
         except IOError:
             with excutils.save_and_reraise_exception():
-                LOG.exception(_LE('Failed to create initial device '
-                                  'configuration.'))
+                LOG.exception('Failed to create initial device '
+                              'configuration.')

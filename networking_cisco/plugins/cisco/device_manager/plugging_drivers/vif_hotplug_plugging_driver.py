@@ -21,8 +21,8 @@ from novaclient import exceptions as nova_exc
 from oslo_log import log as logging
 from sqlalchemy.sql import expression as expr
 
+from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
-from networking_cisco._i18n import _, _LE, _LW
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.device_manager import plugging_drivers
 from networking_cisco.plugins.cisco.device_manager.plugging_drivers import (
@@ -75,8 +75,8 @@ class VIFHotPlugPluggingDriver(plugging_drivers.PluginSidePluggingDriver,
             try:
                 mgmt_port = self._core_plugin.create_port(context, p_spec)
             except n_exc.NeutronException as e:
-                LOG.error(_LE('Error %s when creating management port. '
-                              'Cleaning up.'), e)
+                LOG.error('Error %s when creating management port. '
+                          'Cleaning up.', e)
                 self.delete_hosting_device_resources(
                     context, tenant_id, mgmt_port)
                 mgmt_port = None
@@ -111,11 +111,11 @@ class VIFHotPlugPluggingDriver(plugging_drivers.PluginSidePluggingDriver,
             try:
                 self._cleanup_hosting_port(context, mgmt_port['id'])
             except n_exc.NeutronException as e:
-                LOG.error(_LE("Unable to delete port:%(port)s after %(tries)d"
-                              " attempts due to exception %(exception)s. "
-                              "Skipping it"), {'port': mgmt_port['id'],
-                                               'tries': DELETION_ATTEMPTS,
-                                               'exception': str(e)})
+                LOG.error("Unable to delete port:%(port)s after %(tries)d"
+                          " attempts due to exception %(exception)s. "
+                          "Skipping it", {'port': mgmt_port['id'],
+                                          'tries': DELETION_ATTEMPTS,
+                                          'exception': str(e)})
 
     @utils.retry(n_exc.NeutronException, DELETION_ATTEMPTS,
                  SECONDS_BETWEEN_DELETION_ATTEMPTS)
@@ -124,7 +124,7 @@ class VIFHotPlugPluggingDriver(plugging_drivers.PluginSidePluggingDriver,
             self._core_plugin.delete_port(context, port_id)
             LOG.debug("Port %s deleted successfully", port_id)
         except n_exc.PortNotFound:
-            LOG.warning(_LW('Trying to delete port:%s, but port is not found'),
+            LOG.warning('Trying to delete port:%s, but port is not found',
                         port_id)
 
     @utils.retry(PortNotUnBoundException, tries=6)
@@ -154,11 +154,11 @@ class VIFHotPlugPluggingDriver(plugging_drivers.PluginSidePluggingDriver,
                 hosting_device_id, hosting_port_id)
             LOG.debug("_attach_hosting_port Setup logical port completed")
         except Exception as e:
-            LOG.error(_LE("_attach_hosting_port Failed to attach interface:"
-                          "%(p_id)s on hosting device:%(hd_id)s due to "
-                          "error %(error)s"), {'p_id': hosting_port_id,
-                                               'hd_id': hosting_device_id,
-                                               'error': str(e)})
+            LOG.error("_attach_hosting_port Failed to attach interface:"
+                      "%(p_id)s on hosting device:%(hd_id)s due to "
+                      "error %(error)s", {'p_id': hosting_port_id,
+                                          'hd_id': hosting_device_id,
+                                          'error': str(e)})
 
     def setup_logical_port_connectivity(self, context, port_db,
                                         hosting_device_id):
@@ -181,11 +181,11 @@ class VIFHotPlugPluggingDriver(plugging_drivers.PluginSidePluggingDriver,
                 self._gt_pool.spawn_n(self._attach_hosting_port,
                                       hosting_device_id, hosting_port.id)
             except Exception as e:
-                LOG.error(_LE("Failed to attach interface mapped to port:"
-                              "%(p_id)s on hosting device:%(hd_id)s due to "
-                              "error %(error)s"), {'p_id': hosting_port.id,
-                                                   'hd_id': hosting_device_id,
-                                                   'error': str(e)})
+                LOG.error("Failed to attach interface mapped to port:"
+                          "%(p_id)s on hosting device:%(hd_id)s due to "
+                          "error %(error)s", {'p_id': hosting_port.id,
+                                              'hd_id': hosting_device_id,
+                                              'error': str(e)})
 
     def teardown_logical_port_connectivity(self, context, port_db,
                                            hosting_device_id):
@@ -194,8 +194,8 @@ class VIFHotPlugPluggingDriver(plugging_drivers.PluginSidePluggingDriver,
         Unplugs the corresponding data interface from the CSR.
         """
         if port_db is None or port_db.get('id') is None:
-            LOG.warning(_LW("Port id is None! Cannot remove port "
-                            "from hosting_device:%s"), hosting_device_id)
+            LOG.warning("Port id is None! Cannot remove port "
+                        "from hosting_device:%s", hosting_device_id)
             return
         hosting_port_id = port_db.hosting_info.hosting_port.id
         try:
@@ -206,11 +206,11 @@ class VIFHotPlugPluggingDriver(plugging_drivers.PluginSidePluggingDriver,
             LOG.debug("Teardown logicalport completed for port:%s", port_db.id)
 
         except Exception as e:
-            LOG.error(_LE("Failed to detach interface corresponding to port:"
-                          "%(p_id)s on hosting device:%(hd_id)s due to "
-                          "error %(error)s"), {'p_id': hosting_port_id,
-                                               'hd_id': hosting_device_id,
-                                               'error': str(e)})
+            LOG.error("Failed to detach interface corresponding to port:"
+                      "%(p_id)s on hosting device:%(hd_id)s due to "
+                      "error %(error)s", {'p_id': hosting_port_id,
+                                          'hd_id': hosting_device_id,
+                                          'error': str(e)})
 
     def extend_hosting_port_info(self, context, port_db, hosting_device,
                                  hosting_info):
@@ -238,8 +238,8 @@ class VIFHotPlugPluggingDriver(plugging_drivers.PluginSidePluggingDriver,
         try:
             hosting_port = self._core_plugin.create_port(context, p_spec)
         except n_exc.NeutronException as e:
-            LOG.error(_LE('Error %s when creating hosting port'
-                          'Cleaning up.'), e)
+            LOG.error('Error %s when creating hosting port'
+                      'Cleaning up.', e)
             self.delete_hosting_device_resources(
                 context, l3admin_tenant_id, hosting_port)
             hosting_port = None

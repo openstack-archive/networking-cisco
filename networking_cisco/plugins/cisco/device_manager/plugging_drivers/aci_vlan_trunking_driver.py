@@ -19,7 +19,7 @@ from neutron_lib import exceptions as n_exc
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from networking_cisco._i18n import _, _LI, _LE
+from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.device_manager.plugging_drivers import (
     hw_vlan_trunking_driver as hw_vlan)
@@ -197,8 +197,8 @@ class AciVLANTrunkingPlugDriver(hw_vlan.HwVLANTrunkingPlugDriver):
                 self._get_ext_net_name = self._get_ext_net_name_gbp
                 self._get_vrf_context = self._get_vrf_context_gbp
             except AttributeError:
-                    LOG.info(_LI("GBP service plugin not present -- will "
-                                 "try APIC ML2 plugin."))
+                    LOG.info("GBP service plugin not present -- will "
+                             "try APIC ML2 plugin.")
             if not self._apic_driver:
                 try:
                     self._apic_driver = (
@@ -207,8 +207,8 @@ class AciVLANTrunkingPlugDriver(hw_vlan.HwVLANTrunkingPlugDriver):
                     self._get_ext_net_name = self._get_ext_net_name_neutron
                     self._get_vrf_context = self._get_vrf_context_neutron
                 except KeyError:
-                    LOG.error(_LE("APIC ML2 plugin not present: "
-                                  "no APIC ML2 driver could be found."))
+                    LOG.error("APIC ML2 plugin not present: "
+                              "no APIC ML2 driver could be found.")
                     raise AciDriverNoAciDriverInstalledOrConfigured()
         return self._apic_driver
 

@@ -19,7 +19,6 @@ import random
 from oslo_log import log as logging
 from sqlalchemy.orm import exc
 
-from networking_cisco._i18n import _LW
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
@@ -50,7 +49,7 @@ class HostingDeviceCfgAgentScheduler(object):
             return
         if cfg_agentschedulers_db.CfgAgentSchedulerDbMixin.is_agent_down(
                 cfg_agent_db.heartbeat_timestamp):
-            LOG.warning(_LW('Cisco cfg agent %s is not alive'),
+            LOG.warning('Cisco cfg agent %s is not alive',
                         cfg_agent_db.id)
         return cfg_agent_db
 
@@ -58,7 +57,7 @@ class HostingDeviceCfgAgentScheduler(object):
         """Selects Cisco cfg agent that will configure <hosting_device>."""
         active_cfg_agents = plugin.get_cfg_agents(context, active=True)
         if not active_cfg_agents:
-            LOG.warning(_LW('There are no active Cisco cfg agents'))
+            LOG.warning('There are no active Cisco cfg agents')
             # No worries, once a Cisco cfg agent is started and
             # announces itself any "dangling" hosting devices
             # will be scheduled to it.
@@ -76,7 +75,7 @@ class StingyHostingDeviceCfgAgentScheduler(HostingDeviceCfgAgentScheduler):
     def schedule_hosting_device(self, plugin, context, hosting_device):
         active_cfg_agents = plugin.get_cfg_agents(context, active=True)
         if not active_cfg_agents:
-            LOG.warning(_LW('There are no active Cisco cfg agents'))
+            LOG.warning('There are no active Cisco cfg agents')
             return
         else:
             cfg_agent_hosting_devices = []
