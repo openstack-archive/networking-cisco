@@ -1,0 +1,25 @@
+---
+deprecations:
+  - |
+    Nexus: The ncclient/ssh config driver has been deprecated for removal
+
+    Use of ncclient/ssh_driver will be removed in the 'Cisco 7.0.0'
+    release.  It will be replaced by the RESTAPI Driver.  Some
+    configuration options are also deprecated for removal
+    since they relate only to the ncclient driver.  These include
+    'persistent_switch_config', 'never_cache_ssh_connection',
+    'host_key_checks', and 'nexus_driver'. For details, refer to
+    https://bugs.launchpad.net/networking-cisco/+bug/1705036
+
+upgrade:
+  - |
+    Nexus: Set RESTAPI driver as default replacing ncclient driver
+
+    The Nexus 9K handles the RESTAPI events more efficiently and without
+    session limitations.  It is now the default and will be the only
+    choice in 'Cisco 7.0.0' release.  This may require the administrator
+    to upgrade the Nexus operating system.  If necessary, use
+    'nexus_driver=ncclient' to temporarily go back to original default
+    driver; however, some enhancements may not be available when using
+    this driver. For details, refer to
+    https://bugs.launchpad.net/networking-cisco/+bug/1705036
