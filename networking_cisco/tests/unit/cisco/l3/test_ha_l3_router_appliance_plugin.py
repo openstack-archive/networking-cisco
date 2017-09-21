@@ -25,7 +25,6 @@ from neutron.callbacks import events
 from neutron.callbacks import registry
 from neutron.callbacks import resources
 from neutron.db import l3_db
-from neutron.extensions import extraroute
 from neutron.extensions import l3
 from neutron.tests import fake_notifier
 
@@ -39,7 +38,6 @@ from networking_cisco.tests.unit.cisco.device_manager import (
     device_manager_test_support)
 from networking_cisco.tests.unit.cisco.l3 import (
     test_l3_router_appliance_plugin)
-from networking_cisco.tests.unit.cisco.l3 import test_db_routertype
 
 
 _uuid = uuidutils.generate_uuid
@@ -61,11 +59,9 @@ def _sort_routes(routes):
 
 
 class TestHAL3RouterApplianceExtensionManager(
-        test_db_routertype.L3TestRoutertypeExtensionManager):
+        test_l3_router_appliance_plugin.TestL3RouterApplianceExtensionManager):
 
     def get_resources(self):
-        l3.RESOURCE_ATTRIBUTE_MAP['routers'].update(
-            extraroute.EXTENDED_ATTRIBUTES_2_0['routers'])
         l3.RESOURCE_ATTRIBUTE_MAP['routers'].update(
             ha.EXTENDED_ATTRIBUTES_2_0['routers'])
         return super(TestHAL3RouterApplianceExtensionManager,
@@ -1759,7 +1755,6 @@ class L3CfgAgentHARouterApplianceTestCase(
                     fip2['floatingip']['fixed_ip_address_scope'] = None
                     fips_dict = {fip1['floatingip']['id']: fip1['floatingip'],
                                  fip2['floatingip']['id']: fip2['floatingip']}
-
                     e_context = bc.context.get_admin_context()
                     query_params = """fixed_ips=ip_address%%3D%s""".strip() % (
                                    '10.0.1.2')

@@ -17,6 +17,7 @@ from neutron.api.rpc.handlers import l3_rpc
 from neutron.common import rpc as n_rpc
 from neutron.common import topics
 from neutron.db import common_db_mixin
+from neutron.db import dns_db
 #from neutron.db import l3_gwmode_db
 from oslo_config import cfg
 from oslo_utils import importutils
@@ -44,7 +45,8 @@ class CiscoRouterPlugin(common_db_mixin.CommonDbMixin,
                         ha_db.HA_db_mixin,
                         l3_router_appliance_db.L3RouterApplianceDBMixin,
                         #l3_gwmode_db.L3_NAT_db_mixin,
-                        router_sch_db.L3RouterTypeAwareSchedulerDbMixin):
+                        router_sch_db.L3RouterTypeAwareSchedulerDbMixin,
+                        dns_db.DNSDbMixin):
 
     """Implementation of Cisco L3 Router Service Plugin for Neutron.
 
@@ -62,7 +64,8 @@ class CiscoRouterPlugin(common_db_mixin.CommonDbMixin,
         routerrole.ROUTERROLE_ALIAS,
         routertype.ROUTERTYPE_ALIAS,
         routertypeawarescheduler.ROUTERTYPE_AWARE_SCHEDULER_ALIAS,
-        ha.HA_ALIAS]
+        ha.HA_ALIAS,
+        "dns-integration"]
 
     def __init__(self):
         self.setup_rpc()
