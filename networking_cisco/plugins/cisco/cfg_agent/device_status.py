@@ -22,9 +22,9 @@ from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
 import networking_cisco.plugins.cisco.common.cisco_constants as cc
 from neutron.agent.linux import utils as linux_utils
 
-from neutron._i18n import _
-from neutron._i18n import _LI
-from neutron._i18n import _LW
+from networking_cisco._i18n import _
+from networking_cisco._i18n import _LI
+from networking_cisco._i18n import _LW
 
 import pprint
 
@@ -199,7 +199,7 @@ class DeviceStatus(object):
         return ret_val
 
     def check_backlogged_hosting_devices(self, driver_mgr):
-        """"Checks the status of backlogged hosting devices.
+        """Checks the status of backlogged hosting devices.
 
         Skips newly spun up instances during their booting time as specified
         in the boot time parameter.
@@ -236,15 +236,17 @@ class DeviceStatus(object):
         |            |                     | Notify plugin  | change.        |
         +------------+---------------------+----------------+----------------+
 
-        :returns: A dict of the format::
+        :returns: A dict of the format:
 
-            {'reachable': [<hd_id>,..],
-             'dead':[<hd_id>,..],
-             'revived':[<hd_id>,..]}
+        ::
 
-        reachable - a list of hosting devices that are now reachable
-        dead      - a list of hosting devices deemed dead
-        revived   - a list of hosting devices (dead to active)
+          {"reachable": [<hd_id>,..],
+          "dead": [<hd_id>,..],
+          "revived": [<hd_id>,..]}
+
+        * reachable - a list of hosting devices that are now reachable
+        * dead      - a list of hosting devices deemed dead
+        * revived   - a list of hosting devices (dead to active)
         """
         response_dict = {'reachable': [], 'revived': [], 'dead': []}
         LOG.debug("Current Backlogged hosting devices: \n%s\n",
