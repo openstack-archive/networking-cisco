@@ -18,7 +18,6 @@ import collections
 import mock
 from oslo_config import cfg
 
-from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import exceptions
@@ -28,11 +27,6 @@ from networking_cisco.tests.unit.ml2.drivers.cisco.nexus import (
     test_cisco_nexus_base)
 
 from neutron.plugins.common import constants as p_const
-
-if bc.NEUTRON_VERSION <= bc.NEUTRON_NEWTON_VERSION:
-    from neutron.plugins.ml2 import db as segments_db
-else:
-    from neutron.db import segments_db as segments_db
 
 from neutron.plugins.ml2 import driver_api as api
 
@@ -371,9 +365,7 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
             api.ID: mock.ANY,
             api.NETWORK_TYPE: p_const.TYPE_VLAN}
 
-        mock_get_dynamic_segment = mock.patch.object(
-            segments_db, 'get_dynamic_segment').start()
-        mock_get_dynamic_segment.return_value = expected_dynamic_segment
+        self.mock_get_dynamic_segment.return_value = expected_dynamic_segment
 
         self._bind_port(self.test_configs['test_vxlan_config1'])
         self.mock_continue_binding.assert_called_once_with(
@@ -402,9 +394,7 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
         dynamic segment wasn't allocated.
         """
 
-        mock_get_dynamic_segment = mock.patch.object(
-            segments_db, 'get_dynamic_segment').start()
-        mock_get_dynamic_segment.return_value = None
+        self.mock_get_dynamic_segment.return_value = None
 
         try:
             self._bind_port(self.test_configs['test_vxlan_config1'])

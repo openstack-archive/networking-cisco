@@ -116,10 +116,7 @@ class TestNexusTrunkHandler(test_db_base_plugin_v2.NeutronDbPluginV2TestCase):
         self.plugin.update_port.assert_called_with(mock.ANY, PORT_ID,
             {'port':
              {bc.portbindings.HOST_ID: host_id,
-              bc.portbindings.VNIC_TYPE: bc.portbindings.VNIC_BAREMETAL,
-              bc.portbindings.PROFILE: port[bc.portbindings.PROFILE],
-              'device_owner': bc.trunk_consts.TRUNK_SUBPORT_OWNER,
-              'status': bc.constants.PORT_STATUS_ACTIVE}})
+              'device_owner': bc.trunk_consts.TRUNK_SUBPORT_OWNER}})
 
         self.mock_trunk_get_object.called_once_with(mock.ANY, id=TRUNK_ID)
         TestTrunk.update.called_once_with(
@@ -153,3 +150,28 @@ class TestNexusTrunkHandler(test_db_base_plugin_v2.NeutronDbPluginV2TestCase):
 
     def test_update_subports_baremetal(self):
         self._test_update_subports(PORT_BAREMETAL, DNS_NAME)
+
+    def test_is_trunk_subport_baremetal(self):
+        self.plugin.get_port.return_value = PORT_BAREMETAL
+        return_value = self.handler.is_trunk_subport_baremetal(PORT_BAREMETAL)
+
+        self.assertTrue(return_value)
+        self.mock_subport_get_object.assert_called_once_with(
+            mock.ANY, port_id=PORT_BAREMETAL['id'])
+        self.mock_trunk_get_object.assert_called_once_with(
+            mock.ANY, id=TestSubPort().trunk_id)
+
+    def test_is_trunk_subport_baremetal_no_subport(self):
+        self.mock_subport_get_object.return_value = None
+        return_value = self.handler.is_trunk_subport_baremetal(PORT_BAREMETAL)
+
+        self.assertFalse(return_value)
+        self.mock_subport_get_object.assert_called_once_with(
+            mock.ANY, port_id=PORT_BAREMETAL['id'])
+        self.assertFalse(self.mock_trunk_get_object.call_count)
+
+    def test_is_trunk_subport_baremetal_vm_port(self):
+        self.plugin.get_port.return_value = PORT_VM
+        return_value = self.handler.is_trunk_subport_baremetal(PORT_VM)
+
+        self.assertFalse(return_value)

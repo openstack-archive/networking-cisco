@@ -55,6 +55,7 @@ if NEUTRON_VERSION >= NEUTRON_OCATA_VERSION:
     from neutron.db import api as db_api
     from neutron.db.models import agent as agent_model
     from neutron.db.models import l3 as l3_models
+    from neutron.db import segments_db
     from neutron.objects import trunk as trunk_objects
     from neutron.services.trunk import constants as trunk_consts
     from neutron.services.trunk.drivers import base as trunk_base
@@ -115,6 +116,7 @@ else:
     from neutron.extensions import providernet  # noqa
     from neutron import manager
     from neutron.plugins.common import constants as svc_constants
+    from neutron.plugins.ml2 import db as segments_db  # noqa
     from neutron.services import service_base  # noqa
     import sqlalchemy as sa
     from sqlalchemy.ext import declarative
@@ -150,7 +152,7 @@ else:
     Router = l3_db.Router
 
     def get_context():
-        return None
+        return context.Context(user_id=None, tenant_id=None)
 
     def get_db_ref(context):
         return db_api.get_session()
