@@ -25,6 +25,25 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_helpers as nexus_help)
 
+nexus_sub_opts = [
+    cfg.StrOpt('username',
+        help=_("Nexus switch administrator user name.")),
+    cfg.StrOpt('password',
+        help=_("Nexus switch administrator user password.")),
+    cfg.StrOpt('physnet',
+        help=_("Physical network domain connected to this switch.")),
+    cfg.StrOpt('nve_src_intf',
+        help=_("The source Loopback interface configured for VXLAN.")),
+    cfg.StrOpt('vpc_pool',
+        help=_("Port-channel/VPC Allocation Pool of ids")),
+    cfg.StrOpt('intfcfg.portchannel',
+        help=_("String of Nexus port-channel config cli for use when "
+               "baremetal port-channels are created. Use ';' to separate "
+               "each command.")),
+    cfg.IntOpt('ssh_port', default=22, deprecated_for_removal=True,
+        help=_("TCP Port for connecting via SSH for switch management.")),
+    base.RemainderOpt('compute_hosts')]
+
 ml2_cisco_opts = [
     cfg.StrOpt('managed_physical_network',
                help=_("The physical network managed by the switches.")),
@@ -55,38 +74,17 @@ ml2_cisco_opts = [
                deprecated_for_removal=True,
                help=_("Choice of Nexus Config Driver to be loaded from "
                       "the networking_cisco.ml2.nexus_driver namespace.")),
-    base.SubsectionOpt('ml2_mech_cisco_nexus',
-                       dest='nexus_switches',
-                       subopts=[cfg.StrOpt('username',
-                                    help=_("Nexus switch administrator "
-                                           "user name.")),
-                                cfg.StrOpt('password',
-                                    help=_("Nexus switch administrator "
-                                           "user password.")),
-                                cfg.StrOpt('physnet',
-                                    help=_("Physical network domain"
-                                           "connected to this switch.")),
-                                cfg.StrOpt('nve_src_intf',
-                                    help=_("The source Loopback interface "
-                                           "configured for VXLAN.")),
-                                cfg.StrOpt('vpc_pool',
-                                    help=_("Port-channel/VPC Allocation "
-                                           "Pool of ids")),
-                                cfg.StrOpt('intfcfg.portchannel',
-                                    help=_("String of Nexus port-channel "
-                                           "config cli for use when "
-                                           "baremetal port-channels are "
-                                           "created. Use ';' to separate "
-                                           "each command.")),
-                                cfg.IntOpt('ssh_port', default=22,
-                                    help=_("TCP Port for connecting via "
-                                           "SSH for switch management.")),
-                                base.RemainderOpt('compute_hosts')])
-
 ]
 
+nexus_switches = base.SubsectionOpt(
+    'ml2_mech_cisco_nexus',
+    dest='nexus_switches',
+    help=_("Subgroups that allow you to specify the nexus switches to be "
+           "managed by the nexus ML2 driver."),
+    subopts=nexus_sub_opts)
 
 cfg.CONF.register_opts(ml2_cisco_opts, "ml2_cisco")
+cfg.CONF.register_opt(nexus_switches, "ml2_cisco")
 
 #
 # Format for ml2_conf_cisco.ini 'ml2_mech_cisco_nexus' is:

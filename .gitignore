@@ -6,6 +6,7 @@ cover/
 covhtml/
 dist/
 doc/build
+doc/source/_static/config-samples/*.sample
 *.DS_Store
 *.pyc
 *.egg-info/
