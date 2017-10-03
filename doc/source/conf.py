@@ -35,9 +35,12 @@ if on_rtd and not os.path.isdir("contributor/api"):
 
 ignore_everything = os.environ.get('JUST_BUILD_AUTO_DOC', None) == 'True'
 if ignore_everything:
-    exclude_patterns = ['*/*']
+    master_doc = 'dummy'
+    exclude_patterns = ['index.rst', '*/*']
 else:
-    exclude_patterns = ['api/networking_cisco_tempest_plugin.*']
+    # The master toctree document.
+    master_doc = 'index'
+    exclude_patterns = ['dummy.rst', 'api/networking_cisco_tempest_plugin.*']
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
@@ -53,9 +56,6 @@ extensions = [
 
 # The suffix of source filenames.
 source_suffix = '.rst'
-
-# The master toctree document.
-master_doc = 'index'
 
 # General information about the project.
 project = u'networking-cisco'
