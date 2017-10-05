@@ -18,11 +18,11 @@ events.
 VLAN Creation
 ~~~~~~~~~~~~~
 When VMs are created or when subnets are created with dhcp is enabled, port
-events are received by the nexus driver.  If there are switch credentials
-defined by the administrator for the event, then the nexus driver will
+events are received by the Nexus driver.  If there are switch credentials
+defined by the administrator for the event, then the Nexus driver will
 process the event.
 
-The basic Nexus configuration actions taken by the nexus driver are
+The basic Nexus configuration actions taken by the Nexus driver are
 as follows:
 
 #. Configure the provided VLAN on the Nexus device,
@@ -87,8 +87,8 @@ ethernet interfaces.
 VLAN Removal
 ~~~~~~~~~~~~
 When a VM is removed or a subnet is removed and dhcp is enabled, a delete
-port-event is received by the nexus driver.  If the port exists in the
-nexus driver's port data base, the driver will remove it from the data base
+port-event is received by the Nexus driver.  If the port exists in the
+Nexus driver's port data base, the driver will remove it from the data base
 as well as remove the trunk vlan on the Nexus device.
 
 To remove the trunk vlan from interface on the Nexus switch, it
