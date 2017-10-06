@@ -26,54 +26,183 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_helpers as nexus_help)
 
 nexus_sub_opts = [
-    cfg.StrOpt('username',
-        help=_("Nexus switch administrator user name.")),
-    cfg.StrOpt('password',
-        help=_("Nexus switch administrator user password.")),
-    cfg.StrOpt('physnet',
-        help=_("Physical network domain connected to this switch.")),
-    cfg.StrOpt('nve_src_intf',
-        help=_("The source Loopback interface configured for VXLAN.")),
-    cfg.StrOpt('vpc_pool',
-        help=_("Port-channel/VPC Allocation Pool of ids")),
     cfg.StrOpt('intfcfg.portchannel',
-        help=_("String of Nexus port-channel config cli for use when "
-               "baremetal port-channels are created. Use ';' to separate "
-               "each command.")),
+        help=_('intfcfg.portchannel is a list of Nexus port-channel config '
+               'CLI used when baremetal port-channels are created by the '
+               'Nexus driver.  It is dependent on "vpc_pool" being '
+               'configured.  Any number of Nexus port-channel commands '
+               'separated by ";" can be provided.  When there are multiple '
+               'interfaces in a baremetal event, the nexus driver checks to '
+               'determine whether a port-channel is already applied to the '
+               'interfaces; otherwise, it creates a port channel. This '
+               'optional configuration allows the administrator to custom '
+               'configure the port-channel.  When not configured, the nexus '
+               'driver defaults to configuring "spanning-tree port type edge '
+               'trunk;no lacp suspend-individual" beneath the port-channel. '
+               'An example of this configuration is "intfcfg.portchannel=no '
+               'lacp suspend-individual;spanning-tree port type edge '
+               'trunk".')),
+    cfg.StrOpt('nve_src_intf',
+        help=_('Only valid if VXLAN overlay is configured and '
+               'vxlan_global_config is set to True. The NVE source interface '
+               'is a loopback interface that is configured on the switch with '
+               'valid /32 IP address. This /32 IP address must be known by '
+               'the transient devices in the transport network and the remote '
+               'VTEPs.  This is accomplished by advertising it through a '
+               'dynamic routing protocol in the transport network. If '
+               'nve_src_intf is not defined, a default setting of 0 '
+               'is used to create "loopback0".  This is configured for '
+               'non-baremetal only.')),
+    cfg.StrOpt('password',
+        help=_('The password of the Nexus Switch Administrator is required '
+               'to allow configuration access to the Nexus switch.')),
+    cfg.StrOpt('physnet',
+        help=_('This is required if Nexus VXLAN overlay feature is '
+               'configured.  It should be the physical network name defined '
+               'in "network_vlan_ranges" (defined beneath the "ml2_type_vlan" '
+               'section) that this switch is controlling.  The configured '
+               '"physnet" is the physical network domain that is connected '
+               'to this switch. The vlan ranges defined in '
+               '"network_vlan_ranges" for a physical '
+               'network are allocated dynamically and are unique per physical '
+               'network. These dynamic vlans may be reused across physical '
+               'networks.  This configuration applies to non-baremetal '
+               'only.')),
     cfg.IntOpt('ssh_port', default=22, deprecated_for_removal=True,
-        help=_("TCP Port for connecting via SSH for switch management.")),
-    base.RemainderOpt('compute_hosts')]
+        help=_('"ssh_port" specifies the TCP port for connecting via SSH to '
+               'manage the switch.  Port number 22 is the default unless the '
+               'switch has been configured otherwise. Since "ssh_port" is '
+               'associated to the "ncclient" driver which is being '
+               'deprecated, "ssh_port" too will be deprecated.')),
+    cfg.StrOpt('username',
+        help=_('The username of the Nexus Switch Administrator is required '
+               'to allow configuration access to the Nexus switch.')),
+    cfg.StrOpt('vpc_pool',
+        help=_('This is port-channel/VPC allocation pool of ids used with '
+               'baremetal deployments only.  When there is a list of ethernet '
+               'interfaces provided by Ironic to neutron in a port '
+               'event, these are assumed to be a port-channel type '
+               'configuration.  Ironic only knows about ethernet interfaces '
+               'so it is up to the Nexus Driver to either learn the '
+               'port channel if the user preconfigured the channel-group on '
+               'the ethernet interfaces; otherwise, the driver will create a '
+               'new port-channel and apply the channel-group to the ethernet '
+               'interfaces.  This pool is the reserved port-channel IDs '
+               'available for allocation by the Nexus driver for each switch. '
+               'The full format for "vpc_pool" is '
+               'vpc_pool=<start_vpc_no-end_vpc_no> | '
+               '<vpc_no> {,<start_vpc_no-end_vpc_no> | <vpc_no>}. The "-" in '
+               '<start_vpc_no,end_vpc_no> allows you to configure a range '
+               'from start to end and <vpc_no> allows just individual '
+               'numbers.  There can be any number of ranges and numbers '
+               'separated by commas. There is no default value.  If not '
+               'configured, the port-channel will only handle learned cases '
+               'and attempts to create port-channels will fail since there is '
+               'no id pool available from which to allocate an id. Once '
+               'defined, it can be redefined by changing "vpc_pool" and '
+               'restarting neutron. Existing VPC ids in the database are '
+               'gathered and compared against the new "vpc_pool" config.  New '
+               'configured vpcids not found in the database are added.  '
+               'Inactive entries in the database not found in the new '
+               'configured vpcids list are removed. An example of this '
+               'configuration is `vpc_pool=1001-1025,1028`.')),
+    base.RemainderOpt('compute_hosts',
+        help=_('The "compute_hosts" option is not actually an option keyword '
+               'but rather a documentation placeholder for describing how '
+               'compute hosts are configured. For each host '
+               'connected to a port on the switch, specify the hostname and '
+               'assign the Nexus switch physical port (interface) it is '
+               'connected to.  The format of this configuration is '
+               '<your-compute-hostname>=<intf_type:port>). Valid '
+               'intf_types are "ethernet" or "port-channel".  The default '
+               'setting for <intf_type:> is "ethernet" and need not be added '
+               'to this setting. (Sample configs are: compute1=1/1 or '
+               'compute2=ethernet:1/2 or compute3=port-channel:1). If you '
+               'have multiple compute hosts connected to the same switch, '
+               'they must each be configured on a different line in the '
+               'config file.  This configuration applies to VM deployments '
+               'only.'
+               ))]
 
 ml2_cisco_opts = [
+    cfg.BoolOpt('host_key_checks', default=False, deprecated_for_removal=True,
+        help=_('Set to True to enable strict hostkey checks when connecting '
+               'to Nexus switches via ncclient; otherwise, no hostkey checks '
+               'are performed). This will be deprecated along with '
+               'nexus_driver since this is associated to the ncclient driver '
+               'which is going away.')),
     cfg.StrOpt('managed_physical_network',
-               help=_("The physical network managed by the switches.")),
-    cfg.BoolOpt('persistent_switch_config', default=False,
-                deprecated_for_removal=True,
-                help=_("To make Nexus configuration persistent")),
+        help=_('When "managed_physical_network" is configured, it restricts '
+               'the network segment that the nexus driver supports. '
+               'Setting it to a specific network name will limit the '
+               'actions taken by this driver to only that network. The '
+               'network name must match a name defined in the '
+               '"network_vlan_ranges" configuration.  When '
+               '"managed_physical_network" is not set, events for all '
+               'network segments will be processed by the driver.')),
     cfg.BoolOpt('never_cache_ssh_connection', default=True,
-                deprecated_for_removal=True,
-                help=_("Prevent caching ssh connections to Nexus device")),
-    cfg.IntOpt('switch_heartbeat_time', default=30,
-        help=_("Periodic time to check switch connection. (default=30)")),
+        deprecated_for_removal=True,
+        help=_('Prevent caching ssh connections to a Nexus switch. Set this '
+               'to True when there are multiple neutron controllers and/or '
+               'when there may be non-neutron ssh connections to the same '
+               'Nexus device. Nexus devices have a limit of 8 such '
+               'connections. When a single neutron controller has more than '
+               '8 processes, caching is automatically disabled without regard '
+               'to this configuration. This flag defaults to True which '
+               'indicates that ssh connections to a Nexus switch are not '
+               'cached when the neutron controller has fewer than 8 '
+               'processes.  This will be deprecated along with "nexus_driver" '
+               'since this is associated to the ncclient driver which is '
+               'going away.')),
+    cfg.StrOpt('nexus_driver', default='restapi', deprecated_for_removal=True,
+        help=_('The Nexus Mechanism Driver has two driver methods to '
+               'configure Nexus devices. The default choice is now "restapi" '
+               'which replaces the original "ncclient" driver.  The RESTAPI '
+               'driver is preferred because it has better performance with '
+               'less Nexus session limits. Additionally, new feature '
+               'development is applied only to the restapi driver. To use the '
+               'restapi driver, the Nexus 9K image version must be '
+               '7.0(3)I5(2) or greater.  For a short term, the original '
+               'driver can be used by setting the "nexus_driver" '
+               'configuration to "ncclient".  This is short term because '
+               'the "ncclient" driver will be removed in Cisco 7.0.0 release '
+               'of the networking-cisco repository.')),
+    cfg.BoolOpt('persistent_switch_config', default=False,
+        deprecated_for_removal=True,
+        help=_('To make Nexus device persistent by running the Nexus '
+               'CLI "copy run start" after applying successful '
+               'configurations. This will be deprecated along with '
+               'nexus_driver since this is associated to the ncclient '
+               'driver which is going away.')),
     cfg.BoolOpt('provider_vlan_auto_create', default=True,
-        help=_('Provider VLANs are automatically created as needed '
-               'on the Nexus switch')),
+        help=_('A flag indicating whether the Nexus driver should manage '
+               'the creation and removal of VLANs for provider networks on '
+               'the Nexus switches. When this flag is False, the Nexus'
+               'driver will not create or remove VLANs for provider '
+               'networks and the administrator needs to manage these '
+               'interfaces manually or by external orchestration.')),
     cfg.BoolOpt('provider_vlan_auto_trunk', default=True,
-        help=_('Provider VLANs are automatically trunked as needed '
-               'on the ports of the Nexus switch')),
+        help=_('A flag indicating whether Nexus driver should manage '
+               'the adding and removing of provider VLANs from trunk ports on '
+               'the Nexus switches. When this flag is False, the Nexus '
+               'driver will not add or remove provider VLANs from trunk '
+               'ports and the administrator needs to manage these operations '
+               'manually or by external orchestration.')),
+    cfg.IntOpt('switch_heartbeat_time', default=30,
+        help=_('Configuration replay is enabled by default by defining the '
+               'time interval to 30 seconds.  This is the amount of time to '
+               'check the state of all known Nexus device(s). To disable '
+               'the replay feature, set this "switch_heartbeat_time" to 0 '
+               'seconds.')),
     cfg.BoolOpt('vxlan_global_config', default=False,
-        help=_('Create and delete Nexus switch VXLAN global settings; '
-               'feature nv overlay, feature vn-segment-vlan-based, '
-               'interface nve + source-interface loopback')),
-    cfg.BoolOpt('host_key_checks', default=False,
-                deprecated_for_removal=True,
-                help=_("Enable strict host key checks when "
-                       "connecting to Nexus switches")),
-    cfg.StrOpt('nexus_driver',
-               default='restapi',
-               deprecated_for_removal=True,
-               help=_("Choice of Nexus Config Driver to be loaded from "
-                      "the networking_cisco.ml2.nexus_driver namespace.")),
+        help=_('A flag indicating whether the Nexus driver should manage '
+               'the creating and removing of the Nexus switch VXLAN global '
+               'settings of "feature nv overlay", "feature '
+               'vn-segment-vlan-based", "interface nve 1" and the NVE '
+               'subcommand "source-interface loopback #". When set to the '
+               'default of False, the Nexus driver will not add or remove '
+               'these VXLAN settings and the administrator needs to manage '
+               'these operations manually or by external orchestration.')),
 ]
 
 nexus_switches = base.SubsectionOpt(
