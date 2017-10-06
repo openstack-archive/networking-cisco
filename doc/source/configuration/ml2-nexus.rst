@@ -8,4 +8,5 @@ file is described here,
 :doc:`samples/ml2-nexus`.
 
 .. show-options::
-   :config-file: etc/oslo-config-generator/ml2_nexus.ini
+
+   networking_cisco.nexus
