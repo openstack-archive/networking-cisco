@@ -3,8 +3,8 @@ Nexus Mechanism Driver Administration Guide
 ===========================================
 
 There are two ways to configure the nexus ML2 Mechanism driver either directly
-in the neutron configuration files or via TripleO config for Openstack on
-Openstack configurations.
+in the neutron configuration files or via TripleO config for OpenStack on
+OpenStack configurations.
 
 This guide focuses on the neutron start-up files then follows up with
 samples of Tripleo configuration files.  You will find similarities
@@ -16,7 +16,7 @@ node.
 
 For a description of what activites are performed by the Nexus Driver
 for VLAN and VXLAN configuration, refer to
-:doc:`Nexus MD Overview and Architecture documentation </reference/ml2-nexus>`.
+:doc:`/reference/ml2-nexus` documentation.
 
 .. _nexus_vlan_startup:
 
@@ -467,8 +467,8 @@ the section :ref:`nexus_nodhcp_startup`.
 
 .. end
 
-Configuration Replay onto Nexus Switch
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Configuration Replay applied to the Nexus Switch
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The Nexus mechanism driver performs a keep-alive against each known Nexus
 switch every 30 seconds. If communication is lost due to switch reboot
 or loss of network connectivity, it continues to check for a sign of life.
@@ -551,10 +551,7 @@ How to view Nexus MD databases
 To help triage issues, it may be helpful to peruse the following database
 tables:
 
-#. To view the content of the Nexus ML2 port binding database table:
-   In addition to port entries, the switch state is also saved in here.
-   These special entries can be identified with an instance_id of
-   ``RESERVED_NEXUS_SWITCH_DEVICE_ID_R1``.
+#. To view the content of the Nexus Driver port binding database table:
 
    .. code-block:: console
 
@@ -562,7 +559,18 @@ tables:
 
    .. end
 
-#. To view the content of the Nexus ML2 port mapping database table:
+   In addition to port entries, the switch state is also saved in here.
+   These special entries can be identified with an instance_id of
+   ``RESERVED_NEXUS_SWITCH_DEVICE_ID_R1``.
+
+   .. code-block:: console
+
+       mysql -e "use neutron; select * from cisco_ml2_nexusport_bindings;" \
+       | grep RESERVED_NEXUS_SWITCH_DEVICE_ID_R1 | grep <your-switch-ip-address>
+
+   .. end
+
+#. To view the content of the Nexus Driver port mapping database table:
 
    .. code-block:: console
 
@@ -570,7 +578,7 @@ tables:
 
    .. end
 
-#. To view the content of the Nexus ML2 VPC ID port database table:
+#. To view the content of the Nexus Driver VPC ID port database table:
 
    .. code-block:: console
 
@@ -578,7 +586,7 @@ tables:
 
    .. end
 
-#. To view the content of the Nexus ML2 VNI allocation port database table:
+#. To view the content of the Nexus Driver VNI allocation port database table:
 
    .. code-block:: console
 
@@ -586,7 +594,7 @@ tables:
 
    .. end
 
-#. To view the content of the Nexus ML2 Mcast mapping database table:
+#. To view the content of the Nexus Driver multicast mapping database table:
 
    .. code-block:: console
 

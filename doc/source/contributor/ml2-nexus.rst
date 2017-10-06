@@ -2,49 +2,14 @@
 Nexus Mechanism Driver Contributor Guide
 ========================================
 
-Using Devstack
-~~~~~~~~~~~~~~
-Devstack is used by developers to install Openstack.  It is not intended for
-production use.
-
-To install the ML2 Nexus driver along with OpenStack using devstack do as
-follows:
-
-#. Clone devstack and checkout the branch (ex: Ocata, Newton, etc) you want
-   to install.
-
-#. Configure the ML2 Nexus driver in ``local.conf`` file as shown in examples
-   which follow.
-
-#. Run :command:`./stack.sh`  to install and :command:`./unstack.sh` to
-   uninstall.
-
-Devstack configuration examples
+DevStack Configuration Examples
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This section describes how to configure the ``local.conf`` file with Nexus VLAN
-details for devstack deployment.  General devstack install details are found
-at other documentation links such as:
-
-* For general devstack information, refer to
-  `Devstack <https://docs.openstack.org/devstack/>`_
-* For general ML2 devstack details, refer to
-  `ML2_devstack <https://wiki.openstack.org/wiki/Neutron/ML2#ML2_Configuration/>`_
-
-To configure ML2 Nexus driver in devstack, the first step required
-in the ``local.conf`` file is to pull in the networking-cisco repository.
-The following will cause the nexus code base to get installed.
-
-.. code-block:: ini
-
-    [[local|localrc]]
-    enable_plugin networking-cisco https://github.com/openstack/networking-cisco
-    enable_service net-cisco
-
-.. end
-
-Following this configuration, apply VLAN and VXLAN feature specific changes
-to ``local.conf`` file as described in sections below.
+For introductory details on DevStack, refer to :doc:`/contributor/howto`.
+This section focuses on Nexus VLAN and VXLAN feature specific changes
+to DevStack's configuration file ``local.conf``. These changes should
+follow the section which installs networking-cisco repository as described
+in :doc:`/contributor/howto`.
 
 VLAN Configuration
 ------------------
@@ -58,7 +23,6 @@ config file sections :ref:`nexus_vlan_startup` apply here.
 
     [[local|localrc]]
     enable_plugin networking-cisco https://github.com/openstack/networking-cisco
-    enable_service net-cisco
 
     # Set openstack passwords here.  For example, ADMIN_PASSWORD=ItsASecret
 
@@ -100,7 +64,7 @@ config file sections :ref:`nexus_vlan_startup` apply here.
 VXLAN Configuration
 -------------------
 
-In addition to the standard Openstack settings, follow the ``local.conf``
+In addition to the standard OpenStack settings, follow the ``local.conf``
 file example below to configure the Nexus switch for VXLAN Terminal End
 Point (VTEP) support.  As you can see there is a lot of similarity between
 the neutron config file and the ``local.conf`` file so details in the
@@ -110,7 +74,6 @@ neutron start-up config file sections :ref:`neutron_vxlan_startup` apply here.
 
         [[local|localrc]]
         enable_plugin networking-cisco https://github.com/openstack/networking-cisco
-        enable_service net-cisco
 
         Q_PLUGIN=ml2
         Q_ML2_PLUGIN_MECHANISM_DRIVERS=openvswitch,cisco_nexus
