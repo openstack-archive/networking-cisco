@@ -566,7 +566,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         switch_connections = []
         try:
             bindings = nxos_db.get_reserved_switch_binding()
-        except excep.NexusHostMappingNotFound:
+        except excep.NexusPortBindingNotFound:
             LOG.error(_LE("No switch bindings in the port data base"))
             bindings = []
         for switch in bindings:
@@ -787,95 +787,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                                 is_native, ch_grp))
 
         return connections
-
-    def _change_baremetal_interfaces(self, host_id, switch_ip, intf_type,
-                                    port, old_ch_grp, ch_grp):
-        """Restart detected port channel change. Update database.
-
-        This method is used to extract switch/interface
-        information from transactions where VNIC_TYPE is
-        baremetal for only active switches.
-        When interfaces are initialized during replay restore,
-        check to verify that ch-grps are the same.
-        if not, this function is called to handle change for the
-        following cases.
-        1) If RESERVED port is zero and switch returns non-zero, then
-           * Create port-channel db entry
-           * Update RESERVED port with non-zero port channel
-           * Delete db entry with port_id defined in port_binding.
-        2) If RESERVED port is non-zero and switch returns non-zero
-           and they don't match, then
-           * Create port-channel db entry with channel grp from switch,
-           * Update RESERVED port with non-zero port channel received
-             from switch,
-           * Delete port-channel db entry with with old-ch-grp from
-             RESERVED port.
-        3) If RESERVED port is non-zero and switch returns zero, then:
-           * Create port entry with port_id from RESERVED port
-           * Update RESERVED port with zero channel-group
-           * Delete port-channel db entry with old-ch-grp from
-             RESERVED port
-        """
-
-        if old_ch_grp == ch_grp:
-            return
-
-        # Get all bindings to this switch interface
-        reserved_port_id = nexus_help.format_interface_name(
-                               intf_type, port)
-        old_port_id = nexus_help.format_interface_name(
-                          intf_type, port, old_ch_grp)
-        new_port_id = nexus_help.format_interface_name(
-                          intf_type, port, ch_grp)
-
-        # Get all port instances related to this switch interface
-        try:
-            bindings = nxos_db.get_nexus_switchport_binding(
-                           old_port_id, switch_ip)
-        except Exception:
-            return
-
-        # process all port instances related to this switch interface
-        # and change port channel group
-
-        for row in bindings:
-
-            if nxos_db.is_reserved_binding(row):
-                continue
-
-            # Add port binding with new channel-group
-            try:
-                nxos_db.get_nexusport_binding(
-                    new_port_id, row.vlan_id,
-                    switch_ip, row.instance_id)
-            except excep.NexusPortBindingNotFound:
-                nxos_db.add_nexusport_binding(
-                    new_port_id, row.vlan_id, row.vni,
-                    switch_ip, row.instance_id,
-                    row.is_native)
-
-            # Remove port binding with old channel-group
-            try:
-                nxos_db.remove_nexusport_binding(
-                    old_port_id, row.vlan_id, row.vni,
-                    switch_ip, row.instance_id)
-            except Exception:
-                LOG.error(_LE("Failed to remove port %(port)s"
-                    "vlan %(vlan)d vni %(vni)d "
-                    "switch_ip %(ip)s, instance %(id)s"),
-                    {'port': old_port_id,
-                    'vlan': row.vlan_id,
-                    'vni': row.vni,
-                    'ip': switch_ip,
-                    'id': row.instance_id})
-                continue
-
-        # Update the reserved port binding with new channel group
-        nxos_db.update_host_mapping(
-                host_id,
-                switch_ip,
-                reserved_port_id,
-                ch_grp)
 
     def _init_baremetal_trunk_interfaces(self, port_seg, segment):
         """Initialize baremetal switch interfaces and DB entry.
