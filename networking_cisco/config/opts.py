@@ -13,18 +13,27 @@
 import copy
 
 import networking_cisco.config.base as base
-import networking_cisco.plugins.ml2.drivers.cisco.nexus.config as config
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    config as nexus_config)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    type_nexus_vxlan as nexus_vxlan_config)
 
 IGNORE_OBJ_TYPES = [base.RemainderOpt]
 
 
 def list_nexus_conf_opts():
-    nexus_sub_opts = copy.deepcopy(config.nexus_sub_opts)
+    nexus_sub_opts = copy.deepcopy(nexus_config.nexus_sub_opts)
     for option in nexus_sub_opts:
         if type(option) in IGNORE_OBJ_TYPES:
             nexus_sub_opts.remove(option)
 
     return [
-        ('ml2_cisco', config.ml2_cisco_opts),
+        ('ml2_cisco', nexus_config.ml2_cisco_opts),
         ('ml2_mech_cisco_nexus:<ip_address>', nexus_sub_opts)
+    ]
+
+
+def list_nexus_vxlan_type_driver_conf_opts():
+    return [
+        ('ml2_type_nexus_vxlan', nexus_vxlan_config.nexus_vxlan_opts),
     ]

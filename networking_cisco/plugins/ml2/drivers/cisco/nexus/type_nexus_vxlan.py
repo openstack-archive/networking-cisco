@@ -42,12 +42,20 @@ MIN_NEXUS_VNI = p_const.MAX_VLAN_TAG + 2
 nexus_vxlan_opts = [
     cfg.ListOpt('vni_ranges',
                 default=[],
-                help=_("List of global VNID ranges in the format - a:b, c:d."
-                       "Multiple ranges can be separated by a comma")),
+                help=_("Comma-separated list of <vni_min>:<vni_max> tuples "
+                       "enumerating ranges of VXLAN Network IDs that are "
+                       "available for tenant network allocation. "
+                       "Example format: vni_ranges = 100:1000,2000:6000")),
     cfg.ListOpt('mcast_ranges',
                 default=[],
-                help=_("List of multicast groups to be used for global VNIDs"
-                       "in the format - a:b,c,e:f."))
+                help=_("Multicast groups for the VXLAN interface. When "
+                       "configured, will enable sending all broadcast traffic "
+                       "to this multicast group. Comma separated list of "
+                       "min:max ranges of multicast IP's. "
+                       "NOTE: Must be a valid multicast IP, invalid IP's will "
+                       "be discarded. "
+                       "Example format: mcast_ranges = 224.0.0.1:224.0.0.3, "
+                       "224.0.1.1:224.0.1.3"))
 ]
 
 cfg.CONF.register_opts(nexus_vxlan_opts, "ml2_type_nexus_vxlan")

@@ -18,6 +18,7 @@ Configuration Options
    :maxdepth: 1
 
    ml2-nexus
+   ml2-nexus-vxlan-type-driver
 
 Sample Configuration Files
 ==========================
@@ -26,3 +27,4 @@ Sample Configuration Files
    :maxdepth: 1
 
    samples/ml2-nexus
+   samples/ml2-nexus-vxlan-type-driver
