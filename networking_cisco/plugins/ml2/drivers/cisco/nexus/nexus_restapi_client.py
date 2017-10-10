@@ -183,7 +183,7 @@ class CiscoNexusRestapiClient(object):
                         excpt = "ins_api CLI failure occurred "
                         "with cli return code %s" % str(status)
                         raise cexc.NexusConfigFailed(
-                            nexus_host=ipaddr, config=action,
+                            nexus_host=ipaddr, config=config,
                             exc=excpt)
             return output
         else:
@@ -195,8 +195,8 @@ class CiscoNexusRestapiClient(object):
             LOG.error(_LE("Response text: %(txt)s"),
                       {'txt': response.text})
             raise cexc.NexusConfigFailed(nexus_host=ipaddr,
-                                         config=action,
-                                         exc=e)
+                                         config=config,
+                                         exc=response.text)
 
     def rest_delete(self, action, ipaddr=None, body=None, headers=None):
         return self.send_request("DELETE", action, body=body,
