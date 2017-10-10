@@ -148,8 +148,8 @@ class RouterHAGroup(bc.model_base.BASEV2, bc.model_base.HasId,
         primaryjoin='Port.id==RouterHAGroup.extra_port_id')
     # 'subnet_id' is id of subnet that this HA group serves
     subnet_id = sa.Column(sa.String(36),
-                          sa.ForeignKey('subnets.id'),
-                          nullable=True)
+                          sa.ForeignKey('subnets.id', ondelete='CASCADE'),
+                          primary_key=True)
     # 'user_router_id' is id of router visible to the user
     user_router_id = sa.Column(sa.String(36),
                                sa.ForeignKey('routers.id'))

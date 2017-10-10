@@ -293,18 +293,45 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
         filters = {
             'device_id': [global_router['id']],
             'device_owner': [port_type]}
-        connected_nets = {
-            p['network_id']: p['fixed_ips'] for p in
+        ext_net_port = {
+            p['network_id']: p for p in
             self._core_plugin.get_ports(context, filters=filters)}
-        if ext_net_id in connected_nets:
-            # already connected to the external network so we're done
-            return
+        if ext_net_id in ext_net_port:
+            # already connected to the external network, called if
+            # new subnets are added to the network
+            aux_gw_port = self._update_auxiliary_external_gateway_port(
+                context, global_router, ext_net_id, ext_net_port)
+            if provision_ha:
+                for subnet in aux_gw_port[ext_net_id]['fixed_ips']:
+                    self._provision_port_ha(context, aux_gw_port[ext_net_id],
+                                            subnet, global_router)
         else:
             # not connected to the external network, so let's fix that
             aux_gw_port = self._create_auxiliary_external_gateway_port(
                 context, global_router, ext_net_id, tenant_router, port_type)
             if provision_ha:
-                self._provision_port_ha(context, aux_gw_port, global_router)
+                for subnet in aux_gw_port['fixed_ips']:
+                    self._provision_port_ha(context, aux_gw_port, subnet,
+                                            global_router)
+
+    def _update_auxiliary_external_gateway_port(
+            self, context, global_router, ext_net_id, port):
+        # When a new subnet is added to an external network, the auxillary
+        # gateway port in the global router must be updated with the new
+        # subnet_id so an ip from that subnet is assigned to the gateway port
+        ext_network = self._core_plugin.get_network(context, ext_net_id)
+        fixed_ips = port[ext_net_id]['fixed_ips']
+        # fetch the subnets the port is currently connected to
+        subnet_id_list = [fixedip['subnet_id'] for fixedip in fixed_ips]
+        # add the new subnet
+        for subnet_id in ext_network['subnets']:
+            if subnet_id not in subnet_id_list:
+                fixed_ip = {'subnet_id': subnet_id}
+                fixed_ips.append(fixed_ip)
+                self._core_plugin.update_port(context, port[ext_net_id]['id'],
+                                              ({'port': {'fixed_ips':
+                                                         fixed_ips}}))
+        return port
 
     def _create_auxiliary_external_gateway_port(
             self, context, global_router, ext_net_id, tenant_router,
@@ -413,10 +440,15 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
         subnets = [{'subnet_id': s} for s in nw['subnets']]
         return subnets
 
-    def _provision_port_ha(self, context, ha_port, router, ha_binding_db=None):
+    def _provision_port_ha(self, context, ha_port, subnet, router,
+                           ha_binding_db=None):
         ha_group_uuid = uuidutils.generate_uuid()
         router_id = router['id']
         with context.session.begin(subtransactions=True):
+            ha_subnet_group = self._get_ha_group_by_ha_port_subnet_id(
+                                   context, ha_port['id'], subnet['subnet_id'])
+            if ha_subnet_group is not None:
+                return
             if ha_binding_db is None:
                 ha_binding_db = self._get_ha_binding(context, router_id)
             group_id = self.generate_ha_group_id(
@@ -430,7 +462,7 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
                 group_identity=group_id,
                 ha_port_id=ha_port['id'],
                 extra_port_id=None,
-                subnet_id=ha_port['fixed_ips'][0]['subnet_id'],
+                subnet_id=subnet['subnet_id'],
                 user_router_id=router_id,
                 timers_config='',
                 tracking_config='',
@@ -443,6 +475,17 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
             query = query.filter(
                 ha_db.RouterHASetting.router_id == router_id)
             return query.first()
+
+    def _get_ha_group_by_ha_port_subnet_id(self, context, port_id, subnet_id):
+        with context.session.begin(subtransactions=True):
+            query = context.session.query(ha_db.RouterHAGroup)
+            query = query.filter(ha_db.RouterHAGroup.ha_port_id == port_id,
+                                 ha_db.RouterHAGroup.subnet_id == subnet_id)
+            try:
+                r_ha_g = query.one()
+            except (exc.NoResultFound, exc.MultipleResultsFound):
+                return
+            return r_ha_g
 
     # ---------------- Remove workflow functions -----------------
 
