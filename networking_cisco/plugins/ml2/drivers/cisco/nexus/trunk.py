@@ -15,8 +15,6 @@
 
 from oslo_log import log
 
-from neutron.extensions import dns
-
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_helpers as nexus_help)
@@ -60,7 +58,7 @@ class NexusMDTrunkHandler(object):
         trunk_details = port.get('trunk_details')
         subports = trunk_details['sub_ports']
 
-        host_id = port.get(dns.DNSNAME)
+        host_id = port.get(bc.dns.DNSNAME)
         context = bc.get_context()
         el_context = context.elevated()
 
