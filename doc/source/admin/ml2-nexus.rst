@@ -481,6 +481,68 @@ wanted, the variable should be set to 0 which disables it.  Refer to the
 :doc:`Nexus Configuration Reference </configuration/ml2-nexus>` for more
 details on this setting.
 
+Provider Network Limited Operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The Openstack/network administrator may want to control how the Openstack
+create, update and delete port events program the Nexus switch for provider
+networks. Two configuration variables are available to address limiting the
+actions taken for provider networks during port events. The variables are
+defined under the ``[ml2_cisco]`` section header.
+
+.. code-block:: ini
+
+   [ml2_cisco]
+   # Provider VLANs are automatically created as needed on the Nexus switch.
+   provider_vlan_auto_create=[True|False]
+
+   # Provider VLANs are automatically trunked as needed on the ports of the
+   # Nexus switch.
+   provider_vlan_auto_trunk=[True|False]
+
+.. end
+
+For more information on provider networks, refer to the
+`Provider Networks <https://docs.openstack.org/ocata/networking-guide/intro-os-networking.html#provider-networks>`_
+Openstack documentation.
+
+Neutron Trunk Support
+~~~~~~~~~~~~~~~~~~~~~
+Nexus driver support for the neutron trunk feature consists of the driver
+programming the trunk parent port's and all subport's network segmentation ID(s)
+on the switch. (See :ref:`nexus_vlan_create` for VLAN programming details.)
+
+The VLAN IDs described in this section are the same IDs used for all Layer-2
+configuration. The segmentation ID assigned to a VLAN network segment is used
+to program the switch on neutron port events. These port events are triggered
+when Nova instances are created, updated or deleted.
+
+Note that the segmentation IDs assigned from the ``openstack network trunk set``
+command are not used to configure the nexus top-of-rack switch. Example:
+
+.. code-block:: console
+
+   $ openstack network trunk set --subport port=<port ID>, segmentation-type=vlan,
+     segmentation-id=<vlan ID> <trunk ID>
+
+.. end
+
+These VLAN IDs are used by instances attached to a virtual switch (ex. OVS).
+
+In baremetal deployments, the trunk parent port's network segmentation ID will be
+programmed on the nexus switch as both ``switchport trunk native`` and ``switchport
+trunk allowed``. For trunk subports, only ``switchport trunk allowed`` is programmed.
+For VM deployments, ``switchport trunk allowed`` is programmed on the switch for
+both the parent and subports of the trunk.
+
+There are no specific nexus configuration variables required for trunk support.
+To enable neutron trunking, the neutron ``service_plugin`` configuration variable
+must include the ``trunk`` plugin.
+
+For more configuration and usage information on the neutron trunk feature refer
+to the `Neutron/TrunkPort <https://wiki.openstack.org/wiki/Neutron/TrunkPort>`_
+and Neutron `Trunking <https://docs.openstack.org/ocata/networking-guide/config-trunking.html>`_
+Openstack documentation.
+
 
 Troubleshooting
 ~~~~~~~~~~~~~~~~
