@@ -24,8 +24,8 @@ from neutron.agent.linux import utils
 from oslo_config import cfg
 from oslo_log import log as logging
 
+from networking_cisco._i18n import _
 from networking_cisco.plugins.cisco.cpnr import model
-from networking_cisco._i18n import _, _LE, _LW
 
 LOG = logging.getLogger(__name__)
 GREENPOOL_SIZE = 10
@@ -177,7 +177,7 @@ class RemoteServerDriver(dhcp.DhcpBase):
                     ifname = f.read()
                 _devices[netid] = ifname
             except IOError:
-                LOG.error(_LE('Unable to read interface file: %s'),
+                LOG.error('Unable to read interface file: %s',
                           intf_filename)
             LOG.debug("Recovered device %s for network %s'",
                       ifname, netid)
@@ -186,7 +186,7 @@ class RemoteServerDriver(dhcp.DhcpBase):
         try:
             self._unsafe_update_device(disabled)
         except Exception:
-            LOG.exception(_LE("Failed to update device for network: %s"),
+            LOG.exception("Failed to update device for network: %s",
                           self.network.id)
 
     def _unsafe_update_device(self, disabled=False):
@@ -209,7 +209,7 @@ class RemoteServerDriver(dhcp.DhcpBase):
             try:
                 self.device_manager.update(self.network, ifname)
             except Exception:
-                LOG.error(_LE("Failed to update device for network: %s"),
+                LOG.error("Failed to update device for network: %s",
                           self.network.id)
                 del _devices[self.network.id]
                 self._unsafe_update_device()
@@ -267,9 +267,9 @@ class SimpleCpnrDriver(RemoteServerDriver):
         cls.recover_networks()
         ver = model.get_version()
         if ver < cls.MIN_VERSION:
-            LOG.warning(_LW("CPNR version does not meet minimum requirements, "
-                     "expected: %(ever)f, actual: %(rver)f"),
-                     {'ever': cls.MIN_VERSION, 'rver': ver})
+            LOG.warning("CPNR version does not meet minimum requirements, "
+                        "expected: %(ever)f, actual: %(rver)f",
+                        {'ever': cls.MIN_VERSION, 'rver': ver})
         return ver
 
     @classmethod
@@ -285,7 +285,7 @@ class SimpleCpnrDriver(RemoteServerDriver):
             self._unsafe_update_server(disabled)
             model.reload_server()
         except Exception:
-            LOG.exception(_LE("Failed to update PNR for network: %s"),
+            LOG.exception("Failed to update PNR for network: %s",
                           self.network.id)
 
     def _unsafe_update_server(self, disabled=False):
@@ -337,7 +337,7 @@ class CpnrDriver(SimpleCpnrDriver):
             with lock:
                 self._unsafe_update_server(disabled)
         except Exception:
-            LOG.exception(_LE('Failed to update PNR for network: %s'),
+            LOG.exception('Failed to update PNR for network: %s',
                           self.network.id)
 
     def update_device(self, disabled=False):
@@ -347,7 +347,7 @@ class CpnrDriver(SimpleCpnrDriver):
             with lock:
                 self._unsafe_update_device(disabled)
         except Exception:
-            LOG.exception(_LE("Failed to update device for network: %s"),
+            LOG.exception("Failed to update device for network: %s",
                           self.network.id)
 
     @classmethod
@@ -400,8 +400,8 @@ class CpnrDriver(SimpleCpnrDriver):
                     with lock:
                         deleted.delete()
                 except Exception:
-                    LOG.exception(_LE('Failed to delete network %s in CPNR '
-                                    'during sync:'), key)
+                    LOG.exception('Failed to delete network %s in CPNR '
+                                  'during sync:', key)
 
             # Create VPNs in CPNR if not already present
             created_keys = set(_networks.keys()) - set(
@@ -414,8 +414,8 @@ class CpnrDriver(SimpleCpnrDriver):
                     with lock:
                         created.create()
                 except Exception:
-                    LOG.exception(_LE('Failed to create network %s in CPNR '
-                                    'during sync'), key)
+                    LOG.exception('Failed to create network %s in CPNR '
+                                  'during sync', key)
 
             # Update VPNs in CPNR if normal update has been unsuccessful
             updated_keys = set(_networks.keys()) & set(
@@ -428,5 +428,5 @@ class CpnrDriver(SimpleCpnrDriver):
                     with lock:
                         pnr_networks[key].update(updated)
                 except Exception:
-                    LOG.exception(_LE('Failed to update network %s in CPNR '
-                                    'during sync'), key)
+                    LOG.exception('Failed to update network %s in CPNR '
+                                  'during sync', key)

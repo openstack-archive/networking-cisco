@@ -16,8 +16,6 @@ import binascii
 
 from oslo_log import log as logging
 
-from networking_cisco._i18n import _LW
-
 LOG = logging.getLogger(__name__)
 
 
@@ -27,13 +25,13 @@ def format_for_options(name, value):
         value = value.strip()
     LOG.debug('name = %s value %s', name, value)
     if name not in OPTIONS:
-        LOG.warning(_LW("Unrecognized DHCP options: %s"), name)
+        LOG.warning("Unrecognized DHCP options: %s", name)
         return
     code, datatype = OPTIONS[name]
     try:
         value = _format_value(datatype, value)
     except Exception:
-        LOG.warning(_LW("Failed to parse DHCP option: %s"), name)
+        LOG.warning("Failed to parse DHCP option: %s", name)
         return
     value = ':'.join(value[i:i + 2] for i in range(0, len(value), 2))
     LOG.debug('name = %s value %s', name, value)
@@ -72,7 +70,7 @@ def format_for_pnr(name, value):
     name = name.strip()
     value = value.strip()
     if name not in OPTIONS:
-        LOG.warning(_LW("Unrecognized DHCP options: %s"), name)
+        LOG.warning("Unrecognized DHCP options: %s", name)
         return None
     code, datatype = OPTIONS[name]
     return {'number': str(code), 'value': value}

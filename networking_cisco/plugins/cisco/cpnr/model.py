@@ -24,7 +24,6 @@ from oslo_log import log as logging
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cpnr import cpnr_client
 from networking_cisco.plugins.cisco.cpnr import dhcpopts
-from networking_cisco._i18n import _LE, _LW
 from neutron.agent.linux import dhcp
 
 LOG = logging.getLogger(__name__)
@@ -631,7 +630,7 @@ def configure_pnr():
         pnr.update_dns_forwarder('%%32%45', dns_forwarder)
         pnr.update_ccm_zone('%%32%45', dns_zone)
     except cpnr_client.CpnrException:
-        LOG.error(_LE("Failed to configure CPNR DHCP Server and Client Class"))
+        LOG.error("Failed to configure CPNR DHCP Server and Client Class")
 
 
 def recover_networks():
@@ -639,8 +638,8 @@ def recover_networks():
     try:
         networks = _unsafe_recover_networks()
     except Exception:
-        LOG.exception(_LE("Failed to recover networks. "
-                          "CPNR may be unreachable"))
+        LOG.exception("Failed to recover networks. "
+                      "CPNR may be unreachable")
     return networks
 
 
@@ -657,8 +656,8 @@ def _unsafe_recover_networks():
                 for scope in pnr.get_scopes(vpn['id']):
                     net.scopes[scope['name']] = Scope.from_pnr(scope)
             except Exception:
-                LOG.exception(_LE('Failed to read back scopes for '
-                                'network %s'), netid)
+                LOG.exception('Failed to read back scopes for '
+                              'network %s', netid)
         for ce in pnr.get_client_entries():
             (netid, _, portid) = ce['userDefined'].partition('+')
             if netid not in networks:
@@ -682,11 +681,11 @@ def _unsafe_recover_networks():
                 for host in pnr.get_ccm_hosts(viewid=viewid, zoneid=domain):
                     net.hosts[host['name']] = Host.from_pnr(host, viewid)
             except Exception:
-                LOG.exception(_LE('Failed to read back PNR data for '
-                              'network %(network)s view %(view)s'),
+                LOG.exception('Failed to read back PNR data for '
+                              'network %(network)s view %(view)s',
                               {'network': netid, 'view': viewid})
     except Exception:
-        LOG.exception(_LE('Failed to recover networks from PNR'))
+        LOG.exception('Failed to recover networks from PNR')
     return networks
 
 
@@ -697,9 +696,9 @@ def get_version():
         verstr = pnr.get_version()
         version = verstr.split()[2]
     except cpnr_client.CpnrException:
-        LOG.warning(_LW("Failed to obtain CPNR version number"))
+        LOG.warning("Failed to obtain CPNR version number")
     except StandardError:
-        LOG.warning(_LW("Failed to parse CPNR version number"))
+        LOG.warning("Failed to parse CPNR version number")
     LOG.debug("CPNR version: %s", version)
     return version
 
@@ -722,5 +721,5 @@ def reload_server(timeout=RELOAD_TIMEOUT):
         except Exception:
             time.sleep(1)
             continue
-    LOG.warning(_LW("PNR timed out after reload, "
-                  "timeout: %s seconds"), timeout)
+    LOG.warning("PNR timed out after reload, "
+                "timeout: %s seconds", timeout)

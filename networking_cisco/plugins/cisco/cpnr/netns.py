@@ -23,8 +23,6 @@ import subprocess
 
 from oslo_log import log as logging
 
-from networking_cisco._i18n import _LW
-
 LOG = logging.getLogger(__name__)
 
 _libc = ctypes.CDLL('libc.so.6')
@@ -47,7 +45,7 @@ class Namespace(object):
         try:
             self.target_fd.close()
         except Exception:
-            LOG.warning(_LW("Failed to close target_fd: %s"), self.target_fd)
+            LOG.warning("Failed to close target_fd: %s", self.target_fd)
             pass
         self.parent_fd.close()
 

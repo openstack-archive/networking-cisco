@@ -25,7 +25,7 @@ from neutron.common import config
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from networking_cisco._i18n import _LE, _LW, _
+from networking_cisco._i18n import _
 from networking_cisco.plugins.cisco.cpnr.cpnr_client import UnexpectedError
 from networking_cisco.plugins.cisco.cpnr import debug_stats
 from networking_cisco.plugins.cisco.cpnr import netns
@@ -137,7 +137,7 @@ class DhcpRelayAgent(object):
             try:
                 curr_ns = set(netns.nslist())
             except Exception:
-                LOG.error(_LE('Failed to get current namespace set'))
+                LOG.error('Failed to get current namespace set')
                 continue
 
             # For each unknown namespace, start a relay thread
@@ -160,8 +160,8 @@ class DhcpRelayAgent(object):
         try:
             self.ext_sock, self.ext_addr = self._open_dhcp_ext_socket()
         except Exception:
-            LOG.exception(_LE("Failed to open dhcp external socket in "
-                              "global ns"))
+            LOG.exception("Failed to open dhcp external socket in "
+                          "global ns")
             return
         recvbuf = bytearray(RECV_BUFFER_SIZE)
 
@@ -187,7 +187,7 @@ class DhcpRelayAgent(object):
             except socket.timeout:
                 pass
             except Exception:
-                LOG.exception(_LE('Failed to forward dhcp response'))
+                LOG.exception('Failed to forward dhcp response')
         LOG.debug('Server network relay exiting')
 
     def _client_network_relay(self, namespace):
@@ -199,7 +199,7 @@ class DhcpRelayAgent(object):
         except Exception:
             self.int_sock_retries += 1
             if self.int_sock_retries >= 2:
-                LOG.exception(_LE('Failed to open dhcp server socket in %s'),
+                LOG.exception('Failed to open dhcp server socket in %s',
                               namespace)
                 self.int_sock_retries = 0
             del self.ns_states[namespace]
@@ -234,7 +234,7 @@ class DhcpRelayAgent(object):
             except socket.timeout:
                 pass
             except Exception:
-                LOG.exception(_LE('Failed to forward dhcp to server from %s'),
+                LOG.exception('Failed to forward dhcp to server from %s',
                               namespace)
 
         # Cleanup socket and internal state
@@ -245,7 +245,7 @@ class DhcpRelayAgent(object):
             recv_sock.close()
             send_sock.close()
         except Exception:
-            LOG.warning(_LW('Failed to cleanup relay for %s'), namespace)
+            LOG.warning('Failed to cleanup relay for %s', namespace)
         LOG.debug('Client network relay exiting')
 
     def _open_dhcp_ext_socket(self):
@@ -395,11 +395,11 @@ def main():
     try:
         netns.increase_ulimit(RLIMIT_NOFILE_LIMIT)
     except Exception:
-        LOG.error(_LE('Failed to increase ulimit for DHCP relay'))
+        LOG.error('Failed to increase ulimit for DHCP relay')
     eventlet.monkey_patch()
     config.setup_logging()
     if os.getuid() != 0:
-        LOG.error(_LE('Must run dhcp relay as root'))
+        LOG.error('Must run dhcp relay as root')
         return
     relay = DhcpRelayAgent()
     signal.signal(signal.SIGINT, relay._signal_handler)
