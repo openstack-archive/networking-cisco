@@ -26,8 +26,6 @@ from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv.\
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv.\
     csr1kv_routing_driver import save_config
 
-from networking_cisco._i18n import _LI
-
 LOG = logging.getLogger(__name__)
 
 
@@ -103,8 +101,8 @@ class CSR1kvHotPlugRoutingDriver(CSR1kvRoutingDriver):
         mac_interface_dict = self._get_VNIC_mapping()
         if mac in mac_interface_dict:
             interface_name = mac_interface_dict[mac]
-            LOG.info(_LI("Interface name for hosting port with mac:%(mac)s "
-                         "is %(name)s"), {'mac': mac, 'name': interface_name})
+            LOG.info("Interface name for hosting port with mac:%(mac)s "
+                     "is %(name)s", {'mac': mac, 'name': interface_name})
             return interface_name
 
     def _generate_acl_num_from_hosting_port(self, port):

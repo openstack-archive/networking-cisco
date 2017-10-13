@@ -23,8 +23,6 @@ import networking_cisco.plugins.cisco.common.cisco_constants as cc
 from neutron.agent.linux import utils as linux_utils
 
 from networking_cisco._i18n import _
-from networking_cisco._i18n import _LI
-from networking_cisco._i18n import _LW
 
 import pprint
 
@@ -63,7 +61,7 @@ def _is_pingable(ip):
         linux_utils.execute(ping_cmd, check_exit_code=True)
         return True
     except RuntimeError:
-        LOG.warning(_LW("Cannot ping ip address: %s"), ip)
+        LOG.warning("Cannot ping ip address: %s", ip)
         return False
 
 
@@ -255,13 +253,13 @@ class DeviceStatus(object):
             hd = self.backlog_hosting_devices[hd_id]['hd']
             if not timeutils.is_older_than(hd['created_at'],
                                            hd['booting_time']):
-                LOG.info(_LI("Hosting device: %(hd_id)s @ %(ip)s hasn't "
-                             "passed minimum boot time. Skipping it. "),
+                LOG.info("Hosting device: %(hd_id)s @ %(ip)s hasn't "
+                         "passed minimum boot time. Skipping it. ",
                          {'hd_id': hd_id, 'ip': hd['management_ip_address']})
                 continue
-            LOG.info(_LI("Checking hosting device: %(hd_id)s @ %(ip)s for "
-                         "reachability."), {'hd_id': hd_id,
-                                            'ip': hd['management_ip_address']})
+            LOG.info("Checking hosting device: %(hd_id)s @ %(ip)s for "
+                     "reachability.", {'hd_id': hd_id,
+                                       'ip': hd['management_ip_address']})
             hd_state = hd['hd_state']
             if _is_pingable(hd['management_ip_address']):
                 if hd_state == cc.HD_NOT_RESPONDING:
@@ -287,12 +285,12 @@ class DeviceStatus(object):
                               "_is_pingable is True and current"
                               " hd['hd_state']=%s" % (hd_state))
 
-                LOG.info(_LI("Hosting device: %(hd_id)s @ %(ip)s is now "
-                             "reachable. Adding it to response"),
+                LOG.info("Hosting device: %(hd_id)s @ %(ip)s is now "
+                         "reachable. Adding it to response",
                          {'hd_id': hd_id, 'ip': hd['management_ip_address']})
             else:
-                LOG.info(_LI("Hosting device: %(hd_id)s %(hd_state)s"
-                             " @ %(ip)s not reachable "),
+                LOG.info("Hosting device: %(hd_id)s %(hd_state)s"
+                         " @ %(ip)s not reachable ",
                          {'hd_id': hd_id,
                           'hd_state': hd['hd_state'],
                           'ip': hd['management_ip_address']})

@@ -16,8 +16,6 @@ from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import importutils
 
-from networking_cisco._i18n import _LE
-
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
 
 LOG = logging.getLogger(__name__)
@@ -92,9 +90,9 @@ class DeviceDriverManager(object):
             return driver
         except ImportError:
             with excutils.save_and_reraise_exception(reraise=False):
-                LOG.exception(_LE("Error loading cfg agent driver %(driver)s "
-                                  "for hosting device template %(t_name)s"
-                                  "(%(t_id)s)"),
+                LOG.exception("Error loading cfg agent driver %(driver)s "
+                              "for hosting device template %(t_name)s"
+                              "(%(t_id)s)",
                               {'driver': driver_class, 't_id': hd_id,
                                't_name': resource['name']})
                 raise cfg_exceptions.DriverNotExist(driver=driver_class)

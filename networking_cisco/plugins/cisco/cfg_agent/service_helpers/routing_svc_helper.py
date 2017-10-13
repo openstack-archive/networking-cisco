@@ -31,7 +31,7 @@ from neutron.common import topics
 
 from neutron_lib import exceptions as n_lib_exc
 
-from networking_cisco._i18n import _, _LE, _LI, _LW
+from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers import driver_mgr
@@ -311,7 +311,7 @@ class RoutingServiceHelper(object):
                     self.driver_manager.remove_driver_for_hosting_device(hd_id)
             LOG.debug("Routing service processing successfully completed")
         except Exception:
-            LOG.exception(_LE("Failed processing routers"))
+            LOG.exception("Failed processing routers")
             self.fullsync = True
 
     def collect_state(self, configurations):
@@ -398,18 +398,18 @@ class RoutingServiceHelper(object):
                 self.sync_routers_chunk_size = max(
                     int(round(self.sync_routers_chunk_size / 2)),
                     SYNC_ROUTERS_MIN_CHUNK_SIZE)
-                LOG.warning(_LW('Server failed to return info for routers in '
-                                'required time, decreasing chunk size to: %s'),
+                LOG.warning('Server failed to return info for routers in '
+                            'required time, decreasing chunk size to: %s',
                             self.sync_routers_chunk_size)
             else:
-                LOG.warning(_LW('Server failed to return info for routers in '
-                                'required time even with min chunk size: %s. '
-                                'It might be under very high load or just '
-                                'inoperable'),
+                LOG.warning('Server failed to return info for routers in '
+                            'required time even with min chunk size: %s. '
+                            'It might be under very high load or just '
+                            'inoperable',
                             self.sync_routers_chunk_size)
             raise
         except oslo_messaging.MessagingException:
-            LOG.exception(_LE("RPC Error in fetching routers from plugin"))
+            LOG.exception("RPC Error in fetching routers from plugin")
             self.fullsync = True
             raise n_exc.AbortSyncRouters()
 
@@ -649,8 +649,8 @@ class RoutingServiceHelper(object):
                     cur_router_ids.add(r['id'])
                     hd = r['hosting_device']
                     if not self._dev_status.is_hosting_device_reachable(hd):
-                        LOG.info(_LI("Router: %(id)s is on an unreachable "
-                                     "hosting device. "), {'id': r['id']})
+                        LOG.info("Router: %(id)s is on an unreachable "
+                                 "hosting device. ", {'id': r['id']})
                         continue
                     if r['id'] not in self.router_info:
                         self._router_added(r['id'], r)
@@ -659,7 +659,7 @@ class RoutingServiceHelper(object):
                     self._process_router(ri)
                 except ncc_errors.SessionCloseError as e:
                     LOG.exception(
-                        _LE("ncclient Unexpected session close %s"), e)
+                        "ncclient Unexpected session close %s", e)
                     if not self._dev_status.is_hosting_device_reachable(
                         r['hosting_device']):
                         LOG.debug("Lost connectivity to hosting device %s" %
@@ -673,13 +673,13 @@ class RoutingServiceHelper(object):
 
                     continue
                 except KeyError as e:
-                    LOG.exception(_LE("Key Error, missing key: %s"), e)
+                    LOG.exception("Key Error, missing key: %s", e)
                     self.updated_routers.add(r['id'])
                     continue
                 except cfg_exceptions.DriverException as e:
-                    LOG.exception(_LE("Driver Exception on router:%(id)s. "
-                                      "Error is %(e)s"), {'id': r['id'],
-                                                          'e': e})
+                    LOG.exception("Driver Exception on router:%(id)s. "
+                                  "Error is %(e)s", {'id': r['id'],
+                                                     'e': e})
                     self.updated_routers.update([r['id']])
                     continue
                 LOG.debug("Done processing router[id:%(id)s, role:%(role)s]",
@@ -689,7 +689,7 @@ class RoutingServiceHelper(object):
                 LOG.debug("Processing deleted router:%s", router_id)
                 self._router_removed(router_id)
         except Exception:
-            LOG.exception(_LE("Exception in processing routers on device:%s"),
+            LOG.exception("Exception in processing routers on device:%s",
                           device_id)
             self.sync_devices.add(device_id)
 
@@ -797,8 +797,8 @@ class RoutingServiceHelper(object):
         for p in new_ports:
             num_subnets_on_port = len(p['subnets'])
             if num_subnets_on_port > 1:
-                LOG.error(_LE("Ignoring router port with multiple IPv4 "
-                              "subnets associated"))
+                LOG.error("Ignoring router port with multiple IPv4 "
+                          "subnets associated")
                 raise MultipleIPv4SubnetsException(
                     port_id=p['id'], subnets=pp.pformat(p['subnets']))
             p['change_details'] = change_details[p['network_id']]
@@ -1143,8 +1143,8 @@ class RoutingServiceHelper(object):
         """
         ri = self.router_info.get(router_id)
         if ri is None:
-            LOG.warning(_LW("Info for router %s was not found. "
-                            "Skipping router removal."), router_id)
+            LOG.warning("Info for router %s was not found. "
+                        "Skipping router removal.", router_id)
             return
         ri.router['gw_port'] = None
         ri.router[bc.constants.INTERFACE_KEY] = []
@@ -1163,8 +1163,8 @@ class RoutingServiceHelper(object):
             del self.router_info[router_id]
             self.removed_routers.discard(router_id)
         except cfg_exceptions.DriverException:
-            LOG.warning(_LW("Router remove for router_id: %s was incomplete. "
-                            "Adding the router to removed_routers list"),
+            LOG.warning("Router remove for router_id: %s was incomplete. "
+                        "Adding the router to removed_routers list",
                         router_id)
             self.removed_routers.add(router_id)
             # remove this router from updated_routers if it is there. It might
@@ -1172,8 +1172,8 @@ class RoutingServiceHelper(object):
             # `_process_router()`
             self.updated_routers.discard(router_id)
         except ncc_errors.SessionCloseError as e:
-            LOG.exception(_LE("ncclient Unexpected session close %s"
-                              " while attempting to remove router"), e)
+            LOG.exception("ncclient Unexpected session close %s"
+                          " while attempting to remove router", e)
             if not self._dev_status.is_hosting_device_reachable(hd):
                 LOG.debug("Lost connectivity to Hosting Device %s" % hd['id'])
                 # rely on heartbeat to detect HD state
