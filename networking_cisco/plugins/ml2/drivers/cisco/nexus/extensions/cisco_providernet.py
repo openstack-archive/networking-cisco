@@ -18,7 +18,6 @@ from neutron.db import common_db_mixin
 from neutron.plugins.ml2 import driver_api as api
 from neutron_lib.api import validators
 
-from networking_cisco._i18n import _LI
 from networking_cisco import backwards_compatibility as bc
 
 LOG = logging.getLogger(__name__)
@@ -29,7 +28,7 @@ class CiscoProviderNetDriver(api.ExtensionDriver,
     _supported_extension_alias = 'provider'
 
     def initialize(self):
-        LOG.info(_LI("CiscoProviderNetDriver initialization complete"))
+        LOG.info("CiscoProviderNetDriver initialization complete")
 
     @property
     def extension_alias(self):

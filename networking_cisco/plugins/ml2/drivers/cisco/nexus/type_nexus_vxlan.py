@@ -27,7 +27,7 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_models_v2)
 
-from networking_cisco._i18n import _, _LE, _LI, _LW
+from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
 
 from neutron.plugins.common import constants as p_const
@@ -79,10 +79,10 @@ class NexusVxlanTypeDriver(bc.VXLAN_TUNNEL_TYPE):
         try:
             self.conf_vxlan_ranges = self._parse_nexus_vni_ranges(
                 cfg.CONF.ml2_type_nexus_vxlan.vni_ranges, self.tunnel_ranges)
-            LOG.info(_LI("Cisco Nexus VNI ranges: %s"), self.conf_vxlan_ranges)
+            LOG.info("Cisco Nexus VNI ranges: %s", self.conf_vxlan_ranges)
         except Exception:
-            LOG.exception(_LE("Failed to parse vni_ranges. "
-                              "Service terminated!"))
+            LOG.exception("Failed to parse vni_ranges. "
+                          "Service terminated!")
             raise SystemExit()
 
     def _parse_nexus_vni_ranges(self, tunnel_ranges, current_range):
@@ -99,7 +99,7 @@ class NexusVxlanTypeDriver(bc.VXLAN_TUNNEL_TYPE):
             self._parse_nexus_vni_range(tunnel_range)
             current_range.append(tunnel_range)
 
-        LOG.info(_LI("Nexus VXLAN ID ranges: %(range)s"),
+        LOG.info("Nexus VXLAN ID ranges: %(range)s",
                  {'range': current_range})
 
     def _parse_nexus_vni_range(self, tunnel_range):
@@ -145,8 +145,8 @@ class NexusVxlanTypeDriver(bc.VXLAN_TUNNEL_TYPE):
                 mcast_for_vni = min(allocs, key=allocs.get)
         except ValueError:
             with excutils.save_and_reraise_exception():
-                LOG.exception(_LE("Unable to allocate a multicast group for "
-                                  "VNID:%s"), vni)
+                LOG.exception("Unable to allocate a multicast group for "
+                              "VNID:%s", vni)
 
         alloc = nexus_models_v2.NexusMcastGroup(mcast_group=mcast_for_vni,
                                 associated_vni=vni)
@@ -250,7 +250,7 @@ class NexusVxlanTypeDriver(bc.VXLAN_TUNNEL_TYPE):
                               vxlan_vni)
 
         if not count:
-            LOG.warning(_LW("vxlan_vni %s not found"), vxlan_vni)
+            LOG.warning("vxlan_vni %s not found", vxlan_vni)
 
     def add_endpoint(self, ip, udp_port):
         pass

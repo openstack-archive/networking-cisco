@@ -21,8 +21,6 @@ from sqlalchemy.orm import aliased
 import sqlalchemy.orm.exc as sa_exc
 from sqlalchemy.sql import func
 
-from networking_cisco._i18n import _LW
-
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
@@ -94,7 +92,7 @@ def update_reserved_binding(vlan_id, switch_ip, instance_id,
     :param ch_grp:      0 if no port-channel else non-zero integer
     """
     if not port_id:
-        LOG.warning(_LW("update_reserved_binding called with no state"))
+        LOG.warning("update_reserved_binding called with no state")
         return
     LOG.debug("update_reserved_binding called")
     session = bc.get_writer_session()
@@ -136,7 +134,7 @@ def remove_reserved_binding(vlan_id, switch_ip, instance_id,
     :               port-expected port_id
     """
     if not port_id:
-        LOG.warning(_LW("remove_reserved_binding called with no state"))
+        LOG.warning("remove_reserved_binding called with no state")
         return
     LOG.debug("remove_reserved_binding called")
     session = bc.get_writer_session()
@@ -274,7 +272,7 @@ def remove_nexusport_binding(port_id, vlan_id, vni, switch_ip, instance_id):
 def update_nexusport_binding(port_id, new_vlan_id):
     """Updates nexusport binding."""
     if not new_vlan_id:
-        LOG.warning(_LW("update_nexusport_binding called with no vlan"))
+        LOG.warning("update_nexusport_binding called with no vlan")
         return
     LOG.debug("update_nexusport_binding called")
     session = bc.get_writer_session()

@@ -20,7 +20,6 @@ Implements REST API Client For Nexus
 import netaddr
 import requests
 
-from networking_cisco._i18n import _LE
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     exceptions as cexc)
 from oslo_log import log as logging
@@ -143,8 +142,8 @@ class CiscoNexusRestapiClient(object):
                     headers=headers,
                     timeout=self.timeout)
             except Exception as e:
-                LOG.error(_LE(
-                    "Exception raised %(err)s for Rest/NXAPI %(cfg)s"),
+                LOG.error(
+                    "Exception raised %(err)s for Rest/NXAPI %(cfg)s",
                     {'err': str(e), 'cfg': config})
                 raise cexc.NexusConfigFailed(nexus_host=ipaddr,
                                              config=config,
@@ -187,12 +186,12 @@ class CiscoNexusRestapiClient(object):
                             exc=excpt)
             return output
         else:
-            LOG.error(_LE(
-                "Bad status %(status)s(%(code)d) returned for %(url)s"),
+            LOG.error(
+                "Bad status %(status)s(%(code)d) returned for %(url)s",
                 {'status': status_string,
                 'code': response.status_code,
                 'url': action})
-            LOG.error(_LE("Response text: %(txt)s"),
+            LOG.error("Response text: %(txt)s",
                       {'txt': response.text})
             raise cexc.NexusConfigFailed(nexus_host=ipaddr,
                                          config=config,

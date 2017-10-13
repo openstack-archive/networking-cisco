@@ -22,8 +22,6 @@ import time
 
 from oslo_log import log as logging
 
-from networking_cisco._i18n import _LE, _LW
-
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -179,8 +177,8 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
         """Applies channel-group n to ethernet interface."""
 
         if if_type != "ethernet":
-            LOG.error(_LE("Unexpected interface type %(iftype)s when "
-                      "adding change group"), {'iftype': if_type})
+            LOG.error("Unexpected interface type %(iftype)s when "
+                      "adding change group", {'iftype': if_type})
             return
 
         starttime = time.time()
@@ -201,8 +199,8 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
         """Removes channel-group n from ethernet interface."""
 
         if if_type != "ethernet":
-            LOG.error(_LE("Unexpected interface type %(iftype)s when "
-                      "deleting change group"), {'iftype': if_type})
+            LOG.error("Unexpected interface type %(iftype)s when "
+                      "deleting change group", {'iftype': if_type})
             return
 
         starttime = time.time()
@@ -350,15 +348,15 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
             else:
                 # Verify ch_grps in Nexus driver port db are consistent
                 if prev_ch_grp != ch_grp:
-                    LOG.warning(_LW("Inconsistent change group stored in "
+                    LOG.warning("Inconsistent change group stored in "
                         "Nexus port entry data base. Saw %(ch_grp)d expected "
                         "%(p_ch_grp)d for switch %(switch)s interface "
-                        "%(intf)s. Updating db."), {
-                        'ch_grp': ch_grp,
-                        'p_ch_grp': prev_ch_grp,
-                        'switch': nexus_host,
-                        'intf': nexus_help.format_interface_name(
-                            intf_type, nexus_port)})
+                        "%(intf)s. Updating db.",
+                        {'ch_grp': ch_grp,
+                         'p_ch_grp': prev_ch_grp,
+                         'switch': nexus_host,
+                         'intf': nexus_help.format_interface_name(
+                             intf_type, nexus_port)})
                 # Verify ch_grps on Nexus switches are consistent
                 if learned_ch_grp != first_ch_grp:
                     this_if = (nexus_host + ', ' + intf_type +
@@ -588,7 +586,7 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
                     int(nexus_type[0]))
                 return int(nexus_type[0])
 
-        LOG.warning(_LW("GET call failed to return Nexus type"))
+        LOG.warning("GET call failed to return Nexus type")
         return -1
 
     def start_create_vlan(self):
@@ -625,15 +623,15 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
         starttime = time.time()
 
         if not vlanid_range:
-            LOG.warning(_LW("Exiting set_all_vlan_states: "
-                            "No vlans to configure"))
+            LOG.warning("Exiting set_all_vlan_states: "
+                        "No vlans to configure")
             return
 
         # Eliminate possible whitespace and separate vlans by commas
         vlan_id_list = re.sub(r'\s', '', vlanid_range).split(',')
         if not vlan_id_list or not vlan_id_list[0]:
-            LOG.warning(_LW("Exiting set_all_vlan_states: "
-                            "No vlans to configure"))
+            LOG.warning("Exiting set_all_vlan_states: "
+                        "No vlans to configure")
             return
 
         path_str, body_vlan_all = self.start_create_vlan()
