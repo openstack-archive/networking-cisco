@@ -19,7 +19,6 @@ from oslo_log import log as logging
 from neutron.plugins.common import constants as p_const
 from neutron.plugins.ml2 import driver_api as api
 
-from networking_cisco._i18n import _LE, _LI, _LW
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import config
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import constants as const
@@ -78,19 +77,19 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
         host_id = self._get_host_id(
             context.current.get(bc.portbindings.HOST_ID))
         if not host_id:
-            LOG.warning(_LW('Host id from port context is None. '
-                'Ignoring this port'))
+            LOG.warning('Host id from port context is None. '
+                'Ignoring this port')
             return
 
         vlan_id = self._get_vlanid(context)
         if not vlan_id:
-            LOG.warning(_LW('Vlan_id is None. Ignoring this port'))
+            LOG.warning('Vlan_id is None. Ignoring this port')
             return
 
         ucsm_ip = self.driver.get_ucsm_ip_for_host(host_id)
         if not ucsm_ip:
-            LOG.info(_LI('Host %s is not controlled by any known '
-                         'UCS Manager.'), host_id)
+            LOG.info('Host %s is not controlled by any known '
+                     'UCS Manager.', host_id)
             return
 
         if not self.driver.check_vnic_type_and_vendor_info(vnic_type,
@@ -153,7 +152,7 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
         vlan_id = self._get_vlanid(context)
 
         if not vlan_id:
-            LOG.warning(_LW('Vlan_id is None. Ignoring this port.'))
+            LOG.warning('Vlan_id is None. Ignoring this port.')
             return
 
         if (not self._is_supported_deviceowner(context.current) or
@@ -171,14 +170,14 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
         host_id = self._get_host_id(
             context.current.get(bc.portbindings.HOST_ID))
         if not host_id:
-            LOG.warning(_LW('Host id from port context is None. '
-                'Ignoring this port'))
+            LOG.warning('Host id from port context is None. '
+                'Ignoring this port')
             return
 
         ucsm_ip = self.driver.get_ucsm_ip_for_host(host_id)
         if not ucsm_ip:
-            LOG.info(_LI('Host_id %s is not controlled by any known UCS '
-                'Manager'), str(host_id))
+            LOG.info('Host_id %s is not controlled by any known UCS '
+                'Manager', str(host_id))
             return
 
         profile = context.current.get(bc.portbindings.PROFILE, {})
@@ -315,7 +314,7 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                 vlan_id = segment[api.SEGMENTATION_ID]
 
                 if not vlan_id:
-                    LOG.warning(_LW('Cannot bind port: vlan_id is None.'))
+                    LOG.warning('Cannot bind port: vlan_id is None.')
                     return
 
                 LOG.debug("Port binding to Vlan_id: %s", str(vlan_id))
@@ -335,8 +334,8 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                                     bc.constants.PORT_STATUS_ACTIVE)
                 return
 
-        LOG.error(_LE('UCS Mech Driver: Failed binding port ID %(id)s '
-                      'on any segment of network %(network)s'),
+        LOG.error('UCS Mech Driver: Failed binding port ID %(id)s '
+                  'on any segment of network %(network)s',
                   {'id': context.current['id'],
                    'network': context.network.current['id']})
 

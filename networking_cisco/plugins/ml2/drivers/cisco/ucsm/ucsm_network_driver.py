@@ -23,7 +23,6 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 
-from networking_cisco._i18n import _LE, _LI, _LW
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import config
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import constants as const
@@ -86,7 +85,7 @@ class CiscoUcsmDriver(object):
         """
         # Check for vnic_type
         if vnic_type not in self.supported_sriov_vnic_types:
-            LOG.info(_LI('Non SR-IOV vnic_type: %s.'), vnic_type)
+            LOG.info('Non SR-IOV vnic_type: %s.', vnic_type)
             return False
 
         if not profile:
@@ -142,8 +141,8 @@ class CiscoUcsmDriver(object):
             self._create_ucsm_host_to_service_profile_mapping()
 
         if not self.ucsm_sp_dict:
-            LOG.error(_LE('UCS Manager network driver failed to get Service '
-                          'Profile information for any of its nodes.'))
+            LOG.error('UCS Manager network driver failed to get Service '
+                      'Profile information for any of its nodes.')
 
     @contextmanager
     def ucsm_connect_disconnect(self, ucsm_ip):
@@ -161,8 +160,8 @@ class CiscoUcsmDriver(object):
         username, password = self.ucsm_conf.get_credentials_for_ucsm_ip(
             ucsm_ip)
         if not username:
-            LOG.error(_LE('UCS Manager network driver failed to get login '
-                          'credentials for UCSM %s'), ucsm_ip)
+            LOG.error('UCS Manager network driver failed to get login '
+                      'credentials for UCSM %s', ucsm_ip)
             return None
 
         handle = self.ucsmsdk.UcsHandle()
@@ -271,8 +270,8 @@ class CiscoUcsmDriver(object):
                 self.ucsmsdk.FabricLanCloud.ClassId(),
                 {self.ucsmsdk.FabricLanCloud.DN: const.VLAN_PATH})
             if not vp1:
-                LOG.warning(_LW('UCS Manager network driver Vlan Profile '
-                                'path at %s missing'), const.VLAN_PATH)
+                LOG.warning('UCS Manager network driver Vlan Profile '
+                            'path at %s missing', const.VLAN_PATH)
                 return False
 
             # Create a vlan profile with the given vlan_id
@@ -339,8 +338,8 @@ class CiscoUcsmDriver(object):
                 {self.ucsmsdk.VnicProfileSet.DN: const.PORT_PROFILESETDN})
 
             if not port_profile:
-                LOG.warning(_LW('UCS Manager network driver Port Profile '
-                                'path at %s missing'),
+                LOG.warning('UCS Manager network driver Port Profile '
+                            'path at %s missing',
                     const.PORT_PROFILESETDN)
                 return False
 
@@ -358,8 +357,8 @@ class CiscoUcsmDriver(object):
                  self.ucsmsdk.VnicProfile.HOST_NW_IOPERF: port_mode,
                  self.ucsmsdk.VnicProfile.MAX_PORTS: const.MAX_PORTS})
             if not p_profile:
-                LOG.warning(_LW('UCS Manager network driver could not '
-                                'create Port Profile %s.'), profile_name)
+                LOG.warning('UCS Manager network driver could not '
+                            'create Port Profile %s.', profile_name)
                 return False
 
             LOG.debug('UCS Manager network driver associating Vlan '
@@ -373,9 +372,9 @@ class CiscoUcsmDriver(object):
                  self.ucsmsdk.VnicEtherIf.NAME: vlan_name,
                  self.ucsmsdk.VnicEtherIf.DEFAULT_NET: "yes"}, True)
             if not mo:
-                LOG.warning(_LW('UCS Manager network driver cannot '
-                                'associate Vlan Profile to Port '
-                                'Profile %s'), profile_name)
+                LOG.warning('UCS Manager network driver cannot '
+                            'associate Vlan Profile to Port '
+                            'Profile %s', profile_name)
                 return False
             LOG.debug('UCS Manager network driver created Port Profile %s '
                       'at %s', profile_name, port_profile_dest)
@@ -396,9 +395,9 @@ class CiscoUcsmDriver(object):
                         self.ucsmsdk.VnicEtherIf.NAME: vlan_name,
                         self.ucsmsdk.VnicEtherIf.DEFAULT_NET: "no"}, True)
                     if not mo:
-                        LOG.warning(_LW('UCS Manager network driver cannot '
-                                        'associate Vlan %(vlan)d to Port '
-                                        'Profile %(profile)s'),
+                        LOG.warning('UCS Manager network driver cannot '
+                                    'associate Vlan %(vlan)d to Port '
+                                    'Profile %(profile)s',
                                     {'vlan': vlan, 'profile': profile_name})
 
             cl_profile = handle.AddManagedObject(
@@ -414,8 +413,8 @@ class CiscoUcsmDriver(object):
             handle.CompleteTransaction()
 
             if not cl_profile:
-                LOG.warning(_LW('UCS Manager network driver could not '
-                                'create Client Profile %s.'),
+                LOG.warning('UCS Manager network driver could not '
+                            'create Client Profile %s.',
                             cl_profile_name)
                 return False
 
@@ -437,21 +436,21 @@ class CiscoUcsmDriver(object):
         """
         ucsm_ip = self.get_ucsm_ip_for_host(host_id)
         if not ucsm_ip:
-            LOG.info(_LI('UCS Manager network driver does not have UCSM IP '
-                         'for Host_id %s'), str(host_id))
+            LOG.info('UCS Manager network driver does not have UCSM IP '
+                     'for Host_id %s', str(host_id))
             return False
 
         with self.ucsm_connect_disconnect(ucsm_ip) as handle:
             # Create Vlan Profile
             if not self._create_vlanprofile(handle, vlan_id, ucsm_ip):
-                LOG.error(_LE('UCS Manager network driver failed to create '
-                              'Vlan Profile for vlan %s'), str(vlan_id))
+                LOG.error('UCS Manager network driver failed to create '
+                          'Vlan Profile for vlan %s', str(vlan_id))
                 return False
             if trunk_vlans:
                 for vlan in trunk_vlans:
                     if not self._create_vlanprofile(handle, vlan, ucsm_ip):
-                        LOG.error(_LE('UCS Manager network driver failed to '
-                            'create Vlan Profile for vlan %s'), vlan)
+                        LOG.error('UCS Manager network driver failed to '
+                                  'create Vlan Profile for vlan %s', vlan)
                         return False
 
             qos_policy = self.ucsm_conf.get_sriov_qos_policy(ucsm_ip)
@@ -467,8 +466,8 @@ class CiscoUcsmDriver(object):
                                              vlan_id, vnic_type,
                                              ucsm_ip, trunk_vlans,
                                              qos_policy):
-                LOG.error(_LE('UCS Manager network driver failed to create '
-                              'Port Profile %s'), profile_name)
+                LOG.error('UCS Manager network driver failed to create '
+                          'Port Profile %s', profile_name)
                 return False
 
         return True
@@ -545,8 +544,8 @@ class CiscoUcsmDriver(object):
         with self.ucsm_connect_disconnect(ucsm_ip) as handle:
             # Create Vlan Profile
             if not self._create_vlanprofile(handle, vlan_id, ucsm_ip):
-                LOG.error(_LE('UCS Manager network driver failed to create '
-                              'Vlan Profile for vlan %s'), str(vlan_id))
+                LOG.error('UCS Manager network driver failed to create '
+                          'Vlan Profile for vlan %s', str(vlan_id))
                 return False
 
             virtio_port_list = self.ucsm_conf.get_ucsm_eth_port_list(ucsm_ip)
@@ -560,8 +559,8 @@ class CiscoUcsmDriver(object):
                     self.ucsmsdk.LsServer.ClassId(),
                     {self.ucsmsdk.LsServer.DN: sp_template_path})
                 if not obj:
-                    LOG.error(_LE('UCS Manager network driver could not find '
-                                  'Service Profile template %s.'),
+                    LOG.error('UCS Manager network driver could not find '
+                              'Service Profile template %s.',
                         sp_template_path)
                     return False
 
@@ -605,8 +604,8 @@ class CiscoUcsmDriver(object):
         """
         ucsm_ip = self.get_ucsm_ip_for_host(host_id)
         if not ucsm_ip:
-            LOG.info(_LI('UCS Manager network driver does not have UCSM IP '
-                         'for Host_id %s'), str(host_id))
+            LOG.info('UCS Manager network driver does not have UCSM IP '
+                     'for Host_id %s', str(host_id))
             return False
 
         service_profile = self.ucsm_sp_dict.get((ucsm_ip, host_id))
@@ -614,15 +613,15 @@ class CiscoUcsmDriver(object):
             LOG.debug('UCS Manager network driver Service Profile : %s',
                       service_profile)
         else:
-            LOG.info(_LI('UCS Manager network driver does not support '
-                         'Host_id %s'), host_id)
+            LOG.info('UCS Manager network driver does not support '
+                     'Host_id %s', host_id)
             return False
 
         with self.ucsm_connect_disconnect(ucsm_ip) as handle:
             # Create Vlan Profile
             if not self._create_vlanprofile(handle, vlan_id, ucsm_ip):
-                LOG.error(_LE('UCS Manager network driver failed to create '
-                              'Vlan Profile for vlan %s'), str(vlan_id))
+                LOG.error('UCS Manager network driver failed to create '
+                          'Vlan Profile for vlan %s', str(vlan_id))
                 return False
 
             # Update Service Profile
@@ -630,9 +629,9 @@ class CiscoUcsmDriver(object):
                                                 service_profile,
                                                 vlan_id,
                                                 ucsm_ip):
-                LOG.error(_LE('UCS Manager network driver failed to update '
-                              'Service Profile %(service_profile)s in UCSM '
-                              '%(ucsm_ip)s'),
+                LOG.error('UCS Manager network driver failed to update '
+                          'Service Profile %(service_profile)s in UCSM '
+                          '%(ucsm_ip)s',
                     {'service_profile': service_profile, 'ucsm_ip': ucsm_ip})
                 return False
 
@@ -644,8 +643,8 @@ class CiscoUcsmDriver(object):
         ucsm_ip = self.get_ucsm_ip_for_host(host_id)
 
         if not ucsm_ip:
-            LOG.info(_LI('UCS Manager network driver does not have UCSM IP '
-                         'for Host_id %s'), str(host_id))
+            LOG.info('UCS Manager network driver does not have UCSM IP '
+                     'for Host_id %s', str(host_id))
             return False
 
         vlan_name = self.make_vlan_name(vlan_id)
@@ -653,8 +652,8 @@ class CiscoUcsmDriver(object):
         with self.ucsm_connect_disconnect(ucsm_ip) as handle:
             # Create Vlan Profile
             if not self._create_vlanprofile(handle, vlan_id, ucsm_ip):
-                LOG.error(_LE('UCS Manager network driver failed to create '
-                          'Vlan Profile for vlan %s'), vlan_id)
+                LOG.error('UCS Manager network driver failed to create '
+                          'Vlan Profile for vlan %s', vlan_id)
                 return False
 
             try:
@@ -671,8 +670,8 @@ class CiscoUcsmDriver(object):
                     {self.ucsmsdk.VnicLanConnTempl.DN:
                     vnic_template_full_path}, True)
                 if not mo:
-                    LOG.error(_LE('UCS Manager network driver could '
-                                  'not find VNIC template %s'),
+                    LOG.error('UCS Manager network driver could '
+                              'not find VNIC template %s',
                         vnic_template_full_path)
                     return False
 
@@ -685,9 +684,9 @@ class CiscoUcsmDriver(object):
                     self.ucsmsdk.VnicEtherIf.NAME: vlan_name,
                     self.ucsmsdk.VnicEtherIf.DEFAULT_NET: "no"}, True)
                 if not eth_if:
-                    LOG.error(_LE('UCS Manager network driver could '
-                                  'not add VLAN %(vlan_name)s to VNIC '
-                                  'template %(vnic_template_full_path)s'),
+                    LOG.error('UCS Manager network driver could '
+                              'not add VLAN %(vlan_name)s to VNIC '
+                              'template %(vnic_template_full_path)s',
                         {'vlan_name': vlan_name,
                         'vnic_template_full_path': vnic_template_full_path})
                     return False
@@ -764,8 +763,8 @@ class CiscoUcsmDriver(object):
         if p_profile:
             handle.RemoveManagedObject(p_profile)
         else:
-            LOG.warning(_LW('UCS Manager network driver did not find '
-                            'Port Profile %s to delete.'),
+            LOG.warning('UCS Manager network driver did not find '
+                        'Port Profile %s to delete.',
                         port_profile)
 
         handle.CompleteTransaction()
@@ -865,8 +864,8 @@ class CiscoUcsmDriver(object):
                     self.ucsmsdk.LsServer.ClassId(),
                     {self.ucsmsdk.LsServer.DN: sp_template_full_path})
                 if not obj:
-                    LOG.error(_LE('UCS Manager network driver could not '
-                        'find Service Profile template %s'),
+                    LOG.error('UCS Manager network driver could not '
+                        'find Service Profile template %s',
                         sp_template_full_path)
                     continue
 
@@ -928,8 +927,8 @@ class CiscoUcsmDriver(object):
                             vnic_template_full_path)},
                         True)
                     if not mo:
-                        LOG.error(_LE('UCS Manager network driver could '
-                                      'not find VNIC template %s at'),
+                        LOG.error('UCS Manager network driver could '
+                                  'not find VNIC template %s at',
                             vnic_template_full_path)
                         continue
 
@@ -941,9 +940,9 @@ class CiscoUcsmDriver(object):
                         {self.ucsmsdk.VnicEtherIf.DN: vlan_dn})
 
                     if not eth_if:
-                        LOG.error(_LE('UCS Manager network driver could not '
-                                      'delete VLAN %(vlan_name)s from VNIC '
-                                      'template %(vnic_template_full_path)s'),
+                        LOG.error('UCS Manager network driver could not '
+                                  'delete VLAN %(vlan_name)s from VNIC '
+                                  'template %(vnic_template_full_path)s',
                             {'vlan_name': vlan_name,
                             'vnic_template_full_path':
                             vnic_template_full_path})
