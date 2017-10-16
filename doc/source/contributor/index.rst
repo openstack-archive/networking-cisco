@@ -7,6 +7,7 @@ Contributor Guides
 
   howto
   faq
+  l3-asr1k
   ml2-nexus
 
 
