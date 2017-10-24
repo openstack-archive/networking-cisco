@@ -29,3 +29,4 @@ Sample Configuration Files
    samples/l3-asr1k
    samples/ml2-nexus
    samples/ml2-nexus-vxlan-type-driver
+   samples/ml2-ucsm
