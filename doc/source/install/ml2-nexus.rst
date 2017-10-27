@@ -12,11 +12,9 @@ Prerequisites
 
 The prerequisites for installing the ML2 Nexus MD are as follows:
 
-* Cisco Nexus 9K image version - NX-OS 7.0(3)I5 (minimum required for REST API
-  Driver). Refer to `Nexus 9K docs <https://www.cisco.com/c/en/us/products/switches/nexus-9000-series-switches/index.html>`_
-  for upgrade/downgrade instructions.  From this link, select the 'Support'
-  option in the middle of the page for information on upgrade/downgrade
-  guides, configuration and technical references.
+* Requires neutron installation as described in
+  `Neutron install <https://docs.openstack.org/neutron/latest/install/>`_
+  documentation.
 * The ML2 Nexus MD have been tested on these OSs.
 
     * RHEL 6.1 or above
@@ -24,13 +22,16 @@ The prerequisites for installing the ML2 Nexus MD are as follows:
 
 * Your Nexus switch must be set-up as described in the next section
   `Nexus Switch Setup`_.
-* Requires neutron installation as described in
-  `Neutron install <https://docs.openstack.org/neutron/latest/install/>`_
-* If unable to upgrade your Nexus 9K Switch to a version that supports the
-  REST API driver needed by the Nexus MD, the ncclient driver can be
-  configured temporarily for use instead.  This is temporary
-  since ncclient option is being deprecated for removal.  Refer
-  to `nexus_driver` configuration variable in
+* Cisco Nexus 9K image version - NX-OS 7.0(3)I5(2) (minimum required for REST API
+  Driver). Refer to `Nexus 9K documents <https://www.cisco.com/c/en/us/products/switches/nexus-9000-series-switches/index.html>`_
+  for upgrade/downgrade instructions.  From this link, select the 'Support'
+  option in the middle of the page for information on upgrade/downgrade
+  guides, configuration and technical references.
+* If unable to upgrade your Nexus 9K Switch to the required version that
+  supports the REST API driver functionality needed by the Nexus MD, the
+  ncclient driver can be configured temporarily for use instead.  This is
+  temporary since ncclient option is being deprecated for removal.  Refer
+  to the `nexus_driver` configuration variable in
   :doc:`Nexus Configuration Reference </configuration/ml2-nexus>` for details
   on changing this setting.  The ncclient driver requires the following
   to be installed:
@@ -58,7 +59,10 @@ with the Nexus Driver.
    For instance:
 
    * All participating compute host interfaces must be enabled
-     with :command:`no shutdown`.
+     with :command:`no shutdown`.  If additional trunk vlans are needed
+     for an interface, the administrator should manually apply these
+     extra vlans using :command:`switchport trunk allowed vlan add <vlanid>`
+     and also include :command:`switchport mode trunk`.
 
    * Possible port-channels pre-configuration:
 
@@ -88,11 +92,11 @@ with the Nexus Driver.
 ML2 Nexus MD Installation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#. Install networking-cisco repository as described in the section
-   :doc:`How to install networking-cisco </install/howto>`.
+#. Install networking-cisco package as described in the section
+   :doc:`/install/howto`.
 #. Configure Nexus ML2 Driver.
    Once the networking-cisco code is installed, it needs to be configured and
-   enabled in Neutron, the :doc:`admin guide </admin/ml2-nexus>` provides full
+   enabled in Neutron, the :doc:`/admin/ml2-nexus` provides full
    details on how to create the neutron configs for various use cases.  For
    details on each configuration parameters, refer to
    :doc:`Nexus Configuration Reference</configuration/ml2-nexus>`.

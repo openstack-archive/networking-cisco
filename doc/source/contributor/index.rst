@@ -2,11 +2,10 @@
 Contributor Guides
 ==================
 
-.. include:: ../../../CONTRIBUTING.rst
-
 .. toctree::
   :maxdepth: 3
 
+  howto
   faq
   ml2-nexus
 
