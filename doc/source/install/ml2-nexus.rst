@@ -21,7 +21,7 @@ The prerequisites for installing the ML2 Nexus MD are as follows:
     * Ubuntu 14.04 or above
 
 * Your Nexus switch must be set-up as described in the next section
-  `Nexus Switch Setup`_.
+  :ref:`switch_setup`.
 * Cisco Nexus 9K image version - NX-OS 7.0(3)I5(2) (minimum required for REST API
   Driver). Refer to `Nexus 9K documents <https://www.cisco.com/c/en/us/products/switches/nexus-9000-series-switches/index.html>`_
   for upgrade/downgrade instructions.  From this link, select the 'Support'
@@ -41,6 +41,8 @@ The prerequisites for installing the ML2 Nexus MD are as follows:
       clients.  Install the ncclient library by using the pip package
       manager at your shell prompt:
       :command:`pip install ncclient == 0.4.2`
+
+.. _switch_setup:
 
 Nexus Switch Setup
 ~~~~~~~~~~~~~~~~~~~

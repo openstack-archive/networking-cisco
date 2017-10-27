@@ -2,7 +2,7 @@
 Nexus Mechanism Driver Administration Guide
 ===========================================
 
-There are two ways to configure the nexus ML2 Mechanism driver either directly
+There are two ways to configure the Nexus ML2 Mechanism driver either directly
 in the neutron configuration files or via TripleO config for OpenStack on
 OpenStack configurations.
 
@@ -54,7 +54,7 @@ do the following:
      See :ref:`nexus_vlan_create` for more details on
      what gets configured during port-channel creation.
 
-   For detail description of the nexus mechanism driver options in the neutron
+   For detail description of the Nexus mechanism driver options in the neutron
    configuration files, refer to
    :doc:`Nexus Configuration Reference </configuration/ml2-nexus>`.
 
@@ -127,7 +127,7 @@ Sample configuration with vPC interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 In addition to supporting ethernet interfaces, multi-homed hosts using
 vPC configurations are supported.  To configure this for non-baremetal
-case, the administrator must do some pre-configuration on the nexus
+case, the administrator must do some pre-configuration on the Nexus
 switch and the compute host.  These prerequisites are as follows:
 
 #. The vPC must already be configured on the Nexus 9K device as described in
@@ -472,8 +472,8 @@ Configuration Replay applied to the Nexus Switch
 The Nexus mechanism driver performs a keep-alive against each known Nexus
 switch every 30 seconds. If communication is lost due to switch reboot
 or loss of network connectivity, it continues to check for a sign of life.
-Once the switch recovers, the nexus driver will replay all known configuration
-for this switch. If neutron restarts, configuration for all known nexus
+Once the switch recovers, the Nexus driver will replay all known configuration
+for this switch. If neutron restarts, configuration for all known Nexus
 switches is replayed. The time period to perform keep-alives for each switch
 can be altered by the configuration variable ``switch_heartbeat_time``
 defined under the section header ``[ml2_cisco]``.  If this feature is not
@@ -546,59 +546,8 @@ Openstack documentation.
 
 Troubleshooting
 ~~~~~~~~~~~~~~~~
-How to view Nexus MD databases
-------------------------------
-To help triage issues, it may be helpful to peruse the following database
-tables:
 
-#. To view the content of the Nexus Driver port binding database table:
+.. toctree::
+   :maxdepth: 1
 
-   .. code-block:: console
-
-       mysql -e "use neutron; select * from cisco_ml2_nexusport_bindings;"
-
-   .. end
-
-   In addition to port entries, the switch state is also saved in here.
-   These special entries can be identified with an instance_id of
-   ``RESERVED_NEXUS_SWITCH_DEVICE_ID_R1``.
-
-   .. code-block:: console
-
-       mysql -e "use neutron; select * from cisco_ml2_nexusport_bindings;" \
-       | grep RESERVED_NEXUS_SWITCH_DEVICE_ID_R1 | grep <your-switch-ip-address>
-
-   .. end
-
-#. To view the content of the Nexus Driver port mapping database table:
-
-   .. code-block:: console
-
-       mysql -e "use neutron; select * from cisco_ml2_nexus_host_interface_mapping;"
-
-   .. end
-
-#. To view the content of the Nexus Driver VPC ID port database table:
-
-   .. code-block:: console
-
-       mysql -e "use neutron; select * from cisco_ml2_nexus_vpc_alloc;"
-
-   .. end
-
-#. To view the content of the Nexus Driver VNI allocation port database table:
-
-   .. code-block:: console
-
-       mysql -e "use neutron; select * from ml2_nexus_vxlan_allocations;"
-
-   .. end
-
-#. To view the content of the Nexus Driver multicast mapping database table:
-
-   .. code-block:: console
-
-       mysql -e "use neutron; select * from ml2_nexus_vxlan_mcast_groups;"
-       mysql -e "use neutron; select * from cisco_ml2_nexus_nve;"
-
-   .. end
+   ml2-nexus-troubleshoot
