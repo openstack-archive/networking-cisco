@@ -108,6 +108,13 @@ class HostingDeviceDBMixin(
                                     marker_obj=marker,
                                     page_reverse=page_reverse)
 
+    def get_hosting_devices_db(self, context, filters=None, sorts=None,
+                               limit=None, marker=None, page_reverse=False):
+        LOG.debug("get_hosting_devices_db() called")
+        return self._get_collection_query(
+            context, hd_models.HostingDevice, filters=filters, sorts=sorts,
+            limit=limit, marker_obj=marker, page_reverse=page_reverse)
+
     def create_hosting_device_template(self, context, hosting_device_template):
         LOG.debug("create_hosting_device_template() called")
         hdt = hosting_device_template['hosting_device_template']

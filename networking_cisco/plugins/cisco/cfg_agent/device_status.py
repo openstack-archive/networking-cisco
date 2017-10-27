@@ -13,12 +13,12 @@
 #    under the License.
 
 import datetime
+import socket
 
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import timeutils
 
-from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
 import networking_cisco.plugins.cisco.common.cisco_constants as cc
 from neutron.agent.linux import utils as linux_utils
 
@@ -65,6 +65,17 @@ def _is_pingable(ip):
         return False
 
 
+def _can_connect(ip, port):
+    """Checks if a TCP port at IP address is possible to connect to"""
+    cs = socket.socket()
+    try:
+        cs.connect((ip, port))
+        cs.close()
+        return True
+    except socket.error:
+        return False
+
+
 class DeviceStatus(object):
     """Device status and backlog processing."""
 
@@ -76,11 +87,33 @@ class DeviceStatus(object):
         return cls._instance
 
     def __init__(self):
-        self.backlog_hosting_devices = {}
+        self.hosting_devices_backlog = {}
         self.enable_heartbeat = False
 
+    def backlog_hosting_device(self, hosting_device):
+        hd_id = hosting_device['id']
+        hd_mgmt_ip = hosting_device['management_ip_address']
+        # Modifying the 'created_at' to a date time object if it is not
+        if not isinstance(hosting_device['created_at'], datetime.datetime):
+            hosting_device['created_at'] = datetime.datetime.strptime(
+                hosting_device['created_at'], '%Y-%m-%d %H:%M:%S')
+        if hd_id not in self.hosting_devices_backlog:
+            if 'hd_state' not in hosting_device:
+                hosting_device['hd_state'] = hosting_device['status']
+            hosting_device['backlog_insertion_ts'] = max(
+                timeutils.utcnow(),
+                hosting_device['created_at'] +
+                datetime.timedelta(seconds=hosting_device['booting_time']))
+            self.hosting_devices_backlog[hd_id] = {'hd': hosting_device}
+            LOG.debug("Hosting device: %(hd_id)s @ %(ip)s is now added "
+                      "to backlog", {'hd_id': hd_id, 'ip': hd_mgmt_ip})
+
+    def backlog_hosting_devices(self, hosting_devices):
+        for hosting_device in hosting_devices:
+            self.backlog_hosting_device(hosting_device)
+
     def get_backlogged_hosting_devices(self):
-        return self.backlog_hosting_devices.keys()
+        return self.hosting_devices_backlog.keys()
 
     def get_backlogged_hosting_devices_info(self):
         resp = self.get_monitored_hosting_devices_info(hd_state_filter='Dead')
@@ -92,8 +125,8 @@ class DeviceStatus(object):
         :return: List of dead hosting device ids
         """
         res = []
-        for hd_id in self.backlog_hosting_devices:
-            hd = self.backlog_hosting_devices[hd_id]['hd']
+        for hd_id in self.hosting_devices_backlog:
+            hd = self.hosting_devices_backlog[hd_id]['hd']
             if hd['hd_state'] == cc.HD_DEAD:
                 res.append(hd['id'])
         return res
@@ -106,8 +139,8 @@ class DeviceStatus(object):
         wait_time = datetime.timedelta(
             seconds=cfg.CONF.cfg_agent.hosting_device_dead_timeout)
         resp = []
-        for hd_id in self.backlog_hosting_devices:
-            hd = self.backlog_hosting_devices[hd_id]['hd']
+        for hd_id in self.hosting_devices_backlog:
+            hd = self.hosting_devices_backlog[hd_id]['hd']
 
             display_hd = True
 
@@ -182,17 +215,8 @@ class DeviceStatus(object):
             hd['hd_state'] = cc.HD_NOT_RESPONDING
             ret_val = False
 
-        if (self.enable_heartbeat is True or ret_val is False):
-
-            if hd_id not in self.backlog_hosting_devices:
-                hd['backlog_insertion_ts'] = max(
-                    timeutils.utcnow(),
-                    hd['created_at'] +
-                    datetime.timedelta(seconds=hd['booting_time']))
-
-                self.backlog_hosting_devices[hd_id] = {'hd': hd}
-                LOG.debug("Hosting device: %(hd_id)s @ %(ip)s is now added "
-                      "to backlog", {'hd_id': hd_id, 'ip': hd_mgmt_ip})
+        if self.enable_heartbeat is True or ret_val is False:
+            self.backlog_hosting_device(hd)
 
         return ret_val
 
@@ -248,9 +272,9 @@ class DeviceStatus(object):
         """
         response_dict = {'reachable': [], 'revived': [], 'dead': []}
         LOG.debug("Current Backlogged hosting devices: \n%s\n",
-                  self.backlog_hosting_devices.keys())
-        for hd_id in self.backlog_hosting_devices.keys():
-            hd = self.backlog_hosting_devices[hd_id]['hd']
+                  self.hosting_devices_backlog.keys())
+        for hd_id in self.hosting_devices_backlog.keys():
+            hd = self.hosting_devices_backlog[hd_id]['hd']
             if not timeutils.is_older_than(hd['created_at'],
                                            hd['booting_time']):
                 LOG.info("Hosting device: %(hd_id)s @ %(ip)s hasn't "
@@ -269,21 +293,22 @@ class DeviceStatus(object):
                     # hosting device state
                     response_dict['reachable'].append(hd_id)
                 elif hd_state == cc.HD_DEAD:
-                    # test if netconf is actually ready
-                    driver = driver_mgr.get_driver_for_hosting_device(hd_id)
-                    try:
-                        driver.send_empty_cfg()
+                    # test if management port is available
+                    if _can_connect(hd['management_ip_address'],
+                                    hd['protocol_port']) is True:
                         LOG.debug("Dead hosting devices revived %s" %
-                              (pprint.pformat(hd)))
+                                  (pprint.pformat(hd)))
                         hd['hd_state'] = cc.HD_ACTIVE
                         response_dict['revived'].append(hd_id)
-                    except cfg_exceptions.DriverException as e:
-                        LOG.debug("netconf not ready on device yet. "
-                                  "Error is %s", e)
+                    else:
+                        LOG.debug("Cannot connect to management port %(p)d on "
+                                  "hosting device with ip %(ip)s",
+                                  {'p': hd['protocol_port'],
+                                   'ip': hd['management_ip_address']})
                 else:
                     LOG.debug("No-op."
                               "_is_pingable is True and current"
-                              " hd['hd_state']=%s" % (hd_state))
+                              " hd['hd_state']=%s" % hd_state)
 
                 LOG.info("Hosting device: %(hd_id)s @ %(ip)s is now "
                          "reachable. Adding it to response",

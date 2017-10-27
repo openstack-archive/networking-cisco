@@ -14,6 +14,7 @@
 
 import mock
 from oslo_config import cfg
+from oslo_messaging import exceptions
 from oslo_utils import uuidutils
 import testtools
 
@@ -117,6 +118,37 @@ class TestCiscoCfgAgentWithStateReporting(base.BaseTestCase):
         cfg_agent.MAX_REGISTRATION_ATTEMPTS = 3
         with testtools.ExpectedException(SystemExit):
             cfg_agent.CiscoCfgAgentWithStateReport(HOSTNAME, self.conf)
+
+    def test_assigned_hosting_devices_monitored_from_start(self):
+        agent = cfg_agent.CiscoCfgAgentWithStateReport(HOSTNAME, self.conf)
+        fake_hds = [{'id': 'fake_id1'}, {'id': 'fake_id2'}]
+        with mock.patch.object(agent.devmgr_rpc,
+                               'get_hosting_devices_for_agent',
+                               return_value=fake_hds), \
+                mock.patch.object(agent, '_dev_status') as ds_mock:
+            agent.after_start()
+            ds_mock.backlog_hosting_devices.assert_called_once_with(fake_hds)
+
+    def test_assigned_hosting_devices_monitored_from_start_retry(self):
+        agent = cfg_agent.CiscoCfgAgentWithStateReport(HOSTNAME, self.conf)
+        fake_hds = [{'id': 'fake_id1'}, {'id': 'fake_id2'}]
+        results = [exceptions.MessagingException(),
+                   exceptions.MessagingException(), fake_hds]
+        with mock.patch.object(agent.devmgr_rpc,
+                               'get_hosting_devices_for_agent',
+                               side_effect=results), \
+                mock.patch.object(agent, '_dev_status') as ds_mock:
+            agent.after_start()
+            ds_mock.backlog_hosting_devices.assert_called_once_with(fake_hds)
+
+    def test_no_hosting_devices_monitored_from_start_if_rpc_fail(self):
+        agent = cfg_agent.CiscoCfgAgentWithStateReport(HOSTNAME, self.conf)
+        with mock.patch.object(agent.devmgr_rpc,
+                               'get_hosting_devices_for_agent',
+                               side_effect=exceptions.MessagingException), \
+                mock.patch.object(agent, '_dev_status') as ds_mock:
+            agent.after_start()
+            ds_mock.backlog_hosting_devices.assert_not_called()
 
     def test_report_state(self):
         agent = cfg_agent.CiscoCfgAgentWithStateReport(HOSTNAME, self.conf)

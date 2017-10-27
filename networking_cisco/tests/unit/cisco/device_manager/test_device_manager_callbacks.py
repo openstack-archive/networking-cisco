@@ -96,3 +96,23 @@ class TestCfgAgentDeviceManagerCallbacks(base.BaseTestCase):
              const.HD_NOT_RESPONDING: ['hd_id3', 'hd_id4', 'hd_id5'],
              const.HD_DEAD: ['hd_id6'],
              const.HD_ERROR: ['hd_id7', 'hd_id8']})
+
+    def test_get_hosting_devices_for_agent(self):
+        dm_plugin = mock.MagicMock()
+        agent = mock.MagicMock()
+        agent.id = 'fake_id'
+        dm_plugin.get_cfg_agents.return_value = [agent]
+        hds = [{'id': 'fake_id1'}, {'id': 'fake_id2'}]
+        ips = {hds[0]['id']: '10.0.0.5/24', hds[1]['id']: '10.0.10.6/24'}
+        return_value = [{'id': hd['id'],
+                         'management_ip_address': ips[hd['id']]}
+                        for hd in hds]
+        dm_plugin.get_device_info_for_agent.side_effect = (
+            lambda ctxt, hd_db: {'id': hd_db['id'],
+                                 'management_ip_address': ips[hd_db['id']]})
+        dm_plugin.get_hosting_devices_db.return_value = hds
+        cb = devices_cfgagent_rpc_cb.DeviceMgrCfgRpcCallback(dm_plugin)
+        ctx = mock.MagicMock()
+        host = 'some_host'
+        self.assertEqual(return_value,
+                         cb.get_hosting_devices_for_agent(ctx, host))
