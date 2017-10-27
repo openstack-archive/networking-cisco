@@ -13,13 +13,6 @@
 #    under the License.
 
 from oslo_config import cfg
-import six
-import unittest2
-
-# We don't need to run these test under Python 3 yet.
-# TODO(HenryG): Figure out why they don't work with Python 3.
-if six.PY3:
-    raise unittest2.SkipTest("Disabled for Python 3.")
 
 from neutron.db.migration.alembic_migrations import external
 from neutron.db.migration import cli as migration

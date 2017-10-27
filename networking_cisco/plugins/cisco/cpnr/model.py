@@ -697,7 +697,7 @@ def get_version():
         version = verstr.split()[2]
     except cpnr_client.CpnrException:
         LOG.warning("Failed to obtain CPNR version number")
-    except StandardError:
+    except Exception:
         LOG.warning("Failed to parse CPNR version number")
     LOG.debug("CPNR version: %s", version)
     return version
