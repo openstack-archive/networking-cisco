@@ -16,7 +16,6 @@
 
 import time
 
-from networking_cisco._i18n import _LE, _LI
 from networking_cisco.apps.saf.common import config
 from networking_cisco.apps.saf.common import dfa_logger as logging
 from networking_cisco.apps.saf.server import dfa_openstack_helper as OsHelper
@@ -115,12 +114,12 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
             ret = self.os_helper.delete_intf_router(tenant_name, tenant_id,
                                                     router_id, subnet_lst)
             if not ret:
-                LOG.error(_LE("Failed to delete router intf id %(rtr)s, "
-                              "tenant %(tenant)s"),
+                LOG.error("Failed to delete router intf id %(rtr)s, "
+                          "tenant %(tenant)s",
                           {'rtr': router_id, 'tenant': tenant_id})
             return ret
-        LOG.error(_LE("Invalid router ID, can't delete interface from "
-                      "router"))
+        LOG.error("Invalid router ID, can't delete interface from "
+                  "router")
 
     def prepare_router_vm_msg(self, tenant_id, tenant_name, router_id, net_id,
                               subnet_id, seg, status):
@@ -134,15 +133,15 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
         while max_get_router_info_retry:
             port_data = self.os_helper.get_router_port_subnet(subnet_id)
             if port_data is None:
-                LOG.error(_LE("Unable to get router port data"))
+                LOG.error("Unable to get router port data")
                 return None
             if port_data.get('binding:host_id') == '':
                 time.sleep(3)
                 attempt += 1
                 if attempt > 3:
                     max_get_router_info_retry = False
-                    LOG.error(_LE("Unable to get router binding host data, "
-                                  "Max attempts reached"))
+                    LOG.error("Unable to get router binding host data, "
+                              "Max attempts reached")
             else:
                 max_get_router_info_retry = False
         if status is 'up':
@@ -152,11 +151,11 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
         vnic_data = {'status': status, 'mac': port_data.get('mac_address'),
                      'segid': seg, 'host': port_data.get('binding:host_id')}
         if vnic_data['host'] == '':
-            LOG.error(_LE("Null host for seg %(seg)s subnet %(subnet)s"),
+            LOG.error("Null host for seg %(seg)s subnet %(subnet)s",
                       {'seg': seg, 'subnet': subnet_id})
             if self.tenant_dict.get(tenant_id).get('host') is None:
-                LOG.error(_LE("Null host for tenant %(tenant)s seg %(seg)s "
-                              "subnet %(subnet)s"),
+                LOG.error("Null host for tenant %(tenant)s seg %(seg)s "
+                          "subnet %(subnet)s",
                           {'tenant': tenant_id, 'seg': seg,
                            'subnet': subnet_id})
                 return None
@@ -182,7 +181,7 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
             return False
         timestamp = time.ctime()
         pri = Q_PRIORITY
-        LOG.info(_LI("Sending native FW data into queue %(data)s"),
+        LOG.info("Sending native FW data into queue %(data)s",
                  {'data': data})
         self.que_obj.put((pri, timestamp, data))
         return True
@@ -200,8 +199,8 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
                                         arg_dict.get('in_sub'),
                                         arg_dict.get('in_seg'), status)
         if not ret:
-            LOG.error(_LE("Sending router port message failed for in network "
-                          "tenant %(tenant)s subnet %(seg)s"),
+            LOG.error("Sending router port message failed for in network "
+                      "tenant %(tenant)s subnet %(seg)s",
                       {'tenant': tenant_id, 'seg': arg_dict.get('in_seg')})
             if status == 'up':
                 self.delete_intf_router(tenant_id, arg_dict.get('tenant_name'),
@@ -222,8 +221,8 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
                                         router_id, out_net, out_sub, out_seg,
                                         status)
         if not ret:
-            LOG.error(_LE("Sending router port message failed for out network "
-                          "tenant %(tenant)s subnet %(seg)s"),
+            LOG.error("Sending router port message failed for out network "
+                      "tenant %(tenant)s subnet %(seg)s",
                       {'tenant': tenant_id, 'seg': out_seg})
             in_net = self.get_in_net_id(tenant_id)
             if status == 'up':
@@ -231,9 +230,9 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
                     tenant_id, arg_dict.get('tenant_name') + '_in', router_id,
                     in_net, in_sub, in_seg, 'down')
                 if not ret:
-                    LOG.error(_LE("Error case, Sending router port message "
-                                  "failed for in network tenant %(tenant)s "
-                                  "subnet %(seg)s"),
+                    LOG.error("Error case, Sending router port message "
+                              "failed for in network tenant %(tenant)s "
+                              "subnet %(seg)s",
                               {'tenant': tenant_id, 'seg': in_seg})
                 self.delete_intf_router(tenant_id, arg_dict.get('tenant_name'),
                                         router_id)
@@ -247,7 +246,7 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
                 tenant_id, arg_dict.get('router_id'), arg_dict.get('in_gw'),
                 arg_dict.get('excl_list'))
             if not ret:
-                LOG.error(_LE("Unable to program default router next hop %s"),
+                LOG.error("Unable to program default router next hop %s",
                           arg_dict.get('router_id'))
                 self.delete_intf_router(tenant_id, arg_dict.get('tenant_name'),
                                         arg_dict.get('router_id'))
@@ -266,7 +265,7 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
                     arg_dict.get('out_gw'))
                 attempt += 1
         if not ret:
-            LOG.error(_LE("Unable to program default GW in router %s"),
+            LOG.error("Unable to program default GW in router %s",
                       arg_dict.get('router_id'))
             self.delete_intf_router(tenant_id, arg_dict.get('tenant_name'),
                                     arg_dict.get('router_id'))
@@ -286,8 +285,8 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
             vrf_prof=self.cfg.firewall.fw_service_part_vrf_profile,
             service_node_ip=srvc_node_ip)
         if not ret:
-            LOG.error(_LE("Unable to update DCNM ext profile with static "
-                          "route %s"), arg_dict.get('router_id'))
+            LOG.error("Unable to update DCNM ext profile with static "
+                      "route %s", arg_dict.get('router_id'))
             self.delete_intf_router(tenant_id, arg_dict.get('tenant_name'),
                                     arg_dict.get('router_id'))
             return False
@@ -322,8 +321,8 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
                                                        data.get('tenant_name'),
                                                        data.get('router_id'))
         if not ret:
-            LOG.error(_LE("Native FW: Attach intf router failed for tenant "
-                          "%s"), tenant_id)
+            LOG.error("Native FW: Attach intf router failed for tenant "
+                      "%s", tenant_id)
             return False
 
         self.create_tenant_dict(tenant_id, data.get('router_id'))
@@ -357,8 +356,8 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
         try:
             return self._create_fw(tenant_id, data)
         except Exception as exc:
-            LOG.error(_LE("Failed to create FW for device native, tenant "
-                          "%(tenant)s data %(data)s Exc %(exc)s"),
+            LOG.error("Failed to create FW for device native, tenant "
+                      "%(tenant)s data %(data)s Exc %(exc)s",
                       {'tenant': tenant_id, 'data': data, 'exc': exc})
             return False
 
@@ -370,7 +369,7 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
         arg_dict = self._create_arg_dict(tenant_id, data, in_sub, out_sub)
 
         if arg_dict.get('router_id') is None:
-            LOG.error(_LE("Router ID unknown for tenant %s"), tenant_id)
+            LOG.error("Router ID unknown for tenant %s", tenant_id)
             return False
 
         if tenant_id not in self.tenant_dict:
@@ -387,7 +386,7 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
                                              arg_dict.get('tenant_name'),
                                              arg_dict.get('router_id'))
         if not router_ret:
-            LOG.error(_LE("Unable to delete router for tenant %s, error case"),
+            LOG.error("Unable to delete router for tenant %s, error case",
                       tenant_id)
             return router_ret
         del self.tenant_dict[tenant_id]
@@ -399,8 +398,8 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
             ret = self._delete_fw(tenant_id, data)
             return ret
         except Exception as exc:
-            LOG.error(_LE("Failed to delete FW for device native, tenant "
-                          "%(tenant)s data %(data)s Exc %(exc)s"),
+            LOG.error("Failed to delete FW for device native, tenant "
+                      "%(tenant)s data %(data)s Exc %(exc)s",
                       {'tenant': tenant_id, 'data': data, 'exc': exc})
             return False
 
@@ -418,7 +417,7 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
         in_gw = in_ip_dict.get('gateway')
         in_ip = in_ip_dict.get('subnet')
         if in_gw is None:
-            LOG.error(_LE("No FW service GW present"))
+            LOG.error("No FW service GW present")
             return False
         out_ip_dict = self.get_out_ip_addr(tenant_id)
         out_ip = out_ip_dict.get('subnet')
@@ -438,8 +437,8 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
             vrf_prof=self.cfg.firewall.fw_service_part_vrf_profile,
             service_node_ip=srvc_node_ip)
         if not ret:
-            LOG.error(_LE("Unable to update DCNM ext profile with static "
-                          "route"))
+            LOG.error("Unable to update DCNM ext profile with static "
+                      "route")
             return False
         return True
 
@@ -450,12 +449,12 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
         """
         router_id = self.get_router_id(tenant_id, tenant_name)
         if not router_id:
-            LOG.error(_LE("Rout ID not present for tenant"))
+            LOG.error("Rout ID not present for tenant")
             return False
         ret = self._program_dcnm_static_route(tenant_id, tenant_name)
         if not ret:
-            LOG.error(_LE("Program DCNM with static routes failed "
-                          "for router %s"), router_id)
+            LOG.error("Program DCNM with static routes failed "
+                      "for router %s", router_id)
             return False
 
         # Program router namespace to have this network to be routed
@@ -463,11 +462,11 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
         in_ip_dict = self.get_in_ip_addr(tenant_id)
         in_gw = in_ip_dict.get('gateway')
         if in_gw is None:
-            LOG.error(_LE("No FW service GW present"))
+            LOG.error("No FW service GW present")
             return False
         ret = self.os_helper.program_rtr_nwk_next_hop(router_id, in_gw, cidr)
         if not ret:
-            LOG.error(_LE("Unable to program default router next hop %s"),
+            LOG.error("Unable to program default router next hop %s",
                       router_id)
             return False
         return True
@@ -479,12 +478,12 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
         """
         router_id = self.get_router_id(tenant_id, tenant_name)
         if router_id is None:
-            LOG.error(_LE("Rout ID not present for tenant"))
+            LOG.error("Rout ID not present for tenant")
             return False
         ret = self._program_dcnm_static_route(tenant_id, tenant_name)
         if not ret:
-            LOG.error(_LE("Program DCNM with static routes failed for "
-                          "router %s"), router_id)
+            LOG.error("Program DCNM with static routes failed for "
+                      "router %s", router_id)
             return False
 
         # Program router namespace to have this network to be routed
@@ -493,7 +492,7 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
         in_gw = in_ip_dict.get('gateway')
         in_ip = in_ip_dict.get('subnet')
         if in_gw is None:
-            LOG.error(_LE("No FW service GW present"))
+            LOG.error("No FW service GW present")
             return False
         out_ip_dict = self.get_out_ip_addr(tenant_id)
         out_ip = out_ip_dict.get('subnet')
@@ -505,7 +504,7 @@ class NativeFirewall(base.BaseDriver, FP.FabricApi):
         ret = self.os_helper.remove_rtr_nwk_next_hop(router_id, in_gw,
                                                      subnet_lst, excl_list)
         if not ret:
-            LOG.error(_LE("Unable to program default router next hop %s"),
+            LOG.error("Unable to program default router next hop %s",
                       router_id)
             return False
         return True

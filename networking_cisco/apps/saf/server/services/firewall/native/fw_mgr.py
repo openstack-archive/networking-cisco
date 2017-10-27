@@ -27,8 +27,6 @@ from networking_cisco.apps.saf.server.services.firewall.native import (
 from networking_cisco.apps.saf.server.services.firewall.native.drivers import (
     dev_mgr)
 
-from networking_cisco._i18n import _LE, _LI
-
 LOG = logging.getLogger(__name__)
 
 
@@ -126,7 +124,7 @@ class FwMapAttr(object):
     def delete_rule(self, rule_id):
         """Delete the specific Rule from dictionary indexed by rule id. """
         if rule_id not in self.rules:
-            LOG.error(_LE("No Rule id present for deleting %s"), rule_id)
+            LOG.error("No Rule id present for deleting %s", rule_id)
             return
         del self.rules[rule_id]
         self.rule_cnt -= 1
@@ -144,7 +142,7 @@ class FwMapAttr(object):
     def rule_update(self, rule_id, rule):
         """Update the rule. """
         if rule_id not in self.rules:
-            LOG.error(_LE("Rule ID not present %s"), rule_id)
+            LOG.error("Rule ID not present %s", rule_id)
             return
         self.rules[rule_id].update(rule)
 
@@ -179,7 +177,7 @@ class FwMapAttr(object):
     def delete_policy(self, pol_id):
         """Deletes the policy from the local dictionary. """
         if pol_id not in self.policies:
-            LOG.error(_LE("Invalid policy %s"), pol_id)
+            LOG.error("Invalid policy %s", pol_id)
             return
         del self.policies[pol_id]
         self.policy_cnt -= 1
@@ -191,16 +189,16 @@ class FwMapAttr(object):
         more than one rule associated with it and if a driver init is done
         successfully.
         """
-        LOG.info(_LI("In fw_complete needed %(fw_created)s "
-                     "%(active_policy_id)s %(is_fw_drvr_created)s "
-                     "%(pol_present)s %(fw_type)s"),
+        LOG.info("In fw_complete needed %(fw_created)s "
+                 "%(active_policy_id)s %(is_fw_drvr_created)s "
+                 "%(pol_present)s %(fw_type)s",
                  {'fw_created': self.fw_created,
                   'active_policy_id': self.active_pol_id,
                   'is_fw_drvr_created': self.is_fw_drvr_created(),
                   'pol_present': self.active_pol_id in self.policies,
                   'fw_type': self.fw_type})
         if self.active_pol_id is not None:
-            LOG.info(_LI("In Drvr create needed %(len_policy)s %(one_rule)s"),
+            LOG.info("In Drvr create needed %(len_policy)s %(one_rule)s",
                      {'len_policy':
                       len(self.policies[self.active_pol_id]['rule_dict']),
                       'one_rule':
@@ -218,9 +216,9 @@ class FwMapAttr(object):
         more than one rule associated with it and if a driver init is NOT
         done.
         """
-        LOG.info(_LI("In Drvr create needed %(fw_created)s "
-                     "%(active_policy_id)s"
-                     " %(is_fw_drvr_created)s %(pol_present)s %(fw_type)s"),
+        LOG.info("In Drvr create needed %(fw_created)s "
+                 "%(active_policy_id)s"
+                 " %(is_fw_drvr_created)s %(pol_present)s %(fw_type)s",
                  {'fw_created': self.fw_created,
                   'active_policy_id': self.active_pol_id,
                   'is_fw_drvr_created': self.is_fw_drvr_created(),
@@ -228,7 +226,7 @@ class FwMapAttr(object):
                   'fw_type': self.fw_type})
         if self.active_pol_id is not None and (
            self.active_pol_id in self.policies):
-            LOG.info(_LI("In Drvr create needed %(len_policy)s %(one_rule)s"),
+            LOG.info("In Drvr create needed %(len_policy)s %(one_rule)s",
                      {'len_policy':
                       len(self.policies[self.active_pol_id]['rule_dict']),
                       'one_rule':
@@ -381,7 +379,7 @@ class FwMgr(dev_mgr.DeviceMgr):
                                             fw_constants.RESULT_FW_CREATE_INIT)
 
         if not ret:
-            LOG.error(_LE("Prepare Fabric failed"))
+            LOG.error("Prepare Fabric failed")
             return
         else:
             self.update_fw_db_final_result(fw_dict.get('fw_id'), (
@@ -391,10 +389,10 @@ class FwMgr(dev_mgr.DeviceMgr):
         if ret:
             self.fwid_attr[tenant_id].fw_drvr_created(True)
             self.update_fw_db_dev_status(fw_dict.get('fw_id'), 'SUCCESS')
-            LOG.info(_LI("FW device create returned success for tenant %s"),
+            LOG.info("FW device create returned success for tenant %s",
                      tenant_id)
         else:
-            LOG.error(_LE("FW device create returned failure for tenant %s"),
+            LOG.error("FW device create returned failure for tenant %s",
                       tenant_id)
 
     def _create_fw_fab_dev(self, tenant_id, drvr_name, fw_dict):
@@ -417,12 +415,12 @@ class FwMgr(dev_mgr.DeviceMgr):
                     ret = self.add_fw_db(fw_dict.get('fw_id'), fw_dict,
                                          fw_constants.RESULT_FW_CREATE_INIT)
                     if not ret:
-                        LOG.error(_LE("Adding FW DB failed for tenant %s"),
+                        LOG.error("Adding FW DB failed for tenant %s",
                                   tenant_id)
                         return
                     self._create_fw_fab_dev(tenant_id, drvr_name, fw_dict)
             except Exception as exc:
-                LOG.error(_LE("Exception raised in create fw %s"), str(exc))
+                LOG.error("Exception raised in create fw %s", str(exc))
 
     def _delete_fw_fab_dev(self, tenant_id, drvr_name, fw_dict):
         """Deletes the Firewall.
@@ -437,8 +435,8 @@ class FwMgr(dev_mgr.DeviceMgr):
             ret = self.delete_fw_device(tenant_id, fw_dict.get('fw_id'),
                                         fw_dict)
             if not ret:
-                LOG.error(_LE("Error in delete_fabric_fw device for tenant "
-                          "%s"), tenant_id)
+                LOG.error("Error in delete_fabric_fw device for tenant "
+                          "%s", tenant_id)
                 return False
             else:
                 self.fwid_attr[tenant_id].fw_drvr_created(False)
@@ -446,7 +444,7 @@ class FwMgr(dev_mgr.DeviceMgr):
         ret = self.fabric.delete_fabric_fw(tenant_id, fw_dict, is_fw_virt,
                                            fw_constants.RESULT_FW_DELETE_INIT)
         if not ret:
-            LOG.error(_LE("Error in delete_fabric_fw for tenant %s"),
+            LOG.error("Error in delete_fabric_fw for tenant %s",
                       tenant_id)
             return False
         self.update_fw_db_final_result(fw_dict.get('fw_id'), (
@@ -469,7 +467,7 @@ class FwMgr(dev_mgr.DeviceMgr):
                     fw_constants.RESULT_FW_DELETE_INIT))
                 ret = self._delete_fw_fab_dev(tenant_id, drvr_name, fw_dict)
         except Exception as exc:
-            LOG.error(_LE("Exception raised in delete fw %s"), str(exc))
+            LOG.error("Exception raised in delete fw %s", str(exc))
         return ret
 
     def _check_update_fw(self, tenant_id, drvr_name):
@@ -489,7 +487,7 @@ class FwMgr(dev_mgr.DeviceMgr):
                 fn_name = fw_func.__name__
                 fw_func(*args)
             except Exception as exc:
-                LOG.error(_LE("Exception in %(name)s %(exc)s"),
+                LOG.error("Exception in %(name)s %(exc)s",
                           {'name': fn_name, 'exc': str(exc)})
 
         return fw_handler_fn
@@ -544,7 +542,7 @@ class FwMgr(dev_mgr.DeviceMgr):
         try:
             self._fw_create(fw_name, data, cache)
         except Exception as exc:
-            LOG.error(_LE("Exception in fw_create %s"), str(exc))
+            LOG.error("Exception in fw_create %s", str(exc))
 
     @fw_handler_decorator
     def _fw_update(self, drvr_name, data):
@@ -598,7 +596,7 @@ class FwMgr(dev_mgr.DeviceMgr):
         tenant_id = self.tenant_db.get_fw_tenant(fw_id)
 
         if tenant_id not in self.fwid_attr:
-            LOG.error(_LE("Invalid tenant id for FW delete %s"), tenant_id)
+            LOG.error("Invalid tenant id for FW delete %s", tenant_id)
             return
 
         tenant_obj = self.fwid_attr[tenant_id]
@@ -664,7 +662,7 @@ class FwMgr(dev_mgr.DeviceMgr):
         tenant_id = self.tenant_db.get_rule_tenant(rule_id)
 
         if tenant_id not in self.fwid_attr:
-            LOG.error(_LE("Invalid tenant id for FW delete %s"), tenant_id)
+            LOG.error("Invalid tenant id for FW delete %s", tenant_id)
             return
         tenant_obj = self.fwid_attr[tenant_id]
         # Guess actual FW/policy need not be deleted if this is the active
@@ -691,7 +689,7 @@ class FwMgr(dev_mgr.DeviceMgr):
         rule_id = fw_rule.get('id')
         if tenant_id not in self.fwid_attr or not (
            self.fwid_attr[tenant_id].is_rule_present(rule_id)):
-            LOG.error(_LE("Incorrect update info for tenant %s"), tenant_id)
+            LOG.error("Incorrect update info for tenant %s", tenant_id)
             return
         self.fwid_attr[tenant_id].rule_update(rule_id, rule)
         self._check_update_fw(tenant_id, drvr_name)
@@ -708,7 +706,7 @@ class FwMgr(dev_mgr.DeviceMgr):
         tenant_id = self.tenant_db.get_policy_tenant(policy_id)
 
         if tenant_id not in self.fwid_attr:
-            LOG.error(_LE("Invalid tenant id for FW delete %s"), tenant_id)
+            LOG.error("Invalid tenant id for FW delete %s", tenant_id)
             return
         tenant_obj = self.fwid_attr[tenant_id]
         # Guess actual FW need not be deleted since if this is the active
@@ -734,7 +732,7 @@ class FwMgr(dev_mgr.DeviceMgr):
         policy = {}
         fw_policy = data.get('firewall_policy')
         tenant_id = fw_policy.get('tenant_id')
-        LOG.info(_LI("Creating policy for tenant %s"), tenant_id)
+        LOG.info("Creating policy for tenant %s", tenant_id)
         policy_id = fw_policy.get('id')
         policy_name = fw_policy.get('name')
         pol_rule_dict = fw_policy.get('firewall_rules')
@@ -791,7 +789,7 @@ class FwMgr(dev_mgr.DeviceMgr):
         device since it will be handled by retry module.
         """
         fw_dict = self.get_all_fw_db()
-        LOG.info(_LI("Populating FW Mgr Local Cache"))
+        LOG.info("Populating FW Mgr Local Cache")
         for fw_id in fw_dict:
             fw_data = fw_dict.get(fw_id)
             tenant_id = fw_data.get('tenant_id')
@@ -801,7 +799,7 @@ class FwMgr(dev_mgr.DeviceMgr):
                 fw_evt_data = self.convert_fwdb_event_msg(rule_dict.get(rule),
                                                           tenant_id, rule,
                                                           policy_id)
-                LOG.info(_LI("Populating Rules for tenant %s"), tenant_id)
+                LOG.info("Populating Rules for tenant %s", tenant_id)
                 self.fw_rule_create(fw_evt_data, cache=True)
             fw_os_data = self.os_helper.get_fw(fw_id)
             # If enabler is stopped and FW is deleted, then the above routine
@@ -809,7 +807,7 @@ class FwMgr(dev_mgr.DeviceMgr):
             if fw_os_data is None:
                 fw_os_data = self.convert_fwdb(tenant_id, fw_data.get('name'),
                                                policy_id, fw_id)
-            LOG.info(_LI("Populating FW for tenant %s"), tenant_id)
+            LOG.info("Populating FW for tenant %s", tenant_id)
             self.fw_create(fw_os_data, cache=True)
             if fw_data.get('device_status') == 'SUCCESS':
                 self.fwid_attr[tenant_id].fw_drvr_created(True)
@@ -831,7 +829,7 @@ class FwMgr(dev_mgr.DeviceMgr):
             ret = self.fabric.retry_failure(tenant_id, name, fw_dict,
                                             is_fw_virt, result)
             if not ret:
-                LOG.error(_LE("Retry failure returned fail for tenant %s"),
+                LOG.error("Retry failure returned fail for tenant %s",
                           tenant_id)
                 return
             else:
@@ -846,8 +844,8 @@ class FwMgr(dev_mgr.DeviceMgr):
                     self.fwid_attr[tenant_id].fw_drvr_created(True)
                     self.update_fw_db_dev_status(fw_dict.get('fw_id'),
                                                  'SUCCESS')
-                    LOG.info(_LI("Retry failue return success for create"
-                             " tenant %s"), tenant_id)
+                    LOG.info("Retry failue return success for create"
+                             " tenant %s", tenant_id)
 
     def retry_failure_fab_dev_delete(self, tenant_id, fw_data, fw_dict):
         """Retry the failure cases for delete.
@@ -870,15 +868,15 @@ class FwMgr(dev_mgr.DeviceMgr):
                     self.update_fw_db_dev_status(fw_dict.get('fw_id'),
                                                  '')
                     self.fwid_attr[tenant_id].fw_drvr_created(False)
-                    LOG.info(_LI("Retry failue dev return success for delete"
-                             " tenant %s"), tenant_id)
+                    LOG.info("Retry failue dev return success for delete"
+                             " tenant %s", tenant_id)
                 else:
                     return
             name = dfa_dbm.DfaDBMixin.get_project_name(self, tenant_id)
             ret = self.fabric.retry_failure(tenant_id, name, fw_dict,
                                             is_fw_virt, result)
             if not ret:
-                LOG.error(_LE("Retry failure returned fail for tenant %s"),
+                LOG.error("Retry failure returned fail for tenant %s",
                           tenant_id)
                 return
             result = fw_constants.RESULT_FW_DELETE_DONE
@@ -900,10 +898,10 @@ class FwMgr(dev_mgr.DeviceMgr):
                                                               fw_data,
                                                               fw_dict)
                         else:
-                            LOG.error(_LE("FW data not found for tenant %s"),
+                            LOG.error("FW data not found for tenant %s",
                                       tenant_id)
             except Exception as exc:
-                LOG.error(_LE("Exception in retry failure create %s"),
+                LOG.error("Exception in retry failure create %s",
                           str(exc))
 
     def fill_fw_dict_from_db(self, fw_data):
@@ -928,7 +926,7 @@ class FwMgr(dev_mgr.DeviceMgr):
                     # For both create and delete case
                     fw_data = self.get_fw_by_tenant_id(tenant_id)
                     if fw_data is None:
-                        LOG.info(_LI("No FW for tenant %s"), tenant_id)
+                        LOG.info("No FW for tenant %s", tenant_id)
                         continue
                     result = fw_data.get('result').split('(')[0]
                     if result == fw_constants.RESULT_FW_DELETE_INIT:
@@ -941,7 +939,7 @@ class FwMgr(dev_mgr.DeviceMgr):
                         self.retry_failure_fab_dev_delete(tenant_id, fw_data,
                                                           fw_dict)
             except Exception as exc:
-                LOG.error(_LE("Exception in retry failure delete %s"),
+                LOG.error("Exception in retry failure delete %s",
                           str(exc))
 
     def fw_retry_failures(self):
@@ -952,4 +950,4 @@ class FwMgr(dev_mgr.DeviceMgr):
             self.fw_retry_failures_create()
             self.fw_retry_failures_delete()
         except Exception as exc:
-            LOG.error(_LE("Exception in retry failures %s"), str(exc))
+            LOG.error("Exception in retry failures %s", str(exc))

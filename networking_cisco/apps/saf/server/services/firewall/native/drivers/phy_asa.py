@@ -22,8 +22,6 @@ from networking_cisco.apps.saf.server.services.firewall.native.drivers import (
 from networking_cisco.apps.saf.server.services.firewall.native.drivers import (
     base)
 
-from networking_cisco._i18n import _LE, _LI
-
 LOG = logging.getLogger(__name__)
 
 
@@ -32,7 +30,7 @@ class PhyAsa(base.BaseDriver, FP.FabricApi):
     """Physical ASA Driver. """
 
     def __init__(self):
-        LOG.info(_LI("Initializing physical ASA"))
+        LOG.info("Initializing physical ASA")
         super(PhyAsa, self).__init__()
 
     def initialize(self, cfg_dict):
@@ -41,23 +39,23 @@ class PhyAsa(base.BaseDriver, FP.FabricApi):
         self.pwd = cfg_dict.get('pwd').strip()
         self.interface_in = cfg_dict.get('interface_in').strip()
         self.interface_out = cfg_dict.get('interface_out').strip()
-        LOG.info(_LI("ASA with mgmt %s getting initialized"),
+        LOG.info("ASA with mgmt %s getting initialized",
                  self.mgmt_ip_addr)
         self.asa5585 = asa.Asa5585(self.mgmt_ip_addr, self.user, self.pwd)
 
     def populate_event_que(self, que_obj):
-        LOG.info(_LI("Populate Event for PhyAsa"))
+        LOG.info("Populate Event for PhyAsa")
 
     def populate_dcnm_obj(self, dcnm_obj):
-        LOG.info(_LI("Populate Event for DCNM obj"))
+        LOG.info("Populate Event for DCNM obj")
 
     def network_create_notif(self, tenant_id, tenant_name, cidr):
         """Network Create Notification. """
-        LOG.info(_LI("Nwk Create Notif PhyAsa"))
+        LOG.info("Nwk Create Notif PhyAsa")
 
     def network_delete_notif(self, tenant_id, tenant_name, network_id):
         """Network Delete Notification. """
-        LOG.info(_LI("Nwk Delete Notif PhyAsa"))
+        LOG.info("Nwk Delete Notif PhyAsa")
 
     def is_device_virtual(self):
         return False
@@ -69,7 +67,7 @@ class PhyAsa(base.BaseDriver, FP.FabricApi):
         return self.asa5585.get_quota()
 
     def create_fw(self, tenant_id, data):
-        LOG.info(_LI("In creating phy ASA FW data is %s"), data)
+        LOG.info("In creating phy ASA FW data is %s", data)
         tenant_name = data.get('tenant_name')
         in_ip_dict = self.get_in_ip_addr(tenant_id)
         in_gw = in_ip_dict.get('gateway')
@@ -92,19 +90,19 @@ class PhyAsa(base.BaseDriver, FP.FabricApi):
                          'intf_out': self.interface_out}}
         status = self.asa5585.setup(**kw)
         if status is False:
-            LOG.error(_LE("Physical FW instance creation failure for "
-                      "tenant %s"), tenant_name)
+            LOG.error("Physical FW instance creation failure for "
+                      "tenant %s", tenant_name)
             return False
 
         status = self.asa5585.apply_policy(data)
         if status is False:
-            LOG.error(_LE("Applying FW policy failure for tenant %s"),
+            LOG.error("Applying FW policy failure for tenant %s",
                       tenant_name)
 
         return status
 
     def delete_fw(self, tenant_id, data):
-        LOG.info(_LI("In Delete fw data is %s"), data)
+        LOG.info("In Delete fw data is %s", data)
         tenant_name = data.get('tenant_name')
         in_serv_node = self.get_in_srvc_node_ip_addr(tenant_id)
         out_serv_node = self.get_out_srvc_node_ip_addr(tenant_id)
@@ -121,5 +119,5 @@ class PhyAsa(base.BaseDriver, FP.FabricApi):
         return status
 
     def modify_fw(self, tenant_id, data):
-        LOG.info(_LI("In Modify fw data is %s"), data)
+        LOG.info("In Modify fw data is %s", data)
         return self.asa5585.apply_policy(data)

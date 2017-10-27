@@ -18,8 +18,6 @@
 from six.moves import queue
 import time
 
-from networking_cisco._i18n import _LE, _LI
-
 from networking_cisco.apps.saf.common import dfa_logger as logging
 from networking_cisco.apps.saf.common import dfa_sys_lib as dsl
 from networking_cisco.apps.saf.common import utils
@@ -85,7 +83,7 @@ class IptablesDriver(object):
         for o in cmdo.split('\n'):
             if mac in o.lower():
                 chain = o.split()[1]
-                LOG.info(_LI('Find %(chain)s for %(mac)s.'),
+                LOG.info('Find %(chain)s for %(mac)s.',
                          {'chain': chain, 'mac': mac})
                 return chain
 
@@ -97,7 +95,7 @@ class IptablesDriver(object):
         for o in cmdo.split('\n'):
             if mac in o.lower():
                 rule_no = o.split()[0]
-                LOG.info(_LI('Found rule %(rule)s for %(mac)s.'),
+                LOG.info('Found rule %(rule)s for %(mac)s.',
                          {'rule': rule_no, 'mac': mac})
                 return rule_no
 
@@ -107,7 +105,7 @@ class IptablesDriver(object):
         rule_no = self._find_rule_no(mac)
         chain = self._find_chain_name(mac)
         if not rule_no or not chain:
-            LOG.error(_LE('Failed to update ip rule for %(ip)s %(mac)s'),
+            LOG.error('Failed to update ip rule for %(ip)s %(mac)s',
                       {'ip': ip, 'mac': mac})
             return
 
@@ -205,4 +203,4 @@ class IptablesDriver(object):
                 self.update_iptables()
                 time.sleep(1)
             except Exception:
-                LOG.exception(_LE('ERROR: failed to process queue'))
+                LOG.exception('ERROR: failed to process queue')

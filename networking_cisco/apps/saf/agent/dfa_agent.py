@@ -24,8 +24,6 @@ import eventlet
 eventlet.monkey_patch()
 from oslo_serialization import jsonutils
 
-from networking_cisco._i18n import _LE, _LI
-
 from networking_cisco.apps.saf.agent import iptables_driver as iptd
 from networking_cisco.apps.saf.agent.vdp import dfa_vdp_mgr as vdpm
 from networking_cisco.apps.saf.common import config
@@ -154,7 +152,7 @@ class DfaAgent(object):
             LOG.debug("request_uplink_info: resp = %s", resp)
             self._need_uplink_info = resp
         except rpc.MessagingTimeout:
-            LOG.error(_LE("RPC timeout: Request for uplink info failed."))
+            LOG.error("RPC timeout: Request for uplink info failed.")
 
     def is_uplink_received(self):
         """Finds if uplink information is received and processed. """
@@ -207,7 +205,7 @@ def save_my_pid(cfg):
             if not os.path.exists(pid_path):
                 os.makedirs(pid_path)
         except OSError:
-            LOG.error(_LE('Fail to create %s'), pid_path)
+            LOG.error('Fail to create %s', pid_path)
             return
 
         pid_file_path = os.path.join(pid_path, pid_file)
@@ -251,15 +249,15 @@ def main():
 
             for trd in dfa_agent.agent_task_list:
                 if not trd.am_i_active:
-                    LOG.info(_LI("Thread %s is not active."), trd.name)
+                    LOG.info("Thread %s is not active.", trd.name)
 
             end = time.time()
             delta = end - start
             eventlet.sleep(constants.HB_INTERVAL - delta)
     except Exception as e:
         dfa_agent.stop_rpc()
-        LOG.exception(_LE('Exception %s is received'), str(e))
-        LOG.error(_LE('Exception %s is received'), str(e))
+        LOG.exception('Exception %s is received', str(e))
+        LOG.error('Exception %s is received', str(e))
         sys.exit("ERROR: %s" % str(e))
 
 if __name__ == '__main__':

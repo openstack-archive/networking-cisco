@@ -22,7 +22,7 @@ import shlex
 import signal
 import six
 
-from networking_cisco._i18n import _, _LE, _LI
+from networking_cisco._i18n import _
 
 from networking_cisco.apps.saf.common import constants as q_const
 from networking_cisco.apps.saf.common import dfa_exceptions as dfae
@@ -43,7 +43,7 @@ def get_bridges(root_helper):
     try:
         return execute(args, root_helper=root_helper).strip().split("\n")
     except Exception as exc:
-        LOG.error(_LE("Unable to retrieve bridges. Exception: %s"), exc)
+        LOG.error("Unable to retrieve bridges. Exception: %s", exc)
 
 
 def is_patch(root_helper, port):
@@ -52,7 +52,7 @@ def is_patch(root_helper, port):
     try:
         output = execute(args, root_helper=root_helper).strip().split("\n")
     except Exception as e:
-        LOG.error(_LE("Unable to retrieve Interface type %s"), e)
+        LOG.error("Unable to retrieve Interface type %s", e)
         return False
     if 'patch' in output:
         return True
@@ -67,7 +67,7 @@ def get_peer(root_helper, port):
         output = execute(args, root_helper=root_helper).strip().split("\n")
         output1 = output[0].split("=")[1].strip('}')
     except Exception as e:
-        LOG.error(_LE("Unable to retrieve Peer"), e)
+        LOG.error("Unable to retrieve Peer", e)
         return None
     return output1
 
@@ -79,8 +79,8 @@ def get_bridge_name_for_port_name_glob(root_helper, port_name):
         output = execute(args, root_helper=root_helper)
         return output
     except RuntimeError as exc:
-        LOG.error(_LE("Error Running vsctl for getting bridge name for "
-                      "portname"), exc)
+        LOG.error("Error Running vsctl for getting bridge name for "
+                  "portname", exc)
         return False
 
 
@@ -99,7 +99,7 @@ def delete_port_glob(root_helper, br_ex, port_name):
                 "--if-exists", "del-port", br_ex, port_name]
         execute(args, root_helper=root_helper)
     except RuntimeError as e:
-        LOG.error(_LE("Error Running vsctl for port delete"), e)
+        LOG.error("Error Running vsctl for port delete", e)
 
 
 class BaseOVS(object):
@@ -113,8 +113,8 @@ class BaseOVS(object):
         try:
             return execute(full_args, root_helper=self.root_helper)
         except Exception as e:
-            LOG.error(_LE("Unable to execute %(cmd)s. "
-                          "Exception: %(exception)s"),
+            LOG.error("Unable to execute %(cmd)s. "
+                      "Exception: %(exception)s",
                       {'cmd': full_args, 'exception': e})
 
     def add_bridge(self, bridge_name):
@@ -135,7 +135,7 @@ class BaseOVS(object):
         try:
             return self.run_vsctl(['port-to-br', port_name], check_error=True)
         except RuntimeError as e:
-            LOG.error(_LE("Error Running vsctl"), e)
+            LOG.error("Error Running vsctl", e)
             return False
 
     def port_exists(self, port_name):
@@ -181,8 +181,8 @@ class OVSBridge(BaseOVS):
             return execute(full_args, root_helper=self.root_helper,
                            process_input=process_input)
         except Exception as e:
-            LOG.error(_LE("Unable to execute %(cmd)s. "
-                          "Exception: %(exception)s"),
+            LOG.error("Unable to execute %(cmd)s. "
+                      "Exception: %(exception)s",
                       {'cmd': full_args, 'exception': e})
 
     def remove_all_flows(self):
@@ -215,7 +215,7 @@ class OVSBridge(BaseOVS):
                                      ext_str])
             return output.split()[2].strip('\"')
         except Exception:
-            LOG.error(_LE("Unable to retrieve ofport name on %(iface-id)s"),
+            LOG.error("Unable to retrieve ofport name on %(iface-id)s",
                       {'iface-id': iface_uuid})
             return None
 
@@ -278,7 +278,7 @@ def create_process(cmd, root_helper=None, addl_env=None, log_output=True):
         cmd = shlex.split(root_helper) + cmd
     cmd = map(str, cmd)
 
-    log_output and LOG.info(_LI("Running command: %s"), cmd)
+    log_output and LOG.info("Running command: %s", cmd)
     env = os.environ.copy()
     if addl_env:
         env.update(addl_env)
@@ -299,9 +299,9 @@ def execute(cmd, root_helper=None, process_input=None, addl_env=None,
                             obj.communicate(process_input) or
                             obj.communicate())
         obj.stdin.close()
-        m = _LE("\nCommand: %(cmd)s\nExit code: %(code)s\nStdout: %(stdout)r\n"
-                "Stderr: %(stderr)r") % {'cmd': cmd, 'code': obj.returncode,
-                                         'stdout': _stdout, 'stderr': _stderr}
+        m = ("\nCommand: %(cmd)s\nExit code: %(code)s\nStdout: %(stdout)r\n"
+             "Stderr: %(stderr)r") % {'cmd': cmd, 'code': obj.returncode,
+                                      'stdout': _stdout, 'stderr': _stderr}
 
         if obj.returncode and log_fail_as_error:
             LOG.error(m)
@@ -395,8 +395,8 @@ def is_intf_up(intf):
     intf_path = '/'.join(('/sys/class/net', intf))
     intf_exist = os.path.exists(intf_path)
     if not intf_exist:
-        LOG.error(_LE("Unable to get interface %(intf)s, Interface dir "
-                      "%(dir)s does not exist"),
+        LOG.error("Unable to get interface %(intf)s, Interface dir "
+                  "%(dir)s does not exist",
                   {'intf': intf, 'dir': intf_path})
         return False
     try:
@@ -406,7 +406,7 @@ def is_intf_up(intf):
             if oper_state == 'up':
                 return True
     except Exception as e:
-        LOG.error(_LE("Exception in reading %s"), str(e))
+        LOG.error("Exception in reading %s", str(e))
     return False
 
 
@@ -416,8 +416,8 @@ def get_all_run_phy_intf():
     base_dir = '/sys/class/net'
     dir_exist = os.path.exists(base_dir)
     if not dir_exist:
-        LOG.error(_LE("Unable to get interface list :Base dir %s does not "
-                      "exist"), base_dir)
+        LOG.error("Unable to get interface list :Base dir %s does not "
+                  "exist", base_dir)
         return intf_list
     dir_cont = os.listdir(base_dir)
     for subdir in dir_cont:
@@ -428,6 +428,6 @@ def get_all_run_phy_intf():
             if oper_state is True:
                     intf_list.append(subdir)
         else:
-            LOG.info(_LI("Dev dir %s does not exist, not physical intf"),
+            LOG.info("Dev dir %s does not exist, not physical intf",
                      dev_dir)
     return intf_list
