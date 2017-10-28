@@ -1,8 +1,8 @@
 - job:
     name: networking-cisco-tox-master
     parent: legacy-base
-    run: playbooks/networking-cisco-tox-master/run
-    post-run: playbooks/networking-cisco-tox/post
+    run: playbooks/networking-cisco-tox-master/run.yaml
+    post-run: playbooks/networking-cisco-tox/post.yaml
     timeout: 2400
     required-projects:
       - openstack/requirements
@@ -12,8 +12,8 @@
 - job:
     name: networking-cisco-tox-newton
     parent: legacy-base
-    run: playbooks/networking-cisco-tox-newton/run
-    post-run: playbooks/networking-cisco-tox/post
+    run: playbooks/networking-cisco-tox-newton/run.yaml
+    post-run: playbooks/networking-cisco-tox/post.yaml
     timeout: 2400
     override-branch: stable/newton
     required-projects:
@@ -24,8 +24,8 @@
 - job:
     name: networking-cisco-tox-ocata
     parent: legacy-base
-    run: playbooks/networking-cisco-tox-ocata/run
-    post-run: playbooks/networking-cisco-tox/post
+    run: playbooks/networking-cisco-tox-ocata/run.yaml
+    post-run: playbooks/networking-cisco-tox/post.yaml
     timeout: 2400
     override-branch: stable/ocata
     required-projects:
@@ -36,8 +36,8 @@
 - job:
     name: networking-cisco-tox-pike
     parent: legacy-base
-    run: playbooks/networking-cisco-tox-pike/run
-    post-run: playbooks/networking-cisco-tox/post
+    run: playbooks/networking-cisco-tox-pike/run.yaml
+    post-run: playbooks/networking-cisco-tox/post.yaml
     timeout: 2400
     override-branch: stable/pike
     required-projects:
