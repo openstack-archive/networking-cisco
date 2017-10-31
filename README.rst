@@ -57,7 +57,7 @@ from master. We have a goal to maintain compatibility with multiple versions of
 OpenStack for as long as possible starting from version 4.0.0 which is
 compatible with both Mitaka and Newton OpenStack releases.
 
-* 5.X.X Mitaka, Newton, Ocata onwards
-* 4.X.X Mitaka, Newton, Ocata onwards
+* 5.X.X Mitaka, Newton, Ocata
+* 4.X.X Mitaka, Newton, Ocata
 * 3.X.X Mitaka
 * 2.X.X Liberty
