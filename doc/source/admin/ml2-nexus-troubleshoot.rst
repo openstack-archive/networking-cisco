@@ -111,7 +111,7 @@ Message
     2. NexusConnectFailed: <snip> Create Failed: Port event can not be
        processed at this time.
 
-Corrective action
+Corrective Action
 ^^^^^^^^^^^^^^^^^
 Refer to `corrective actions` defined in :ref:`connect_loss` for steps to
 narrow down why switch(s) are not active.
@@ -164,7 +164,7 @@ Message
        host={switch-ipaddr}, port=80): Read timed out. (
        read timeout=30)
 
-Corrective action
+Corrective Action
 ^^^^^^^^^^^^^^^^^
 #. Check the section :ref:`connect_loss` for the most likely lower layer
    REST API error.  Message 2 above is an example of the output you
@@ -206,7 +206,7 @@ Message
     2. NexusConfigFailed: <SNIP>, Reason: HTTPConnectionPool(
         host={switch-ipaddr}, port=80): Read timed out. (read timeout=30)
 
-Corrective action
+Corrective Action
 ^^^^^^^^^^^^^^^^^
 
 * Check if the Nexus switch is accessible from the Openstack
@@ -262,7 +262,7 @@ Message
     3. Restore of Nexus switch ip {switch_ip} is complete
     4. No port entries found for switch ip {switch_ip} during replay
 
-Corrective action
+Corrective Action
 ^^^^^^^^^^^^^^^^^
 1. To monitor the state of the target switch from the perspective of
    the Nexus Driver, database commands can be used.  Refer to section
@@ -291,7 +291,7 @@ Message
     4. Error encountered restoring vlans for switch {switch_ip}
     5. Error encountered restoring vxlans for switch {switch_ip}
 
-Corrective action
+Corrective Action
 ^^^^^^^^^^^^^^^^^
 This may be a temporary glitch and should recover on next replay retry.
 If the problem persists, contact Tech Support for assistance.
@@ -310,7 +310,7 @@ Message
 There's no specific error message for this other than some shown in
 :ref:`connect_loss` section.
 
-Corrective action
+Corrective Action
 ^^^^^^^^^^^^^^^^^
 It's likely due to connection loss or never having a connection with the
 switch.  See the :ref:`connect_loss` for more triage hints
@@ -332,7 +332,7 @@ Message
 
     No switch bindings in the port database
 
-Corrective action
+Corrective Action
 ^^^^^^^^^^^^^^^^^
 #. Check Sample configurations throughout this guide on configuring switch
    details.  Specifically look for the section header `ml2_mech_cisco_nexus`.
@@ -358,7 +358,7 @@ Message
     1. Skip switch {switch_ip}.  Not configured in ini file
     2. Host {switch_ip} not defined in switch configuration section.
 
-Corrective action
+Corrective Action
 ^^^^^^^^^^^^^^^^^
 Check Sample configurations throughout this guide on configuring switch
 details.  Specifically look for the section header `ml2_mech_cisco_nexus`.
@@ -389,7 +389,7 @@ Message
         "text": "configured object ((Dn0)) not found
         Dn0=sys\/epId-1\/nws\/vni-70037, "}
 
-Corrective action
+Corrective Action
 ^^^^^^^^^^^^^^^^^
 Some general VXLAN configuration must be in place prior to Nexus Driver
 driver attempting to configure vni and mcast-group configuration.  Refer
@@ -412,7 +412,7 @@ Message
 
     Error loading Nexus Config driver {cfg-chosen}
 
-Corrective action
+Corrective Action
 ^^^^^^^^^^^^^^^^^
 The message above reports what was found configured for this parameter
 in the message field `cfg-chosen`.  Check it against the valid choices
@@ -440,7 +440,7 @@ Message
     3. Invalid Port-channel range value {bad-one} received in vpc-pool
        config {full-config} for switch {switchip}. Ignoring entire config.
 
-Corrective action
+Corrective Action
 ^^^^^^^^^^^^^^^^^
 In each message, the ``{bad-one}`` field is the portion of the
 ``{full-config}`` field which is failing the parsing.  The ``{full-config}``
@@ -477,7 +477,7 @@ Message
        interface set not consistent: first interface %(first)s,
        second interface %(second)s. Check Nexus Config and make consistent.
 
-Corrective action
+Corrective Action
 ^^^^^^^^^^^^^^^^^
 The message fields ``{first}`` and ``{second}`` each contain the host,
 interface and the channel-group learned.  The ``{first}`` is the basis
@@ -517,7 +517,7 @@ Message
        interface set not consistent: first interface {first},
        {second} interface %(second)s.  Check Nexus Config and make consistent.
 
-Corrective action
+Corrective Action
 ^^^^^^^^^^^^^^^^^
 1. The first exception ``NexusVPCAllocFailure`` will be raised if the
    ``vpc-pool`` is not configured or the pool of one of the participating
@@ -546,9 +546,43 @@ Message
 
     switch_info can't be decoded {reason}
 
-Corrective action
+Corrective Action
 ^^^^^^^^^^^^^^^^^
 This error should not occur and suggest looking for earlier errors in
 the log file.  If unable to triage further from log messages, contact
 Tech Support for assistance.
 
+Trunk Configuration Conflict on Nexus Switch
+--------------------------------------------
+Description
+^^^^^^^^^^^
+During interface initialization, the Nexus driver collects trunking information
+for interfaces from the Nexus switch. This occurs at start-up for statically
+configured ports and on receipt of a port event for baremetal ports.  The
+driver looks for trunking vlans configured using
+:command:`switchport trunk allowed vlan <vlanid(s)>` and also checks if the
+mode type in :command:`switchport mode <type>` is ``trunk``.
+
+The Nexus driver logs a warning if there are trunking vlans configured but
+the trunk mode is not ``trunk``.   The driver does not try to resolve the
+conflict since the correction can be done in a number of ways which requires
+attention from the administrator.  The driver does continue to add and
+remove vlans to this interface.  However, since the trunk mode is missing,
+the data traffic does not pass on this interface.
+
+Message
+^^^^^^^
+Found trunk vlans but switchport mode is not trunk on Nexus switch {switch}
+interface {interface}. Recheck config.
+
+Corrective Action
+^^^^^^^^^^^^^^^^^
+Look at the interface on the Nexus Switch identified in the message and check
+for the following possible errors.
+
+* For VM deployments, ensure the OpenStack Nexus driver is configured with the
+  correct interface for the intended compute node.
+* Ensure :command:`switchport mode trunk` is configured on the interface.
+* Ensure only vlans required as provider vlans or within your tenant vlan
+  range are configured as ``allowed`` on the interface, and any additional
+  vlans are removed.

@@ -81,7 +81,7 @@ class CiscoNexusCfgMonitor(object):
     def _configure_nexus_type(self, switch_ip, nexus_type):
         if nexus_type not in (const.NEXUS_3K, const.NEXUS_5K,
             const.NEXUS_7K, const.NEXUS_9K):
-            LOG.error("Received invalid Nexus type %(nexus_type)d "
+            LOG.debug("Received invalid Nexus type %(nexus_type)d "
                 "for switch ip %(switch_ip)s",
                 {'nexus_type': nexus_type, 'switch_ip': switch_ip})
             return
@@ -1574,19 +1574,19 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 return current_host_id != original_host_id
 
     def _log_missing_segment(self):
-        LOG.warning("Nexus: Segment is None, Event not processed.")
+        LOG.debug("Nexus: Segment is None, Event not processed.")
 
     def _is_valid_segment(self, segment):
         valid_segment = True
         if segment:
             if (segment[api.NETWORK_TYPE] != p_const.TYPE_VLAN or
                 not self._valid_network_segment(segment)):
-                LOG.warning("Nexus: Segment is an invalid type or not "
-                            "supported by this driver. Network type = "
-                            "%(network_type)s Physical network = "
-                            "%(phy_network)s. Event not processed.",
-                            {'network_type': segment[api.NETWORK_TYPE],
-                             'phy_network': segment[api.PHYSICAL_NETWORK]})
+                LOG.debug("Nexus: Segment is an invalid type or not "
+                          "supported by this driver. Network type = "
+                          "%(network_type)s Physical network = "
+                          "%(phy_network)s. Event not processed.",
+                          {'network_type': segment[api.NETWORK_TYPE],
+                           'phy_network': segment[api.PHYSICAL_NETWORK]})
                 valid_segment = False
         else:
             self._log_missing_segment()
