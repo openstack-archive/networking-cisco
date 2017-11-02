@@ -20,7 +20,7 @@ for VLAN and VXLAN configuration, refer to
 
 .. _nexus_vlan_startup:
 
-Configuring Neutron directly for Nexus
+Configuring neutron directly for Nexus
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 VLAN Configuration
 ------------------
@@ -33,7 +33,7 @@ do the following:
 
    .. note::
       Cisco specific ML2 configuration may be isolated in the file
-      ``ml2_conf_cisco.ini`` file while keeping Neutron specific
+      ``ml2_conf_cisco.ini`` file while keeping neutron specific
       configuration parameters in file ``ml2_conf.ini``.
 
 #. Add the Nexus switch information to the configuration file. Multiple switches
@@ -292,7 +292,7 @@ following configuration is required.
 .. end
 
 
-Configuring Neutron via OpenStack on OpenStack (TripleO) for Nexus
+Configuring neutron via OpenStack on OpenStack (TripleO) for Nexus
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 VLAN Configuration
@@ -306,8 +306,8 @@ so the MAC address of the server must be used in place of the server name.
 Descriptions of the parameters can be found at
 `Tripleo Nexus Ucsm Parm file <https://github.com/openstack/tripleo-heat-templates/tree/master/puppet/extraconfig/all_nodes/neutron-ml2-cisco-nexus-ucsm.j2.yaml>`_.
 In this file, you can see how the parameters below are mapped to neutron
-variables.  With these neutron variable names, more details can be
-found in :doc:`Nexus Configuration Reference </configuration/ml2-nexus>`.
+variables.  More details on these neutron variable names can be found in
+:doc:`Nexus Configuration Reference </configuration/ml2-nexus>`.
 
 .. code-block:: yaml
 
@@ -483,7 +483,7 @@ details on this setting.
 
 Provider Network Limited Operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The Openstack/network administrator may want to control how the Openstack
+The OpenStack/network administrator may want to control how the OpenStack
 create, update and delete port events program the Nexus switch for provider
 networks. Two configuration variables are available to address limiting the
 actions taken for provider networks during port events. The variables are
@@ -503,7 +503,7 @@ defined under the ``[ml2_cisco]`` section header.
 
 For more information on provider networks, refer to the
 `Provider Networks <https://docs.openstack.org/ocata/networking-guide/intro-os-networking.html#provider-networks>`_
-Openstack documentation.
+OpenStack documentation.
 
 Neutron Trunk Support
 ~~~~~~~~~~~~~~~~~~~~~
@@ -540,8 +540,8 @@ must include the ``trunk`` plugin.
 
 For more configuration and usage information on the neutron trunk feature refer
 to the `Neutron/TrunkPort <https://wiki.openstack.org/wiki/Neutron/TrunkPort>`_
-and Neutron `Trunking <https://docs.openstack.org/ocata/networking-guide/config-trunking.html>`_
-Openstack documentation.
+and neutron `Trunking <https://docs.openstack.org/ocata/networking-guide/config-trunking.html>`_
+OpenStack documentation.
 
 
 Troubleshooting

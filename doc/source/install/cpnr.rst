@@ -12,7 +12,7 @@ Please refer to PNR installation guide
 (http://www.cisco.com/c/en/us/support/cloud-systems-management/prime-network-registrar/tsd-products-support-series-home.html)
 for how to install and bring up the PNR.
 
-The Neutron DHCP agent in the OpenStack environment needs to be setup
+The neutron DHCP agent in the OpenStack environment needs to be setup
 to communicate with the PNR DHCP server and with the PNR DNS server.
 The PNR DHCP server performs leasing operations and PNR DNS server
 resolves DNS queries, these two servers replace dnsmasq.

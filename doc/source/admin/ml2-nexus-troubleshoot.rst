@@ -9,8 +9,8 @@ you find a Nexus driver error in the log file, you can search this guide
 for snippets from the log message.
 
 All Nexus Mechanism Driver log messages appear in the same log file as
-Neutron.  To isolate Nexus log messages from other Neutron log entries,
-grep on 'nexus'.  The location of Openstack log messages vary according
+neutron.  To isolate Nexus log messages from other neutron log entries,
+grep on 'nexus'.  The location of OpenStack log messages vary according
 to each install implementation.
 
 At times, the problems can not be resolved by the administrator and
@@ -21,9 +21,9 @@ Tech Support so they can better assist you.
 * If an installer is being used for deployment, identify what installer is
   being used and provide a copy of its log files.
 
-* Provide compressed Openstack log files::
+* Provide compressed OpenStack log files::
 
-      tar -xvfz openstack-log-files.tar.gz {Openstack log directory}
+      tar -xvfz openstack-log-files.tar.gz {OpenStack log directory}
 
 * Provide a copy of the current configuration of all participating
   Nexus Switches in your network. This can be done with the Nexus command::
@@ -209,7 +209,7 @@ Message
 Corrective Action
 ^^^^^^^^^^^^^^^^^
 
-* Check if the Nexus switch is accessible from the Openstack
+* Check if the Nexus switch is accessible from the OpenStack
   Controller node by issuing a ping to the Nexus Switch ip address.
 * If the switch is accessible, check the Nexus port binding database as
   described in section :ref:`db_show` and look for
@@ -230,7 +230,7 @@ Corrective Action
   failure has occurred.
 
   #. Is Nexus Switch management interface down?
-  #. Is there a failure in intermediary device between the Openstack
+  #. Is there a failure in intermediary device between the OpenStack
      Controller and Nexus Switch?
   #. Can the next hop device be reached?
 
@@ -401,7 +401,7 @@ Invalid ``nexus_driver`` Config Error
 Description
 ^^^^^^^^^^^
 If the ``nexus_driver`` configuration parameter is misconfigured, it will
-prevent Neutron from coming-up.  Refer to
+prevent neutron from coming-up.  Refer to
 :doc:`Nexus Configuration Reference </configuration/ml2-nexus>`
 for details on the `nexus_driver` parameter.
 
@@ -526,7 +526,7 @@ Corrective Action
    configuring ``vpc-pool`` parameter, refer to
    :doc:`Nexus Configuration Reference </configuration/ml2-nexus>`.
 2. Exception 2 is raised when the ``{first}`` is not a member of a channel
-   group while the ``{second}`` is.  Log into each switch identified in 
+   group while the ``{second}`` is.  Log into each switch identified in
    ``{first}`` and ``{second}`` fields and make sure each interface is not a
    member of port-channel.  If learning the port-channel is preferred, make
    sure all interfaces are configured as members to the same port-channel.
