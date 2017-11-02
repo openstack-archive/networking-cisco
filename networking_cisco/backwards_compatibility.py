@@ -52,6 +52,7 @@ else:
 
 
 if NEUTRON_VERSION >= NEUTRON_OCATA_VERSION:
+    from neutron.agent.common import utils as agent_utils
     from neutron.db import api as db_api
     from neutron.db.models import agent as agent_model
     from neutron.db.models import l3 as l3_models
@@ -95,6 +96,8 @@ if NEUTRON_VERSION >= NEUTRON_OCATA_VERSION:
 
     def get_writer_session():
         return db_api.get_writer_session()
+
+    is_agent_down = agent_utils.is_agent_down
 
 else:
     from networking_cisco.services.trunk import (  # noqa
@@ -169,6 +172,7 @@ else:
     def get_writer_session():
         return db_api.get_session()
 
+    is_agent_down = agents_db.AgentDbMixin.is_agent_down
 
 if NEUTRON_VERSION >= NEUTRON_PIKE_VERSION:
     from neutron.conf.agent import common as config
