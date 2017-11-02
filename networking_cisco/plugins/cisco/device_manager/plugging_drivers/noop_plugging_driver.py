@@ -12,11 +12,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from networking_cisco import backwards_compatibility as bc
 import networking_cisco.plugins.cisco.device_manager.plugging_drivers as plug
+from networking_cisco.plugins.cisco.device_manager.plugging_drivers import (
+    utils)
 
 
-class NoopPluggingDriver(plug.PluginSidePluggingDriver):
+class NoopPluggingDriver(plug.PluginSidePluggingDriver,
+                         utils.PluggingDriverUtilsMixin):
     """This class defines a no-op plugging driver."""
+
+    @property
+    def _core_plugin(self):
+        return bc.get_plugin()
 
     def create_hosting_device_resources(self, context, complementary_id,
                                         tenant_id, mgmt_context, max_hosted):
