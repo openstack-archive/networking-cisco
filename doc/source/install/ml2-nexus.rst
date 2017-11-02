@@ -13,7 +13,7 @@ Prerequisites
 The prerequisites for installing the ML2 Nexus MD are as follows:
 
 * Requires neutron installation as described in
-  `Neutron install <https://docs.openstack.org/neutron/latest/install/>`_
+  `Neutron Install <https://docs.openstack.org/neutron/latest/install/>`_
   documentation.
 * The ML2 Nexus MD have been tested on these OSs.
 
@@ -98,7 +98,7 @@ ML2 Nexus MD Installation
    :doc:`/install/howto`.
 #. Configure Nexus ML2 Driver.
    Once the networking-cisco code is installed, it needs to be configured and
-   enabled in Neutron, the :doc:`/admin/ml2-nexus` provides full
+   enabled in neutron, the :doc:`/admin/ml2-nexus` provides full
    details on how to create the neutron configs for various use cases.  For
    details on each configuration parameters, refer to
    :doc:`Nexus Configuration Reference</configuration/ml2-nexus>`.
@@ -133,7 +133,7 @@ ML2 Nexus MD Installation
 
    .. code-block:: ini
 
-       service neutron-service restart
+       $ service neutron-server restart
 
    .. end
 
