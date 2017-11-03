@@ -17,20 +17,20 @@ The prerequisites for installing the ASR1k L3P are as follows:
 
 * The ASR1k L3P has been tested on these OSs.
 
-    * Ubuntu 14.04 or above
+  * Ubuntu 14.04 or above
 
 * Your ASR1k router must be set-up as described in the next section
   `ASR1k Router Setup`_.
 
 * As the ASR1k L3P uses ncclient the following must also be installed:
 
-    * ``Paramiko`` library, the SSHv2 protocol library for python
-    * The ``ncclient`` (minimum version v0.4.6) python library for NETCONF
-      clients.  Install the ncclient library by using the pip package
-      manager at your shell prompt: :command:`pip install ncclient >= 0.4.6`
-    * Additionally, the following
-      `patch <https://github.com/ncclient/ncclient/commit/85d78a563a4f137dbde3d2054fb58798a66db17c>`_
-      to ``ncclient`` is needed
+  * ``Paramiko`` library, the SSHv2 protocol library for python
+  * The ``ncclient`` (minimum version v0.4.6) python library for NETCONF
+    clients.  Install the ncclient library by using the pip package
+    manager at your shell prompt: :command:`pip install ncclient >= 0.4.6`
+  * Additionally, the following
+    `patch <https://github.com/ncclient/ncclient/commit/85d78a563a4f137dbde3d2054fb58798a66db17c>`_
+    to ``ncclient`` is needed
 
 ASR1k Router Setup
 ~~~~~~~~~~~~~~~~~~

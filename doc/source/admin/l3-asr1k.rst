@@ -21,6 +21,7 @@ Specifically it provides the following features:
 
 Component Overview
 ~~~~~~~~~~~~~~~~~~
+
 To implement neutron routers in ASR1000 routers the ASR1k L3P relies on two
 additional Cisco components: a device manager plugin (DMP) for neutron server
 and a configuration agent (CFGA).
@@ -42,7 +43,8 @@ message bus that is used by Openstack services.
     assumption the CFGA may be unable to perform its configuration tasks.
 
 Limitations
-^^^^^^^^^^^
+-----------
+
 * The neutron deployment must use VLAN-based network segmentation. That is, the
   L2 substrate must be controlled by ML2's VLAN technology driver.
 * Access to nova's Metadata service via neutron routers is not supported.
@@ -62,7 +64,8 @@ The subsections that follows details the steps to be performed to properly
 configure and start neutron so that ASR1k devices can host neutron routers.
 
 Configure enabled service plugins in neutron
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------------------
+
 Update the neutron configuration file commonly named ``neutron.conf`` so
 the neutron server will load the device manager and L3 service plugins.
 
@@ -85,7 +88,8 @@ in addition to any other service plugins.
 .. _cred_def_section:
 
 Specify ASR credentials
-^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------
+
 Add credential information to the configuration file under the section
 ``[hosting_device_credentials]``. The format is as follows:
 
@@ -124,7 +128,8 @@ that neutron server reads:
   ``cisco_device_manager_plugin.ini``.
 
 Define hosting device templates
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------------
+
 Define hosting device templates for ASR1k devices and devices supporting
 Linux network namespace-based routers.  The hosting device template
 definition should be placed in the ``[hosting_device_templates]`` section
@@ -204,7 +209,8 @@ A normal deployment need not modify any of the values in the example above.
   ``cisco_device_manager_plugin.ini``.
 
 Add ASR1k devices to device repository
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------------
+
 Register ASR1k devices in the device repository. The information that
 needs to be provided should be placed in the ``[hosting_devices]``
 section and should be formatted as:
@@ -302,7 +308,8 @@ in for hosting devices 3 and 4 will carry all tenant network traffic:
   the file ``cisco_device_manager_plugin.ini``.
 
 Define router types
-^^^^^^^^^^^^^^^^^^^
+-------------------
+
 Define router types for neutron routers to be hosted in devices supporting
 Linux network namespaces and in ASR1k devices.  The information that
 needs to be provided should be placed in the ``[router_types]`` section.
@@ -380,35 +387,37 @@ defined for ASR1k devices. For the example above, this would be done by:
   ``cisco_router_plugin.ini``.
 
 Make services use correct configuration files
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------------------
+
 Include the configuration files on the command line when the neutron-server
 and configuration agent is started. For example:
 
-    .. code-block:: console
+.. code-block:: console
 
-       $ /usr/local/bin/neutron-server --config-file /etc/neutron/neutron
-         .conf \
-         --config-file /etc/neutron/plugins/ml2/ml2_conf.ini \
-         --config-file /etc/neutron/plugins/ml2/ml2_conf_cisco.ini \
-         --config-file /etc/neutron/plugins/cisco/cisco_router_plugin.ini \
-         --config-file /etc/neutron/plugins/cisco/cisco_device_manager_plugin.ini
+   $ /usr/local/bin/neutron-server --config-file /etc/neutron/neutron
+     .conf \
+     --config-file /etc/neutron/plugins/ml2/ml2_conf.ini \
+     --config-file /etc/neutron/plugins/ml2/ml2_conf_cisco.ini \
+     --config-file /etc/neutron/plugins/cisco/cisco_router_plugin.ini \
+     --config-file /etc/neutron/plugins/cisco/cisco_device_manager_plugin.ini
 
-    .. end
+.. end
 
 It looks similarly for the configuration agent:
 
 .. code-block:: console
 
-       $ /usr/local/bin/neutron-cisco-cfg-agent \
-         --config-file /etc/neutron/neutron.conf \
-         --config-file /etc/neutron/plugins/cisco/cisco_cfg_agent.ini \
-         --config-file /etc/neutron/plugins/cisco/cisco_router_plugin.ini \
-         --config-file /etc/neutron/plugins/cisco/cisco_device_manager_plugin.ini
+   $ /usr/local/bin/neutron-cisco-cfg-agent \
+     --config-file /etc/neutron/neutron.conf \
+     --config-file /etc/neutron/plugins/cisco/cisco_cfg_agent.ini \
+     --config-file /etc/neutron/plugins/cisco/cisco_router_plugin.ini \
+     --config-file /etc/neutron/plugins/cisco/cisco_device_manager_plugin.ini
 
-    .. end
+.. end
 
 High-Availability for Neutron Routers in ASR1k devices
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 The HA is implemented using the HSRP feature of IOS XE.
 
 When a user creates a neutron router that has HA enabled, the L3P will
@@ -457,6 +466,7 @@ redundancy router so that they form a HSRP-based HA pair.
 
 External Network Connectivity and Global Routers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Connectivity to external networks for neutron routers in the ASR1k is provided
 using interfaces in the global VRF of the ASR1k. The L3P represents an ASR1k's
 global VRF with a special neutron router referred to as a *global* neutron
@@ -642,13 +652,13 @@ Two hosting device-to-CFGA schedulers are available. The
 ``[general]`` section determines which scheduler the L3P uses.
 
 Random
-^^^^^^
+------
 * Hosting device is randomly assigned to the first available CFGA
 * Two hosting devices can end up being assigned to the same CFGA
 * ``configuration_agent_scheduler_driver = networking_cisco.plugins.cisco.device_manager.scheduler.hosting_device_cfg_agent_scheduler.HostingDeviceCfgAgentScheduler``
 
 Load-balanced
-^^^^^^^^^^^^^
+-------------
 * Attempts to load-balance hosting devices across available CFGA
 * A hosting device is assigned to the CFGA managing the least number of
   hosting devices
@@ -772,7 +782,7 @@ Troubleshooting
      ``/var/log/neutron/cisco-cfg-agent.log``.
 
   #. If new code is being pulled for bug fixes, run the steps in the section
-     :doc:`../install/howto` and restart neutron and configuration agent
+     :doc:`/install/howto` and restart neutron and configuration agent
      services.
 
 * The hosting-device states reported by the CFGA and their meaning are as
