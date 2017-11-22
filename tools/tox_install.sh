@@ -4,10 +4,20 @@
 # but it not existing on pypi. This ensures its installed into the test environment.
 set -ex
 
+# First parameter is requirements file but this script ignores it and
+# checks out proper version itself. Leave the first parameter in so
+# that the API for this script is the same for all of OpenStack
+# projects.
+
+# Ignore first parameter
+shift
+
+LATEST_SUPPORTED_STABLE="stable/pike"
+
 ZUUL_CLONER=/usr/zuul-env/bin/zuul-cloner
-NEUTRONCLIENT_BRANCH=${NEUTRONCLIENT_BRANCH:-${NEUTRON_BRANCH:-master}}
-REQUIREMENTS_BRANCH=${REQUIREMENTS_BRANCH:-${NEUTRON_BRANCH:-master}}
-NEUTRON_BRANCH=${NEUTRON_BRANCH:-master}
+NEUTRONCLIENT_BRANCH=${NEUTRONCLIENT_BRANCH:-${NEUTRON_BRANCH:-$LATEST_SUPPORTED_STABLE}}
+REQUIREMENTS_BRANCH=${REQUIREMENTS_BRANCH:-${NEUTRON_BRANCH:-$LATEST_SUPPORTED_STABLE}}
+NEUTRON_BRANCH=${NEUTRON_BRANCH:-$LATEST_SUPPORTED_STABLE}
 
 if [ -d "/home/zuul/src/git.openstack.org/openstack/requirements" ]; then
     (cd /home/zuul/src/git.openstack.org/openstack/requirements && \
