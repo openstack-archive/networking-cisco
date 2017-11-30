@@ -619,3 +619,37 @@ one or more of the following actions to secure it.
 * Set `https_verify=True` in the neutron start-up configuration beneath the
   section header [ml2_mech_cisco_nexus:your-switch-ip] for the target switch.
   Changing it to `True` will cause verification of public certificate to occur.
+
+.. _dupl_entry:
+
+DBDuplicate Entry - Failed Insert into cisco_ml2_nexus_host_interface_mapping
+-----------------------------------------------------------------------------
+Description
+^^^^^^^^^^^
+When the same port-channel is configured for multiple hosts beneath the
+same switch, a `DBDuplicateEntry` error is seen as shown in the Message
+section below.  This type of configuration is seen with static configurations
+only and not ironic.  An example of such a configuration is as follows:
+
+::
+
+    [ml2_mech_cisco_nexus:<snipped-switch-ip-addr>]
+    compute-host-1 = port-channel:300
+    compute-host-2 = port-channel:300
+
+Message
+^^^^^^^
+
+::
+
+    DBDuplicateEntry: (pymysql.err.IntegrityError)
+    (1062, u"Duplicate entry '<your-switch-ip>-<your-port-channel-interface>'
+    for key 'PRIMARY'")
+    [SQL: u'INSERT INTO cisco_ml2_nexus_host_interface_mapping
+    <SNIP>
+
+Corrective Action
+^^^^^^^^^^^^^^^^^
+The anomaly was introduced in Cisco Release 5.1.0 and is resolved
+in Cisco Release 5.4.0.  To eliminate this error, upgrade to a more
+recent release of the networking-cisco package.

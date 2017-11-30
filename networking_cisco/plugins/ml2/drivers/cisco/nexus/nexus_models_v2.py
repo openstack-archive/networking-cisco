@@ -98,7 +98,8 @@ class NexusHostMapping(bc.model_base.BASEV2):
 
     __tablename__ = 'cisco_ml2_nexus_host_interface_mapping'
 
-    host_id = sa.Column(sa.String(255), nullable=False, index=True)
+    host_id = sa.Column(sa.String(255), nullable=False, primary_key=True,
+                        index=True)
     switch_ip = sa.Column(sa.String(255), nullable=False, primary_key=True,
                           index=True)
     if_id = sa.Column(sa.String(255), nullable=False, primary_key=True)

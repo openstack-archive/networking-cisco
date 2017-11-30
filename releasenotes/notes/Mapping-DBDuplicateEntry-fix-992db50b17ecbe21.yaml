@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Nexus: DBDuplicateEntry error seen with Nexus interface mapping database
+
+    Introduced a fix to resolve the issue when the same port-channel is
+    configured for multiple hosts beneath the same switch, a `DBDuplicateEntry`
+    error is seen.  This type of configuration is seen with static
+    configurations only and not ironic.  Refer to :ref:`dupl_entry` for sample
+    config, more error message details, and corrective action.  For implementation
+    details, refer to https://bugs.launchpad.net/networking-cisco/+bug/1735540.

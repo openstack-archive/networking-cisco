@@ -19,6 +19,7 @@ import testtools
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import exceptions
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import nexus_db_v2
+from oslo_db import exception as db_exc
 
 from neutron.tests.unit import testlib_api
 
@@ -361,3 +362,233 @@ class TestCiscoNexusVpcAllocDbTest(testlib_api.SqlTestCase):
         self.assertEqual(count, 1000)
         self.assertEqual(min, 3001)
         self.assertEqual(max, 4000)
+
+
+class TestCiscoNexusHostMappingDbTest(testlib_api.SqlTestCase):
+
+    """Tests for Nexus Mechanism driver Host Mapping database."""
+
+    def test_enet_host_mapping_db(self):
+
+        nexus_db_v2.add_host_mapping(
+            "host-1", "110.1.1.1", "ethernet:1/1", 0, False)
+        nexus_db_v2.add_host_mapping(
+            "host-1", "112.2.2.2", "ethernet:1/1", 0, False)
+        nexus_db_v2.add_host_mapping(
+            "host-2", "110.1.1.1", "ethernet:2/2", 0, False)
+        nexus_db_v2.add_host_mapping(
+            "host-3", "113.3.3.3", "ethernet:3/3", 0, True)
+        nexus_db_v2.add_host_mapping(
+            "host-4", "114.4.4.4", "ethernet:4/4", 0, True)
+
+        # Do a get 110.1.1.1 and verify  only host-1 is returned
+        mappings = nexus_db_v2.get_switch_if_host_mappings(
+            "110.1.1.1", "ethernet:1/1")
+        self.assertEqual(
+            len(mappings),
+            1,
+            "Unexpected number of switch interface mappings")
+        for map in mappings:
+            self.assertEqual(
+                map.host_id,
+                "host-1",
+                "Expecting host-1 returned from "
+                "get_switch_if_host_mappings")
+
+        # Do a get on host-1 and verify 2 entries returned
+        mappings = nexus_db_v2.get_host_mappings("host-1")
+        self.assertEqual(
+            len(mappings),
+            2,
+            "Unexpected number of host mappings")
+        for map in mappings:
+            self.assertEqual(
+                map.host_id,
+                "host-1",
+                "Expecting host-1 returned from "
+                "get_host_mappings")
+            self.assertEqual(
+                map.if_id,
+                "ethernet:1/1",
+                "Expecting interface returned from "
+                "get_host_mappings")
+
+        # Do a get on switch 110.1.1.1 and verify 2 entries returned
+        mappings = nexus_db_v2.get_switch_host_mappings("110.1.1.1")
+        self.assertEqual(
+            len(mappings),
+            2,
+            "Unexpected number of switch mappings")
+        for map in mappings:
+            self.assertEqual(
+                map.switch_ip,
+                "110.1.1.1",
+                "Expecting switch_ip returned from "
+                "get_switch_host_mappings")
+
+        # Update host mapping by changing the ch_grp
+        nexus_db_v2.update_host_mapping(
+            "host-2",
+            "ethernet:2/2",
+            "110.1.1.1",
+            2)
+        mappings = nexus_db_v2.get_host_mappings("host-2")
+        self.assertEqual(
+            len(mappings),
+            1,
+            "Unexpected number of host mappings aft update")
+        for map in mappings:
+            self.assertEqual(
+                map.host_id,
+                "host-2",
+                "Expecting host-2 returned from "
+                "get_host_mappings")
+            self.assertEqual(
+                map.ch_grp,
+                2,
+                "Expecting ch_grp 2 returned from "
+                "get_host_mappings for host 2")
+
+        # remove 1 host mapping
+        nexus_db_v2.remove_host_mapping(
+            "ethernet:2/2", "110.1.1.1")
+        # Verify it is gone
+        self.assertRaises(
+            exceptions.NexusHostMappingNotFound,
+            nexus_db_v2.get_host_mappings,
+            "host-2")
+
+        # remove all static host mapping
+        nexus_db_v2.remove_all_static_host_mappings()
+        # Verify it is gone
+        mappings = nexus_db_v2.get_all_host_mappings()
+        self.assertEqual(
+            len(mappings),
+            2,
+            "Unexpected number of non-static entries")
+        for map in mappings:
+            self.assertFalse(
+                map.is_static,
+                "Expecting remaining hosts from"
+                "get_all_host_mappings to be dynamic")
+
+        # remove host mappings
+        nexus_db_v2.remove_host_mapping(
+            "ethernet:1/1", "112.2.2.2")
+        nexus_db_v2.remove_host_mapping(
+            "ethernet:1/1", "110.1.1.1")
+        # Verify it is gone
+        self.assertRaises(
+            exceptions.NexusHostMappingNotFound,
+            nexus_db_v2.get_host_mappings,
+            "host-1")
+
+    def test_portchannel_host_mapping_db(self):
+
+        nexus_db_v2.add_host_mapping(
+            "host-1", "110.1.1.1", "port-channel:100", 0, True)
+        nexus_db_v2.add_host_mapping(
+            "host-1", "112.2.2.2", "port-channel:100", 0, True)
+        nexus_db_v2.add_host_mapping(
+            "host-2", "110.1.1.1", "port-channel:100", 0, True)
+        nexus_db_v2.add_host_mapping(
+            "host-3", "110.1.1.1", "port-channel:100", 0, False)
+        self.assertRaises(
+            db_exc.DBDuplicateEntry,
+            nexus_db_v2.add_host_mapping,
+            "host-3", "110.1.1.1", "port-channel:100", 0, False)
+
+        # Do a get 110.1.1.1 and verify  correct host ids returned
+        mappings = nexus_db_v2.get_switch_if_host_mappings(
+            "110.1.1.1", "port-channel:100")
+        self.assertEqual(
+            len(mappings),
+            3,
+            "Expected 3 switch interface mappings for 110.1.1.1")
+
+        test_host_id = ["host-1", "host-2", "host-3"]
+        for map in mappings:
+            if map.host_id not in test_host_id:
+                raise Exception("Unexpected host from "
+                                "get_switch_if_host_mappings")
+
+        # Do a get on host-1 and verify 2 entries returned
+        mappings = nexus_db_v2.get_host_mappings("host-1")
+        self.assertEqual(
+            len(mappings),
+            2,
+            "Unexpected number of host mappings")
+        for map in mappings:
+            self.assertEqual(
+                map.host_id,
+                "host-1",
+                "Expecting host-1 returned from "
+                "get_host_mappings")
+            self.assertEqual(
+                map.if_id,
+                "port-channel:100",
+                "Expecting interface returned from "
+                "get_host_mappings")
+
+        # Do a get on switch 110.1.1.1 and verify 2 entries returned
+        mappings = nexus_db_v2.get_switch_host_mappings("110.1.1.1")
+        self.assertEqual(
+            len(mappings),
+            3,
+            "Expected 3 switch mappings")
+        for map in mappings:
+            self.assertEqual(
+                map.switch_ip,
+                "110.1.1.1",
+                "Expecting switch_ip returned from "
+                "get_switch_host_mappings")
+
+        # Update host mapping by changing the ch_grp
+        nexus_db_v2.update_host_mapping(
+            "host-2",
+            "port-channel:100",
+            "110.1.1.1",
+            2)
+        mappings = nexus_db_v2.get_host_mappings("host-2")
+        self.assertEqual(
+            len(mappings),
+            1,
+            "Unexpected number of host mappings aft update")
+        for map in mappings:
+            self.assertEqual(
+                map.host_id,
+                "host-2",
+                "Expecting host-2 returned from "
+                "get_host_mappings")
+            self.assertEqual(
+                map.ch_grp,
+                2,
+                "Expecting ch_grp 2 returned from "
+                "get_host_mappings for host 2")
+
+        # Not testing remove_host_mapping like above
+        # since this is used for baremeatl only in which
+        # it only removes ethernet interfaces.
+
+        # remove all static host mapping
+        nexus_db_v2.remove_all_static_host_mappings()
+        # Verify it is gone
+        mappings = nexus_db_v2.get_all_host_mappings()
+        self.assertEqual(
+            len(mappings),
+            1,
+            "Unexpected number of non-static entries")
+        for map in mappings:
+            self.assertFalse(
+                map.is_static,
+                "Expecting remaining hosts from"
+                "get_all_host_mappings to be dynamic")
+
+        # remove host mappings
+        nexus_db_v2.remove_host_mapping(
+            "port-channel:100", "112.2.2.2")
+        # Verify it is gone
+        self.assertRaises(
+            exceptions.NexusHostMappingNotFound,
+            nexus_db_v2.get_host_mappings,
+            "host-1")
