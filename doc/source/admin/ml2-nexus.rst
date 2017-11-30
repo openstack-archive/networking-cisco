@@ -121,6 +121,12 @@ activities performed during VLAN creation and removal, refer to
     #  for use when creating port-channels for baremetal events.
     intfcfg.portchannel=no lacp suspend-individual;spanning-tree port type edge trunk
 
+    #- Setting the https_verify option below to True is highly encouraged
+    #  for use in a production setting. This secures the communication
+    #  path preventing man-in-the-middle attacks.  The default is
+    #  currently False but will change to True from Cisco release 6.0.0.
+    https_verify=True
+
 .. end
 
 Sample configuration with vPC interfaces
@@ -248,6 +254,12 @@ Sample VXLAN configuration with Ethernet interfaces
         # section header [ml2_type_vlan].
         physnet=physnet1
 
+        # Setting the https_verify option below to True is highly encouraged
+        # for use in a production setting. This secures the communication
+        # path preventing man-in-the-middle attacks.  The default is
+        # currently False but will change to True from Cisco release 6.0.0.
+        https_verify=True
+
         [ml2_type_nexus_vxlan]
         # Comma-separated list of <vni_min>:<vni_max> tuples enumerating
         # ranges of VXLAN VNI IDs that are available for tenant network allocation.
@@ -281,6 +293,7 @@ following configuration is required.
         password=secretPassword
         ssh_port=22
         physnet=physnet1
+        https_verify=True  # for secure path if certificate available
 
         [ml2_mech_cisco_nexus:192.168.1.2]
         ComputeHostC=1/10
@@ -288,6 +301,7 @@ following configuration is required.
         password=secretPassword
         ssh_port=22
         physnet=physnet1
+        https_verify=True  # for secure path if certificate available
 
 .. end
 
@@ -330,7 +344,8 @@ variables.  More details on these neutron variable names can be found in
             "ssh_port": 22,
             "username": "admin",
             "vpc_pool": "1001-1025,1030",
-            "intfcfg.portchannel": "no lacp suspend-individual;spanning-tree port type edge trunk"
+            "intfcfg.portchannel": "no lacp suspend-individual;spanning-tree port type edge trunk",
+            "https_verify":=True
         }
       }
       NetworkNexusManagedPhysicalNetwork: datacentre
@@ -381,6 +396,7 @@ found in :doc:`Nexus Configuration Reference </configuration/ml2-nexus>`.
                 },
                 "ssh_port": 22,
                 "username": "admin"
+                "https_verify":=True
             }
            "N9K-9372PX-2": {
                 "ip_address": "192.168.1.2",
@@ -397,6 +413,7 @@ found in :doc:`Nexus Configuration Reference </configuration/ml2-nexus>`.
                 },
                 "ssh_port": 22,
                 "username": "admin"
+                "https_verify":=True
             }
           }
 
@@ -445,6 +462,7 @@ the section :ref:`nexus_nodhcp_startup`.
                 },
                 "ssh_port": 22,
                 "username": "admin"
+                "https_verify":=True
             }
             "N9K-9372PX-2": {
                 "ip_address": "192.168.1.2",
@@ -461,6 +479,7 @@ the section :ref:`nexus_nodhcp_startup`.
                 },
                 "ssh_port": 22,
                 "username": "admin"
+                "https_verify":=True
             }
           }
         <Skipped other config details defined in VLAN/VXLAN sections>

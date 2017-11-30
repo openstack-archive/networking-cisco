@@ -21,6 +21,8 @@ import netaddr
 import requests
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+    constants as const)
+from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     exceptions as cexc)
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
@@ -28,8 +30,9 @@ from oslo_serialization import jsonutils
 DEFAULT_HEADER = {"Content-type": "application/json", "Accept": "text/plain"}
 COOKIE_HEADER = """
 {"Cookie": %s, "Content-type": "application/json", "Accept": "text/plain"}"""
-DEFAULT_SCHEME = "http"
+DEFAULT_SCHEME = "https"
 ACCEPTED_CODES = [200, 201, 204]
+CREDENTIAL_EXPIRED = [403]
 
 LOG = logging.getLogger(__name__)
 
@@ -45,7 +48,7 @@ class CiscoNexusRestapiClient(object):
         """Initialize the rest api client for Nexus."""
         self.format = 'json'
         self.accepted_codes = accepted_codes
-        self.action_prefix = 'http://%s/'
+        self.action_prefix = DEFAULT_SCHEME + '://%s/'
         self.scheme = scheme
         self.status = requests.codes.OK
         self.time_stats = {}
@@ -55,24 +58,33 @@ class CiscoNexusRestapiClient(object):
         self.credentials = credentials
         self.request_cookie = request_cookie
 
-    def _get_cookie(self, mgmt_ip, config):
+    def _get_cookie(self, mgmt_ip, config, refresh=False):
         """Performs authentication and retries cookie."""
 
         if mgmt_ip not in self.credentials:
             return None
 
         security_data = self.credentials[mgmt_ip]
-        payload = {"aaaUser": {"attributes": {"name": security_data[0],
-                                              "pwd": security_data[1]}}}
+        verify = security_data[const.HTTPS_CERT_TUPLE]
+        if not verify:
+            verify = security_data[const.HTTPS_VERIFY_TUPLE]
+
+        if not refresh and security_data[const.COOKIE_TUPLE]:
+            return security_data[const.COOKIE_TUPLE], verify
+
+        payload = {"aaaUser": {"attributes": {
+                   "name": security_data[const.UNAME_TUPLE],
+                   "pwd": security_data[const.PW_TUPLE]}}}
         headers = {"Content-type": "application/json", "Accept": "text/plain"}
 
-        url = "http://{0}/api/aaaLogin.json".format(mgmt_ip)
+        url = "{0}://{1}/api/aaaLogin.json".format(DEFAULT_SCHEME, mgmt_ip)
 
         try:
             response = self.session.request('POST',
                            url,
                            data=jsonutils.dumps(payload),
                            headers=headers,
+                           verify=verify,
                            timeout=self.timeout * 2)
         except Exception as e:
             raise cexc.NexusConnectFailed(nexus_host=mgmt_ip,
@@ -81,9 +93,11 @@ class CiscoNexusRestapiClient(object):
         self.status = response.status_code
         if response.status_code == requests.codes.OK:
             cookie = response.headers.get('Set-Cookie')
-            headers = {"Content-type": "application/json",
-                       "Accept": "text/plain", "Cookie": cookie}
-            return headers
+            security_data = (
+                security_data[const.UNAME_TUPLE:const.COOKIE_TUPLE] +
+                (cookie,))
+            self.credentials[mgmt_ip] = security_data
+            return cookie, verify
         else:
             e = "REST API connect returned Error code: "
             e += str(self.status)
@@ -119,8 +133,11 @@ class CiscoNexusRestapiClient(object):
 
         config = action + " : " + body if body else action
 
+        # if cookie needed and one not previously created
         if self.request_cookie:
-            headers = self._get_cookie(ipaddr, config)
+            cookie, verify = self._get_cookie(ipaddr, config)
+            headers = {"Content-type": "application/json",
+                       "Accept": "text/plain", "Cookie": cookie}
         else:
             if ipaddr not in self.credentials:
                 raise cexc.NexusCredentialNotFound(switch_ip=ipaddr)
@@ -140,7 +157,16 @@ class CiscoNexusRestapiClient(object):
                     action,
                     data=body,
                     headers=headers,
+                    verify=verify,
                     timeout=self.timeout)
+                if (self.request_cookie and
+                    response.status_code in CREDENTIAL_EXPIRED):
+                    # if need new cookie
+                    cookie, verify = self._get_cookie(
+                        ipaddr, config, refresh=True)
+                    headers = {"Content-type": "application/json",
+                               "Accept": "text/plain", "Cookie": cookie}
+                    continue
             except Exception as e:
                 LOG.error(
                     "Exception raised %(err)s for Rest/NXAPI %(cfg)s",

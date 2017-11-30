@@ -1,0 +1,39 @@
+---
+other:
+  - |
+    Nexus: RESTAPI Client Scaling Improvement
+
+    To improve performance, the same cookie will be used in requests until
+    it expires and the Nexus device returns a status_code of 403.  When
+    this is detected, an attempt to refresh the cookie occurs and upon
+    successful receipt of a new cookie the request that originally failed
+    will be resent.
+    For more details, refer to
+    https://bugs.launchpad.net/networking-cisco/+bug/1735295
+
+security:
+  - |
+    Nexus: https certification now supported by RESTAPI Client
+
+    The Nexus RESTAPI Client now sends requests using https instead of http
+    which results in communication with the Nexus to be encrypted.
+    Certificate verification can also be performed.  A new configuration
+    option 'https_verify' controls this latter capability.  When set to
+    False, the communication path is insecure making it vulnerable to
+    man-in-the-middle attacks.  Initially, the default for 'https_verify'
+    is set to False but will change to True in the 'Cisco 6.0.0' release.
+    If a certificate is already available and configured on the Nexus device,
+    it is highly recommended to set this options to True in the
+    neutron start-up configuration file.
+
+    For testing or lab purposes, a temporary local certificate
+    can be generated and the certificate filename can be provided
+    in the configuration option 'https_local_certificate'. This depends
+    on the Nexus device being configured with the local key and certificate
+    file.
+
+    Both configuration options are available for every Nexus switch
+    configured.  Refer to the
+    :doc:`Nexus Configuration Reference </configuration/ml2-nexus>`
+    for more details on these options as well as
+    https://bugs.launchpad.net/networking-cisco/+bug/1735295

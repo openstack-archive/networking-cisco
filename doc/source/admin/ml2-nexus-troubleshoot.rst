@@ -586,3 +586,36 @@ for the following possible errors.
 * Ensure only vlans required as provider vlans or within your tenant vlan
   range are configured as ``allowed`` on the interface, and any additional
   vlans are removed.
+
+Insecure Communication Path with Nexus Switch
+---------------------------------------------
+Description
+^^^^^^^^^^^
+The configuration option `https_verify` is available in 5.4.0 and defaults
+to ``False`` (insecure); however, from Cisco Release 6.0.0 it will change
+to ``True`` causing certificates to be verified.  It is highly recommended
+not to disable certificate verification in production since the communication
+path is insecure leaving the path vunerable to man-in-the-middle attacks.
+If a switch is insecure, the warning message below will be seen in the neutron
+log file identifying the ip address of the Nexus switch.
+
+Message
+^^^^^^^
+HTTPS Certificate verification is disabled. Your connection to Nexus Switch
+{ip} is insecure.
+
+Corrective Action
+^^^^^^^^^^^^^^^^^
+The {ip} in the error message targets which switch is insecure and needs
+one or more of the following actions to secure it.
+
+* If a publically known certificate is not currently available, apply for one
+  from a public Certificate Authority (CA).
+* If the certificate and key files have not been configured on the
+  target Nexus switch, configure them using the Nexus Management CLI
+  `nxapi certificate` and `enable` the certificate.  For Nexus details,
+  refer to the section `NX-API Management Commands`  in the
+  `Nexus NXAPI Programmability Guide <https://www.cisco.com/c/en/us/td/docs/switches/datacenter/nexus9000/sw/6-x/programmability/guide/b_Cisco_Nexus_9000_Series_NX-OS_Programmability_Guide/b_Cisco_Nexus_9000_Series_NX-OS_Programmability_Guide_chapter_011.html>`_.
+* Set `https_verify=True` in the neutron start-up configuration beneath the
+  section header [ml2_mech_cisco_nexus:your-switch-ip] for the target switch.
+  Changing it to `True` will cause verification of public certificate to occur.

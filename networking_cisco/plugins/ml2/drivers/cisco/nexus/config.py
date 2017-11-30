@@ -26,6 +26,26 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     nexus_helpers as nexus_help)
 
 nexus_sub_opts = [
+    cfg.BoolOpt('https_verify', default=False,
+        help=_('This configuration option defaults to False but '
+               'will change to True in Cisco Release 6.0.0. '
+               'Set https_verify to True when certification '
+               'authority (CA) file is in the Operating Systems '
+               'repository or is a locally defined file whose name is '
+               'provided in https_local_certificate.  Set https_verify '
+               'to False to skip https certification checking thus '
+               'making the connection insecure. When True, the Nexus '
+               'device must be configured with both certificate and key '
+               'files and enabled.  Refer to the "nxapi certificate" '
+               'commands defined in the "Nexus 9K NXAPI Programmability '
+               'Guide" for details.')),
+    cfg.StrOpt('https_local_certificate',
+        help=_('Configure a local certificate file to present in https '
+               'requests. This is for experimental purposes when an '
+               'official certificate from a Trust Certificate Authority '
+               'is not yet available. The default configuration is None. '
+               'An example configuration would look like '
+               'https_local_certificate=/path/to/cafile.crt.')),
     cfg.StrOpt('intfcfg.portchannel',
         help=_('intfcfg.portchannel is a list of Nexus port-channel config '
                'CLI used when baremetal port-channels are created by the '
@@ -256,3 +276,8 @@ class ML2MechCiscoConfig(object):
                             re.sub("\w;", insert_space, value))
                     else:
                         self.nexus_dict[(switch_ip, opt_name)] = value
+                elif opt_name == const.HTTPS_VERIFY:
+                    # Unlike other config options, HTTPS_VERIFY is a
+                    # special case where we want False to be preserved
+                    # in the nexus_dict.
+                    self.nexus_dict[(switch_ip, opt_name)] = value

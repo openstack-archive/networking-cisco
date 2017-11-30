@@ -23,7 +23,7 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import nexus_db_v2
 from neutron.tests.unit import testlib_api
 
 
-class CiscoNexusDbTest(testlib_api.SqlTestCase):
+class TestCiscoNexusDb(testlib_api.SqlTestCase):
 
     """Unit tests for Cisco mechanism driver's Nexus port binding database."""
 

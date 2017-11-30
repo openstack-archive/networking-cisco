@@ -25,7 +25,15 @@ PASSWORD = 'password'
 SSHPORT = 'ssh_port'
 PHYSNET = 'physnet'
 IF_PC = 'intfcfg.portchannel'
+HTTPS_VERIFY = 'https_verify'
+HTTPS_CERT = 'https_local_certificate'
 NVE_SRC_INTF = 'nve_src_intf'
+
+UNAME_TUPLE = 0
+PW_TUPLE = 1
+HTTPS_VERIFY_TUPLE = 2
+HTTPS_CERT_TUPLE = 3
+COOKIE_TUPLE = 4
 
 NETWORK_ADMIN = 'network_admin'
 
