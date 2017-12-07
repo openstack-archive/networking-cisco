@@ -126,19 +126,24 @@ nexus_sub_opts = [
                'Inactive entries in the database not found in the new '
                'configured vpcids list are removed. An example of this '
                'configuration is `vpc_pool=1001-1025,1028`.')),
-    base.RemainderOpt('compute_hosts',
-        help=_('The "compute_hosts" option is not actually an option keyword '
-               'but rather a documentation placeholder for describing how '
-               'compute hosts are configured. For each host '
+    base.RemainderOpt('host_port_mapping',
+        help=_('The "host_port_mapping" option is not actually an option '
+               'keyword but rather a documentation placeholder for describing '
+               'how hosts are configured. For each host '
                'connected to a port on the switch, specify the hostname and '
                'assign the Nexus switch physical port (interface) it is '
-               'connected to.  The format of this configuration is '
-               '<your-compute-hostname>=<intf_type:port>). Valid '
+               'connected to.  All compute nodes must be configured while '
+               'controllers are optional depending on your network '
+               'configuration. The format of this configuration '
+               'is <your-hostname>=<intf_type:port>). Depending on the '
+               'configuration of the host, the hostname is expected to be the '
+               'full hostname (hostname.domainname) which can be derived by '
+               'running "hostname -f" on the host itself. Valid '
                'intf_types are "ethernet" or "port-channel".  The default '
                'setting for <intf_type:> is "ethernet" and need not be added '
-               'to this setting. (Sample configs are: compute1=1/1 or '
-               'compute2=ethernet:1/2 or compute3=port-channel:1). If you '
-               'have multiple compute hosts connected to the same switch, '
+               'to this setting. (Sample configs are: host-1=1/1 or '
+               'host-2=ethernet:1/2 or host-3=port-channel:1). If you '
+               'have multiple hosts connected to the same switch, '
                'they must each be configured on a different line in the '
                'config file.  This configuration applies to VM deployments '
                'only.'
@@ -260,7 +265,7 @@ class ML2MechCiscoConfig(object):
         nxos_db.remove_all_static_host_mappings()
         for switch_ip, switch in cfg.CONF.ml2_cisco.nexus_switches.items():
             for opt_name, value in switch.items():
-                if opt_name == 'compute_hosts':
+                if opt_name == 'host_port_mapping':
                     for host, ports in value.items():
                         for if_id in ports.split(','):
                             # first make format consistent

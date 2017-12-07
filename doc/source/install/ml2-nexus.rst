@@ -55,12 +55,18 @@ with the Nexus Driver.
    network so it can communicate with the switch to set up your data flows.
 #. The ML2 Nexus Rest API Driver requires :command:`feature nxapi` to be
    enabled on the switch.
-#. Each compute host on the cloud must be connected to the switch using an
-   interface dedicated solely to OpenStack data traffic.
+#. Each OpenStack compute host on the cloud must be connected to the switch
+   using an interface dedicated solely to OpenStack data traffic.  Connecting
+   the OpenStack Network-Node(s) may also be needed depending on your network
+   configuration.  If Network Nodes are connected, you can pre-configure the
+   tenant vlan range on the Nexus switchport; otherwise, like all compute nodes
+   you can configure the Nexus ML2 Driver to manage the switchports by
+   configuring the hostname to Nexus switchport mapping in the section
+   [ml2_mech_cisco_nexus] of the neutron start-up config file.
 #. Some pre-configuration must be performed by the Nexus switch administrator.
    For instance:
 
-   * All participating compute host interfaces must be enabled
+   * All participating OpenStack hosts interfaces must be enabled
      with :command:`no shutdown`.  If additional trunk vlans are needed
      for an interface, the administrator should manually apply these
      extra vlans using :command:`switchport trunk allowed vlan add <vlanid>`
@@ -122,11 +128,11 @@ ML2 Nexus MD Installation
        [ml2_type_vlan]
        network_vlan_ranges = physnet1:1400:3900
 
-       #- Provide Nexus credentials, compute host, and nexus interface
+       #- Provide Nexus credentials, OpenStack hostname, and nexus interface
        [ml2_mech_cisco_nexus:192.168.1.1]
        username=admin
        password=mySecretPasswordForNexus
-       compute-1=1/2
+       host-1=1/2
 
    .. end
 #. Restart neutron to pick-up configuration changes.

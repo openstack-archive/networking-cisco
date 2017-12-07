@@ -37,12 +37,12 @@ do the following:
       configuration parameters in file ``ml2_conf.ini``.
 
 #. Add the Nexus switch information to the configuration file. Multiple switches
-   can be configured in this file as well as multiple compute hosts for each
+   can be configured in this file as well as multiple OpenStack hosts for each
    switch.  This information includes:
 
    * The IP address of the switch
    * The Nexus switch credential username and password
-   * The compute hostname and Nexus port of the node that is connected to the
+   * The OpenStack hostname and Nexus port of the node that is connected to the
      switch (For non-baremetal only)
    * vpc ids pool (baremetal only).  It is required when automated port-channel
      creation is desired.
@@ -108,9 +108,9 @@ activities performed during VLAN creation and removal, refer to
     password=mySecretPasswordForNexus
 
     #- Non-baremetal config only - Hostname and port used on the switch for
-    #  this compute host.  Where 1/2 indicates the "interface ethernet 1/2"
-    #  port on the switch and compute-1 is the compute host name
-    compute-1=1/2
+    #  this OpenStack host.  Where 1/2 indicates the "interface ethernet 1/2"
+    #  port on the switch and host-1 is the OpenStack host name
+    host-1=1/2
 
     #- Baremetal config only - Provide pool of vpc ids for use when creating
     #  port-channels.  The following allows for a pool of ids 1001 thru 1025
@@ -134,11 +134,11 @@ Sample configuration with vPC interfaces
 In addition to supporting ethernet interfaces, multi-homed hosts using
 vPC configurations are supported.  To configure this for non-baremetal
 case, the administrator must do some pre-configuration on the Nexus
-switch and the compute host.  These prerequisites are as follows:
+switch and the OpenStack host.  These prerequisites are as follows:
 
 #. The vPC must already be configured on the Nexus 9K device as described in
    `Nexus9K NXOS vPC Cfg Guide <https://www.cisco.com/c/en/us/td/docs/switches/datacenter/nexus9000/sw/7-x/interfaces/configuration/guide/b_Cisco_Nexus_9000_Series_NX-OS_Interfaces_Configuration_Guide_7x/b_Cisco_Nexus_9000_Series_NX-OS_Interfaces_Configuration_Guide_7x_chapter_01000.html>`_.
-#. The data interfaces on the compute host must be bonded. This bonded
+#. The data interfaces on the OpenStack host must be bonded. This bonded
    interface must be attached to the external bridge.
 
 For baremetal case, Nexus driver will only configure the bonding on the TOR.
@@ -157,10 +157,10 @@ configuration:
 .. code-block:: ini
 
     [ml2_mech_cisco_nexus:192.168.1.1]
-    compute-host1=port-channel:2
+    host-1=port-channel:2
 
     [ml2_mech_cisco_nexus:192.168.2.2]
-    compute-host1=port-channel:2
+    host-1=port-channel:2
 
 .. end
 
@@ -182,7 +182,7 @@ ethernet configuration, only the change to host to interface mapping is shown.
 .. code-block:: ini
 
     [ml2_mech_cisco_nexus:192.168.1.1]
-    compute-host1=1/11,1/12
+    host-1=1/11,1/12
 
 .. end
 
@@ -246,9 +246,9 @@ Sample VXLAN configuration with Ethernet interfaces
         username=admin
         password=mySecretPasswordForNexus
 
-        # Hostname and port used on the switch for this compute host.
+        # Hostname and port used on the switch for this OpenStack host.
         # Where 1/2 indicates the "interface ethernet 1/2" port on the switch.
-        compute-1=1/2
+        host-1=1/2
 
         # Where physnet1 is a physical network name listed in the ML2 VLAN
         # section header [ml2_type_vlan].
@@ -278,7 +278,7 @@ Sample VXLAN configuration with Ethernet interfaces
 Additional configuration when the DHCP agent is not running on the Network Node
 --------------------------------------------------------------------------------
 If a DHCP Agent is not running on the network node then the network node
-physical connection to the Nexus switch must be added to all compute hosts
+physical connection to the Nexus switch must be added to all OpenStack hosts
 that require access to the network node. As an example, if the network node
 is physically connected to Nexus switch 192.168.1.1 port 1/10 then the
 following configuration is required.

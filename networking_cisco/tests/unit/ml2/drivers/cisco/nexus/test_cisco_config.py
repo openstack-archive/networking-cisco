@@ -133,7 +133,7 @@ class TestCiscoNexusPluginConfig(testlib_api.SqlTestCase):
                 'https_verify': True,
                 'https_local_certificate': (
                     '/path/to/your/local-certificate-file.crt'),
-                'compute_hosts': {
+                'host_port_mapping': {
                     'compute1': '1/1',
                     'compute2': '1/2',
                     'compute5': '1/3,1/4'
@@ -148,7 +148,7 @@ class TestCiscoNexusPluginConfig(testlib_api.SqlTestCase):
                 'intfcfg.portchannel': None,
                 'https_verify': False,
                 'https_local_certificate': None,
-                'compute_hosts': {
+                'host_port_mapping': {
                     'compute3': '1/1',
                     'compute4': '1/2',
                     'compute5': 'portchannel:20,portchannel:30'
