@@ -56,3 +56,6 @@ TRANSPORT = "ethernet"
 
 DEFAULT_PP_DELETE_TIME = (10 * 60)
 MAX_PP_DELETE_RETRY_COUNT = 3
+
+SSL_WARNING = ("SSL certificate verification has been disabled for the UCSM "
+               "driver. The connection to UCS Manager(s) is now insecure.")

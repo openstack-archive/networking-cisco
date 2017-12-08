@@ -38,6 +38,10 @@ The prerequisites for installing the ML2 UCSM mechanism driver are as follows:
 * UCS Manager version 2.2 running on the Fabric Interconnect. This software
   can be downloaded from `UCS Manager Software Download <https://software.cisco.com/download/release.html?mdfid=283612660&softwareid=283655658&release=2.2(6c)&flowid=22121>`_
 
+.. _ucsm_ssl_certificate_setup:
+
+* A valid SSL certificate can be set up on the UCS Manager by following
+  instructions specified in `Cisco UCS Manager Administration Management Guide <https://www.cisco.com/c/en/us/td/docs/unified_computing/ucs/ucs-manager/GUI-User-Guides/Admin-Management/3-1/b_Cisco_UCS_Admin_Mgmt_Guide_3_1/b_Cisco_UCS_Admin_Mgmt_Guide_3_1_chapter_0110.html>`_
 
 ML2 UCSM MD Installation
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -105,6 +109,17 @@ ML2 UCSM MD Installation
        # Service Profile Template config per UCSM. This is a mapping of Service Profile
        # Template to the list of UCS Servers controlled by this template.
        sp_template_list = SP_Template1_path:SP_Template1:S1,S2 SP_Template2_path:SP_Template2:S3,S4
+
+   .. end
+
+#. Though not recommended, the UCSM SSL certificate checking can be disabled if
+   necessary.
+
+   .. code-block:: ini
+
+       [ml2_cisco_ucsm]
+
+       ucsm_https_verify = False
 
    .. end
 

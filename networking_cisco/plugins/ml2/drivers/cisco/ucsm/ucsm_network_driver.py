@@ -15,7 +15,6 @@
 
 from collections import defaultdict
 import six
-import sys
 from threading import Timer
 
 from contextlib import contextmanager
@@ -47,31 +46,13 @@ class CiscoUcsmDriver(object):
         self.ucsm_db = ucsm_db.UcsmDbModel()
         self.ucsm_host_dict = {}
         self.ucsm_sp_dict = {}
-        self._disable_ssl_cert_check()
         self._create_host_and_sp_dicts_from_config()
 
+        # Start timer to monitor Port Profiles that need to be deleted.
         Timer(const.DEFAULT_PP_DELETE_TIME,
             self._delayed_delete_port_profile, ()).start()
         LOG.debug('Starting periodic Port Profile delete timer for %d',
             const.DEFAULT_PP_DELETE_TIME)
-
-    def _disable_ssl_cert_check(self):
-        """Disable SSL certificate checks.
-
-        Starting from Python version 2.7.9, SSL class performs certificate
-        checks by default. UcsSdk is currently unable to handle these
-        SSL certificate checks. This method disables this behavior. Once
-        support for SSL certificates is added to ucssdk, this method can be
-        removed.
-        """
-        if sys.version_info >= (2, 6):
-            from functools import partial
-            import ssl
-            ssl.wrap_socket = partial(ssl.wrap_socket,
-                ssl_version=ssl.PROTOCOL_TLSv1)
-            if sys.version_info >= (2, 7, 9):
-                ssl._create_default_https_context = (
-                    ssl._create_unverified_context)
 
     def check_vnic_type_and_vendor_info(self, vnic_type, profile):
         """Checks if this vnic_type and vendor device info are supported.
@@ -125,7 +106,19 @@ class CiscoUcsmDriver(object):
         the installation of UcsSdk.
 
         """
-        return importutils.import_module('UcsSdk')
+        # Check if SSL certificate checking has been disabled.
+        # If so, warn the user before proceeding.
+        if not config.get_ucsm_https_verify():
+            LOG.warning(const.SSL_WARNING)
+
+        # Monkey patch the UCS sdk version of urllib2 to disable
+        # https verify if required.
+        from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucs_urllib2
+        ucsmsdkhandle = importutils.import_module('UcsSdk.UcsHandle')
+        ucsmsdkhandle.urllib2 = ucs_urllib2
+
+        ucsmsdk = importutils.import_module('UcsSdk')
+        return ucsmsdk
 
     def _create_host_and_sp_dicts_from_config(self):
         # Check if Service Profile to Hostname mapping config has been provided

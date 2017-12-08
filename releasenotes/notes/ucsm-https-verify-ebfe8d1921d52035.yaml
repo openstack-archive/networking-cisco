@@ -1,0 +1,12 @@
+---
+security:
+  - |
+    Cisco UCSM: Add config to control SSL certificate checks
+
+    This feature allows a cloud admin to disable SSL certificate
+    checking when the UCSM driver connects to the UCS Managers
+    provided in its configuration. SSL certificate checking is
+    ON by default and setting the ``ucsm_https_verify``
+    configuration parameter to ``False`` turns it OFF. Turning it
+    OFF makes the connection insecure and vulnerable to
+    man-in-the-middle attacks.
