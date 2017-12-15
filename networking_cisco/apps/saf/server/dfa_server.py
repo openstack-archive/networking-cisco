@@ -1720,11 +1720,11 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         """Create threads on server."""
 
         # Create thread for neutron notifications.
-        neutorn_thrd = utils.EventProcessingThread('Neutron_Event',
+        neutron_thrd = utils.EventProcessingThread('Neutron_Event',
                                                    self.neutron_event,
                                                    'event_handler',
                                                    self._excpq)
-        self.dfa_threads.append(neutorn_thrd)
+        self.dfa_threads.append(neutron_thrd)
 
         # Create thread for processing notification events.
         qp_thrd = utils.EventProcessingThread('Event_Queue', self,
