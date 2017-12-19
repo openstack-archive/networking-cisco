@@ -46,8 +46,10 @@ nexus_sub_opts = [
                'is not yet available. The default configuration is None. '
                'An example configuration would look like '
                'https_local_certificate=/path/to/cafile.crt.')),
-    cfg.StrOpt('intfcfg.portchannel',
-        help=_('intfcfg.portchannel is a list of Nexus port-channel config '
+    cfg.StrOpt('intfcfg.portchannel', deprecated_for_removal=True,
+        help=_('intfcfg.portchannel replaced by intfcfg_portchannel.')),
+    cfg.StrOpt('intfcfg_portchannel', deprecated_name='intfcfg.portchannel',
+        help=_('intfcfg_portchannel is a list of Nexus port-channel config '
                'CLI used when baremetal port-channels are created by the '
                'Nexus driver.  It is dependent on "vpc_pool" being '
                'configured.  Any number of Nexus port-channel commands '
@@ -59,7 +61,7 @@ nexus_sub_opts = [
                'configure the port-channel.  When not configured, the nexus '
                'driver defaults to configuring "spanning-tree port type edge '
                'trunk;no lacp suspend-individual" beneath the port-channel. '
-               'An example of this configuration is "intfcfg.portchannel=no '
+               'An example of this configuration is "intfcfg_portchannel=no '
                'lacp suspend-individual;spanning-tree port type edge '
                'trunk".')),
     cfg.StrOpt('nve_src_intf',
@@ -276,8 +278,9 @@ class ML2MechCiscoConfig(object):
                             nxos_db.add_host_mapping(
                                 host, switch_ip, interface, 0, True)
                 elif value:
-                    if opt_name == const.IF_PC:
-                        self.nexus_dict[switch_ip, opt_name] = (
+                    if (opt_name == const.IF_PC_DEPRECATE or
+                        opt_name == const.IF_PC):
+                        self.nexus_dict[switch_ip, const.IF_PC] = (
                             re.sub("\w;", insert_space, value))
                     else:
                         self.nexus_dict[(switch_ip, opt_name)] = value

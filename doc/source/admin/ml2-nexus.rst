@@ -46,7 +46,7 @@ do the following:
      switch (For non-baremetal only)
    * vpc ids pool (baremetal only).  It is required when automated port-channel
      creation is desired.
-   * intfcfg.port-channel (baremetal only).  This is an optional config
+   * intfcfg_portchannel (baremetal only).  This is an optional config
      which allows the user to custom configure port-channel as they are
      getting created.
      The custom config will substitute the default config
@@ -119,7 +119,7 @@ activities performed during VLAN creation and removal, refer to
 
     #- Baremetal config only - Provide custom port-channel Nexus 9K commands
     #  for use when creating port-channels for baremetal events.
-    intfcfg.portchannel=no lacp suspend-individual;spanning-tree port type edge trunk
+    intfcfg_portchannel=no lacp suspend-individual;spanning-tree port type edge trunk
 
     #- Setting the https_verify option below to True is highly encouraged
     #  for use in a production setting. This secures the communication
@@ -344,7 +344,7 @@ variables.  More details on these neutron variable names can be found in
             "ssh_port": 22,
             "username": "admin",
             "vpc_pool": "1001-1025,1030",
-            "intfcfg.portchannel": "no lacp suspend-individual;spanning-tree port type edge trunk",
+            "intfcfg_portchannel": "no lacp suspend-individual;spanning-tree port type edge trunk",
             "https_verify":=True
         }
       }

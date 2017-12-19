@@ -72,7 +72,7 @@ members.  In more detail, it will do the following:
 #. Apply either user customized port-channel config provided by
    administrator OR the default config :command:`spanning-tree port type edge
    trunk` and :command:`no lacp suspend-individual`
-   (refer to ``intfcfg.portchannel`` variable in the Nexus
+   (refer to ``intfcfg_portchannel`` variable in the Nexus
    :doc:`administration </admin/ml2-nexus>`
    and :doc:`configuration </configuration/ml2-nexus>` guides).
 #. Apply :command:`channel-group <vpcid> force mode-active` to the
