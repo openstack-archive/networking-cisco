@@ -73,7 +73,7 @@ nexus_sub_opts = [
                'nve_src_intf is not defined, a default setting of 0 '
                'is used to create "loopback0".  This is configured for '
                'non-baremetal only.')),
-    cfg.StrOpt('password',
+    cfg.StrOpt('password', secret=True,
         help=_('The password of the Nexus Switch Administrator is required '
                'to allow configuration access to the Nexus switch.')),
     cfg.StrOpt('physnet',
