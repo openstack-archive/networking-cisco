@@ -762,7 +762,10 @@ class HA_db_mixin(object):
             with context.session.begin(subtransactions=True):
                 context.session.delete(hag)
 
-    def _extend_router_dict_ha(self, router_res, router_db):
+    @staticmethod
+    @bc.extends([l3.ROUTERS])
+    def _extend_router_dict_ha(router_res, router_db):
+        self = bc.get_plugin(bc.constants.L3)
         if utils.is_extension_supported(self, ha.HA_ALIAS):
             ha_s = router_db.ha_settings
             rr_b = router_db.redundancy_binding

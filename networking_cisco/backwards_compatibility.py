@@ -60,6 +60,7 @@ if NEUTRON_VERSION >= NEUTRON_OCATA_VERSION:
     from neutron.db import api as db_api
     from neutron.db.models import agent as agent_model
     from neutron.db.models import l3 as l3_models
+    from neutron.db.models import l3agent as rb_model
     from neutron.db import segments_db
     from neutron.objects import trunk as trunk_objects
     from neutron.services.trunk import constants as trunk_consts
@@ -117,6 +118,7 @@ else:
     from neutron import context
     from neutron.db import agents_db
     from neutron.db import api as db_api
+    from neutron.db import l3_agentschedulers_db as rb_model  # noqa
     from neutron.db import l3_db
     from neutron.db import model_base  # noqa
     from neutron.extensions import portbindings  # noqa
@@ -180,10 +182,24 @@ else:
 
 if NEUTRON_VERSION >= NEUTRON_PIKE_VERSION:
     from neutron.conf.agent import common as config
+    from neutron.db._resource_extend import extends
+    from neutron.db._resource_extend import get_funcs  # noqa
+    from neutron.db._resource_extend import has_resource_extenders  # noqa
     from neutron_lib.api.definitions import dns
+    from neutron_lib.api.definitions import provider_net
 else:
     from neutron.agent.common import config  # noqa
     from neutron.extensions import dns  # noqa
+    from neutron.extensions import providernet as provider_net  # noqa
+
+    def has_resource_extenders(klass):
+        return klass
+
+    def extends(resources):
+        def decorator(method):
+            return method
+
+        return decorator
 
 if NEUTRON_VERSION >= NEUTRON_QUEENS_VERSION:
     # Newer than queens
