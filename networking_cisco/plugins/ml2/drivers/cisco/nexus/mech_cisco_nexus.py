@@ -383,7 +383,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         # Extract configuration parameters from the configuration file.
         self._nexus_switches = conf.ML2MechCiscoConfig.nexus_dict
-        LOG.debug("nexus_switches found = %s", self._nexus_switches)
 
         # Save dynamic switch information
         self._switch_state = {}
