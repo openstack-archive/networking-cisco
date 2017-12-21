@@ -35,7 +35,7 @@ ssh_port=22
 nve_src_intf=2
 physnet=physnet1
 vpc_pool=5,10
-intfcfg.portchannel=user cmd1;user cmd2
+intfcfg_portchannel=user cmd1;user cmd2
 https_verify=True
 https_local_certificate=/path/to/your/local-certificate-file.crt
 compute1=1/1
@@ -49,6 +49,23 @@ ssh_port=22
 compute3=1/1
 compute4=1/2
 compute5=portchannel:20,portchannel:30
+"""
+
+# Make sure intfcfg.portchannel still works
+test_deprecate_config_file = """
+[ml2_mech_cisco_nexus:1.1.1.1]
+username=admin
+password=mySecretPassword
+ssh_port=22
+nve_src_intf=2
+physnet=physnet1
+vpc_pool=5,10
+intfcfg.portchannel=user cmd1;user cmd2
+https_verify=True
+https_local_certificate=/path/to/your/local-certificate-file.crt
+compute1=1/1
+compute2=1/2
+compute5=1/3,1/4
 """
 
 # Assign non-integer to ssh_port for error
@@ -78,7 +95,7 @@ class TestCiscoNexusPluginConfig(testlib_api.SqlTestCase):
             ('1.1.1.1', 'nve_src_intf'): '2',
             ('1.1.1.1', 'physnet'): 'physnet1',
             ('1.1.1.1', 'vpc_pool'): '5,10',
-            ('1.1.1.1', 'intfcfg.portchannel'): 'user cmd1 ;user cmd2',
+            ('1.1.1.1', 'intfcfg_portchannel'): 'user cmd1 ;user cmd2',
             ('1.1.1.1', 'https_verify'): True,
             ('1.1.1.1', 'https_local_certificate'): (
                 '/path/to/your/local-certificate-file.crt'),
@@ -129,7 +146,7 @@ class TestCiscoNexusPluginConfig(testlib_api.SqlTestCase):
                 'nve_src_intf': '2',
                 'physnet': 'physnet1',
                 'vpc_pool': '5,10',
-                'intfcfg.portchannel': 'user cmd1;user cmd2',
+                'intfcfg_portchannel': 'user cmd1;user cmd2',
                 'https_verify': True,
                 'https_local_certificate': (
                     '/path/to/your/local-certificate-file.crt'),
@@ -145,7 +162,7 @@ class TestCiscoNexusPluginConfig(testlib_api.SqlTestCase):
                 'physnet': None,
                 'nve_src_intf': None,
                 'vpc_pool': None,
-                'intfcfg.portchannel': None,
+                'intfcfg_portchannel': None,
                 'https_verify': False,
                 'https_local_certificate': None,
                 'host_port_mapping': {
@@ -161,6 +178,32 @@ class TestCiscoNexusPluginConfig(testlib_api.SqlTestCase):
                 self.assertEqual(
                     option, cfg.CONF.ml2_cisco.nexus_switches.get(
                         switch_ip).get(opt_name))
+
+
+class TestCiscoNexusPluginDeprecatedConfig(testlib_api.SqlTestCase):
+
+    def setUp(self):
+        super(TestCiscoNexusPluginDeprecatedConfig, self).setUp()
+        nc_base.load_config_file(test_deprecate_config_file)
+
+    def test_deprecated_intfcfg_portchannel(self):
+        """Test creation deprecated intfcfg_portchannel works."""
+        expected_dev_dict = {
+            ('1.1.1.1', 'username'): 'admin',
+            ('1.1.1.1', 'password'): 'mySecretPassword',
+            ('1.1.1.1', 'ssh_port'): 22,
+            ('1.1.1.1', 'nve_src_intf'): '2',
+            ('1.1.1.1', 'physnet'): 'physnet1',
+            ('1.1.1.1', 'vpc_pool'): '5,10',
+            ('1.1.1.1', 'intfcfg_portchannel'): 'user cmd1 ;user cmd2',
+            ('1.1.1.1', 'https_verify'): True,
+            ('1.1.1.1', 'https_local_certificate'): (
+                '/path/to/your/local-certificate-file.crt'),
+        }
+
+        cisco_config.ML2MechCiscoConfig()
+        self.assertEqual(expected_dev_dict,
+                         cisco_config.ML2MechCiscoConfig.nexus_dict)
 
 
 class TestCiscoNexusPluginConfigError(testlib_api.SqlTestCase):

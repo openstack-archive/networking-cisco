@@ -50,14 +50,14 @@ config file sections :ref:`nexus_vlan_startup` apply here.
     username=admin
     password=mySecretPasswordForNexus
     vpc_pool=1001-1025,1030
-    intfcfg.portchannel=no lacp suspend-individual;spanning-tree port type edge trunk
+    intfcfg_portchannel=no lacp suspend-individual;spanning-tree port type edge trunk
 
     [ml2_mech_cisco_nexus:192.168.2.2]
     ComputeHostB=1/10
     username=admin
     password=mySecretPasswordForNexus
     vpc_pool=1001-1025,1030
-    intfcfg.portchannel=no lacp suspend-individual;spanning-tree port type edge trunk
+    intfcfg_portchannel=no lacp suspend-individual;spanning-tree port type edge trunk
 
 .. end
 

@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Nexus: Remove '.' from configuration variable names
+
+    When testing new configuration variables with puppet and tripleo,
+    the use of dot '.' in configuration variable name fails.
+    There is only one such variable which is `intfcfg.portchannel`. It
+    is replaced with `intfcfg_portchannel`.
