@@ -14,16 +14,9 @@
 #    under the License.
 
 from oslo_config import cfg
-import re
 
 from networking_cisco._i18n import _
 from networking_cisco.config import base
-from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
-    constants as const)
-from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
-    nexus_db_v2 as nxos_db)
-from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
-    nexus_helpers as nexus_help)
 
 nexus_sub_opts = [
     cfg.BoolOpt('https_verify', default=False,
@@ -249,41 +242,3 @@ cfg.CONF.register_opt(nexus_switches, "ml2_cisco")
 #  ('1.1.1.1', 'password'): 'mySecretPassword',
 #  ('1.1.1.1', 'compute1'): '1/1', ...}
 #
-
-
-class ML2MechCiscoConfig(object):
-    """ML2 Mechanism Driver Cisco Configuration class."""
-    nexus_dict = {}
-
-    def __init__(self):
-        def insert_space(matchobj):
-            # Command output format must be cmd1 ;cmd2 ; cmdn
-            # and not cmd1;cmd2;cmdn or config will fail in Nexus.
-            # This does formatting before storing in dictionary.
-            test = matchobj.group(0)
-            return test[0] + ' ;'
-        nxos_db.remove_all_static_host_mappings()
-        for switch_ip, switch in cfg.CONF.ml2_cisco.nexus_switches.items():
-            for opt_name, value in switch.items():
-                if opt_name == 'host_port_mapping':
-                    for host, ports in value.items():
-                        for if_id in ports.split(','):
-                            # first make format consistent
-                            if_type, port = (
-                                nexus_help.split_interface_name(if_id))
-                            interface = nexus_help.format_interface_name(
-                                if_type, port)
-                            nxos_db.add_host_mapping(
-                                host, switch_ip, interface, 0, True)
-                elif value:
-                    if (opt_name == const.IF_PC_DEPRECATE or
-                        opt_name == const.IF_PC):
-                        self.nexus_dict[switch_ip, const.IF_PC] = (
-                            re.sub("\w;", insert_space, value))
-                    else:
-                        self.nexus_dict[(switch_ip, opt_name)] = value
-                elif opt_name == const.HTTPS_VERIFY:
-                    # Unlike other config options, HTTPS_VERIFY is a
-                    # special case where we want False to be preserved
-                    # in the nexus_dict.
-                    self.nexus_dict[(switch_ip, opt_name)] = value

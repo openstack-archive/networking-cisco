@@ -145,30 +145,35 @@ class TestCiscoNexusRestapiClient(testlib_api.SqlTestCase):
 
     def _build_nexus_switch_db(self):
         nexus_dict = {}
-        nexus_dict['1.1.1.1', const.USERNAME] = 'admin'
-        nexus_dict['1.1.1.1', const.PASSWORD] = 'Shhhh1'
-        nexus_dict['1.1.1.1', const.HTTPS_VERIFY] = True
-        nexus_dict['1.1.1.1', const.HTTPS_CERT] = (
+        nexus_dict['1.1.1.1'] = {}
+        nexus_dict['1.1.1.1'][const.USERNAME] = 'admin'
+        nexus_dict['1.1.1.1'][const.PASSWORD] = 'Shhhh1'
+        nexus_dict['1.1.1.1'][const.HTTPS_VERIFY] = True
+        nexus_dict['1.1.1.1'][const.HTTPS_CERT] = (
             '/home/caboucha/test_src/openstack-outfiles/nexus.crt')
-        nexus_dict['2.2.2.2', const.USERNAME] = 'admin'
-        nexus_dict['2.2.2.2', const.PASSWORD] = 'Shhhh2'
-        nexus_dict['2.2.2.2', const.HTTPS_VERIFY] = True
-        nexus_dict['2.2.2.2', const.HTTPS_CERT] = None
-        nexus_dict['3.3.3.3', const.USERNAME] = 'admin'
-        nexus_dict['3.3.3.3', const.PASSWORD] = 'Shhhh3'
-        nexus_dict['3.3.3.3', const.HTTPS_VERIFY] = False
-        nexus_dict['3.3.3.3', const.HTTPS_CERT] = None
-        nexus_dict['4.4.4.4', const.USERNAME] = 'admin'
-        nexus_dict['4.4.4.4', const.PASSWORD] = 'Shhhh1'
-        nexus_dict['4.4.4.4', const.HTTPS_VERIFY] = True
-        nexus_dict['4.4.4.4', const.HTTPS_CERT] = (
+        nexus_dict['2.2.2.2'] = {}
+        nexus_dict['2.2.2.2'][const.USERNAME] = 'admin'
+        nexus_dict['2.2.2.2'][const.PASSWORD] = 'Shhhh2'
+        nexus_dict['2.2.2.2'][const.HTTPS_VERIFY] = True
+        nexus_dict['2.2.2.2'][const.HTTPS_CERT] = None
+        nexus_dict['3.3.3.3'] = {}
+        nexus_dict['3.3.3.3'][const.USERNAME] = 'admin'
+        nexus_dict['3.3.3.3'][const.PASSWORD] = 'Shhhh3'
+        nexus_dict['3.3.3.3'][const.HTTPS_VERIFY] = False
+        nexus_dict['3.3.3.3'][const.HTTPS_CERT] = None
+        nexus_dict['4.4.4.4'] = {}
+        nexus_dict['4.4.4.4'][const.USERNAME] = 'admin'
+        nexus_dict['4.4.4.4'][const.PASSWORD] = 'Shhhh1'
+        nexus_dict['4.4.4.4'][const.HTTPS_VERIFY] = True
+        nexus_dict['4.4.4.4'][const.HTTPS_CERT] = (
             '/home/caboucha/test_src/openstack-outfiles/nexus.crt')
-        nexus_dict['4.4.4.4', const.IF_PC] = 'user cmd1;user cmd2'
-        nexus_dict['5.5.5.5', const.USERNAME] = 'admin'
-        nexus_dict['5.5.5.5', const.PASSWORD] = 'Shhhh1'
-        nexus_dict['5.5.5.5', const.HTTPS_VERIFY] = False
-        nexus_dict['5.5.5.5', const.HTTPS_CERT] = None
-        nexus_dict['5.5.5.5', const.IF_PC] = 'user cmd1;user cmd2'
+        nexus_dict['4.4.4.4'][const.IF_PC] = 'user cmd1;user cmd2'
+        nexus_dict['5.5.5.5'] = {}
+        nexus_dict['5.5.5.5'][const.USERNAME] = 'admin'
+        nexus_dict['5.5.5.5'][const.PASSWORD] = 'Shhhh1'
+        nexus_dict['5.5.5.5'][const.HTTPS_VERIFY] = False
+        nexus_dict['5.5.5.5'][const.HTTPS_CERT] = None
+        nexus_dict['5.5.5.5'][const.IF_PC] = 'user cmd1;user cmd2'
 
         return nexus_dict
 
@@ -205,25 +210,25 @@ class TestCiscoNexusRestapiClient(testlib_api.SqlTestCase):
 
         ipaddr = '1.1.1.1'
         self._check_verify(ipaddr,
-                           self.nexus_dict[ipaddr, const.USERNAME],
-                           self.nexus_dict[ipaddr, const.PASSWORD],
-                           self.nexus_dict[ipaddr, const.HTTPS_CERT])
+                           self.nexus_dict[ipaddr][const.USERNAME],
+                           self.nexus_dict[ipaddr][const.PASSWORD],
+                           self.nexus_dict[ipaddr][const.HTTPS_CERT])
 
     def test_verify_with_nonlocal_certificate(self):
 
         ipaddr = '2.2.2.2'
         self._check_verify(ipaddr,
-                           self.nexus_dict[ipaddr, const.USERNAME],
-                           self.nexus_dict[ipaddr, const.PASSWORD],
-                           self.nexus_dict[ipaddr, const.HTTPS_VERIFY])
+                           self.nexus_dict[ipaddr][const.USERNAME],
+                           self.nexus_dict[ipaddr][const.PASSWORD],
+                           self.nexus_dict[ipaddr][const.HTTPS_VERIFY])
 
     def test_verify_no_certificate(self):
 
         ipaddr = '3.3.3.3'
         self._check_verify(ipaddr,
-                           self.nexus_dict[ipaddr, const.USERNAME],
-                           self.nexus_dict[ipaddr, const.PASSWORD],
-                           self.nexus_dict[ipaddr, const.HTTPS_VERIFY])
+                           self.nexus_dict[ipaddr][const.USERNAME],
+                           self.nexus_dict[ipaddr][const.PASSWORD],
+                           self.nexus_dict[ipaddr][const.HTTPS_VERIFY])
 
     def test_verify_for_cli_with_local_cert(self):
         # Since the config contains const.IF_PC, it will cause
@@ -235,9 +240,9 @@ class TestCiscoNexusRestapiClient(testlib_api.SqlTestCase):
         ipaddr = '4.4.4.4'
         config = {'request.side_effect':
                   self._request_on_count(
-                      self.nexus_dict[ipaddr, const.USERNAME],
-                      self.nexus_dict[ipaddr, const.PASSWORD],
-                      self.nexus_dict[ipaddr, const.HTTPS_CERT])}
+                      self.nexus_dict[ipaddr][const.USERNAME],
+                      self.nexus_dict[ipaddr][const.PASSWORD],
+                      self.nexus_dict[ipaddr][const.HTTPS_CERT])}
         self.mock_Session.configure_mock(**config)
 
         self.r_driver._apply_user_port_channel_config(
@@ -258,9 +263,9 @@ class TestCiscoNexusRestapiClient(testlib_api.SqlTestCase):
         ipaddr = '5.5.5.5'
         config = {'request.side_effect':
                   self._request_on_count(
-                      self.nexus_dict[ipaddr, const.USERNAME],
-                      self.nexus_dict[ipaddr, const.PASSWORD],
-                      self.nexus_dict[ipaddr, const.HTTPS_VERIFY])}
+                      self.nexus_dict[ipaddr][const.USERNAME],
+                      self.nexus_dict[ipaddr][const.PASSWORD],
+                      self.nexus_dict[ipaddr][const.HTTPS_VERIFY])}
         self.mock_Session.configure_mock(**config)
 
         self.r_driver._apply_user_port_channel_config(

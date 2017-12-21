@@ -78,28 +78,17 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
         :param nexus_switches: switch config
         :returns credentials: switch credentials list
         """
-
-        # Gather unique list of IPs
-        switch_list = set()
-        for switch_ip, option in nexus_switches:
-            switch_list.add(switch_ip)
-
-        # Formulate and store credential tuples
         credentials = {}
-        for switch_ip in switch_list:
-            credential_tuple = (
-                nexus_switches.get((switch_ip, const.USERNAME)),
-                nexus_switches.get((switch_ip, const.PASSWORD)),
-                nexus_switches.get((switch_ip, const.HTTPS_VERIFY)),
-                nexus_switches.get((switch_ip, const.HTTPS_CERT)),
+        for switch_ip, attrs in nexus_switches.items():
+            credentials[switch_ip] = (
+                attrs[const.USERNAME], attrs[const.PASSWORD],
+                attrs[const.HTTPS_VERIFY], attrs[const.HTTPS_CERT],
                 None)
-            credentials[switch_ip] = credential_tuple
-            if not nexus_switches.get((switch_ip, const.HTTPS_VERIFY)):
+            if not attrs[const.HTTPS_VERIFY]:
                 LOG.warning("HTTPS Certificate verification is "
                             "disabled. Your connection to Nexus "
                             "Switch %(ip)s is insecure.",
                             {'ip': switch_ip})
-
         return credentials
 
     def _get_user_port_channel_config(self, switch_ip, vpc_nbr):
@@ -110,8 +99,16 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
         #:returns: user configured nexus port channel commands
         #          or None if not present
 
-        ucmds = self.nexus_switches.get((switch_ip, const.IF_PC))
+        def insert_space(matchobj):
+            # Command output format must be cmd1 ;cmd2 ; cmdn
+            # and not cmd1;cmd2;cmdn or config will fail in Nexus.
+            # This does correct formatting.
+            test = matchobj.group(0)
+            return test[0] + ' ;'
+
+        ucmds = self.nexus_switches[switch_ip].get(const.IF_PC)
         if ucmds:
+            ucmds = re.sub("\w;", insert_space, ucmds)
             prefix = 'int port-channel %d ;' % vpc_nbr
             ucmds = ''.join((prefix, ucmds))
         return ucmds

@@ -1339,8 +1339,9 @@ class TestCiscoNexusBaremetalDevice(test_cisco_nexus_base.TestCiscoNexusBase):
         self._init_port_channel(3)
 
         for switch_ip in switch_list:
-            self._cisco_mech_driver._nexus_switches[
-                switch_ip, const.VPCPOOL] = ('451-475')
+            cfg.CONF.set_override(
+                const.VPCPOOL, ('451-475'),
+                cfg.CONF.ml2_cisco.nexus_switches.get(switch_ip)._group)
         self._cisco_mech_driver._initialize_vpc_alloc_pools()
 
         self._basic_create_verify_port_vlan(

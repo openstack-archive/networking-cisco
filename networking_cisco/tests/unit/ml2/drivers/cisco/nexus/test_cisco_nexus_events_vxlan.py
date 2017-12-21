@@ -378,8 +378,10 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
         key is present in the nexus switch dictionary.
         """
 
-        self._cisco_mech_driver._nexus_switches.pop(
-            (test_cisco_nexus_base.NEXUS_IP_ADDRESS_1, const.PHYSNET))
+        cfg.CONF.set_override(
+            const.PHYSNET, None,
+            cfg.CONF.ml2_cisco.nexus_switches.get(
+                test_cisco_nexus_base.NEXUS_IP_ADDRESS_1)._group)
 
         try:
             self._bind_port(self.test_configs['test_vxlan_config1'])
