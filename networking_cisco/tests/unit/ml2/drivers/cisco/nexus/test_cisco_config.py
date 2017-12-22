@@ -84,6 +84,8 @@ class TestCiscoNexusPluginConfig(testlib_api.SqlTestCase):
 
     def setUp(self):
         super(TestCiscoNexusPluginConfig, self).setUp()
+        cfg.CONF.clear()
+        cisco_config.ML2MechCiscoConfig.nexus_dict = {}
         nc_base.load_config_file(test_config_file)
 
     def test_create_device_dictionary(self):
@@ -184,6 +186,8 @@ class TestCiscoNexusPluginDeprecatedConfig(testlib_api.SqlTestCase):
 
     def setUp(self):
         super(TestCiscoNexusPluginDeprecatedConfig, self).setUp()
+        cfg.CONF.clear()
+        cisco_config.ML2MechCiscoConfig.nexus_dict = {}
         nc_base.load_config_file(test_deprecate_config_file)
 
     def test_deprecated_intfcfg_portchannel(self):
@@ -210,6 +214,8 @@ class TestCiscoNexusPluginConfigError(testlib_api.SqlTestCase):
 
     def setUp(self):
         super(TestCiscoNexusPluginConfigError, self).setUp()
+        cfg.CONF.clear()
+        cisco_config.ML2MechCiscoConfig.nexus_dict = {}
         nc_base.load_config_file(test_error_config_file)
 
     def test_create_device_error(self):
