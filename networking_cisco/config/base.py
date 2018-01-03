@@ -49,15 +49,23 @@ class RemainderOpt(cfg.DictOpt):
         cfg.CONF['hosts']['host1']
     """
 
+    def _get_opts_including_deprecated(self, namespace, group_name):
+        opts = namespace._conf._get_group(group_name)._opts
+        opt_names = list(opts)
+        for name, opt in opts.items():
+            opt_names.extend([x.name for x in opt['opt'].deprecated_opts])
+        return opt_names
+
     def _get_from_namespace(self, namespace, group_name):
-        existing_opts = list(cfg.CONF.get(group_name))
+        opt_names = self._get_opts_including_deprecated(namespace,
+                                                        group_name)
         result = {}
         for section in namespace._parsed:
             gk = section.get(group_name)
             if not gk:
                 continue
             for key in gk:
-                if key not in existing_opts:
+                if key not in opt_names:
                     names = [(group_name, key)]
                     value = namespace._get_value(
                         names, positional=self.positional)
