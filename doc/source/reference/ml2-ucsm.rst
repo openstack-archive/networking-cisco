@@ -47,3 +47,22 @@ When the SR-IOV ports being configured are on Cisco NICs, the driver
 creates Port Profiles (PPs) on the UCS Manager and associates it with
 the next available VF. The driver is also responsible for deleting the
 PPs when all VMs using it no longer exist.
+
+UCS Manager Template configuration support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The UCSM driver supports configuration of Service Profile Templates and vNIC
+Templates on the UCS Manager. These UCS Manager constructs allow the driver
+to simultaneously modify configuration on several UCS Servers.
+
+Service Profile Templates can be used on the UCS Manager to configure several
+UCS Servers with identical configuration. When UCS Servers in the OpenStack setup
+are controlled by Service Profile Templates, this information needs to be provided
+to the UCSM driver so that it can directly update the Service Profile Template.
+
+Similarly, vNIC Templates are UCS Manager constructs that can be used to configure
+several vNICs on different UCS Servers with similar configuration. This can be
+used to manage neutron provider network configuration by effectively using a vNIC
+Template to configure all vNICs that are connected to the same physical network.
+When this information is provided to the UCSM driver, it will modify the vNIC
+Templates with the VLAN configuraton of the corresponding neutron provider
+network.

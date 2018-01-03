@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Cisco UCSM: vNIC and Service Profile Template support for Single UCSM
+
+    This feature allows a cloud admin to take advantage of the Service
+    Profile Template and vNIC Template configuration options available
+    on the UCS Manager. The UCSM driver can be provided with the Service
+    Profile or the Service Profile Template configuration, and it will
+    handle the configuration of the UCS Servers accordingly. The vNIC
+    Templates can be used to configure several vNIC on different UCS
+    Servers, all connected to the same physical network. The driver
+    will handle configuration of the appropriate vNIC Template with
+    the VLAN configuration associated with the corresponding neutron
+    provider network.

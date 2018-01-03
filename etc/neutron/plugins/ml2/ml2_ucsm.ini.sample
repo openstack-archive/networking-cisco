@@ -1,5 +1,4 @@
 [ml2_cisco_ucsm]
-
 # In an installation with multiple UCSMs, please
 # proceed to the [ml2_cisco_ucsm_ip:<IP address>]
 # section detailed right after the single UCSM
@@ -45,6 +44,24 @@
 # Manager insecure and vulnerable to man-in-the-middle attacks.
 # ucsm_https_verify = False
 
+# (StrOpt) Service Profile Template config for this UCSM.
+# The configuration to be provided should be a list where each element in the
+# list represents information for a single Service Profile Template on that UCSM.
+# Each element is mapping of a Service Profile Template's path, its name and a
+# list of all UCS Servers controlled by this template. This is an optional
+# config with no defaults.
+# sp_template_list = SP_Template1_path:SP_Template1:Host1,Host2
+#                    SP_Template2_path:SP_Template2:Host3,Host4
+
+# (StrOpt) VNIC Profile Template config per UCSM.
+# Allows the cloud admin to specify a VNIC Template on the UCSM that is attached
+# to every vNIC connected to a specific physical network. Each element in this
+# list has 3 parts: the physical network that is defined in neutron configuration,
+# the VNIC Template with its path in UCSM, the vNIC on the UCS Servers that is
+# connected to this physical network. This is an optional config with no defaults.
+# vnic_template_list = physnet1:vnic_template_path1:vt1
+#                      physnet2:vnic_template_path2:vt2
+
 # UCSM information for multi-UCSM support.
 # The following section can be repeated for the number of UCS Managers in
 # the cloud.
@@ -57,34 +74,31 @@
 # (ListOpt) Similar to the config specified for single UCSM config
 # ucsm_host_list=Hostname1:Serviceprofile1, Hostname2:Serviceprofile2
 
-# (ListOpt) Service Profile Template config per UCSM. This is a mapping of Service Profile
-# Template to the list of UCS Servers controlled by this template.
-# sp_template_list = SP_Template1_path:SP_Template1:S1,S2 SP_Template2_path:SP_Template2:S3,S4
+# (StrOpt) Service Profile Template config per UCSM.
+# Identical to the format specified in the [ml2_cisco_ucsm] group.
+# sp_template_list = SP_Template1_path:SP_Template1:S1,S2
+#                    SP_Template2_path:SP_Template2:S3,S4
 
-# (ListOpt) VNIC Profile Template config per UCSM.
-# Allows the cloud admin to specify a VNIC Template on the UCSM that contains common config for
-# every port connected to a specific physnet. This physnet to VNIC Template mapping needs to be
-# provided to the driver so that the VNIC Template can be modified when additional neutron networks
-# are associated with this physical network.
-# Each element in this list has 3 parts: the physical network that is defined in neutron configuration,
-# the VNIC Template with its path in UCSM, the list of ports on the UCS Servers that are connected to
-# this physical network. This is an optional config with no defaults.
-# vnic_template_list = physnet1:vnic_template_path1:vt11,vt12 physnet2:vnic_template_path2:vt21,vt22
+# (StrOpt) VNIC Profile Template config per UCSM.
+# Identical to the format specified in the [ml2_cisco_ucsm] group.
+# vnic_template_list = physnet1:vnic_template_path1:vt11
+#                      physnet2:vnic_template_path2:vt21
 
 # (StrOpt) Pre-defined QoS policy name
-# This config allows the cloud admin to pre-create a QoS policy on the UCSM. If this config is present,
-# the UCSM driver will associate this QoS policy with every Port profile it creates for SR-IOV ports.
+# This config allows the cloud admin to pre-create a QoS policy on the UCSM. If
+# this config is present, the UCSM driver will associate this QoS policy with
+# every Port profile it creates for SR-IOV ports.
 # This is an optional config with no defaults.
 # sriov_qos_policy=Test
 
 # SR-IOV Multi-VLAN trunk config section
-# This config section was specifically added to accomodate the scenario where an application
-# using an SR-IOV port to communicate, would like to send traffic on multiple application
-# specific VLANs not known to OpenStack. This config section is applicable across all UCSMs
-# specified as part of the OpenStack cloud.
-# The names of the neutron networks on which the SR-IOV ports are going to be created have to
-# be known ahead of time and should be associated with a list or range of application VLANs
-# using the following format.
+# This config section was specifically added to accomodate the scenario where an
+# application using an SR-IOV port to communicate, would like to send traffic on
+# multiple application specific VLANs not known to OpenStack. This config section
+# is applicable across all UCSMs specified as part of the OpenStack cloud.
+# The names of the neutron networks on which the SR-IOV ports are going to be
+# created have to be known ahead of time and should be associated with a list or
+# range of application VLANs using the following format.
 # [sriov_multivlan_trunk]
 # neutron network name=<comma seperated list of VLAN-ids or VLAN-id ranges>
 # For example:

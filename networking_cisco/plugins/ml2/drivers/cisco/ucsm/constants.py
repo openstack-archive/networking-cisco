@@ -50,7 +50,7 @@ DUPLICATE_EXCEPTION = "object already exists"
 
 SP_TEMPLATE_PARENT_DN = "org-root/ls-"
 SP_TEMPLATE_PREFIX = "/ls-"
-VNIC_TEMPLATE_PARENT_DN = "org-root/lan-conn-templ-"
+VNIC_TEMPLATE_PARENT_DN = "org-root"
 VNIC_TEMPLATE_PREFIX = "/lan-conn-templ-"
 TRANSPORT = "ethernet"
 

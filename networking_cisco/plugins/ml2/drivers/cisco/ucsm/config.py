@@ -63,12 +63,23 @@ ml2_cisco_ucsm_opts = [
                       'applied to all VM-FEX Port Profiles. This is '
                       'an optional parameter.')),
     cfg.BoolOpt('ucsm_https_verify',
-               default=True,
-               help=_('When set to False, the UCSM driver will not check '
-                      'the SSL certificate on the UCSM leaving the connection '
-                      'path insecure and vulnerable to man-in-the-middle '
-                      'attacks. This is a global configuration which means '
-                      'that it applies to all UCSMs in the system.')),
+                default=True,
+                help=_('When set to False, the UCSM driver will not check '
+                       'the SSL certificate on the UCSM leaving the '
+                       'connection path insecure and vulnerable to '
+                       'man-in-the-middle attacks. This is a global '
+                       'configuration which means that it applies to all '
+                       'UCSMs in the system.')),
+    cfg.StrOpt('sp_template_list',
+               help=_('This is an optional configuration to be provided to '
+                      'the UCSM driver when the OpenStack controller and '
+                      'compute hosts are controlled by UCSM Service Profile '
+                      'Templates.')),
+    cfg.StrOpt('vnic_template_list',
+               help=_('This is an optional configuration to be provided to '
+                      'the UCSM driver when vNICs connected to external '
+                      'physical networks are controlled by a vNIC Template '
+                      'on the UCSM.')),
 ]
 
 cfg.CONF.register_opts(ml2_cisco_ucsm_opts, "ml2_cisco_ucsm")
@@ -149,12 +160,40 @@ class UcsmConfig(object):
     def __init__(self):
         """Create a single UCSM or Multi-UCSM dict."""
         self._create_multi_ucsm_dicts()
-        if cfg.CONF.ml2_cisco_ucsm.ucsm_ip and not self.ucsm_dict:
+        if cfg.CONF.ml2_cisco_ucsm.ucsm_ip and not self.multi_ucsm_mode:
             self._create_single_ucsm_dicts()
 
         if not self.ucsm_dict:
             raise cfg.Error(_('Insufficient UCS Manager configuration has '
                               'been provided to the plugin'))
+
+    def _parse_single_ucsm_vnic_template_config(self):
+        if cfg.CONF.ml2_cisco_ucsm.vnic_template_list:
+            LOG.debug('vnic Template config provided : %s',
+                cfg.CONF.ml2_cisco_ucsm.vnic_template_list)
+
+            vnic_template_config = []
+            vnic_template_config.append(
+                cfg.CONF.ml2_cisco_ucsm.vnic_template_list)
+
+            self._parse_vnic_template_list(
+                cfg.CONF.ml2_cisco_ucsm.ucsm_ip,
+                vnic_template_config)
+            self.vnic_template_mode = True
+
+    def _parse_single_ucsm_sp_template_config(self):
+        if cfg.CONF.ml2_cisco_ucsm.sp_template_list:
+            LOG.debug('SP Template config provided : %s',
+                cfg.CONF.ml2_cisco_ucsm.sp_template_list)
+
+            sp_template_config = []
+            sp_template_config.append(
+                cfg.CONF.ml2_cisco_ucsm.sp_template_list)
+
+            self._parse_sp_template_list(
+                cfg.CONF.ml2_cisco_ucsm.ucsm_ip,
+                sp_template_config)
+            self.sp_template_mode = True
 
     def _create_single_ucsm_dicts(self):
         """Creates a dictionary of UCSM data for 1 UCS Manager."""
@@ -167,6 +206,8 @@ class UcsmConfig(object):
         if eth_port_list:
             self.ucsm_port_dict[cfg.CONF.ml2_cisco_ucsm.ucsm_ip] = (
                 eth_port_list)
+        self._parse_single_ucsm_sp_template_config()
+        self._parse_single_ucsm_vnic_template_config()
 
     def _create_multi_ucsm_dicts(self):
         """Creates a dictionary of all UCS Manager data from config."""
@@ -282,7 +323,8 @@ class UcsmConfig(object):
             if ucsm_ip in value:
                 LOG.debug('SP Template: %s in UCSM : %s',
                           value[2], value[0])
-                sp_template_info_list.append(value)
+                if value not in sp_template_info_list:
+                    sp_template_info_list.append(value)
         return sp_template_info_list
 
     def add_sp_template_config_for_host(self, host, ucsm_ip,

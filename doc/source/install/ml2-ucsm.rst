@@ -76,8 +76,22 @@ ML2 UCSM MD Installation
        ucsm_username=admin
        ucsm_password=mysecretpassword
 
-       ucsm_host_list=controller-1:Controller-SP, compute-1:Compute-SP
+       # List of vNICs on every UCS Server that can be configured for
+       # tenant VLAN configuration.
        ucsm_virtio_eth_ports=ucs-eth-0, ucs-eth-1
+
+       # Hostname to Service Profile mapping for Compute hosts managed by
+       # this UCS Manager. This config should be specified for hosts configured
+       # with only Service Profiles and not Service Profile Templates.
+       ucsm_host_list=controller-1:Controller-SP, compute-1:Compute-SP
+
+       # Service Profile Template config for UCSM. This is a mapping of Service Profile
+       # Template to the list of UCS Servers (shown as S# below) controlled by this template.
+       sp_template_list = SP_Template1_path:SP_Template1:S1,S2 SP_Template2_path:SP_Template2:S3,S4,S5
+
+       # vNIC Template config for UCSM. This is a mapping of vNIC Templates on the UCS
+       # Manager that control vNICs that are connected to Neutron provider networks.
+       vnic_template_list = physnet1:vnic_template_path1:vt1 physnet2:vnic_template_path2:vt2
 
    .. end
 
@@ -99,6 +113,9 @@ ML2 UCSM MD Installation
        [ml2_cisco_ucsm_ip:1.1.1.1]
        ucsm_username = username
        ucsm_password = password
+
+       # List of vNICs on every UCS Server that can be configured for
+       # tenant VLAN configuration.
        ucsm_virtio_eth_ports = eth0, eth1
 
        # Hostname to Service Profile mapping for Compute hosts managed by
@@ -109,6 +126,10 @@ ML2 UCSM MD Installation
        # Service Profile Template config per UCSM. This is a mapping of Service Profile
        # Template to the list of UCS Servers controlled by this template.
        sp_template_list = SP_Template1_path:SP_Template1:S1,S2 SP_Template2_path:SP_Template2:S3,S4
+
+       # vNIC Template config per UCSM. This is a mapping of vNIC Templates on the UCS
+       # Manager that control vNICs that are connected to Neutron provider networks.
+       vnic_template_list = physnet1:vnic_template_path1:vt1 physnet2:vnic_template_path2:vt2
 
    .. end
 

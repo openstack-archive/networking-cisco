@@ -86,10 +86,6 @@ VLAN_SEGMENTS_GOOD = [{api.ID: 'vlan_segment_id',
 UCSM_HOST_DICT = {HOST1: UCSM_IP_ADDRESS_1,
                   HOST2: UCSM_IP_ADDRESS_2}
 
-vnic_template_dict = {
-    ('1.1.1.1', 'test-physnet'): ('org-root', 'Test-VNIC'),
-    ('2.2.2.2', 'physnet2'): ('org-root/org-Test-Sub', 'Test'),
-}
 
 PORT_PROFILE_1 = 'OS-PP-100'
 
@@ -876,6 +872,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
                 cfg.CONF.ml2_cisco_ucsm.ucsm_host_list)
 
     def test_parse_virtio_eth_ports(self):
+        """Verifies eth_port_list contains a fully-formed path."""
         cfg.CONF.ml2_cisco_ucsm.ucsm_virtio_eth_ports = ['test-eth1',
                                                          'test-eth2']
         eth_port_list = conf.parse_virtio_eth_ports()
@@ -903,6 +900,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         self.assertEqual(expected_service_profile2, actual_service_profile2)
 
     def test_host_id_to_hostname(self):
+        """Verifies extraction of hostname from host-id from Nova."""
         host_id_with_domain1 = 'compute1.cisco.com'
         expected_hostname1 = 'compute1'
 
@@ -943,6 +941,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
             "10.10.10.10"))
 
     def test_remove_non_existent_port_profile_from_table(self):
+        """Verifies that removing previously deleted PP works."""
         self.assertIsNone(self.db.remove_port_profile_to_delete(
             "OS-PP-100", "10.10.10.10"))
 
@@ -1073,14 +1072,16 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         self.ucsm_driver.ucsm_host_dict[HOST1] = '1.1.1.1'
 
     def test_parsing_of_single_ucsm_config(self):
+        """Verifies parsing of expected single UCSM config parameters."""
+        # Single UCSM config parameters.
         cfg.CONF.ml2_cisco_ucsm.ucsm_ip = "1.1.1.1"
         cfg.CONF.ml2_cisco_ucsm.ucsm_username = "user1"
         cfg.CONF.ml2_cisco_ucsm.ucsm_password = "password1"
         cfg.CONF.ml2_cisco_ucsm.ucsm_virtio_eth_ports = ["eth0", "eth1"]
+
         expected_parsed_virtio_eth_ports = ["/ether-eth0", "/ether-eth1"]
 
         ucsm_config = conf.UcsmConfig()
-
         ucsm_config._create_single_ucsm_dicts()
 
         username, password = ucsm_config.get_credentials_for_ucsm_ip(
@@ -1102,3 +1103,126 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         # reflecting new value.
         cfg.CONF.ml2_cisco_ucsm.ucsm_https_verify = False
         self.assertFalse(conf.get_ucsm_https_verify())
+
+    def test_parsing_of_single_ucsm_vnic_template_config(self):
+        """Verifies parsing of single UCSM vNIC Template config."""
+        # Single UCSM config parameters.
+        cfg.CONF.ml2_cisco_ucsm.ucsm_ip = "1.1.1.1"
+        cfg.CONF.ml2_cisco_ucsm.ucsm_username = "user1"
+        cfg.CONF.ml2_cisco_ucsm.ucsm_password = "password1"
+        cfg.CONF.ml2_cisco_ucsm.ucsm_virtio_eth_ports = ["eth0", "eth1"]
+        cfg.CONF.ml2_cisco_ucsm.vnic_template_list = (
+            'physnet1:top-root:Test-VNIC1 '
+            'physnet2:org-root/org-Test-Sub:Test-VNIC2 '
+            'physnet3::Test-VNIC3')
+
+        # Expected values after parsing of config parametrs
+        expected_vnic_template_dict = {
+            ('1.1.1.1', 'physnet1'): ('top-root', 'Test-VNIC1'),
+            ('1.1.1.1', 'physnet2'): ('org-root/org-Test-Sub', 'Test-VNIC2'),
+            ('1.1.1.1', 'physnet3'): ('org-root', 'Test-VNIC3'),
+        }
+        expected_vnic_template1 = ('org-root/org-Test-Sub', 'Test-VNIC2')
+        expected_vnic_template2 = [
+            ('org-root/org-Test-Sub', 'Test-VNIC2'),
+            ('top-root', 'Test-VNIC1'),
+            ('org-root', 'Test-VNIC3')
+        ]
+
+        ucsm_config = conf.UcsmConfig()
+        ucsm_config.vnic_template_dict = {}
+        ucsm_config._create_single_ucsm_dicts()
+
+        # Verify parsing of VNIC Template config
+        self.assertTrue(ucsm_config.is_vnic_template_configured())
+        self.assertEqual(expected_vnic_template_dict,
+            ucsm_config.vnic_template_dict)
+
+        vnic_template1 = ucsm_config.get_vnic_template_for_physnet(
+            cfg.CONF.ml2_cisco_ucsm.ucsm_ip, "physnet2")
+        self.assertEqual(expected_vnic_template1, vnic_template1)
+
+        vnic_template2 = ucsm_config.get_vnic_template_for_ucsm_ip(
+            cfg.CONF.ml2_cisco_ucsm.ucsm_ip)
+        self.assertEqual(expected_vnic_template2, vnic_template2)
+
+        vnic_template_path, vnic_template = (
+            ucsm_config.get_vnic_template_for_physnet("1.1.1.1",
+            "physnet1"))
+        vnic_templ_full_path1 = (vnic_template_path +
+                   const.VNIC_TEMPLATE_PREFIX + str(vnic_template))
+        expected_vnic_templ_full_path1 = "top-root/lan-conn-templ-Test-VNIC1"
+        self.assertEqual(expected_vnic_templ_full_path1,
+            vnic_templ_full_path1)
+
+        vnic_template_path, vnic_template = (
+            ucsm_config.get_vnic_template_for_physnet("1.1.1.1",
+            "physnet2"))
+        vnic_templ_full_path1 = (vnic_template_path +
+                   const.VNIC_TEMPLATE_PREFIX + str(vnic_template))
+        expected_vnic_templ_full_path1 = (
+            "org-root/org-Test-Sub/lan-conn-templ-Test-VNIC2")
+        self.assertEqual(expected_vnic_templ_full_path1,
+            vnic_templ_full_path1)
+
+        vnic_template_path, vnic_template = (
+            ucsm_config.get_vnic_template_for_physnet("1.1.1.1",
+            "physnet3"))
+        vnic_templ_full_path1 = (vnic_template_path +
+                   const.VNIC_TEMPLATE_PREFIX + str(vnic_template))
+        expected_vnic_templ_full_path1 = "org-root/lan-conn-templ-Test-VNIC3"
+        self.assertEqual(expected_vnic_templ_full_path1,
+            vnic_templ_full_path1)
+
+    def test_parsing_of_single_ucsm_sp_template_config(self):
+        """Verifies parsing of single UCSM SP Template config."""
+
+        # Single UCSM config parameters.
+        cfg.CONF.ml2_cisco_ucsm.ucsm_ip = "1.1.1.1"
+        cfg.CONF.ml2_cisco_ucsm.ucsm_username = "user1"
+        cfg.CONF.ml2_cisco_ucsm.ucsm_password = "password1"
+        cfg.CONF.ml2_cisco_ucsm.ucsm_virtio_eth_ports = ["eth0", "eth1"]
+        cfg.CONF.ml2_cisco_ucsm.sp_template_list = (
+            'SP_Template1_path:SP_Template1:Host11,Host12 '
+            'SP_Template2_path:SP_Template2:Host21,Host22')
+
+        expect_sp_template_dict = {
+            ('Host11'): ('1.1.1.1', 'SP_Template1_path', 'SP_Template1'),
+            ('Host12'): ('1.1.1.1', 'SP_Template1_path', 'SP_Template1'),
+            ('Host21'): ('1.1.1.1', 'SP_Template2_path', 'SP_Template2'),
+            ('Host22'): ('1.1.1.1', 'SP_Template2_path', 'SP_Template2'),
+        }
+
+        ucsm_config = conf.UcsmConfig()
+        ucsm_config.sp_template_dict = {}
+        ucsm_config._create_single_ucsm_dicts()
+
+        # Verify parsing of SP Template config
+        self.assertTrue(ucsm_config.is_service_profile_template_configured())
+        self.assertEqual(expect_sp_template_dict, ucsm_config.sp_template_dict)
+
+        # Test all the utility methods to glean information
+        # from sp_template_dict
+        expected_sp_template_path = "SP_Template1_path"
+        sp_template_path = ucsm_config.get_sp_template_path_for_host("Host11")
+        self.assertEqual(expected_sp_template_path, sp_template_path)
+
+        expected_sp_template = "SP_Template1"
+        sp_template = ucsm_config.get_sp_template_for_host("Host12")
+        self.assertEqual(expected_sp_template, sp_template)
+
+        expected_ucsm_ip = "1.1.1.1"
+        ucsm_ip = ucsm_config.get_ucsm_ip_for_sp_template_host("Host21")
+        self.assertEqual(expected_ucsm_ip, ucsm_ip)
+
+        expected_sp_template_list = [
+            ('1.1.1.1', 'SP_Template2_path', 'SP_Template2'),
+            ('1.1.1.1', 'SP_Template1_path', 'SP_Template1'),
+        ]
+        sp_template_list = ucsm_config.get_sp_template_list_for_ucsm("1.1.1.1")
+        for entry in expected_sp_template_list:
+            self.assertIn(entry, sp_template_list)
+
+        expected_sp_template_list = []
+        sp_template_list = ucsm_config.get_sp_template_list_for_ucsm("2.2.2.2")
+        self.assertEqual(expected_sp_template_list, sp_template_list)
