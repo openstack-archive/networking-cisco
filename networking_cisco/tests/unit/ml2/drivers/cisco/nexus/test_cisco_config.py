@@ -73,6 +73,18 @@ physnet=physnet1
 compute1=1/1
 """
 
+# Assign non-integer to ssh_port for error
+dict_mapping_config_file = """
+[ml2_mech_cisco_nexus:1.1.1.1]
+username=admin
+password=mySecretPassword
+nve_src_intf=2
+physnet=physnet1
+host_ports_mapping=compute1:[1/1],
+                   compute2:[1/2],
+                   compute3:[1/3, port-channel30]
+"""
+
 
 class TestCiscoNexusPluginConfigBase(testlib_api.SqlTestCase):
 
@@ -166,3 +178,24 @@ class TestCiscoNexusPluginConfig(TestCiscoNexusPluginConfigBase):
         self.assertIn("Value for option ssh_port is not valid: "
                       "invalid literal for int() with base 10: "
                       "'abc'", x)
+
+    def test_dict_host_port_mapping(self):
+        nc_base.load_config_file(dict_mapping_config_file)
+        """Test port_host_mapping dictionary works."""
+        expected = {
+            '1.1.1.1': {
+                'username': 'admin',
+                'password': 'mySecretPassword',
+                'host_ports_mapping': {
+                    'compute1': ['1/1'],
+                    'compute2': ['1/2'],
+                    'compute3': ['1/3', 'port-channel30']
+                }
+            }
+        }
+
+        for switch_ip, options in expected.items():
+            for opt_name, option in options.items():
+                self.assertEqual(
+                    option, cfg.CONF.ml2_cisco.nexus_switches.get(
+                        switch_ip).get(opt_name))

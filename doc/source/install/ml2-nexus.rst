@@ -61,8 +61,9 @@ with the Nexus Driver.
    configuration.  If Network Nodes are connected, you can pre-configure the
    tenant vlan range on the Nexus switchport; otherwise, like all compute nodes
    you can configure the Nexus ML2 Driver to manage the switchports by
-   configuring the hostname to Nexus switchport mapping in the section
-   [ml2_mech_cisco_nexus] of the neutron start-up config file.
+   configuring the hostname to Nexus switchport mapping using the
+   configuration option `host_ports_mapping` beneath the section
+   `[ml2_mech_cisco_nexus]` of the neutron start-up config file.
 #. Some pre-configuration must be performed by the Nexus switch administrator.
    For instance:
 
@@ -132,7 +133,7 @@ ML2 Nexus MD Installation
        [ml2_mech_cisco_nexus:192.168.1.1]
        username=admin
        password=mySecretPasswordForNexus
-       host-1=1/2
+       host_ports_mapping=host-1:[1/2]  # deprecates config `host-1=1/2`
 
    .. end
 #. Restart neutron to pick-up configuration changes.

@@ -46,14 +46,14 @@ config file sections :ref:`nexus_vlan_startup` apply here.
     switch_heartbeat_time = 30
 
     [ml2_mech_cisco_nexus:192.168.1.1]
-    ComputeHostA=1/10
+    host_ports_mapping=ComputeHostA:[1/10]  # deprecates config `ComputeHostA=1/10`
     username=admin
     password=mySecretPasswordForNexus
     vpc_pool=1001-1025,1030
     intfcfg_portchannel=no lacp suspend-individual;spanning-tree port type edge trunk
 
     [ml2_mech_cisco_nexus:192.168.2.2]
-    ComputeHostB=1/10
+    host_ports_mapping=ComputeHostB:[1/10]  # deprecates config `ComputeHostB=1/10`
     username=admin
     password=mySecretPasswordForNexus
     vpc_pool=1001-1025,1030
@@ -95,14 +95,14 @@ neutron start-up config file sections :ref:`neutron_vxlan_startup` apply here.
         nexus_driver = restapi     # No longer required since restapi is now the default in this release.
 
         [ml2_mech_cisco_nexus:192.168.1.1]
-        ComputeHostA=1/10
+        host_ports_mapping=ComputeHostA:[1/10]  # deprecates config `ComputeHostA=1/10`
         username=admin
         password=secretPassword
         ssh_port=22
         physnet=physnet1
 
         [ml2_mech_cisco_nexus:192.168.1.2]
-        ComputeHostB=1/10
+        host_ports_mapping=ComputeHostB:[1/10]  # deprecates config `ComputeHostB=1/10`
         NetworkNode=1/11
         username=admin
         password=secretPassword
