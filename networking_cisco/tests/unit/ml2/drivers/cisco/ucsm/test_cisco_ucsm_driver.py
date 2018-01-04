@@ -835,14 +835,15 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         """Verifies parsing of Hostname:Service Profile config."""
         ucsm_sp_dict = {}
         ucsm_host_dict = {}
-        cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = ['Host1:SP1', 'Host2:SP2']
+        cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = {'Host1': 'SP1',
+                                                  'Host2': 'SP2'}
         cfg.CONF.ml2_cisco_ucsm.ucsm_ip = '1.1.1.1'
         expected_ip = '1.1.1.1'
         expected_sp1 = "org-root/ls-SP1"
         expected_sp2 = "org-root/ls-SP2"
-        ucsm_sp_dict, ucsm_host_dict = conf.parse_ucsm_host_config(
-            cfg.CONF.ml2_cisco_ucsm.ucsm_ip,
-            cfg.CONF.ml2_cisco_ucsm.ucsm_host_list)
+
+        ucsm_sp_dict = self.ucsm_config.ucsm_sp_dict
+        ucsm_host_dict = self.ucsm_config.ucsm_host_dict
 
         key = (cfg.CONF.ml2_cisco_ucsm.ucsm_ip, 'Host1')
         self.assertIn(key, ucsm_sp_dict)
@@ -859,23 +860,12 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         self.assertNotIn(key, ucsm_sp_dict)
         self.assertIsNone(ucsm_host_dict.get('Host3'))
 
-    def test_bad_ucsm_host_config(self):
-        """Verifies malformed ucsm_host_list raises an error."""
-        cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = ['Host1:', 'Host2:SP2']
-        self.assertRaisesRegex(cfg.Error, "Host1:",
-            conf.parse_ucsm_host_config, UCSM_IP_ADDRESS_1,
-                cfg.CONF.ml2_cisco_ucsm.ucsm_host_list)
-
-        cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = ['Host1:SP1', 'Host2']
-        self.assertRaisesRegex(cfg.Error, "Host2",
-            conf.parse_ucsm_host_config, UCSM_IP_ADDRESS_1,
-                cfg.CONF.ml2_cisco_ucsm.ucsm_host_list)
-
     def test_parse_virtio_eth_ports(self):
         """Verifies eth_port_list contains a fully-formed path."""
+        cfg.CONF.ml2_cisco_ucsm.ucsm_ip = '1.1.1.1'
         cfg.CONF.ml2_cisco_ucsm.ucsm_virtio_eth_ports = ['test-eth1',
                                                          'test-eth2']
-        eth_port_list = conf.parse_virtio_eth_ports()
+        eth_port_list = self.ucsm_config.get_ucsm_eth_port_list("1.1.1.1")
         self.assertNotIn('test-eth1', eth_port_list)
         self.assertIn(const.ETH_PREFIX + 'test-eth1', eth_port_list)
 
@@ -884,12 +874,10 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         expected_service_profile1 = 'org-root/ls-SP1'
         expected_service_profile2 = 'org-root/sub-org1/ls-SP2'
         cfg.CONF.ml2_cisco_ucsm.ucsm_ip = '1.1.1.1'
-        cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = ['Host1:SP1',
-            'Host2:org-root/sub-org1/ls-SP2']
+        cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = {'Host1': 'SP1',
+            'Host2': 'org-root/sub-org1/ls-SP2'}
 
-        ucsm_sp_dict, ucsm_host_dict = conf.parse_ucsm_host_config(
-            cfg.CONF.ml2_cisco_ucsm.ucsm_ip,
-            cfg.CONF.ml2_cisco_ucsm.ucsm_host_list)
+        ucsm_sp_dict = self.ucsm_config.ucsm_sp_dict
 
         key = ('1.1.1.1', 'Host1')
         actual_service_profile1 = ucsm_sp_dict.get(key)
@@ -1055,13 +1043,19 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
             handle = FakeUcsmHandle(PORT_PROFILE_1)
             return handle
 
+        def get_server_name(self, han, mo, ip):
+            if ip == expected_ucsm_ip:
+                return HOST1
+            else:
+                return "nope"
+
         mock.patch.object(ucsm_network_driver.CiscoUcsmDriver,
                           'ucs_manager_connect',
                           new=mocked_connect).start()
 
         mock.patch.object(ucsm_network_driver.CiscoUcsmDriver,
                           '_get_server_name',
-                          return_value=HOST1).start()
+                          new=get_server_name).start()
 
         actual_ucsm_ip = self.ucsm_driver._learn_sp_and_template_for_host(
             host_id)
@@ -1082,7 +1076,6 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         expected_parsed_virtio_eth_ports = ["/ether-eth0", "/ether-eth1"]
 
         ucsm_config = conf.UcsmConfig()
-        ucsm_config._create_single_ucsm_dicts()
 
         username, password = ucsm_config.get_credentials_for_ucsm_ip(
             cfg.CONF.ml2_cisco_ucsm.ucsm_ip)
@@ -1112,26 +1105,18 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
             'physnet3::Test-VNIC3')
 
         # Expected values after parsing of config parametrs
-        expected_vnic_template_dict = {
-            ('1.1.1.1', 'physnet1'): ('top-root', 'Test-VNIC1'),
-            ('1.1.1.1', 'physnet2'): ('org-root/org-Test-Sub', 'Test-VNIC2'),
-            ('1.1.1.1', 'physnet3'): ('org-root', 'Test-VNIC3'),
-        }
         expected_vnic_template1 = ('org-root/org-Test-Sub', 'Test-VNIC2')
         expected_vnic_template2 = [
-            ('org-root/org-Test-Sub', 'Test-VNIC2'),
             ('top-root', 'Test-VNIC1'),
+            ('org-root/org-Test-Sub', 'Test-VNIC2'),
             ('org-root', 'Test-VNIC3')
         ]
 
         ucsm_config = conf.UcsmConfig()
         ucsm_config.vnic_template_dict = {}
-        ucsm_config._create_single_ucsm_dicts()
 
         # Verify parsing of VNIC Template config
         self.assertTrue(ucsm_config.is_vnic_template_configured())
-        self.assertEqual(expected_vnic_template_dict,
-            ucsm_config.vnic_template_dict)
 
         vnic_template1 = ucsm_config.get_vnic_template_for_physnet(
             cfg.CONF.ml2_cisco_ucsm.ucsm_ip, "physnet2")
@@ -1181,20 +1166,10 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
             'SP_Template1_path:SP_Template1:Host11,Host12 '
             'SP_Template2_path:SP_Template2:Host21,Host22')
 
-        expect_sp_template_dict = {
-            ('Host11'): ('1.1.1.1', 'SP_Template1_path', 'SP_Template1'),
-            ('Host12'): ('1.1.1.1', 'SP_Template1_path', 'SP_Template1'),
-            ('Host21'): ('1.1.1.1', 'SP_Template2_path', 'SP_Template2'),
-            ('Host22'): ('1.1.1.1', 'SP_Template2_path', 'SP_Template2'),
-        }
-
         ucsm_config = conf.UcsmConfig()
-        ucsm_config.sp_template_dict = {}
-        ucsm_config._create_single_ucsm_dicts()
 
         # Verify parsing of SP Template config
         self.assertTrue(ucsm_config.is_service_profile_template_configured())
-        self.assertEqual(expect_sp_template_dict, ucsm_config.sp_template_dict)
 
         # Test all the utility methods to glean information
         # from sp_template_dict

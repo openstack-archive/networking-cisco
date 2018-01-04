@@ -101,7 +101,7 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
             if not physnet:
                 LOG.debug('physnet is None. Not modifying VNIC '
                           'Template config')
-            if self.ucsm_conf.vnic_template_mode and physnet:
+            if self.ucsm_conf.is_vnic_template_configured() and physnet:
                 # Check if VNIC template is configured for this physnet
                 vnic_template_path, vnic_template = (
                     self.ucsm_conf.get_vnic_template_for_physnet(ucsm_ip,
