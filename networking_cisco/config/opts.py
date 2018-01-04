@@ -14,10 +14,11 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     config as nexus_config)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     type_nexus_vxlan as nexus_vxlan_config)
+from networking_cisco.plugins.ml2.drivers.cisco.ucsm import (
+    config as ucsm_config)
 
 
 def list_nexus_conf_opts():
-
     return [
         ('ml2_cisco', nexus_config.ml2_cisco_opts),
         ('ml2_mech_cisco_nexus:<ip_address>', nexus_config.nexus_sub_opts)
@@ -27,4 +28,14 @@ def list_nexus_conf_opts():
 def list_nexus_vxlan_type_driver_conf_opts():
     return [
         ('ml2_type_nexus_vxlan', nexus_vxlan_config.nexus_vxlan_opts),
+    ]
+
+
+def list_ucsm_conf_opts():
+    main_group = list(ucsm_config.ml2_cisco_ucsm_opts)
+    main_group.extend(ucsm_config.ml2_cisco_ucsm_common)
+    return [
+        ('ml2_cisco_ucsm', main_group),
+        ('ml2_cisco_ucsm_ip:<ip_address>', ucsm_config.ml2_cisco_ucsm_common),
+        ('sriov_multivlan_trunk', ucsm_config.sriov_opts)
     ]

@@ -3,6 +3,6 @@ Sample UCSM Mechanism Driver
 ============================
 
 This sample configuration file can also be viewed in raw text
-:download:`ml2_ucsm.ini.sample <../../../../etc/neutron/plugins/ml2/ml2_ucsm.ini.sample>`
+:download:`ml2_ucsm.ini.sample <../../_static/config-samples/ml2_ucsm.conf.sample>`.
 
-.. literalinclude:: ../../../../etc/neutron/plugins/ml2/ml2_ucsm.ini.sample
+.. literalinclude:: ../../_static/config-samples/ml2_ucsm.conf.sample
