@@ -144,6 +144,9 @@ class CiscoNexusRestapiClient(object):
             else:
                 headers = {'Content-Type': 'application/json'}
                 security_data = self.credentials[ipaddr]
+                verify = security_data[const.HTTPS_CERT_TUPLE]
+                if not verify:
+                    verify = security_data[const.HTTPS_VERIFY_TUPLE]
                 self.session.auth = (security_data[0], security_data[1])
         if self.status != requests.codes.OK:
             return {}

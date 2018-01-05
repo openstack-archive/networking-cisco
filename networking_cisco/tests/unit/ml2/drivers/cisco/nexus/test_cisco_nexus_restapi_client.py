@@ -47,6 +47,14 @@ class TestCiscoNexusRestapiClient(testlib_api.SqlTestCase):
         return {u'imdata': [{u'eqptCh': {u'attributes': {
                 u'descr': u'Nexus9000 C9396PX Chassis'}}}]}
 
+    def json_cli(self):
+
+        return {u'ins_api': {u'outputs': {u'output': [{
+                u'msg': u'Success', u'body': {}, u'code': u'200'}, {
+                u'msg': u'Success', u'body': {}, u'code': u'200'}, {
+                u'body': u'warning', u'msg': u'Success', u'code': u'200'}]},
+                u'version': u'1.0', u'type': u'cli_conf', u'sid': u'eoc'}}
+
     def _request_on_count(self, username, password, verify, match_range=None):
 
         """Generate side effect for restapi client Session.
@@ -119,6 +127,12 @@ class TestCiscoNexusRestapiClient(testlib_api.SqlTestCase):
                 rsp.status_code = 200
                 rsp.headers = {'Set-Cookie': 'this is a test'}
 
+            elif method == "POST" and "cli_conf" in data:
+
+                rsp.status_code = 200
+                rsp.headers = headers
+                rsp.json = self.json_cli
+
             elif method == "GET":
 
                 rsp.status_code = 200
@@ -144,6 +158,17 @@ class TestCiscoNexusRestapiClient(testlib_api.SqlTestCase):
         nexus_dict['3.3.3.3', const.PASSWORD] = 'Shhhh3'
         nexus_dict['3.3.3.3', const.HTTPS_VERIFY] = False
         nexus_dict['3.3.3.3', const.HTTPS_CERT] = None
+        nexus_dict['4.4.4.4', const.USERNAME] = 'admin'
+        nexus_dict['4.4.4.4', const.PASSWORD] = 'Shhhh1'
+        nexus_dict['4.4.4.4', const.HTTPS_VERIFY] = True
+        nexus_dict['4.4.4.4', const.HTTPS_CERT] = (
+            '/home/caboucha/test_src/openstack-outfiles/nexus.crt')
+        nexus_dict['4.4.4.4', const.IF_PC] = 'user cmd1;user cmd2'
+        nexus_dict['5.5.5.5', const.USERNAME] = 'admin'
+        nexus_dict['5.5.5.5', const.PASSWORD] = 'Shhhh1'
+        nexus_dict['5.5.5.5', const.HTTPS_VERIFY] = False
+        nexus_dict['5.5.5.5', const.HTTPS_CERT] = None
+        nexus_dict['5.5.5.5', const.IF_PC] = 'user cmd1;user cmd2'
 
         return nexus_dict
 
@@ -199,3 +224,49 @@ class TestCiscoNexusRestapiClient(testlib_api.SqlTestCase):
                            self.nexus_dict[ipaddr, const.USERNAME],
                            self.nexus_dict[ipaddr, const.PASSWORD],
                            self.nexus_dict[ipaddr, const.HTTPS_VERIFY])
+
+    def test_verify_for_cli_with_local_cert(self):
+        # Since the config contains const.IF_PC, it will cause
+        # _send_cli_config_string to get called as opposed to
+        # send_edit_string.  This is a different authentication path
+        # through the client's send_request since it sends CLI
+        # events instead of RESTAPI events to the Nexus.
+
+        ipaddr = '4.4.4.4'
+        config = {'request.side_effect':
+                  self._request_on_count(
+                      self.nexus_dict[ipaddr, const.USERNAME],
+                      self.nexus_dict[ipaddr, const.PASSWORD],
+                      self.nexus_dict[ipaddr, const.HTTPS_CERT])}
+        self.mock_Session.configure_mock(**config)
+
+        self.r_driver._apply_user_port_channel_config(
+            '4.4.4.4', 44)
+
+        # The verify value passed in send_request is checked
+        # in side_effect handling.  If incorrect, exception raised.
+        # No need to check again.
+        self.mock_Session.reset_mock()
+
+    def test_verify_for_cli_no_cert(self):
+        # Since the config contains const.IF_PC, it will cause
+        # _send_cli_config_string to get called as opposed to
+        # send_edit_string.  This is a different authentication path
+        # through the client's send_request since it sends CLI
+        # events instead of RESTAPI events to the Nexus.
+
+        ipaddr = '5.5.5.5'
+        config = {'request.side_effect':
+                  self._request_on_count(
+                      self.nexus_dict[ipaddr, const.USERNAME],
+                      self.nexus_dict[ipaddr, const.PASSWORD],
+                      self.nexus_dict[ipaddr, const.HTTPS_VERIFY])}
+        self.mock_Session.configure_mock(**config)
+
+        self.r_driver._apply_user_port_channel_config(
+            '5.5.5.5', 44)
+
+        # The verify value passed in send_request is checked
+        # in side_effect handling.  If incorrect, exception raised.
+        # No need to check again.
+        self.mock_Session.reset_mock()
