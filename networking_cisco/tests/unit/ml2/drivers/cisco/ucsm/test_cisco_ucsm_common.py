@@ -13,6 +13,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from oslo_config import cfg
+
 from networking_cisco.backwards_compatibility import ml2_config  # noqa
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import (config as
     ucsm_config)
@@ -58,6 +60,8 @@ test_network1=5, 7-9
 test_network2=500-509, 700
 """
 
+CONF = cfg.CONF
+
 
 class ConfigMixin(object):
 
@@ -67,6 +71,7 @@ class ConfigMixin(object):
 
     def set_up_mocks(self):
         # Mock the configuration file
+        CONF.reset()
 
         args = ['--config-file', base.etcdir('neutron.conf')]
         neutron_config.init(args=args)
@@ -84,11 +89,15 @@ class ConfigMixin(object):
         # Configure and test the Cisco UCS Manager mechanism driver
         config = ucsm_config.UcsmConfig()
 
-        self.assertEqual(config.get_credentials_for_ucsm_ip("1.1.1.1"),
-                         (UCSM_USERNAME_1, UCSM_PASSWORD_1))
+        self.assertEqual(CONF.ml2_cisco_ucsm.ucsms['1.1.1.1'].ucsm_username,
+                         UCSM_USERNAME_1)
+        self.assertEqual(CONF.ml2_cisco_ucsm.ucsms['1.1.1.1'].ucsm_password,
+                         UCSM_PASSWORD_1)
 
-        self.assertEqual(config.get_credentials_for_ucsm_ip("2.2.2.2"),
-                         (UCSM_USERNAME_2, UCSM_PASSWORD_2))
+        self.assertEqual(CONF.ml2_cisco_ucsm.ucsms['2.2.2.2'].ucsm_username,
+                         UCSM_USERNAME_2)
+        self.assertEqual(CONF.ml2_cisco_ucsm.ucsms['2.2.2.2'].ucsm_password,
+                         UCSM_PASSWORD_2)
 
         expected_sp_dict = {
             ('1.1.1.1', 'UCS-1'): ('org-root/ls-UCS-1-SP'),

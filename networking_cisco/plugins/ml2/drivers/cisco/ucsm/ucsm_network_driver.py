@@ -156,14 +156,15 @@ class CiscoUcsmDriver(object):
         if not self.ucsmsdk:
             self.ucsmsdk = self._import_ucsmsdk()
 
-        username, password = self.ucsm_conf.get_credentials_for_ucsm_ip(
-            ucsm_ip)
-        if not username:
+        ucsm = CONF.ml2_cisco_ucsm.ucsms.get(ucsm_ip)
+
+        if not ucsm or not ucsm.ucsm_username or not ucsm.ucsm_password:
             LOG.error('UCS Manager network driver failed to get login '
                       'credentials for UCSM %s', ucsm_ip)
             return None
 
-        handle = self.ucsmsdk.handle(ucsm_ip, username, password)
+        handle = self.ucsmsdk.handle(ucsm_ip, ucsm.ucsm_username,
+                                     ucsm.ucsm_password)
         try:
             handle.login()
         except Exception as e:

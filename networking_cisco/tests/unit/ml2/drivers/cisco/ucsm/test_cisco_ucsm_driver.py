@@ -1085,11 +1085,9 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
 
         ucsm_config = conf.UcsmConfig()
 
-        username, password = ucsm_config.get_credentials_for_ucsm_ip(
-            cfg.CONF.ml2_cisco_ucsm.ucsm_ip)
-
-        self.assertEqual(username, cfg.CONF.ml2_cisco_ucsm.ucsm_username)
-        self.assertEqual(password, cfg.CONF.ml2_cisco_ucsm.ucsm_password)
+        ucsm = cfg.CONF.ml2_cisco_ucsm.ucsms['3.3.3.3']
+        self.assertEqual(ucsm.ucsm_username, "user1")
+        self.assertEqual(ucsm.ucsm_password, "password1")
 
         virtio_port_list = ucsm_config.get_ucsm_eth_port_list(
             cfg.CONF.ml2_cisco_ucsm.ucsm_ip)
