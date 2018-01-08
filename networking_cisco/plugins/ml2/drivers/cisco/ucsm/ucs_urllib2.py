@@ -17,11 +17,11 @@ import ssl
 import urllib2
 from urllib2 import *  # noqa
 
-from networking_cisco.plugins.ml2.drivers.cisco.ucsm import config
+from oslo_config import cfg
 
 
 def build_opener(*handlers):
-    if not config.get_ucsm_https_verify():
+    if not cfg.CONF.ml2_cisco_ucsm.ucsm_https_verify:
         # SSL certificate checking has been turned off. Try to create
         # a default context.
         try:

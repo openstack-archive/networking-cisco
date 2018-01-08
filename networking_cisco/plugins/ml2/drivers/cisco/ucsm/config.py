@@ -139,10 +139,6 @@ def parse_virtio_eth_ports():
     return eth_port_list
 
 
-def get_ucsm_https_verify():
-    return cfg.CONF.ml2_cisco_ucsm.ucsm_https_verify
-
-
 class UcsmConfig(object):
     """ML2 Cisco UCSM Mechanism Driver Configuration class."""
     ucsm_dict = {}

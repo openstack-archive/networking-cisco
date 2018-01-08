@@ -30,6 +30,7 @@ from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucsm_db
 
 
 LOG = logging.getLogger(__name__)
+CONF = cfg.CONF
 
 
 class CiscoUcsmDriver(object):
@@ -108,7 +109,7 @@ class CiscoUcsmDriver(object):
         """
         # Check if SSL certificate checking has been disabled.
         # If so, warn the user before proceeding.
-        if not config.get_ucsm_https_verify():
+        if not CONF.ml2_cisco_ucsm.ucsm_https_verify:
             LOG.warning(const.SSL_WARNING)
 
         # Monkey patch the UCS sdk version of urllib2 to disable
