@@ -236,7 +236,10 @@ class CiscoUcsmDriver(object):
     def get_ucsm_ip_for_host(self, host_id):
         ucsm_ip = self.ucsm_host_dict.get(host_id)
         if not ucsm_ip:
-            ucsm_ip = self.ucsm_conf.get_ucsm_ip_for_sp_template_host(host_id)
+            # See if there is a UCSM in the configuration with this host_id
+            ucsms = CONF.ml2_cisco_ucsm.ucsms
+            ucsm_ip = next(iter([ip for ip, ucsm in ucsms.items()
+                           if host_id in ucsm.sp_template_list]), None)
             if not ucsm_ip:
                 # Try to discover the Service Proile or SP Template for the
                 # host directly from UCS Manager
@@ -468,7 +471,9 @@ class CiscoUcsmDriver(object):
         the UCS Server, is updated with the VLAN profile corresponding
         to the vlan_id passed in.
         """
-        virtio_port_list = self.ucsm_conf.get_ucsm_eth_port_list(ucsm_ip)
+        virtio_port_list = (
+            CONF.ml2_cisco_ucsm.ucsms[ucsm_ip].ucsm_virtio_eth_ports)
+
         eth_port_paths = ["%s%s" % (service_profile, ep)
             for ep in virtio_port_list]
 
@@ -520,12 +525,12 @@ class CiscoUcsmDriver(object):
 
     def update_service_profile_template(self, vlan_id,
                                         host_id, ucsm_ip):
-        sp_template = self.ucsm_conf.get_sp_template_for_host(
-            host_id)
 
-        sp_template_path = (
-            self.ucsm_conf.get_sp_template_path_for_host(host_id) +
-            const.SP_TEMPLATE_PREFIX + sp_template)
+        template_info = (
+            CONF.ml2_cisco_ucsm.ucsms[ucsm_ip].sp_template_list[host_id])
+
+        sp_template_path = (template_info.path + const.SP_TEMPLATE_PREFIX +
+                            template_info.name)
 
         vlan_name = self.make_vlan_name(vlan_id)
 
@@ -536,7 +541,8 @@ class CiscoUcsmDriver(object):
                           'Vlan Profile for vlan %s', str(vlan_id))
                 return False
 
-            virtio_port_list = self.ucsm_conf.get_ucsm_eth_port_list(ucsm_ip)
+            virtio_port_list = (
+                CONF.ml2_cisco_ucsm.ucsms[ucsm_ip].ucsm_virtio_eth_ports)
             eth_port_paths = ["%s%s" % (sp_template_path, ep)
                 for ep in virtio_port_list]
 
@@ -571,7 +577,7 @@ class CiscoUcsmDriver(object):
                             LOG.debug('UCS Manager network driver could not '
                                       'update Service Profile Template %s '
                                       'with vlan %d',
-                                      sp_template, vlan_id)
+                                      template_info.name, vlan_id)
                             return False
                     else:
                         LOG.debug('UCS Manager network driver did not find '
@@ -787,8 +793,8 @@ class CiscoUcsmDriver(object):
         try:
             handle.StartTransaction()
             for service_profile in service_profile_list:
-                virtio_port_list = self.ucsm_conf.get_ucsm_eth_port_list(
-                    ucsm_ip)
+                virtio_port_list = (
+                    CONF.ml2_cisco_ucsm.ucsms[ucsm_ip].ucsm_virtio_eth_ports)
                 eth_port_paths = ["%s%s" % (service_profile, ep)
                     for ep in virtio_port_list]
 
@@ -830,10 +836,11 @@ class CiscoUcsmDriver(object):
     def _remove_vlan_from_all_sp_templates(self, handle, vlan_id, ucsm_ip):
         """Deletes VLAN config from all SP Templates that have it."""
         sp_template_info_list = (
-            self.ucsm_conf.get_sp_template_list_for_ucsm(ucsm_ip))
+            CONF.ml2_cisco_ucsm.ucsms[ucsm_ip].sp_template_list.values())
 
         vlan_name = self.make_vlan_name(vlan_id)
-        virtio_port_list = self.ucsm_conf.get_ucsm_eth_port_list(ucsm_ip)
+        virtio_port_list = (
+            CONF.ml2_cisco_ucsm.ucsms[ucsm_ip].ucsm_virtio_eth_ports)
 
         try:
             handle.StartTransaction()
@@ -841,8 +848,8 @@ class CiscoUcsmDriver(object):
             # Each tuple is of the form :
             # (ucsm_ip, sp_template_path, sp_template)
             for sp_template_info in sp_template_info_list:
-                sp_template_path = sp_template_info[1]
-                sp_template = sp_template_info[2]
+                sp_template_path = sp_template_info.path
+                sp_template = sp_template_info.name
 
                 sp_template_full_path = (sp_template_path +
                     const.SP_TEMPLATE_PREFIX + sp_template)
@@ -953,7 +960,7 @@ class CiscoUcsmDriver(object):
                     ucsm_ip)
                 if (port_profile):
                     self._delete_port_profile(handle, port_profile, ucsm_ip)
-                if self.ucsm_conf.is_service_profile_template_configured():
+                if CONF.ml2_cisco_ucsm.ucsm[ucsm_ip].sp_template_list:
                     self._remove_vlan_from_all_sp_templates(handle,
                                                             vlan_id,
                                                             ucsm_ip)
@@ -961,7 +968,7 @@ class CiscoUcsmDriver(object):
                     self._remove_vlan_from_vnic_templates(handle,
                                                           vlan_id,
                                                           ucsm_ip)
-                if not (self.ucsm_conf.is_service_profile_template_configured()
+                if not (CONF.ml2_cisco_ucsm.ucsm[ucsm_ip].sp_template_list
                     and self.ucsm_conf.is_vnic_template_configured()):
                     self._remove_vlan_from_all_service_profiles(handle,
                                                                 vlan_id,

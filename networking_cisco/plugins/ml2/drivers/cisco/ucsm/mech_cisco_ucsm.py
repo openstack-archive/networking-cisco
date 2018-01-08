@@ -15,6 +15,7 @@
 
 import warnings
 
+from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -31,6 +32,7 @@ from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucsm_db
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucsm_network_driver
 
 LOG = logging.getLogger(__name__)
+CONF = cfg.CONF
 
 
 class CiscoUcsmMechanismDriver(api.MechanismDriver):
@@ -137,13 +139,14 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
             # the UCSM that controls this host and the Service Profile
             # Template for this host.
 
-            if self.ucsm_conf.is_service_profile_template_configured():
-                sp_template = self.ucsm_conf.get_sp_template_for_host(host_id)
-                LOG.debug('SP Template: %s, VLAN_id: %d', sp_template,
-                          vlan_id)
-                self.ucsm_db.add_service_profile_template(vlan_id,
-                                                          sp_template,
-                                                          ucsm_ip)
+            sp_template_info = (CONF.ml2_cisco_ucsm.ucsms[
+                ucsm_ip].sp_template_list.get(host_id))
+
+            if sp_template_info:
+                LOG.debug('SP Template: %s, VLAN_id: %d',
+                          sp_template_info.name, vlan_id)
+                self.ucsm_db.add_service_profile_template(
+                    vlan_id, sp_template_info.name, ucsm_ip)
                 return
 
         # If this is an Intel SR-IOV vnic, then no need to create port
@@ -261,11 +264,15 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                             vlan_id, ucsm_ip, vnic_template, physnet)
                     return
 
-            if (self.ucsm_conf.is_service_profile_template_configured()
+            if (CONF.ml2_cisco_ucsm.ucsms[ucsm_ip].sp_template_list
                 and self.driver.update_service_profile_template(
                     vlan_id, host_id, ucsm_ip)):
-                sp_template = self.ucsm_conf.get_sp_template_for_host(
-                        host_id)
+                sp_template_info = (CONF.ml2_cisco_ucsm.ucsms[
+                    ucsm_ip].sp_template_list.get(host_id))
+                if not sp_template_info:
+                    sp_template = None
+                else:
+                    sp_template = sp_template_info.name
                 LOG.debug('Setting ucsm_updated flag for vlan : %(vlan)d, '
                           'sp_template : %(sp_template)s on ucsm_ip: '
                           '%(ucsm_ip)s', {'vlan': vlan_id,
@@ -288,7 +295,9 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
             # For VM-FEX ports
             self.ucsm_db.delete_vlan_entry(vlan_id)
             # For Neutron virtio ports
-            if self.ucsm_conf.is_service_profile_template_configured():
+            if any([True for ip, ucsm in CONF.ml2_cisco_ucsm.ucsms.items()
+                    if ucsm.sp_template_list]):
+                # At least on UCSM has sp templates configured
                 self.ucsm_db.delete_sp_template_for_vlan(vlan_id)
             if self.ucsm_conf.is_vnic_template_configured():
                 self.ucsm_db.delete_vnic_template_for_vlan(vlan_id)

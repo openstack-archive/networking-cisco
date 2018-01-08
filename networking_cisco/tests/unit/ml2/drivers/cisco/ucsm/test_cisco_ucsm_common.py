@@ -48,7 +48,7 @@ supported_pci_devs=thing1:thing2, thing1:thing3
 ucsm_username=username1
 ucsm_password=password1
 ucsm_host_list=UCS-1:UCS-1-SP, UCS-2:org-root/test/ls-UCS-2-SP
-ucsm_virtio_eth_ports=eth0, eth1
+ucsm_virtio_eth_ports=eth4, eth5
 vnic_template_list=test-physnet:org-root:Test-VNIC,vnic2
 sriov_qos_policy=Test
 
@@ -126,11 +126,15 @@ class ConfigMixin(object):
 
         self.assertTrue(config.is_vnic_template_configured())
 
-        self.assertEqual(config.get_ucsm_eth_port_list('1.1.1.1'),
-                         [const.ETH_PREFIX + 'eth0',
-                          const.ETH_PREFIX + 'eth1'])
+        virtio_port_list1 = (
+            CONF.ml2_cisco_ucsm.ucsms['1.1.1.1'].ucsm_virtio_eth_ports)
+        self.assertEqual(virtio_port_list1,
+                         [const.ETH_PREFIX + 'eth4',
+                          const.ETH_PREFIX + 'eth5'])
 
-        self.assertEqual(config.get_ucsm_eth_port_list('2.2.2.2'),
+        virtio_port_list2 = (
+            CONF.ml2_cisco_ucsm.ucsms['2.2.2.2'].ucsm_virtio_eth_ports)
+        self.assertEqual(virtio_port_list2,
                          [const.ETH_PREFIX + 'eth2',
                           const.ETH_PREFIX + 'eth3'])
 
