@@ -16,6 +16,7 @@
 import warnings
 
 from oslo_config import cfg
+from oslo_config import types
 from oslo_log import log as logging
 
 from networking_cisco._i18n import _
@@ -44,6 +45,7 @@ ml2_cisco_ucsm_opts = [
     cfg.ListOpt('supported_pci_devs',
                 default=[const.PCI_INFO_CISCO_VIC_1240,
                          const.PCI_INFO_INTEL_82599],
+                item_type=types.String(regex=r"^\w+:\w+$"),
                 help=_('SR-IOV and VM-FEX vendors to be handled by the '
                        'driver. xxxx:yyyy represents vendor_id:product_id '
                        'of the PCI networking devices that the driver needs '
@@ -152,18 +154,6 @@ CONF.register_opts(ml2_cisco_ucsm_opts, "ml2_cisco_ucsm")
 CONF.register_opts(ml2_cisco_ucsm_common, "ml2_cisco_ucsm")
 CONF.register_opt(ucsms, "ml2_cisco_ucsm")
 CONF.register_opts(sriov_opts, "sriov_multivlan_trunk")
-
-
-def parse_pci_vendor_config():
-    vendor_list = []
-    vendor_config_list = CONF.ml2_cisco_ucsm.supported_pci_devs
-    for vendor in vendor_config_list:
-        vendor_product = vendor.split(':')
-        if len(vendor_product) != 2:
-            raise cfg.Error(_("UCS Mech Driver: Invalid PCI device "
-                              "config: %s") % vendor)
-        vendor_list.append(vendor)
-    return vendor_list
 
 
 def load_single_ucsm_config():
