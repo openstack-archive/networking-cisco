@@ -15,7 +15,7 @@
 
 import time
 
-from networking_cisco.plugins.ml2.drivers.cisco.ucsm import constants as const
+from networking_cisco.ml2_drivers.ucsm import constants as const
 
 from oslo_config import cfg
 

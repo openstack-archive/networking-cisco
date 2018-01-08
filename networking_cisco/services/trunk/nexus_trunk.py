@@ -20,9 +20,9 @@ from networking_cisco import backwards_compatibility as bc
 from networking_cisco.backwards_compatibility import cb_events as events
 from networking_cisco.backwards_compatibility import cb_registry as registry
 
-from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+from networking_cisco.ml2_drivers.nexus import (
     constants as const)
-from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
+from networking_cisco.ml2_drivers.nexus import (
     nexus_helpers as nexus_help)
 
 LOG = log.getLogger(__name__)

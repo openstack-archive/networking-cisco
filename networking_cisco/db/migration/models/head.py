@@ -13,16 +13,11 @@
 #    under the License.
 
 from networking_cisco import backwards_compatibility as bc
-from networking_cisco.plugins.cisco.db.device_manager import (  # noqa
-    hd_models)
-from networking_cisco.plugins.cisco.db.l3 import (  # noqa
-    ha_db)
-from networking_cisco.plugins.cisco.db.l3 import (  # noqa
-    l3_models)
-from networking_cisco.plugins.ml2.drivers.cisco.nexus import (  # noqa
-    nexus_models_v2)
-from networking_cisco.plugins.ml2.drivers.cisco.ucsm import (  # noqa
-    ucsm_model)
+from networking_cisco.ml2_drivers.nexus import nexus_models_v2  # noqa
+from networking_cisco.ml2_drivers.ucsm import ucsm_model  # noqa
+from networking_cisco.plugins.cisco.db.device_manager import hd_models  # noqa
+from networking_cisco.plugins.cisco.db.l3 import ha_db  # noqa
+from networking_cisco.plugins.cisco.db.l3 import l3_models  # noqa
 
 
 def get_metadata():

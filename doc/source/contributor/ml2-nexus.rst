@@ -122,5 +122,5 @@ Source Code Location
 ~~~~~~~~~~~~~~~~~~~~
 Code location for the ML2 Nexus Mechanism Driver are found in the following directory:
 
-``{networking-cisco install directory}/networking_cisco/plugins/ml2/drivers/cisco/nexus``
+``{networking-cisco install directory}/networking_cisco/ml2_drivers/nexus``
 
