@@ -181,7 +181,7 @@ class CiscoUcsmDriver(object):
 
     def _create_ucsm_host_to_service_profile_mapping(self):
         """Reads list of Service profiles and finds associated Server."""
-        ucsm_ips = self.ucsm_conf.get_all_ucsm_ips()
+        ucsm_ips = list(CONF.ml2_cisco_ucsm.ucsms)
         for ucsm_ip in ucsm_ips:
             with self.ucsm_connect_disconnect(ucsm_ip) as handle:
                 try:
@@ -205,7 +205,7 @@ class CiscoUcsmDriver(object):
                     raise cexc.UcsmConfigReadFailed(ucsm_ip=ucsm_ip, exc=e)
 
     def _learn_sp_and_template_for_host(self, host_id):
-        ucsm_ips = self.ucsm_conf.get_all_ucsm_ips()
+        ucsm_ips = list(CONF.ml2_cisco_ucsm.ucsms)
         for ucsm_ip in ucsm_ips:
             with self.ucsm_connect_disconnect(ucsm_ip) as handle:
                 try:
@@ -945,7 +945,7 @@ class CiscoUcsmDriver(object):
     def delete_all_config_for_vlan(self, vlan_id, port_profile,
                                    trunk_vlans):
         """Top level method to delete all config for vlan_id."""
-        ucsm_ips = self.ucsm_conf.get_all_ucsm_ips()
+        ucsm_ips = list(CONF.ml2_cisco_ucsm.ucsms)
         for ucsm_ip in ucsm_ips:
 
             with self.ucsm_connect_disconnect(ucsm_ip) as handle:

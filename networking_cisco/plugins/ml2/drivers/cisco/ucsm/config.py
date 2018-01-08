@@ -211,12 +211,6 @@ class UcsmConfig(object):
         load_single_ucsm_config()
 
     @property
-    def multi_ucsm_mode(self):
-        if CONF.ml2_cisco_ucsm.ucsms:
-            return True
-        return False
-
-    @property
     def ucsm_host_dict(self):
         host_dict = {}
         if CONF.ml2_cisco_ucsm.ucsms:
@@ -237,10 +231,6 @@ class UcsmConfig(object):
                     else:
                         sp_dict[(ip, host)] = sp.strip()
         return sp_dict
-
-    def get_all_ucsm_ips(self):
-        if CONF.ml2_cisco_ucsm.ucsms:
-            return list(CONF.ml2_cisco_ucsm.ucsms)
 
     def get_ucsm_eth_port_list(self, ucsm_ip):
         conf = CONF.ml2_cisco_ucsm
