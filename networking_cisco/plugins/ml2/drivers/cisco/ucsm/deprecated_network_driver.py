@@ -897,8 +897,9 @@ class CiscoUcsmDriver(object):
 
     def _remove_vlan_from_vnic_templates(self, handle, vlan_id, ucsm_ip):
         """Removes VLAN from all VNIC templates that have it enabled."""
-        vnic_template_info = self.ucsm_conf.get_vnic_template_for_ucsm_ip(
-            ucsm_ip)
+        ucsm = CONF.ml2_cisco_ucsm.ucsms[ucsm_ip]
+        vnic_template_info = ucsm.vnic_template_list.values()
+
         vlan_name = self.make_vlan_name(vlan_id)
 
         if not vnic_template_info:
@@ -907,42 +908,41 @@ class CiscoUcsmDriver(object):
         try:
             handle.StartTransaction()
             for temp_info in vnic_template_info:
-                vnic_template_list = temp_info[1].split(',')
-                vnic_template_path = temp_info[0]
+                vnic_template = temp_info.template
+                vnic_template_path = temp_info.path
 
-                for vnic_template in vnic_template_list:
-                    vnic_template_full_path = (vnic_template_path +
-                        const.VNIC_TEMPLATE_PREFIX + str(vnic_template))
-                    LOG.debug('vnic_template_full_path: %s',
+                vnic_template_full_path = (vnic_template_path +
+                    const.VNIC_TEMPLATE_PREFIX + str(vnic_template))
+                LOG.debug('vnic_template_full_path: %s',
+                    vnic_template_full_path)
+                mo = handle.GetManagedObject(
+                    None,
+                    self.ucsmsdk.VnicLanConnTempl.ClassId(),
+                    {self.ucsmsdk.VnicLanConnTempl.DN: (
+                        vnic_template_full_path)},
+                    True)
+                if not mo:
+                    LOG.error('UCS Manager network driver could '
+                              'not find VNIC template %s at',
                         vnic_template_full_path)
-                    mo = handle.GetManagedObject(
-                        None,
-                        self.ucsmsdk.VnicLanConnTempl.ClassId(),
-                        {self.ucsmsdk.VnicLanConnTempl.DN: (
-                            vnic_template_full_path)},
-                        True)
-                    if not mo:
-                        LOG.error('UCS Manager network driver could '
-                                  'not find VNIC template %s at',
-                            vnic_template_full_path)
-                        continue
+                    continue
 
-                    vlan_dn = (vnic_template_full_path +
-                        const.VLAN_PATH_PREFIX + vlan_name)
-                    LOG.debug('VNIC Template VLAN path; %s', vlan_dn)
-                    eth_if = handle.GetManagedObject(mo,
-                        self.ucsmsdk.VnicEtherIf.ClassId(),
-                        {self.ucsmsdk.VnicEtherIf.DN: vlan_dn})
+                vlan_dn = (vnic_template_full_path +
+                    const.VLAN_PATH_PREFIX + vlan_name)
+                LOG.debug('VNIC Template VLAN path; %s', vlan_dn)
+                eth_if = handle.GetManagedObject(mo,
+                    self.ucsmsdk.VnicEtherIf.ClassId(),
+                    {self.ucsmsdk.VnicEtherIf.DN: vlan_dn})
 
-                    if not eth_if:
-                        LOG.error('UCS Manager network driver could not '
-                                  'delete VLAN %(vlan_name)s from VNIC '
-                                  'template %(vnic_template_full_path)s',
-                            {'vlan_name': vlan_name,
-                            'vnic_template_full_path':
-                            vnic_template_full_path})
-                    if eth_if:
-                        handle.RemoveManagedObject(eth_if)
+                if not eth_if:
+                    LOG.error('UCS Manager network driver could not '
+                              'delete VLAN %(vlan_name)s from VNIC '
+                              'template %(vnic_template_full_path)s',
+                        {'vlan_name': vlan_name,
+                        'vnic_template_full_path':
+                        vnic_template_full_path})
+                if eth_if:
+                    handle.RemoveManagedObject(eth_if)
             handle.CompleteTransaction()
             return True
         except Exception as e:

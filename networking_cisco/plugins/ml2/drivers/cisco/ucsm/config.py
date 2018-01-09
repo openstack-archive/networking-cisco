@@ -98,6 +98,38 @@ class SPTemplateListType(types.ConfigType):
             return ' '.join(template_configs)
 
 
+class VNICTemplateListType(types.ConfigType):
+
+    def __init__(self, type_name="VNICTemplateList"):
+        super(VNICTemplateListType, self).__init__(type_name=type_name)
+
+    def __call__(self, value):
+        if isinstance(value, dict):
+            return value
+
+        templates = {}
+        template_mappings = (value or "").split()
+
+        for mapping in template_mappings:
+            data = mapping.split(":")
+            if len(data) != 3:
+                raise cfg.Error(_("UCS Mech Driver: Invalid VNIC Template "
+                                  "config: %s") % mapping)
+            data[1] = data[1] or const.VNIC_TEMPLATE_PARENT_DN
+            templates[data[0]] = UCSTemplate(data[1], data[2])
+        return templates
+
+    def _formatter(self, value):
+        if isinstance(value, six.string_types):
+            return value
+        if isinstance(value, dict):
+            templates = []
+            for physnet, template in value.items():
+                templates.append(
+                    "%s:%s:%s" % (physnet, template.path, template.template))
+            return ' '.join(templates)
+
+
 ml2_cisco_ucsm_opts = [
     cfg.StrOpt('ucsm_ip',
                help=_('Cisco UCS Manager IP address. This is a required field '
@@ -171,20 +203,23 @@ ml2_cisco_ucsm_common = [
                    '                   '
                    'SP_Template2_path:SP_Template2:Host3,Host4\n'
                    'This is an optional config with no defaults')),
-    cfg.StrOpt('vnic_template_list',
-               help=_('VNIC Profile Template config per UCSM. Allows the '
-                      'cloud admin to specify a VNIC Template on the UCSM '
-                      'that is attached to every vNIC connected to a specific '
-                      'physical network. Each element in this list has 3 '
-                      'parts: the physical network that is defined in neutron '
-                      'configuration, the VNIC Template with its path in '
-                      'UCSM, the vNIC on the UCS Servers that is connected to '
-                      'this physical network. For example:\n'
-                      'vnic_template_list = '
-                      'physnet1:vnic_template_path1:vt1\n'
-                      '                     '
-                      'physnet2:vnic_template_path2:vt2\n'
-                      'This is an optional config with no defaults.')),
+    cfg.Opt('vnic_template_list',
+            type=VNICTemplateListType(),
+            default={},
+            sample_default="<None>",
+            help=_('VNIC Profile Template config per UCSM. Allows the '
+                   'cloud admin to specify a VNIC Template on the UCSM '
+                   'that is attached to every vNIC connected to a specific '
+                   'physical network. Each element in this list has 3 '
+                   'parts: the physical network that is defined in neutron '
+                   'configuration, the VNIC Template with its path in '
+                   'UCSM, the vNIC on the UCS Servers that is connected to '
+                   'this physical network. For example:\n'
+                   'vnic_template_list = '
+                   'physnet1:vnic_template_path1:vt1\n'
+                   '                     '
+                   'physnet2:vnic_template_path2:vt2\n'
+                   'This is an optional config with no defaults.')),
 ]
 
 sriov_opts = [
@@ -314,41 +349,11 @@ class UcsmConfig(object):
         self.add_sp_template_config_for_host(
             host_id, ucsm_ip, sp_template_info[0], sp_template_info[1])
 
-    def _vnic_template_data_for_ucsm_ip(self, ucsm_ip):
-        if ucsm_ip not in CONF.ml2_cisco_ucsm.ucsms:
-            return []
-        template_list = (
-            CONF.ml2_cisco_ucsm.ucsms[ucsm_ip].vnic_template_list or "")
-        mappings = []
-        vnic_template_mappings = template_list.split()
-        for mapping in vnic_template_mappings:
-            data = mapping.split(":")
-            if len(data) != 3:
-                raise cfg.Error(_("UCS Mech Driver: Invalid VNIC Template "
-                                  "config: %s") % mapping)
-            data[1] = data[1] or const.VNIC_TEMPLATE_PARENT_DN
-            mappings.append(data)
-        return mappings
-
     def is_vnic_template_configured(self):
         for ip, ucsm in CONF.ml2_cisco_ucsm.ucsms.items():
             if ucsm.vnic_template_list:
                 return True
         return False
-
-    def get_vnic_template_for_physnet(self, ucsm_ip, physnet):
-        vnic_template_mappings = self._vnic_template_data_for_ucsm_ip(ucsm_ip)
-        for mapping in vnic_template_mappings:
-            if mapping[0] == physnet:
-                return (mapping[1], mapping[2])
-        return (None, None)
-
-    def get_vnic_template_for_ucsm_ip(self, ucsm_ip):
-        vnic_template_info_list = []
-        vnic_template_mappings = self._vnic_template_data_for_ucsm_ip(ucsm_ip)
-        for mapping in vnic_template_mappings:
-            vnic_template_info_list.append((mapping[1], mapping[2]))
-        return vnic_template_info_list
 
     def get_sriov_multivlan_trunk_config(self, network):
         vlans = []
