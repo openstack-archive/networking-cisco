@@ -14,6 +14,7 @@
 #    under the License.
 
 from oslo_config import cfg
+from oslo_config import types
 
 
 class RemainderOpt(cfg.DictOpt):
@@ -49,6 +50,12 @@ class RemainderOpt(cfg.DictOpt):
         cfg.CONF['hosts']['host1']
     """
 
+    def __init__(self, name, item_type=None, **kwargs):
+        super(RemainderOpt, self).__init__(name, **kwargs)
+        if not item_type:
+            item_type = types.String()
+        self.item_type = item_type
+
     def _get_opts_including_deprecated(self, namespace, group_name):
         opts = namespace._conf._get_group(group_name)._opts
         opt_names = list(opts)
@@ -69,7 +76,7 @@ class RemainderOpt(cfg.DictOpt):
                     names = [(group_name, key)]
                     value = namespace._get_value(
                         names, positional=self.positional)
-                    result[key] = value
+                    result[key] = self.item_type(value)
         return result
 
 

@@ -49,6 +49,21 @@ class EthPortType(types.String):
         return value
 
 
+class VlanListType(types.List):
+
+    def __call__(self, value):
+        vlanlist = super(VlanListType, self).__call__(value)
+        vlans = []
+        for vlan in vlanlist:
+            if '-' in vlan:
+                start_vlan, sep, end_vlan = (vlan.partition('-'))
+                vlans.extend(list(range(int(start_vlan.strip()),
+                                        int(end_vlan.strip()) + 1, 1)))
+            else:
+                vlans.append(int(vlan))
+        return vlans
+
+
 class UCSTemplate(object):
 
     def __init__(self, path, name):
@@ -226,6 +241,7 @@ ml2_cisco_ucsm_common = [
 sriov_opts = [
     base.RemainderOpt('network_name',
                       dest="network_vlans",
+                      item_type=VlanListType(),
                       help=_('SR-IOV Multi-VLAN trunk config section is an '
                              'optional config section to accomodate the '
                              'scenario where an application using an SR-IOV '
@@ -356,19 +372,3 @@ class UcsmConfig(object):
             if ucsm.vnic_template_list:
                 return True
         return False
-
-    def get_sriov_multivlan_trunk_config(self, network):
-        vlans = []
-        config = cfg.CONF.sriov_multivlan_trunk.network_vlans.get(network)
-        if not config:
-            return vlans
-
-        vlanlist = config.split(',')
-        for vlan in vlanlist:
-            if '-' in vlan:
-                start_vlan, sep, end_vlan = (vlan.partition('-'))
-                vlans.extend(list(range(int(start_vlan.strip()),
-                                        int(end_vlan.strip()) + 1, 1)))
-            else:
-                vlans.append(int(vlan))
-        return vlans

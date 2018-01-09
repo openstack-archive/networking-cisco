@@ -224,8 +224,8 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
             # Check if this network is a trunk network. If so pass the
             # additional VLAN ids to the UCSM driver.
             network = context.network.current['name']
-            trunk_vlans = self.ucsm_conf.get_sriov_multivlan_trunk_config(
-                network)
+            trunk_vlans = (
+                CONF.sriov_multivlan_trunk.network_vlans.get(network, []))
 
             # All checks are done. Ask the UCS Manager driver to create the
             # above Port Profile.
@@ -311,8 +311,8 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                 return  # No vlan assigned to segment
 
             port_profile = self.make_profile_name(vlan_id)
-            trunk_vlans = self.ucsm_conf.get_sriov_multivlan_trunk_config(
-                network_name)
+            trunk_vlans = (
+                CONF.sriov_multivlan_trunk.network_vlans.get(network_name, []))
             self.driver.delete_all_config_for_vlan(vlan_id, port_profile,
                 trunk_vlans)
 

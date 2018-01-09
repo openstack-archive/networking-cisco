@@ -168,8 +168,9 @@ class UCSMConfigTestCase(nc_base.TestCase):
         }
 
         expected_sriov_multivlan = {
-            "test_network1": "5, 7-9",
-            "test_network2": "500-509, 700"
+            "test_network1": [5, 7, 8, 9],
+            "test_network2": [500, 501, 502, 503, 504, 505, 506, 507,
+                              508, 509, 700]
         }
 
         # Convert nested oslo.config GroupAttrs to dict for comparision
@@ -194,15 +195,6 @@ class UCSMConfigTestCase(nc_base.TestCase):
 
     def test_is_vnic_template_configured(self):
         self.assertTrue(self.config.is_vnic_template_configured())
-
-    def test_get_sriov_multivlan_trunk_config(self):
-        self.assertEqual(
-            self.config.get_sriov_multivlan_trunk_config("test_network1"),
-            [5, 7, 8, 9])
-
-        self.assertEqual(
-            self.config.get_sriov_multivlan_trunk_config("test_network2"),
-            [500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 700])
 
     def _assert_sp_templates_in_start_state(self):
         self.assertEqual(
