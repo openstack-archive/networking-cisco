@@ -182,6 +182,7 @@ ml2_cisco_ucsm_common = [
                        'Hostname1:Serviceprofile1, '
                        'Hostname2:Serviceprofile2')),
     cfg.StrOpt('sriov_qos_policy',
+               default='${ml2_cisco_ucsm.sriov_qos_policy}',
                help=_('A pre-defined QoS policy name. This optional config '
                       'allows the cloud admin to pre-create a QoS policy on '
                       'the UCSM. If this config is present, the UCSM driver '
@@ -252,6 +253,7 @@ ucsms = base.SubsectionOpt(
 
 CONF.register_opts(ml2_cisco_ucsm_opts, "ml2_cisco_ucsm")
 CONF.register_opts(ml2_cisco_ucsm_common, "ml2_cisco_ucsm")
+CONF.set_default("sriov_qos_policy", "", "ml2_cisco_ucsm")
 CONF.register_opt(ucsms, "ml2_cisco_ucsm")
 CONF.register_opts(sriov_opts, "sriov_multivlan_trunk")
 
@@ -370,7 +372,3 @@ class UcsmConfig(object):
             else:
                 vlans.append(int(vlan))
         return vlans
-
-    def get_sriov_qos_policy(self, ucsm_ip):
-        return (CONF.ml2_cisco_ucsm.ucsms[ucsm_ip].sriov_qos_policy or
-                CONF.ml2_cisco_ucsm.sriov_qos_policy)

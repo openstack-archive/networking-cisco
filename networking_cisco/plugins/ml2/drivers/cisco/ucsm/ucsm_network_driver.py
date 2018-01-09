@@ -427,10 +427,8 @@ class CiscoUcsmDriver(object):
                                   'create Vlan Profile for vlan %s', vlan)
                         return False
 
-            qos_policy = self.ucsm_conf.get_sriov_qos_policy(ucsm_ip)
-            if not qos_policy:
-                qos_policy = ""
-            else:
+            qos_policy = CONF.ml2_cisco_ucsm.ucsms[ucsm_ip].sriov_qos_policy
+            if qos_policy:
                 LOG.debug('UCS Manager Network driver applying QoS Policy '
                           '%(qos)s to Port Profile %(port_profile)s',
                           {'qos': qos_policy, 'port_profile': profile_name})
