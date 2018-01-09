@@ -43,6 +43,12 @@ UCSM_PHY_NETS = ['test_physnet']
 ucsm_test_config_file = """
 [ml2_cisco_ucsm]
 supported_pci_devs=thing1:thing2, thing1:thing3
+ucsm_https_verify=False
+
+ucsm_ip=3.3.3.3
+ucsm_username=username3
+ucsm_password=password3
+ucsm_host_list=UCS-3:UCS-3-SP
 
 [ml2_cisco_ucsm_ip:1.1.1.1]
 ucsm_username=username1
@@ -57,6 +63,8 @@ ucsm_username=username2
 ucsm_password=password2
 ucsm_virtio_eth_ports=eth2, eth3
 vnic_template_list=physnet2:org-root/org-Test-Sub:Test
+sp_template_list=SP_Template1_path:SP_Template1:S1,S2 \
+                 SP_Template2_path:SP_Template2:S3,S4
 
 [sriov_multivlan_trunk]
 test_network1=5, 7-9
@@ -69,6 +77,175 @@ supported_pci_devs=thing:thing, thing2, thing3:thing4
 """
 
 CONF = cfg.CONF
+
+
+class UCSMConfigTestCase(nc_base.TestCase):
+
+    def setUp(self):
+        super(UCSMConfigTestCase, self).setUp()
+        CONF.reset()
+        nc_base.load_config_file(ucsm_test_config_file)
+        self.config = ucsm_config.UcsmConfig()
+
+    def test_oslo_config_configuration_loading(self):
+        expected_config_data = {
+            "ucsm_https_verify": False,
+            "ucsm_ip": "3.3.3.3",
+            "ucsm_username": "username3",
+            "ucsm_password": "password3",
+            "supported_pci_devs": ["thing1:thing2", "thing1:thing3"],
+            "ucsm_host_list": {"UCS-3": "UCS-3-SP"},
+            "ucsm_virtio_eth_ports": [const.ETH_PREFIX + const.ETH0,
+                                      const.ETH_PREFIX + const.ETH1],
+            "sriov_qos_policy": None,
+            "sp_template_list": {},
+            "vnic_template_list": None,
+            "ucsms": {
+                "1.1.1.1": {
+                    "ucsm_username": "username1",
+                    "ucsm_password": "password1",
+                    "ucsm_virtio_eth_ports": [const.ETH_PREFIX + "eth4",
+                                              const.ETH_PREFIX + "eth5"],
+                    "ucsm_host_list": {"UCS-1": "UCS-1-SP",
+                                       "UCS-2": "org-root/test/ls-UCS-2-SP"},
+                    "sriov_qos_policy": "Test",
+                    "vnic_template_list": (
+                        "test-physnet:org-root:Test-VNIC,vnic2"),
+                    "sp_template_list": {},
+                },
+                "2.2.2.2": {
+                    "ucsm_username": "username2",
+                    "ucsm_password": "password2",
+                    "ucsm_virtio_eth_ports": [const.ETH_PREFIX + "eth2",
+                                              const.ETH_PREFIX + "eth3"],
+                    "ucsm_host_list": None,
+                    "sriov_qos_policy": None,
+                    "vnic_template_list": (
+                        "physnet2:org-root/org-Test-Sub:Test"),
+                    "sp_template_list": {
+                        "S1": ucsm_config.UCSTemplate("SP_Template1_path",
+                                                      "SP_Template1"),
+                        "S2": ucsm_config.UCSTemplate("SP_Template1_path",
+                                                      "SP_Template1"),
+                        "S3": ucsm_config.UCSTemplate("SP_Template2_path",
+                                                      "SP_Template2"),
+                        "S4": ucsm_config.UCSTemplate("SP_Template2_path",
+                                                      "SP_Template2"),
+                    },
+                },
+                "3.3.3.3": {
+                    "ucsm_username": "username3",
+                    "ucsm_password": "password3",
+                    "ucsm_virtio_eth_ports": [const.ETH_PREFIX + "eth0",
+                                              const.ETH_PREFIX + "eth1"],
+                    "ucsm_host_list": {"UCS-3": "UCS-3-SP"},
+                    "sriov_qos_policy": None,
+                    "vnic_template_list": None,
+                    "sp_template_list": {},
+                }
+            }
+        }
+
+        expected_sriov_multivlan = {
+            "test_network1": "5, 7-9",
+            "test_network2": "500-509, 700"
+        }
+
+        # Convert nested oslo.config GroupAttrs to dict for comparision
+        loaded_config = dict(CONF.ml2_cisco_ucsm)
+        for ip, data in CONF.ml2_cisco_ucsm.ucsms.items():
+            loaded_config['ucsms'][ip] = dict(data)
+
+        # Test the ml2_cisco_ucsm group is what we expect
+        self.assertEqual(expected_config_data, loaded_config)
+
+        # Test the sriov multivlan group is what we expect
+        self.assertEqual(expected_sriov_multivlan,
+                         dict(CONF.sriov_multivlan_trunk.network_vlans))
+
+    def test_sp_dict_configured_as_expected(self):
+        expected_sp_dict = {
+            ('1.1.1.1', 'UCS-1'): ('org-root/ls-UCS-1-SP'),
+            ('1.1.1.1', 'UCS-2'): ('org-root/test/ls-UCS-2-SP'),
+            ('3.3.3.3', 'UCS-3'): ('org-root/ls-UCS-3-SP'),
+        }
+        self.assertEqual(expected_sp_dict, self.config.ucsm_sp_dict)
+
+    def test_get_vnic_template_for_ucsm_ip(self):
+        self.assertEqual(self.config.get_vnic_template_for_ucsm_ip("1.1.1.1"),
+                         [('org-root', 'Test-VNIC,vnic2')])
+
+    def test_get_vnic_template_for_physnet(self):
+        self.assertEqual(
+            self.config.get_vnic_template_for_physnet("1.1.1.1",
+                                                      "test-physnet"),
+            ('org-root', 'Test-VNIC,vnic2'))
+
+        self.assertEqual(
+            self.config.get_vnic_template_for_physnet("2.2.2.2", "physnet2"),
+            ('org-root/org-Test-Sub', 'Test'))
+
+    def test_is_vnic_template_configured(self):
+        self.assertTrue(self.config.is_vnic_template_configured())
+
+    def test_get_sriov_qos_policy(self):
+        self.assertEqual(self.config.get_sriov_qos_policy('1.1.1.1'),
+                         'Test')
+
+    def test_get_sriov_multivlan_trunk_config(self):
+        self.assertEqual(
+            self.config.get_sriov_multivlan_trunk_config("test_network1"),
+            [5, 7, 8, 9])
+
+        self.assertEqual(
+            self.config.get_sriov_multivlan_trunk_config("test_network2"),
+            [500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 700])
+
+    def _assert_sp_templates_in_start_state(self):
+        self.assertEqual(
+            CONF.ml2_cisco_ucsm.ucsms['1.1.1.1'].sp_template_list, {})
+        self.assertEqual(
+            CONF.ml2_cisco_ucsm.ucsms['2.2.2.2'].sp_template_list,
+            {"S1": ucsm_config.UCSTemplate("SP_Template1_path",
+                                           "SP_Template1"),
+             "S2": ucsm_config.UCSTemplate("SP_Template1_path",
+                                           "SP_Template1"),
+             "S3": ucsm_config.UCSTemplate("SP_Template2_path",
+                                           "SP_Template2"),
+             "S4": ucsm_config.UCSTemplate("SP_Template2_path",
+                                           "SP_Template2")})
+
+    def _assert_sp_templates_in_end_state(self):
+        self.assertEqual(
+            CONF.ml2_cisco_ucsm.ucsms['1.1.1.1'].sp_template_list,
+            {"S1": ucsm_config.UCSTemplate("SP_Template1_path",
+                                          "SP_Template1")})
+        self.assertEqual(
+            CONF.ml2_cisco_ucsm.ucsms['2.2.2.2'].sp_template_list,
+            {"S2": ucsm_config.UCSTemplate("SP_Template1_path",
+                                           "SP_Template1"),
+             "S3": ucsm_config.UCSTemplate("SP_Template2_path",
+                                           "SP_Template2"),
+             "S4": ucsm_config.UCSTemplate("SP_Template2_path",
+                                           "SP_Template2")})
+
+    def test_add_sp_template_config_for_host(self):
+        self._assert_sp_templates_in_start_state()
+        self.config.add_sp_template_config_for_host(
+            'S1', '1.1.1.1', 'SP_Template1_path', 'SP_Template1')
+        self._assert_sp_templates_in_end_state()
+
+    def test_update_sp_template_config(self):
+        self._assert_sp_templates_in_start_state()
+        self.config.update_sp_template_config(
+            'S1', '1.1.1.1', 'SP_Template1_path/SP_Template1')
+        self._assert_sp_templates_in_end_state()
+
+    def test_support_pci_devices_bad_format(self):
+        CONF.reset()
+        nc_base.load_config_file(ucsm_config_bad_pci_devs)
+        self.assertRaises(ValueError, CONF.ml2_cisco_ucsm.get,
+                          "supported_pci_devs")
 
 
 class ConfigMixin(object):
@@ -95,65 +272,4 @@ class ConfigMixin(object):
             ml2_config.cfg.CONF.set_override(opt, val, 'ml2')
 
         # Configure and test the Cisco UCS Manager mechanism driver
-        config = ucsm_config.UcsmConfig()
-
-        self.assertEqual(CONF.ml2_cisco_ucsm.ucsms['1.1.1.1'].ucsm_username,
-                         UCSM_USERNAME_1)
-        self.assertEqual(CONF.ml2_cisco_ucsm.ucsms['1.1.1.1'].ucsm_password,
-                         UCSM_PASSWORD_1)
-
-        self.assertEqual(CONF.ml2_cisco_ucsm.ucsms['2.2.2.2'].ucsm_username,
-                         UCSM_USERNAME_2)
-        self.assertEqual(CONF.ml2_cisco_ucsm.ucsms['2.2.2.2'].ucsm_password,
-                         UCSM_PASSWORD_2)
-
-        expected_sp_dict = {
-            ('1.1.1.1', 'UCS-1'): ('org-root/ls-UCS-1-SP'),
-            ('1.1.1.1', 'UCS-2'): ('org-root/test/ls-UCS-2-SP'),
-        }
-        self.assertEqual(expected_sp_dict, config.ucsm_sp_dict)
-
-        self.assertEqual(config.get_vnic_template_for_ucsm_ip("1.1.1.1"),
-                         [('org-root', 'Test-VNIC,vnic2')])
-
-        self.assertEqual(
-            config.get_vnic_template_for_physnet("1.1.1.1", "test-physnet"),
-            ('org-root', 'Test-VNIC,vnic2'))
-
-        self.assertEqual(
-            config.get_vnic_template_for_physnet("2.2.2.2", "physnet2"),
-            ('org-root/org-Test-Sub', 'Test'))
-
-        self.assertTrue(config.is_vnic_template_configured())
-
-        virtio_port_list1 = (
-            CONF.ml2_cisco_ucsm.ucsms['1.1.1.1'].ucsm_virtio_eth_ports)
-        self.assertEqual(virtio_port_list1,
-                         [const.ETH_PREFIX + 'eth4',
-                          const.ETH_PREFIX + 'eth5'])
-
-        virtio_port_list2 = (
-            CONF.ml2_cisco_ucsm.ucsms['2.2.2.2'].ucsm_virtio_eth_ports)
-        self.assertEqual(virtio_port_list2,
-                         [const.ETH_PREFIX + 'eth2',
-                          const.ETH_PREFIX + 'eth3'])
-
-        self.assertEqual(config.get_sriov_qos_policy('1.1.1.1'),
-                         'Test')
-
-        self.assertEqual(
-            config.get_sriov_multivlan_trunk_config("test_network1"),
-            [5, 7, 8, 9])
-
-        self.assertEqual(
-            config.get_sriov_multivlan_trunk_config("test_network2"),
-            [500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 700])
-
-        self.assertEqual(CONF.ml2_cisco_ucsm.supported_pci_devs,
-                         ["thing1:thing2", "thing1:thing3"])
-
-    def test_support_pci_devices_bad_format(self):
-        CONF.reset()
-        nc_base.load_config_file(ucsm_config_bad_pci_devs)
-        self.assertRaises(ValueError, CONF.ml2_cisco_ucsm.get,
-                          "supported_pci_devs")
+        ucsm_config.UcsmConfig()
