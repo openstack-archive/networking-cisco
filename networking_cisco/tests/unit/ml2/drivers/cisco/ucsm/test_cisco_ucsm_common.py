@@ -185,14 +185,6 @@ class UCSMConfigTestCase(nc_base.TestCase):
         self.assertEqual(expected_sriov_multivlan,
                          dict(CONF.sriov_multivlan_trunk.network_vlans))
 
-    def test_sp_dict_configured_as_expected(self):
-        expected_sp_dict = {
-            ('1.1.1.1', 'UCS-1'): ('org-root/ls-UCS-1-SP'),
-            ('1.1.1.1', 'UCS-2'): ('org-root/test/ls-UCS-2-SP'),
-            ('3.3.3.3', 'UCS-3'): ('org-root/ls-UCS-3-SP'),
-        }
-        self.assertEqual(expected_sp_dict, self.config.ucsm_sp_dict)
-
     def _assert_sp_templates_in_start_state(self):
         self.assertEqual(
             CONF.ml2_cisco_ucsm.ucsms['1.1.1.1'].sp_template_list, {})

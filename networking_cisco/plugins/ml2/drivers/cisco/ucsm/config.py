@@ -317,28 +317,6 @@ class UcsmConfig(object):
     def __init__(self):
         load_single_ucsm_config()
 
-    @property
-    def ucsm_host_dict(self):
-        host_dict = {}
-        if CONF.ml2_cisco_ucsm.ucsms:
-            for ip, ucsm in CONF.ml2_cisco_ucsm.ucsms.items():
-                for host, sp in (ucsm.ucsm_host_list or {}).items():
-                    host_dict[host] = ip
-        return host_dict
-
-    @property
-    def ucsm_sp_dict(self):
-        sp_dict = {}
-        if CONF.ml2_cisco_ucsm.ucsms:
-            for ip, ucsm in CONF.ml2_cisco_ucsm.ucsms.items():
-                for host, sp in (ucsm.ucsm_host_list or {}).items():
-                    if '/' not in sp:
-                        sp_dict[(ip, host)] = (
-                            const.SERVICE_PROFILE_PATH_PREFIX + sp.strip())
-                    else:
-                        sp_dict[(ip, host)] = sp.strip()
-        return sp_dict
-
     def add_sp_template_config_for_host(self, host, ucsm_ip,
                                         sp_template_path,
                                         sp_template):
