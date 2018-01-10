@@ -92,7 +92,7 @@ class UCSMConfigTestCase(nc_base.TestCase):
         super(UCSMConfigTestCase, self).setUp()
         CONF.reset()
         nc_base.load_config_file(ucsm_test_config_file)
-        self.config = ucsm_config.UcsmConfig()
+        ucsm_config.load_single_ucsm_config()
 
     def test_oslo_config_configuration_loading(self):
         expected_config_data = {
@@ -215,13 +215,13 @@ class UCSMConfigTestCase(nc_base.TestCase):
 
     def test_add_sp_template_config_for_host(self):
         self._assert_sp_templates_in_start_state()
-        self.config.add_sp_template_config_for_host(
+        ucsm_config.add_sp_template_config_for_host(
             'S1', '1.1.1.1', 'SP_Template1_path', 'SP_Template1')
         self._assert_sp_templates_in_end_state()
 
     def test_update_sp_template_config(self):
         self._assert_sp_templates_in_start_state()
-        self.config.update_sp_template_config(
+        ucsm_config.update_sp_template_config(
             'S1', '1.1.1.1', 'SP_Template1_path/SP_Template1')
         self._assert_sp_templates_in_end_state()
 
@@ -256,4 +256,4 @@ class ConfigMixin(object):
             ml2_config.cfg.CONF.set_override(opt, val, 'ml2')
 
         # Configure and test the Cisco UCS Manager mechanism driver
-        ucsm_config.UcsmConfig()
+        ucsm_config.load_single_ucsm_config()

@@ -311,36 +311,31 @@ def load_single_ucsm_config():
     CONF.set_override("ucsms", ucsms, group="ml2_cisco_ucsm")
 
 
-class UcsmConfig(object):
-    """ML2 Cisco UCSM Mechanism Driver Configuration class."""
-
-    def __init__(self):
-        load_single_ucsm_config()
-
-    def add_sp_template_config_for_host(self, host, ucsm_ip,
-                                        sp_template_path,
-                                        sp_template):
-        ucsms = CONF.ml2_cisco_ucsm.ucsms
-        for ip, ucsm in ucsms.items():
-            if ip == ucsm_ip:
-                # NOTE(sambetts) Add this host to this UCSMs sp_template_list
+def add_sp_template_config_for_host(host, ucsm_ip,
+                                    sp_template_path,
+                                    sp_template):
+    ucsms = CONF.ml2_cisco_ucsm.ucsms
+    for ip, ucsm in ucsms.items():
+        if ip == ucsm_ip:
+            # NOTE(sambetts) Add this host to this UCSMs sp_template_list
+            tp_list = dict(ucsm.sp_template_list)
+            tp_list[host] = UCSTemplate(sp_template_path, sp_template)
+            CONF.set_override("sp_template_list", tp_list, ucsm._group)
+        else:
+            # NOTE(sambetts) If this is not the UCSM we're adding the
+            # service profile template for, then we need to check if this
+            # UCSM has this host configured, if we do, remove it, because a
+            # host can only be assigned to a single UCSM.
+            if host in ucsm.sp_template_list:
                 tp_list = dict(ucsm.sp_template_list)
-                tp_list[host] = UCSTemplate(sp_template_path, sp_template)
+                del tp_list[host]
                 CONF.set_override("sp_template_list", tp_list, ucsm._group)
-            else:
-                # NOTE(sambetts) If this is not the UCSM we're adding the
-                # service profile template for, then we need to check if this
-                # UCSM has this host configured, if we do, remove it, because a
-                # host can only be assigned to a single UCSM.
-                if host in ucsm.sp_template_list:
-                    tp_list = dict(ucsm.sp_template_list)
-                    del tp_list[host]
-                    CONF.set_override("sp_template_list", tp_list, ucsm._group)
 
-    def update_sp_template_config(self, host_id, ucsm_ip,
-                                  sp_template_with_path):
-        sp_template_info = sp_template_with_path.rsplit('/', 1)
-        LOG.debug('SP Template path: %s SP Template: %s',
-            sp_template_info[0], sp_template_info[1])
-        self.add_sp_template_config_for_host(
-            host_id, ucsm_ip, sp_template_info[0], sp_template_info[1])
+
+def update_sp_template_config(host_id, ucsm_ip,
+                              sp_template_with_path):
+    sp_template_info = sp_template_with_path.rsplit('/', 1)
+    LOG.debug('SP Template path: %s SP Template: %s',
+        sp_template_info[0], sp_template_info[1])
+    add_sp_template_config_for_host(
+        host_id, ucsm_ip, sp_template_info[0], sp_template_info[1])

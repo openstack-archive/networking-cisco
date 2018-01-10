@@ -43,7 +43,9 @@ class CiscoUcsmDriver(object):
         self.supported_sriov_vnic_types = [bc.portbindings.VNIC_DIRECT,
                                            bc.portbindings.VNIC_MACVTAP]
         self.supported_pci_devs = CONF.ml2_cisco_ucsm.supported_pci_devs
-        self.ucsm_conf = config.UcsmConfig()
+
+        config.load_single_ucsm_config()
+
         self.ucsm_db = ucsm_db.UcsmDbModel()
         self.ucsm_host_dict = {}
         self.ucsm_sp_dict = {}
@@ -230,7 +232,7 @@ class CiscoUcsmDriver(object):
                                               str(sp.dn), ucsm_ip)
                                     LOG.debug('Server SP Template %s',
                                         sp.oper_src_templ_name)
-                                    self.ucsm_conf.update_sp_template_config(
+                                    config.update_sp_template_config(
                                         host_id, ucsm_ip,
                                         sp.oper_src_templ_name)
                                     return ucsm_ip

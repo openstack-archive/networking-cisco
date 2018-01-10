@@ -248,7 +248,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
             mech_instance.supported_sriov_vnic_types = SRIOV_VNIC_TYPES
             mech_instance.supported_pci_devs = SUPPORTED_PCI_DEVS
             mech_instance.ucsm_host_dict = UCSM_HOST_DICT
-            mech_instance.ucsm_conf = conf.UcsmConfig()
+            conf.load_single_ucsm_config()
 
         mock.patch.object(ucsm_network_driver.CiscoUcsmDriver,
                           '__init__',
@@ -260,7 +260,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         self.db = ucsm_db.UcsmDbModel()
         self.ucsm_driver = ucsm_network_driver.CiscoUcsmDriver()
         self.ucsm_driver.ucsm_db = ucsm_db.UcsmDbModel()
-        self.ucsm_config = conf.UcsmConfig()
+        conf.load_single_ucsm_config()
 
     def _create_network_context(self):
         segment = {api.SEGMENTATION_ID: "",
@@ -900,8 +900,8 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         sp_template_with_path = "/org-root/test/ls-SP-Test"
         sp_template_info = sp_template_with_path.rsplit('/', 1)
 
-        self.ucsm_config.update_sp_template_config(host_id, ucsm_ip,
-                                                   sp_template_with_path)
+        conf.update_sp_template_config(host_id, ucsm_ip,
+                                       sp_template_with_path)
 
         ucsm = CONF.ml2_cisco_ucsm.ucsms[UCSM_IP_ADDRESS_1]
         self.assertEqual(sp_template_info[1],
@@ -915,8 +915,8 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         ucsm_ip = UCSM_IP_ADDRESS_1
         sp_template_with_path = "/org-root/test/ls-SP-Test"
 
-        self.ucsm_config.update_sp_template_config(host_id, ucsm_ip,
-                                                   sp_template_with_path)
+        conf.update_sp_template_config(host_id, ucsm_ip,
+                                       sp_template_with_path)
         self.assertEqual(ucsm_ip, self.ucsm_driver.get_ucsm_ip_for_host(
             host_id))
 

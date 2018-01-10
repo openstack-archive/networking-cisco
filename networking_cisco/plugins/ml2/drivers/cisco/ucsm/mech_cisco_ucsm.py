@@ -55,7 +55,7 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
         else:
             LOG.error('Could not import ucsm sdk.')
 
-        self.ucsm_conf = config.UcsmConfig()
+        config.load_single_ucsm_config()
 
     def _get_vlanid(self, context):
         """Returns vlan_id associated with a bound VLAN segment."""
