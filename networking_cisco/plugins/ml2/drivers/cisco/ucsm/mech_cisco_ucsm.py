@@ -119,19 +119,19 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
             if not physnet:
                 LOG.debug('physnet is None. Not modifying VNIC '
                           'Template config')
-            if self.ucsm_conf.is_vnic_template_configured() and physnet:
+            else:
                 # Check if VNIC template is configured for this physnet
                 ucsm = CONF.ml2_cisco_ucsm.ucsms[ucsm_ip]
                 vnic_template = ucsm.vnic_template_list.get(physnet)
-
                 if vnic_template:
                     LOG.debug('vnic_template %s', vnic_template)
                     self.ucsm_db.add_vnic_template(vlan_id, ucsm_ip,
                         vnic_template.name, physnet)
+                    return
                 else:
                     LOG.debug('VNIC Template not configured for '
                               'physnet %s', physnet)
-                return
+
             # In the absence of VNIC Templates, VLAN is directly added
             # to vNIC(s) on the SP Template.
             # Check if SP Template config has been provided. If so, find
@@ -239,26 +239,26 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
             # Enable vlan-id for this Neutron virtual port.
             LOG.debug('Host_id is %s', host_id)
             physnet = self._get_physnet(context)
-            if self.ucsm_conf.is_vnic_template_configured() and physnet:
-                LOG.debug('Update VNIC Template for physnet: %s', physnet)
-                ucsm = CONF.ml2_cisco_ucsm.ucsms[ucsm_ip]
-                vnic_template = ucsm.vnic_template_list.get(physnet)
 
-                if vnic_template:
-                    LOG.debug('vnic_template %s', vnic_template)
-                    if (self.driver.update_vnic_template(
-                            host_id, vlan_id, physnet, vnic_template.path,
-                            vnic_template.name)):
-                        LOG.debug('Setting ucsm_updated flag for '
-                                  'vlan : %(vlan)d, '
-                                  'vnic_template : %(vnic_template)s '
-                                  'on ucsm_ip: %(ucsm_ip)s',
-                                  {'vlan': vlan_id,
-                                  'vnic_template': vnic_template,
-                                  'ucsm_ip': ucsm_ip})
-                        self.ucsm_db.set_vnic_template_updated(
-                            vlan_id, ucsm_ip, vnic_template.name, physnet)
-                    return
+            ucsm = CONF.ml2_cisco_ucsm.ucsms[ucsm_ip]
+            vnic_template = ucsm.vnic_template_list.get(physnet)
+
+            if vnic_template:
+                LOG.debug('Update VNIC Template for physnet: %s', physnet)
+                LOG.debug('vnic_template %s', vnic_template)
+                if (self.driver.update_vnic_template(
+                        host_id, vlan_id, physnet, vnic_template.path,
+                        vnic_template.name)):
+                    LOG.debug('Setting ucsm_updated flag for '
+                              'vlan : %(vlan)d, '
+                              'vnic_template : %(vnic_template)s '
+                              'on ucsm_ip: %(ucsm_ip)s',
+                              {'vlan': vlan_id,
+                              'vnic_template': vnic_template.name,
+                              'ucsm_ip': ucsm_ip})
+                    self.ucsm_db.set_vnic_template_updated(
+                        vlan_id, ucsm_ip, vnic_template.name, physnet)
+                return
 
             if (CONF.ml2_cisco_ucsm.ucsms[ucsm_ip].sp_template_list
                 and self.driver.update_service_profile_template(
@@ -295,7 +295,10 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                     if ucsm.sp_template_list]):
                 # At least on UCSM has sp templates configured
                 self.ucsm_db.delete_sp_template_for_vlan(vlan_id)
-            if self.ucsm_conf.is_vnic_template_configured():
+
+            if any([True for ip, ucsm in CONF.ml2_cisco_ucsm.ucsms.items()
+                    if ucsm.vnic_template_list]):
+                # At least one UCSM has vnic templates configured
                 self.ucsm_db.delete_vnic_template_for_vlan(vlan_id)
 
     def delete_network_postcommit(self, context):

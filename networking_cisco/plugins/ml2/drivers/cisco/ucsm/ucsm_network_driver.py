@@ -887,16 +887,18 @@ class CiscoUcsmDriver(object):
                     ucsm_ip)
                 if (port_profile):
                     self._delete_port_profile(handle, port_profile, ucsm_ip)
-                if CONF.ml2_cisco_ucsm.ucsm[ucsm_ip].sp_template_list:
+
+                ucsm = CONF.ml2_cisco_ucsm.ucsm[ucsm_ip]
+                if ucsm.sp_template_list:
                     self._remove_vlan_from_all_sp_templates(handle,
                                                             vlan_id,
                                                             ucsm_ip)
-                if self.ucsm_conf.is_vnic_template_configured():
+                if ucsm.vnic_template_list:
                     self._remove_vlan_from_vnic_templates(handle,
                                                           vlan_id,
                                                           ucsm_ip)
-                if not (CONF.ml2_cisco_ucsm.ucsm[ucsm_ip].sp_template_list
-                    and self.ucsm_conf.is_vnic_template_configured()):
+                if not (ucsm.sp_template_list and
+                        ucsm.vnic_template_list):
                     self._remove_vlan_from_all_service_profiles(handle,
                                                                 vlan_id,
                                                                 ucsm_ip)

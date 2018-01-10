@@ -193,9 +193,6 @@ class UCSMConfigTestCase(nc_base.TestCase):
         }
         self.assertEqual(expected_sp_dict, self.config.ucsm_sp_dict)
 
-    def test_is_vnic_template_configured(self):
-        self.assertTrue(self.config.is_vnic_template_configured())
-
     def _assert_sp_templates_in_start_state(self):
         self.assertEqual(
             CONF.ml2_cisco_ucsm.ucsms['1.1.1.1'].sp_template_list, {})

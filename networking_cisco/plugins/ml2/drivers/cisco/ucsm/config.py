@@ -366,9 +366,3 @@ class UcsmConfig(object):
             sp_template_info[0], sp_template_info[1])
         self.add_sp_template_config_for_host(
             host_id, ucsm_ip, sp_template_info[0], sp_template_info[1])
-
-    def is_vnic_template_configured(self):
-        for ip, ucsm in CONF.ml2_cisco_ucsm.ucsms.items():
-            if ucsm.vnic_template_list:
-                return True
-        return False
