@@ -493,10 +493,18 @@ class TestCiscoNexusHostMappingDbTest(testlib_api.SqlTestCase):
             "host-2", "110.1.1.1", "port-channel:100", 0, True)
         nexus_db_v2.add_host_mapping(
             "host-3", "110.1.1.1", "port-channel:100", 0, False)
+
+        # Non-static config should raise DBDuplicateEntry when
+        # it already exists.
         self.assertRaises(
             db_exc.DBDuplicateEntry,
             nexus_db_v2.add_host_mapping,
             "host-3", "110.1.1.1", "port-channel:100", 0, False)
+
+        # Static config should NOT raise DBDuplicateEntry when
+        # it already exists.
+        nexus_db_v2.add_host_mapping(
+            "host-2", "110.1.1.1", "port-channel:100", 0, True)
 
         # Do a get 110.1.1.1 and verify  correct host ids returned
         mappings = nexus_db_v2.get_switch_if_host_mappings(

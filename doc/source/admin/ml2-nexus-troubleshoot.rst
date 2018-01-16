@@ -648,6 +648,10 @@ only and not ironic.  An example of such a configuration is as follows:
     compute-host-1 = port-channel:300
     compute-host-2 = port-channel:300
 
+This anomaly can also occur when there are multiple controllers which
+are attempting to initialize the cisco_ml2_nexus_host_interface_mapping
+db table at the same time.
+
 Message
 ^^^^^^^
 
@@ -661,6 +665,6 @@ Message
 
 Corrective Action
 ^^^^^^^^^^^^^^^^^
-The anomaly was introduced in Cisco Release 5.1.0 and is resolved
-in Cisco Release 5.4.0.  To eliminate this error, upgrade to a more
-recent release of the networking-cisco package.
+Both error cases described were introduced in Cisco Release 5.1.0.
+To eliminate these errors, upgrade to a more recent release of the
+networking-cisco package.

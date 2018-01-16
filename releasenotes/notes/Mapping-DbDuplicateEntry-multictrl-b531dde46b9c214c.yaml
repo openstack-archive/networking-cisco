@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Nexus: DBDuplicateEntry error from interface mapping db table with multi-controllers
+
+    When there are multiple controllers running, they could simultaneously attempt to
+    initialize the Nexus host interface mapping db table using the user's static host
+    mapping configuration. This could result in a `DBDuplicateEntry` exception.  This
+    type of error is seen with static user configured hosts but not ironic learned
+    hosts.  Refer to :ref:`dupl_entry` for error message details and corrective action.
+    For implementation details, refer to
+    https://bugs.launchpad.net/networking-cisco/+bug/1743573.

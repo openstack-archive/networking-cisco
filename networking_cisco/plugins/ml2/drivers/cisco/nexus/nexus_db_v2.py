@@ -14,7 +14,9 @@
 #    under the License.
 #
 
+from oslo_db import exception as db_exc
 from oslo_log import log as logging
+from oslo_utils import excutils
 from random import shuffle
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased
@@ -508,8 +510,18 @@ def add_host_mapping(host_id, nexus_ip, interface, ch_grp, is_static):
                   switch_ip=nexus_ip,
                   ch_grp=ch_grp,
                   is_static=is_static)
-    session.add(mapping)
-    session.flush()
+    try:
+        session.add(mapping)
+        session.flush()
+    except db_exc.DBDuplicateEntry:
+        with excutils.save_and_reraise_exception() as ctxt:
+            if is_static:
+                ctxt.reraise = False
+                LOG.debug("Duplicate static entry encountered "
+                          "host=%(host)s, if=%(if)s, ip=%(ip)s",
+                          {'host': host_id, 'if': interface,
+                           'ip': nexus_ip})
+
     return mapping
 
 
