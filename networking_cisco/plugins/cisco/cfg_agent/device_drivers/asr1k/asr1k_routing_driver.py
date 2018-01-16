@@ -25,9 +25,9 @@ from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
     asr1k_cfg_syncer)
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
     asr1k_snippets)
-from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
-    cisco_csr1kv_snippets as snippets)
-from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
+from networking_cisco.plugins.cisco.cfg_agent.device_drivers.iosxe import (
+    cisco_iosxe_snippets as snippets)
+from networking_cisco.plugins.cisco.cfg_agent.device_drivers.iosxe import (
     iosxe_routing_driver as iosxe_driver)
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.extensions import ha
@@ -646,7 +646,7 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                     pool_name, pool_ip, pool_ip, pool_net.netmask)
                 # TODO(update so that hosting device name is passed down)
                 self._edit_running_config(conf_str, 'CREATE_NAT_POOL')
-        #except cfg_exc.CSR1kvConfigException as cse:
+        #except cfg_exc.IOSXEConfigException as cse:
         except Exception as cse:
             LOG.error("Temporary disable NAT_POOL exception handling: %s",
                       cse)
@@ -852,12 +852,11 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
                                        inner_itfc, outer_itfc, vrf_name):
         """Configure the NAT rules for an internal network.
 
-        Configuring NAT rules in the CSR1kv is a three step process. First
+        Configuring NAT rules in the ASR1k is a three step process. First
         create an ACL for the IP range of the internal network. Then enable
-        dynamic source NATing on the external interface of the CSR for this
-        ACL and VRF of the neutron router. Finally enable NAT on the
-        interfaces of the CSR where the internal and external networks are
-        connected.
+        dynamic source NATing on the external interface of the ASR1k for this
+        ACL and VRF of the neutron router. Finally enable NAT on the interfaces
+        of the ASR1k where the internal and external networks are connected.
 
         :param acl_no: ACL number of the internal network.
         :param network: internal network
@@ -869,7 +868,7 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
         :param vrf_name: VRF corresponding to this virtual router
         :return: True if configuration succeeded
         :raises: networking_cisco.plugins.cisco.cfg_agent.cfg_exceptions.
-        CSR1kvConfigException
+        IOSXEConfigException
         """
         acl_present = self._check_acl(acl_no, network, netmask)
         if not acl_present:
@@ -938,7 +937,7 @@ class ASR1kRoutingDriver(iosxe_driver.IosXeRoutingDriver):
             confstr = (asr1k_snippets.REMOVE_DYN_SRC_TRL_POOL %
                 (acl_no, pool_name, vrf_name))
             self._edit_running_config(confstr, 'REMOVE_DYN_SRC_TRL_POOL')
-        except cfg_exc.CSR1kvConfigException as cse:
+        except cfg_exc.IOSXEConfigException as cse:
             LOG.error("temporary disable REMOVE_DYN_SRC_TRL_POOL"
                       " exception handling: %s", (cse))
 

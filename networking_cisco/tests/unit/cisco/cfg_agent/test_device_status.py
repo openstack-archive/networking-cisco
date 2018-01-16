@@ -49,7 +49,7 @@ class TestHostingDevice(base.BaseTestCase):
         device_status._is_pingable = mock.MagicMock(return_value=True)
 
         self.hosting_device = {'id': 123,
-                               'host_type': 'CSR1kv',
+                               'host_type': 'VM',
                                'management_ip_address': '10.0.0.1',
                                'protcol_port': '22',
                                'booting_time': 420}
@@ -160,7 +160,7 @@ class TestBacklogHostingDevice(base.BaseTestCase):
         device_status._can_connect = self.can_connect_mock
 
         self.hosting_device = {'id': 123,
-                               'host_type': 'CSR1kv',
+                               'host_type': 'VM',
                                'management_ip_address': '10.0.0.1',
                                'protocol_port': '22',
                                'booting_time': 420}

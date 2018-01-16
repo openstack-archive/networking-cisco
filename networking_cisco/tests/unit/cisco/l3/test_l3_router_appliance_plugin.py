@@ -65,6 +65,7 @@ L3_PLUGIN_KLASS = (
 extensions_path = networking_cisco.plugins.__path__[0] + '/cisco/extensions'
 policy_path = (os.path.abspath(networking_cisco.__path__[0]) +
                '/../etc/policy.json')
+VM_ROUTERTYPE_NAME = test_db_device_manager.VM_ROUTERTYPE_NAME
 
 
 class TestL3RouterApplianceExtensionManager(
@@ -212,7 +213,6 @@ class L3RouterApplianceTestCaseBase(
         self.core_plugin._svc_vm_mgr_obj = service_vm_lib.ServiceVMManager(
             True, None, None, None, '', keystone_session=mock.MagicMock())
         self._mock_svc_vm_create_delete(self.core_plugin)
-        self._mock_io_file_ops()
         if self.mock_cfg_agent_notifiers is True:
             self._mock_cfg_agent_notifier(self.l3_plugin)
         # mock the periodic router backlog processing in the tests
@@ -638,7 +638,7 @@ class L3RouterApplianceNamespaceTestCase(
 
 class L3RouterApplianceVMTestCase(L3RouterApplianceNamespaceTestCase):
 
-    router_type = c_const.CSR1KV_ROUTER_TYPE
+    router_type = VM_ROUTERTYPE_NAME
 
     def setUp(self, core_plugin=None, l3_plugin=None, dm_plugin=None,
               ext_mgr=None):

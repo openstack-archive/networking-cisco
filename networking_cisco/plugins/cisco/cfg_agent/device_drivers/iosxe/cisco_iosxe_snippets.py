@@ -13,10 +13,10 @@
 #    under the License.
 
 """
-CSR (IOS-XE) XML-based configuration snippets
+IOS-XE XML-based configuration snippets
 """
 
-# The standard Template used to interact with IOS-XE(CSR).
+# The standard Template used to interact with IOS-XE.
 # This template is added by the netconf client
 # EXEC_CONF_SNIPPET = """
 #       <config xmlns:xc="urn:ietf:params:xml:ns:netconf:base:1.0">
@@ -391,33 +391,7 @@ CLEAR_DYN_NAT_TRANS = """
 </config>
 """
 
-## Additional stuff for CSR
-
-GET_VNIC_MAPPING = """
-<filter>
-    <config-format-text-cmd>
-        <text-filter-spec> | include version </text-filter-spec>
-    </config-format-text-cmd>
-    <oper-data-format-text-block>
-        <exec>show platform software vnic-if interface-mapping</exec>
-    </oper-data-format-text-block>
-</filter>
-"""
-
-#=================================================#
-# Configure interface mac
-# $(config)interface GigabitEthernet 2
-# $(config)mac-address fa:16:3e:ae:13:5a
-#=================================================#
-CONFIGURE_INTERFACE_MAC = """
-<config>
-        <cli-config-data>
-            <cmd>interface %s</cmd>
-            <cmd>mac-address %s</cmd>
-            <cmd>no shutdown</cmd>
-        </cli-config-data>
-</config>
-"""
+## Additional utility snippets
 
 #=========================================================================#
 # Create nat pool
@@ -434,28 +408,12 @@ SET_NAT_POOL = """
 """
 
 #=========================================================================#
-# Remove nat pool
-# Syntax: no ip nat pool <pool_name>
-# eg: $(config)no ip nat poolName
-#========================================================================#
-REMOVE_NAT_POOL = """
-<config>
-        <cli-config-data>
-            <cmd>no ip nat pool %s</cmd>
-        </cli-config-data>
-</config>
-
-"""
-
-#=========================================================================#
 # Set Dynamic source translation on a nat pool
 # Syntax: ip nat inside source list <acl_no> pool <pool_name>
 # .......vrf <vrf_name> overload
 # eg: $(config)ip nat inside source list acl_500
 #    ..........pool pool_nrouter-e7d4y5 vrf nrouter-e7d4y5 overload
 #========================================================================#
-SNAT_POOL_CFG = "ip nat inside source list %s pool %s vrf %s overload"
-
 SET_DYN_SRC_TRL_POOL = """
 <config>
         <cli-config-data>
@@ -478,18 +436,5 @@ REMOVE_DYN_SRC_TRL_POOL = """
             <cmd>no ip nat inside source list %s pool %s vrf %s overload</cmd>
         </cli-config-data>
 </config>
-
-"""
-
-#=============================================================================#
-# Save the router configuration to NVRAM
-# Syntax: wr mem
-#=============================================================================#
-WR_MEM = """
-<filter>
-        <oper-data-format-text-block>
-            <exec>wr mem</exec>
-        </oper-data-format-text-block>
-</filter>
 
 """

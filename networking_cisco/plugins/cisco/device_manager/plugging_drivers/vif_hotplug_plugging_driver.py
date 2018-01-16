@@ -81,7 +81,7 @@ class VIFHotPlugPluggingDriver(plugging_drivers.PluginSidePluggingDriver,
                     context, tenant_id, mgmt_port)
                 mgmt_port = None
         # We are setting the 'ports' to an empty list as it is expected by
-        # the callee: device_handling_db._create_csr1kv_vm_hosting_device()
+        # the callee: device_handling_db._create_svc_vm_hosting_devices()
         return {'mgmt_port': mgmt_port, 'ports': []}
 
     def get_hosting_device_resources(self, context, id, complementary_id,
@@ -147,7 +147,7 @@ class VIFHotPlugPluggingDriver(plugging_drivers.PluginSidePluggingDriver,
             self._delete_resource_port(context, port_id)
 
     def _attach_hosting_port(self, hosting_device_id, hosting_port_id):
-        # Give a little bit of time for CSR to get out of vm building state
+        # Give a little bit of time for VM to get out of building state
         eventlet.sleep(10)
         try:
             self.svc_vm_mgr.interface_attach(
@@ -165,7 +165,7 @@ class VIFHotPlugPluggingDriver(plugging_drivers.PluginSidePluggingDriver,
         """Establishes connectivity for a logical port.
 
         This is done by hot plugging the interface(VIF) corresponding to the
-        port from the CSR.
+        port from the VM.
         """
         hosting_port = port_db.hosting_info.hosting_port
         if hosting_port:
@@ -175,7 +175,7 @@ class VIFHotPlugPluggingDriver(plugging_drivers.PluginSidePluggingDriver,
                 LOG.debug("Setup logical port completed for port:%s",
                           port_db.id)
             except nova_exc.Conflict as e:
-                # CSR is still in vm_state building
+                # VM is still in vm_state building
                 LOG.debug("Failed to attach interface - spawn thread "
                           "error %(error)s", {'error': str(e)})
                 self._gt_pool.spawn_n(self._attach_hosting_port,
@@ -191,7 +191,7 @@ class VIFHotPlugPluggingDriver(plugging_drivers.PluginSidePluggingDriver,
                                            hosting_device_id):
         """Removes connectivity for a logical port.
 
-        Unplugs the corresponding data interface from the CSR.
+        Unplugs the corresponding data interface from the VM.
         """
         if port_db is None or port_db.get('id') is None:
             LOG.warning("Port id is None! Cannot remove port "

@@ -122,7 +122,7 @@ class ConfigValidator(object):
         return missing_cfg
 
     def get_running_config(self, conn):
-        """Get the CSR's current running config.
+        """Get the ASR1k's current running config.
         :return: Current IOS running config as multiline string
         """
         config = conn.get_config(source="running")

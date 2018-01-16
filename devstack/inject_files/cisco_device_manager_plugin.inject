@@ -25,22 +25,6 @@ device_driver=networking_cisco.plugins.cisco.device_manager.hosting_device_drive
 plugging_driver=networking_cisco.plugins.cisco.device_manager.plugging_drivers.noop_plugging_driver.NoopPluggingDriver
 
 [cisco_hosting_device_template:2]
-name="CSR1kv template"
-enabled=True
-host_category=Hardware
-service_types=router:FW:VPN
-image=csr1kv_openstack_img
-flavor=621
-default_credentials_id=1
-configuration_mechanism=
-protocol_port=22
-booting_time=360
-slot_capacity=2000
-desired_slots_free=0
-tenant_bound=
-device_driver=networking_cisco.plugins.cisco.device_manager.hosting_device_drivers.csr1kv_hd_driver.CSR1kvHostingDeviceDriver
-
-[cisco_hosting_device_template:3]
 name="ASR1k template"
 enabled=True
 host_category=Hardware
@@ -58,8 +42,8 @@ device_driver=networking_cisco.plugins.cisco.device_manager.hosting_device_drive
 plugging_driver=networking_cisco.plugins.cisco.device_manager.plugging_drivers.hw_vlan_trunking_driver.HwVLANTrunkingPlugDriver
 
 [hosting_devices]
-[cisco_hosting_device:3]
-template_id=3
+[cisco_hosting_device:2]
+template_id=2
 credentials_id=1
 device_id=SN:abcd1234efgh
 admin_state_up=True
@@ -68,8 +52,8 @@ protocol_port=22
 tenant_bound=
 auto_delete=False
 
-[cisco_hosting_device:4]
-template_id=3
+[cisco_hosting_device:3]
+template_id=2
 credentials_id=1
 device_id=SN:efgh5678ijkl
 admin_state_up=True
@@ -79,10 +63,10 @@ tenant_bound=
 auto_delete=False
 
 [plugging_drivers]
-[HwVLANTrunkingPlugDriver:3]
+[HwVLANTrunkingPlugDriver:2]
 internal_net_interface_1=*:GigabitEthernet0/0/0
 external_net_interface_1=*:GigabitEthernet0/0/0
 
-[HwVLANTrunkingPlugDriver:4]
+[HwVLANTrunkingPlugDriver:3]
 internal_net_interface_1=*:GigabitEthernet0/2/1
 external_net_interface_1=*:GigabitEthernet0/2/1

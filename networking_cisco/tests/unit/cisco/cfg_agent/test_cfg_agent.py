@@ -48,7 +48,7 @@ def prepare_router_data(enable_snat=None, num_internal_ports=1):
                           'subnet': {'cidr': '35.4.%s.0/24' % i,
                                      'gateway_ip': '35.4.%s.1' % i}})
     hosting_device = {'id': _uuid(),
-                      'host_type': 'CSR1kv',
+                      'host_type': 'VM',
                       'ip_address': '20.0.0.5',
                       'port': '23'}
 

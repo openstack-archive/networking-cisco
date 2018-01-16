@@ -37,7 +37,7 @@
 NEUTRON_CONF_DIR=/etc/neutron
 NEUTRON_CONF=$NEUTRON_CONF_DIR/neutron.conf
 count=0
-Q_CISCO_CSR1KV_SETUP_SCRIPT_DIR=${Q_CISCO_CSR1KV_SETUP_SCRIPT_DIR:-$DIR_CISCO/devstack/csr1kv}
+Q_CISCO_ASR1K_SETUP_SCRIPT_DIR=${Q_CISCO_ASR1K_SETUP_SCRIPT_DIR:-$DIR_CISCO/devstack/asr1k}
 # Default Neutron Plugin
 Q_PLUGIN=${Q_PLUGIN:-cisco}
 # Default Neutron Port
@@ -58,9 +58,9 @@ Q_CISCO_ASR1K_ENABLED=${Q_CISCO_ASR1K_ENABLED:-True}
 MYSQL_USER=${MYSQL_USER:root}
 MYSQL_PASSWORD=${MYSQL_PASSWORD:password}
 
-source $DIR_CISCO/devstack/csr1kv/cisco
-source $DIR_CISCO/devstack/csr1kv/cisco_router
-source $DIR_CISCO/devstack/csr1kv/ciscocfgagent
+source $DIR_CISCO/devstack/asr1k/cisco
+source $DIR_CISCO/devstack/asr1k/cisco_router
+source $DIR_CISCO/devstack/asr1k/ciscocfgagent
 
 # Cisco Routing Service Plugin functions
 # ---------------------------------
@@ -77,7 +77,7 @@ function is_neutron_enabled {
     return 1
 }
 
-function configure_cisco_csr_router {
+function configure_cisco_asr1k_router {
     net_create_neutron_accounts
     net_configure_neutron
     net_start_neutron_agents
@@ -85,12 +85,10 @@ function configure_cisco_csr_router {
     if [[ "$Q_CISCO_ASR1K_ENABLED" == "True" ]]; then
         setup_for_asr1k
         Q_L3_ENABLED=True
-    else
-        setup_for_csr1kv
     fi
 }
 
-function start_cisco_csr_router {
+function start_cisco_asr1k_router {
     if [[ "$count" == 0 ]];then
         Q_L3_ENABLED="True"
         if [[ "$Q_CISCO_ASR1K_ENABLED" != "True" ]]; then
@@ -170,25 +168,8 @@ function setup_for_asr1k {
     else
         localrc_name=$TOP_DIR/local.conf
     fi
-    (cd $Q_CISCO_CSR1KV_SETUP_SCRIPT_DIR; ./csr1kv_install_all.sh neutron $plugin $localrc_name $MYSQL_USER $MYSQL_PASSWORD $Q_CISCO_MGMT_CFG_AGENT_IP True)
+    (cd $Q_CISCO_ASR1K_SETUP_SCRIPT_DIR; ./asr1k_install_all.sh neutron $plugin $localrc_name $MYSQL_USER $MYSQL_PASSWORD $Q_CISCO_MGMT_CFG_AGENT_IP True)
 
-}
-
-function setup_for_csr1kv {
-    if [[ "$Q_PLUGIN" == "csr1kv_openvswitch" ]]; then
-	    plugin=ovs
-    elif [[ "$Q_PLUGIN" == "cisco" || "${Q_CISCO_PLUGIN_SUBPLUGINS[0]}" == "n1kv" ]]; then
-	    plugin=n1kv
-    else
-	    die $LINENO "Not a deployment with CSR1kv. Exiting!"
-    fi
-    echo "Running CSR1Kv setup with ${MYSQL_USER} ${MYSQL_PASSWORD}"
-    if [[ -f $TOP_DIR/localrc ]]; then
-        localrc_name=$TOP_DIR/localrc
-    else
-        localrc_name=$TOP_DIR/local.conf
-    fi
-    (cd $Q_CISCO_CSR1KV_SETUP_SCRIPT_DIR; ./csr1kv_install_all.sh neutron $plugin $localrc_name $MYSQL_USER $MYSQL_PASSWORD $Q_CISCO_MGMT_CFG_AGENT_IP False)
 }
 
 function net_create_neutron_initial_network {

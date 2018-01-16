@@ -83,7 +83,8 @@ def get_nc_conn(hd):
                                      port=hd['protocol_port'],
                                      username=creds['user_name'],
                                      password=creds['password'],
-                                     device_params={'name': "csr"}, timeout=30)
+                                     device_params={'name': "asr1k"},
+                                     timeout=30)
 
     return ncc_connection
 

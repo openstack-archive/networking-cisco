@@ -78,7 +78,7 @@ DICT_EXTEND_FUNCTIONS = ['_extend_router_dict_routertype',
 
 ROUTER_APPLIANCE_OPTS = [
     cfg.StrOpt('default_router_type',
-               default=cisco_constants.CSR1KV_ROUTER_TYPE,
+               default=cisco_constants.ASR1K_ROUTER_TYPE,
                help=_("Default type of router to create")),
     cfg.StrOpt('namespace_router_type_name',
                default=cisco_constants.NAMESPACE_ROUTER_TYPE,

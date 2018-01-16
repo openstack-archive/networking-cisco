@@ -52,14 +52,14 @@ HOSTING_DEVICE_MANAGER_OPTS = [
     cfg.StrOpt('l3_admin_tenant', default='L3AdminTenant',
                help=_("Name of the L3 admin tenant")),
     cfg.StrOpt('management_network', default='osn_mgmt_nw',
-               help=_("Name of management network for CSR VM configuration. "
-                      "Default value is osn_mgmt_nw")),
+               help=_("Name of management network for service VM "
+                      "configuration. Default value is osn_mgmt_nw")),
     cfg.StrOpt('default_security_group', default='mgmt_sec_grp',
                help=_("Default security group applied on management port. "
                       "Default value is mgmt_sec_grp")),
     cfg.BoolOpt('ensure_nova_running', default=True,
                 help=_("Ensure that Nova is running before attempting to "
-                       "create any CSR1kv VM.")),
+                       "create any service VM.")),
     cfg.StrOpt('domain_name_server_1', default='8.8.8.8',
                help=_("IP address of primary domain name server for hosting "
                       "devices")),
@@ -261,7 +261,7 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
                           'does not have unique name. Please ensure that '
                           'it is.')
             else:
-                # CSR Mgmt security group is not present.
+                # Service VM Mgmt security group is not present.
                 LOG.error('There is no security group for the management '
                           'network. Please create one.')
         return cls._mgmt_sec_grp_id

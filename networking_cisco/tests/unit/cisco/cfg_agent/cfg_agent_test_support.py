@@ -122,7 +122,7 @@ class CfgAgentTestSupportMixin(object):
 
         hosting_device = {
             'id': _uuid(),
-            'name': "CSR1kv_template",
+            'name': "VM_template",
             'booting_time': 300,
             'host_category': "VM",
             'management_ip_address': '20.0.0.5',
