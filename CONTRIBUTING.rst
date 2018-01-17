@@ -1,13 +1,13 @@
 If you would like to contribute to the development of networking-cisco,
 you must follow the steps as outlined by the OpenStack page:
 
-   http://docs.openstack.org/infra/manual/developers.html
+   https://docs.openstack.org/infra/manual/developers.html
 
 Once those steps have been completed, changes to networking-cisco
 should be submitted for review via the Gerrit tool, following
 the workflow documented at:
 
-   http://docs.openstack.org/infra/manual/developers.html#development-workflow
+   https://docs.openstack.org/infra/manual/developers.html#development-workflow
 
 Pull requests submitted through GitHub will be ignored.
 
