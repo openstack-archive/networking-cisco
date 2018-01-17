@@ -15,10 +15,10 @@
 from oslo_log import log as logging
 
 from neutron.db import common_db_mixin
-from neutron.plugins.ml2 import driver_api as api
 from neutron_lib.api import validators
 
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import ml2_api as api
 
 LOG = logging.getLogger(__name__)
 

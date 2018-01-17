@@ -34,6 +34,9 @@ import six
 import testtools
 
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import constants as p_const
+from networking_cisco.backwards_compatibility import ml2_api as api
+
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     config as nexus_config)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -51,8 +54,6 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import mech_cisco_nexus
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import nexus_db_v2
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import trunk
 
-from neutron.plugins.common import constants as p_const
-from neutron.plugins.ml2 import driver_api as api
 from neutron.tests.unit import testlib_api
 
 from networking_cisco.tests import base as nc_base

@@ -19,11 +19,12 @@ import testtools
 from oslo_config import cfg
 
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import cb_events as events
+
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.services.trunk import nexus_trunk
 
-from neutron.callbacks import events
 from neutron.tests.unit.db import test_db_base_plugin_v2
 from neutron.tests.unit import testlib_api
 

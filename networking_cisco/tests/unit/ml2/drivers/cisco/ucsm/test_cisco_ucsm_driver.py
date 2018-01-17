@@ -16,8 +16,9 @@
 import mock
 from oslo_config import cfg
 
-from neutron.plugins.ml2 import driver_api as api
 from neutron.tests.unit import testlib_api
+
+from networking_cisco.backwards_compatibility import ml2_api as api
 
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import (
