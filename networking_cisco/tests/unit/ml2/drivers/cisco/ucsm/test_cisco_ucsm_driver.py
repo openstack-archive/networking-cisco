@@ -16,7 +16,6 @@
 import mock
 from oslo_config import cfg
 
-from neutron.db import api as db_api
 from neutron.plugins.ml2 import driver_api as api
 from neutron.tests.unit import testlib_api
 
@@ -130,7 +129,7 @@ class FakePortContext(object):
         }
         self._network = network_context
         self._segment = network_context.network_segments[0]
-        self.session = db_api.get_session()
+        self.session = bc.get_writer_session()
 
     @property
     def current(self):
