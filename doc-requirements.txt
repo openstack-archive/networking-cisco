@@ -1,4 +1,5 @@
+-c https://git.openstack.org/cgit/openstack/requirements/plain/upper-constraints.txt?h=stable/pike
 -r requirements.txt
 -r test-requirements.txt
--e git+https://git.openstack.org/openstack/python-neutronclient@mitaka-eol#egg=python-neutronclient
--e git+https://git.openstack.org/openstack/neutron@mitaka-eol#egg=neutron
+python-neutronclient
+-e git+https://git.openstack.org/openstack/neutron@stable/pike#egg=neutron
