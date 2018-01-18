@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    NCS: Remove support for Network Control System (NCS).
