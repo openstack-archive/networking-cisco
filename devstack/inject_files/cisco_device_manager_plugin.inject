@@ -39,7 +39,6 @@ slot_capacity=2000
 desired_slots_free=0
 tenant_bound=
 device_driver=networking_cisco.plugins.cisco.device_manager.hosting_device_drivers.csr1kv_hd_driver.CSR1kvHostingDeviceDriver
-plugging_driver=networking_cisco.plugins.cisco.device_manager.plugging_drivers.n1kv_ml2_trunking_driver.N1kvML2TrunkingPlugDriver
 
 [cisco_hosting_device_template:3]
 name="ASR1k template"

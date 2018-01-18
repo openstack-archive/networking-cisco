@@ -24,13 +24,6 @@ Drivers for Cisco Products
 
   * Neutron Service Plugins - cisco_l3_routing
 
-* Nexus 1000v
-
-  * *Deprecated.* To be removed in release 6.0.0
-  * ML2 Mechanism driver - cisco_n1kv
-  * Neutron Service plugins - cisco_n1kv_profile, cisco_n1kv_net_profile
-  * ML2 Extension driver - cisco_n1kv_ext
-
 * Network Convergence System (NCS)
 
   * *Deprecated.* To be removed in release 6.0.0
@@ -52,6 +45,10 @@ Drivers for Cisco Products
   * *No longer supported.* Removed in release 5.0.0
   * Code removed by commit 10b124d39fde4085a695d5c6652c8fb6e0620ece
   * Driver now hosted in repo https://github.com/noironetworks/apic-ml2-driver
+
+* Nexus 1000v
+
+  * *No longer supported.* Removed in release 6.0.0
 
 Releases and Version Support
 ============================
