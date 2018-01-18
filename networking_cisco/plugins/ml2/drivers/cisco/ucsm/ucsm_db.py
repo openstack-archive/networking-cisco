@@ -15,13 +15,13 @@
 
 from sqlalchemy import orm
 
+from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucsm_model
-from neutron.db import api as db_api
 
 
 class UcsmDbModel(object):
     def __init__(self):
-        self.session = db_api.get_session()
+        self.session = bc.get_writer_session()
 
     def is_port_profile_created(self, vlan_id, device_id):
         """Indicates if port profile has been created on UCS Manager."""
