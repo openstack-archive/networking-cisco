@@ -24,11 +24,6 @@ Drivers for Cisco Products
 
   * Neutron Service Plugins - cisco_l3_routing
 
-* Network Convergence System (NCS)
-
-  * *No longer supported.* Removed in release 6.0.0
-  * Code removed by commit <TODO(rcurran)>
-
 * Service Advertisement Framework (SAF)
 
   * *Deprecated.* To be removed in release 6.0.0
@@ -45,6 +40,11 @@ Drivers for Cisco Products
   * *No longer supported.* Removed in release 5.0.0
   * Code removed by commit 10b124d39fde4085a695d5c6652c8fb6e0620ece
   * Driver now hosted in repo https://github.com/noironetworks/apic-ml2-driver
+
+* Network Convergence System (NCS)
+
+  * *No longer supported.* Removed in release 6.0.0
+  * Code removed by commit 31e4880299d04ceb399aa38097fc5f2b26e30ab1
 
 * Nexus 1000v
 
