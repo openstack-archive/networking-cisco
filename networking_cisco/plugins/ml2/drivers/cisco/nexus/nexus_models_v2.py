@@ -42,6 +42,9 @@ class NexusPortBinding(bc.model_base.BASEV2):
                  self.channel_group,
                  'True' if self.is_native else 'False'))
 
+    def __hash__(self):
+        return hash(self.__repr__())
+
     def __eq__(self, other):
         """Compare only the binding, without the id key."""
         return (
