@@ -1,0 +1,18 @@
+---
+upgrade:
+  - |
+    Cisco UCSM: The ucsmsdk is now the default replacing the UcsSdk
+
+    The ucsmsdk is now the default package for interacting with UCSM.
+    Use of the now deprecated UcsSdk will still work if the ucsmsdk is not
+    installed. However, all new features will be developed using the ucsmsdk
+    so users are encouraged to upgrade.
+
+deprecations:
+  - |
+    Cisco UCSM: Use of the UcsSdk has been deprecated for removal
+
+    Use of of the UcsSdk will be removed in a future release. It has been
+    replaced by the ucsmsdk. While use of the UcsSdk will continue to work
+    until its complete removal, no new features will be added so users are
+    encouraged to upgrade.

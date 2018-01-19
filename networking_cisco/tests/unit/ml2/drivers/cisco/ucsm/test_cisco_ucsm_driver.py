@@ -86,7 +86,6 @@ VLAN_SEGMENTS_GOOD = [{api.ID: 'vlan_segment_id',
 UCSM_HOST_DICT = {HOST1: UCSM_IP_ADDRESS_1,
                   HOST2: UCSM_IP_ADDRESS_2}
 
-
 PORT_PROFILE_1 = 'OS-PP-100'
 
 
@@ -164,11 +163,11 @@ class FakeServiceProfile(object):
     """Fake Service Profile class for testing only."""
     def __init__(self, service_profile):
         self.sp = service_profile
-        self.PnDn = 'org-root/ls-'
-        self.Dn = 'org-root'
-        self.OperSrcTemplName = (
-            self.PnDn + self.Dn)
-        self.PnDn = self.PnDn + self.sp
+        self.pn_dn = 'org-root/ls-'
+        self.dn = 'org-root'
+        self.oper_src_templ_name = (
+            self.pn_dn + self.dn)
+        self.pn_dn = self.pn_dn + self.sp
 
     def __iter__(self):
         return self
@@ -179,63 +178,55 @@ class FakeServiceProfile(object):
     def next(self):
         return self.__next__()
 
-    def Name(self):
-        return
-
-
-class FakeServiceProfileList(object):
-    def __init__(self):
-        self.sp_list = []
-        self.sp1 = FakeServiceProfile('SP1')
-        self.sp2 = FakeServiceProfile('SP2')
-        self.OutConfigs = mock.Mock(side_effect=True)
-        self.OutConfigs.GetChild.return_value = [self.sp1, self.sp2]
-
 
 class FakeServer(object):
     def __init__(self, server):
-        self.server_name = server
-
-    def Name(self):
-        return self.server_name
+        self.name = server
 
 
 class FakeUcsmHandle(object):
     """Ucsm connection handle for testing purposes only."""
 
-    def __init__(self, port_profile=None):
+    def __init__(self, port_profile=None, query_dn=None, invalid_classid=None):
         self._port_profile = port_profile
+        self._query_dn = query_dn
+        self._invalid_classid = invalid_classid
         self._times_called = 0
         self.sp_list = ['org-root/ls-SP1']
         self.sp_list_temp = []
-        self.resolved_dest = mock.Mock()
 
-    def StartTransaction(self):
-        return True
-
-    def GetManagedObject(self, class_path, class_id,
-                         pp_dict):
+    def query_dn(self, dn):
         self._times_called += 1
 
-        if self._times_called == 1:
+        if self._invalid_classid:
+            return FakeServer('nope')
+        elif self._query_dn:
+            return self._query_dn
+        elif dn == 'org-root/ls-SP1':
+            return FakeServer(HOST1)
+        elif self._times_called == 1:
             return None
         elif self._times_called == 2:
             raise Exception("Port profile still in use by VMs.")
         else:
             return self._port_profile
 
-    def ConfigResolveClass(self, classId, inFilter,
-                           inHierarchical=False, dumpXml=None):
-        self.sp_list_temp = FakeServiceProfileList()
+    def query_classid(self, class_id):
+        if self._invalid_classid:
+            self.sp_list_temp = [FakeServiceProfile('nope'),
+                FakeServiceProfile('nope')]
+        else:
+            self.sp_list_temp = [FakeServiceProfile('SP1'),
+                FakeServiceProfile('SP2')]
         return self.sp_list_temp
 
-    def RemoveManagedObject(self, p_profile):
+    def remove_mo(self, p_profile):
         self._port_profile = None
 
-    def CompleteTransaction(self):
+    def commit(self):
         return
 
-    def Logout(self):
+    def logout(self):
         return
 
 
@@ -961,12 +952,6 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         """Verifies that the PP delete retry logic."""
         handle = FakeUcsmHandle(PORT_PROFILE_1)
 
-        self.ucsm_driver.ucsmsdk = mock.Mock()
-
-        self.ucsm_driver.ucsmsdk.VnicProfile.ClassId.return_value = "PP"
-        self.ucsm_driver.ucsmsdk.VnicProfile.NAME = PORT_PROFILE_1
-        self.ucsm_driver.ucsmsdk.VnicProfile.DN = "/org-root"
-
         # 1st call to delete_port_profile is designed to not find
         # the PP on the UCSM
         self.ucsm_driver._delete_port_profile(
@@ -1044,16 +1029,12 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         host_id = HOST1
 
         def mocked_connect(self, ucsm_ip):
-            handle = FakeUcsmHandle(PORT_PROFILE_1)
+            handle = FakeUcsmHandle(PORT_PROFILE_1, FakeServer(HOST2))
             return handle
 
         mock.patch.object(ucsm_network_driver.CiscoUcsmDriver,
                           'ucs_manager_connect',
                           new=mocked_connect).start()
-
-        mock.patch.object(ucsm_network_driver.CiscoUcsmDriver,
-                          '_get_server_name',
-                          return_value=HOST2).start()
 
         self.assertIsNone(
             self.ucsm_driver._learn_sp_and_template_for_host(host_id))
@@ -1064,22 +1045,15 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         expected_ucsm_ip = '2.2.2.2'
 
         def mocked_connect(self, ucsm_ip):
-            handle = FakeUcsmHandle(PORT_PROFILE_1)
-            return handle
-
-        def get_server_name(self, han, mo, ip):
-            if ip == expected_ucsm_ip:
-                return HOST1
+            if ucsm_ip == expected_ucsm_ip:
+                handle = FakeUcsmHandle()
             else:
-                return "nope"
+                handle = FakeUcsmHandle(invalid_classid=True)
+            return handle
 
         mock.patch.object(ucsm_network_driver.CiscoUcsmDriver,
                           'ucs_manager_connect',
                           new=mocked_connect).start()
-
-        mock.patch.object(ucsm_network_driver.CiscoUcsmDriver,
-                          '_get_server_name',
-                          new=get_server_name).start()
 
         actual_ucsm_ip = self.ucsm_driver._learn_sp_and_template_for_host(
             host_id)
