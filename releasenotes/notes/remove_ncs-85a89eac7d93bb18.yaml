@@ -2,3 +2,4 @@
 upgrade:
   - |
     NCS: Remove support for Network Control System (NCS).
+    The code was removed in commit 31e4880299d04ceb399aa38097fc5f2b26e30ab1
