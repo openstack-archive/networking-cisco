@@ -26,13 +26,11 @@ Drivers for Cisco Products
 
 * Service Advertisement Framework (SAF)
 
-  * *Deprecated.* To be removed in release 6.0.0
   * Firewall drivers - native, phy_asa
   * Applications - fabric-enabler-server, fabric-enabler-agent, fabric-enabler-cli
 
 * Prime Network Registrar (CPNR)
 
-  * *Deprecated.* To be removed in release 6.0.0
   * Applications - cpnr-rootwrap, cpnr-dns-relay-agent, cpnr-dns-relay, cpnr-dhcp-relay-agent, cpnr-dhcp-relay
 
 * Application Policy Infrastructure Controller (APIC)
