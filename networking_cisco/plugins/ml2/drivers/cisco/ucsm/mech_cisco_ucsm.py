@@ -262,9 +262,13 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
     def delete_network_precommit(self, context):
         """Delete entry corresponding to Network's VLAN in the DB."""
         segments = context.network_segments
-        vlan_id = segments[0]['segmentation_id']
+        for segment in segments:
+            if not self.check_segment(segment):
+                return  # Not a vlan network
+            vlan_id = segment.get(api.SEGMENTATION_ID)
+            if not vlan_id:
+                return  # No vlan assigned to segment
 
-        if vlan_id:
             # For VM-FEX ports
             self.ucsm_db.delete_vlan_entry(vlan_id)
             # For Neutron virtio ports
@@ -275,14 +279,19 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
 
     def delete_network_postcommit(self, context):
         """Delete all configuration added to UCS Manager for the vlan_id."""
-
         segments = context.network_segments
-        vlan_id = segments[0]['segmentation_id']
-        port_profile = self.make_profile_name(vlan_id)
         network_name = context.current['name']
-        trunk_vlans = self.ucsm_conf.get_sriov_multivlan_trunk_config(
-            network_name)
-        if vlan_id:
+
+        for segment in segments:
+            if not self.check_segment(segment):
+                return  # Not a vlan network
+            vlan_id = segment.get(api.SEGMENTATION_ID)
+            if not vlan_id:
+                return  # No vlan assigned to segment
+
+            port_profile = self.make_profile_name(vlan_id)
+            trunk_vlans = self.ucsm_conf.get_sriov_multivlan_trunk_config(
+                network_name)
             self.driver.delete_all_config_for_vlan(vlan_id, port_profile,
                 trunk_vlans)
 
