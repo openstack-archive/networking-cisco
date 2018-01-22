@@ -514,6 +514,30 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         self.assertIsNotNone(db_entry)
         self.assertEqual(VLAN_ID_1, db_entry.vlan_id)
 
+    @mock.patch.object(ucsm_db.UcsmDbModel, 'delete_sp_template_for_vlan')
+    @mock.patch.object(ucsm_db.UcsmDbModel, 'delete_vnic_template_for_vlan')
+    @mock.patch.object(ucsm_db.UcsmDbModel, 'delete_vlan_entry')
+    def test_delete_network_precommit_no_segments(
+            self, mock_delete_vlan_entry, mock_delete_vnic,
+            mock_delete_sp_template):
+        self.mech_driver.delete_network_precommit(FakeNetworkContext([]))
+        self.assertFalse(mock_delete_vlan_entry.called)
+        self.assertFalse(mock_delete_vnic.called)
+        self.assertFalse(mock_delete_sp_template.called)
+
+    @mock.patch.object(ucsm_db.UcsmDbModel, 'delete_sp_template_for_vlan')
+    @mock.patch.object(ucsm_db.UcsmDbModel, 'delete_vnic_template_for_vlan')
+    @mock.patch.object(ucsm_db.UcsmDbModel, 'delete_vlan_entry')
+    def test_delete_network_precommit_vlan_segment(
+            self, mock_delete_vlan_entry, mock_delete_vnic,
+            mock_delete_sp_template):
+        network_context = self._create_network_context()
+        vlan_id = network_context.network_segments[0]['segmentation_id']
+        self.mech_driver.delete_network_precommit(network_context)
+        mock_delete_vlan_entry.assert_called_once_with(vlan_id)
+        mock_delete_vnic.assert_called_once_with(vlan_id)
+        self.assertFalse(mock_delete_sp_template.called)
+
     def test_update_port_postcommit_success(self):
         """Verifies duplicate Port Profiles are not being created."""
         name = PORT_NAME
