@@ -34,6 +34,7 @@ ncclient = importutils.try_import('ncclient')
 manager = importutils.try_import('ncclient.manager')
 
 LOG = logging.getLogger(__name__)
+logging.getLogger('ncclient.transport.session').setLevel(logging.INFO)
 
 
 class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):

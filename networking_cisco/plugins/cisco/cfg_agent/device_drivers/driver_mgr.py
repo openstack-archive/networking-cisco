@@ -40,8 +40,9 @@ class DeviceDriverManager(object):
     This class is used by the service helper classes.
     """
 
-    def __init__(self):
+    def __init__(self, cfg_agent):
         self._drivers = {}
+        self._cfg_agent = cfg_agent
         self._hosting_device_routing_drivers_binding = {}
 
     def get_driver(self, resource_id):
@@ -83,9 +84,18 @@ class DeviceDriverManager(object):
                 self._drivers[resource_id] = driver
             else:
                 driver_class = resource['router_type']['cfg_agent_driver']
+                # save a copy of the obfuscated credentials
+                obfusc_creds = dict(hosting_device.get('credentials'))
+                if obfusc_creds:
+                    # get un-obfuscated password
+                    real_pw = self._cfg_agent.get_hosting_device_password(
+                        obfusc_creds.get('credentials_id'))
+                    hosting_device['credentials']['password'] = real_pw
                 driver = importutils.import_object(driver_class,
                                                    **hosting_device)
                 self._hosting_device_routing_drivers_binding[hd_id] = driver
+                if obfusc_creds:
+                    hosting_device['credentials'] = obfusc_creds
                 self._drivers[resource_id] = driver
             return driver
         except ImportError:

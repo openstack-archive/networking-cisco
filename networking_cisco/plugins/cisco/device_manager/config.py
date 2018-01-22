@@ -143,3 +143,34 @@ def _ensure_format(rule, attribute, res_dict):
                 res_dict[attribute].append = uuidify(item)
     elif rule == 'type:string_or_none' and res_dict[attribute] == "":
         res_dict[attribute] = None
+
+
+def obtain_hosting_device_credentials_from_config():
+    """Obtains credentials from config file and stores them in memory.
+    To be called before hosting device templates defined in the config file
+    are created.
+    """
+    cred_dict = get_specific_config('cisco_hosting_device_credential')
+    attr_info = {
+        'name': {'allow_post': True, 'allow_put': True,
+                 'validate': {'type:string': None}, 'is_visible': True,
+                 'default': ''},
+        'description': {'allow_post': True, 'allow_put': True,
+                        'validate': {'type:string': None},
+                        'is_visible': True, 'default': ''},
+        'user_name': {'allow_post': True, 'allow_put': True,
+                      'validate': {'type:string': None},
+                      'is_visible': True, 'default': ''},
+        'password': {'allow_post': True, 'allow_put': True,
+                     'validate': {'type:string': None},
+                     'is_visible': True, 'default': ''},
+        'type': {'allow_post': True, 'allow_put': True,
+                 'validate': {'type:string': None}, 'is_visible': True,
+                 'default': ''}}
+    credentials = {}
+    for cred_uuid, kv_dict in cred_dict.items():
+        # ensure cred_uuid is properly formatted
+        cred_uuid = uuidify(cred_uuid)
+        verify_resource_dict(kv_dict, True, attr_info)
+        credentials[cred_uuid] = kv_dict
+    return credentials

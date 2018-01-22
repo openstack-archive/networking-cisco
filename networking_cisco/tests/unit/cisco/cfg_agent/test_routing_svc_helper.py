@@ -24,6 +24,7 @@ from neutron.tests import base
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cfg_agent import cfg_agent
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
+from networking_cisco.plugins.cisco.cfg_agent.device_drivers import driver_mgr
 from networking_cisco.plugins.cisco.cfg_agent.service_helpers import (
     routing_svc_helper)
 from networking_cisco.plugins.cisco.common import (cisco_constants as
@@ -100,17 +101,23 @@ class TestBasicRoutingOperations(
                                'host_category': "VM",
                                'management_ip_address': '20.0.0.5',
                                'protocol_port': 22,
-                               'credentials': {'username': 'user',
-                                               'password': '4getme'},
+                               'credentials': {'credentials_id': 'creds_uuid1',
+                                               'user_name': 'user',
+                                               'password': '********'},
                                }
         self.router = {
             'id': _uuid(),
+            'name': 'router1',
             'enable_snat': True,
             'admin_state_up': True,
             'routes': [],
             'gw_port': self.ex_gw_port,
             routerrole.ROUTER_ROLE_ATTR: None,
-            'hosting_device': self.hosting_device}
+            'hosting_device': self.hosting_device,
+            'router_type': {
+                'cfg_agent_driver': 'networking_cisco.plugins.cisco.'
+                                    'cfg_agent.device_drivers.iosxe.'
+                                    'iosxe_routing_driver.IosXeRoutingDriver'}}
 
         self.agent = mock.Mock()
 
@@ -1032,6 +1039,19 @@ class TestBasicRoutingOperations(
         self.routing_helper._process_router.assert_called_once_with(r1_info)
         self.assertEqual(0, self.routing_helper._router_removed.call_count)
 
+    def test_obfuscated_password_is_unobfuscated_for_driver(self):
+        obfus_creds = dict(self.hosting_device['credentials'])
+        a_cfg_agent = cfg_agent.CiscoCfgAgent('some_host')
+        a_cfg_agent._credentials = {
+            'creds_uuid1': {'credentials_id': 'creds_uuid1',
+                            'username': 'user', 'password': '4getme'}}
+        drv_mgr = driver_mgr.DeviceDriverManager(a_cfg_agent)
+        driver = drv_mgr.set_driver(self.router)
+        self.assertEqual(obfus_creds,
+                         self.router['hosting_device']['credentials'])
+        self.assertEqual('user', driver._username)
+        self.assertEqual('4getme', driver._password)
+
 
 class TestDeviceSyncOperations(base.BaseTestCase):
 
@@ -1053,8 +1073,9 @@ class TestDeviceSyncOperations(base.BaseTestCase):
                                'host_category': "VM",
                                'management_ip_address': '20.0.0.5',
                                'protocol_port': 22,
-                               'credentials': {'username': 'user',
-                                               'password': '4getme'},
+                               'credentials': {'credentials_id': 'creds_uuid1',
+                                               'user_name': 'user',
+                                               'password': '********'},
                                }
 
         self.fetched_routers = [
