@@ -29,9 +29,9 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
 
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import constants as p_const
+from networking_cisco.backwards_compatibility import ml2_api as api
 
-from neutron.plugins.common import constants as p_const
-from neutron.plugins.ml2 import driver_api as api
 from neutron_lib import exceptions as exc
 
 LOG = log.getLogger(__name__)

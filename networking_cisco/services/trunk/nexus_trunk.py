@@ -16,10 +16,10 @@
 from oslo_config import cfg
 from oslo_log import log
 
-from neutron.callbacks import events
-from neutron.callbacks import registry
-
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import cb_events as events
+from networking_cisco.backwards_compatibility import cb_registry as registry
+
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (

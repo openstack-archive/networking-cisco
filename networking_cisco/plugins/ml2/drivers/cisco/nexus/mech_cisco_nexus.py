@@ -29,11 +29,10 @@ from oslo_serialization import jsonutils
 from oslo_utils import excutils
 
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import constants as p_const
+from networking_cisco.backwards_compatibility import ml2_api as api
 
 from neutron.common import utils as neutron_utils
-from neutron.plugins.common import constants as p_const
-
-from neutron.plugins.ml2 import driver_api as api
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     config as conf)

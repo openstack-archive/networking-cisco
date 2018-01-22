@@ -29,8 +29,12 @@ NEUTRON_VERSION = StrictVersion(str(version.version_info))
 NEUTRON_NEWTON_VERSION = StrictVersion('9.0.0')
 NEUTRON_OCATA_VERSION = StrictVersion('10.0.0')
 NEUTRON_PIKE_VERSION = StrictVersion('11.0.0')
+NEUTRON_QUEENS_VERSION = StrictVersion('12.0.0')
 
 n_c = __import__('neutron.common.constants', fromlist=['common.constants'])
+n_p_c = __import__('neutron.plugins.common.constants',
+                   fromlist=['plugins.common.constants'])
+n_p_c_attr_names = dir(n_p_c)
 constants = __import__('neutron_lib.constants', fromlist=['constants'])
 
 if NEUTRON_VERSION >= NEUTRON_NEWTON_VERSION:
@@ -181,6 +185,19 @@ else:
     from neutron.agent.common import config  # noqa
     from neutron.extensions import dns  # noqa
 
+if NEUTRON_VERSION >= NEUTRON_QUEENS_VERSION:
+    # Newer than queens
+    from neutron.conf.plugins.ml2 import config as ml2_config
+    from neutron_lib.callbacks import events as cb_events
+    from neutron_lib.callbacks import registry as cb_registry
+    from neutron_lib.plugins.ml2 import api as ml2_api
+else:
+    # Pre-queens
+    from neutron.callbacks import events as cb_events  # noqa
+    from neutron.callbacks import registry as cb_registry  # noqa
+    from neutron.plugins.ml2 import config as ml2_config  # noqa
+    from neutron.plugins.ml2 import driver_api as ml2_api  # noqa
+
 core_opts = base_config.core_opts
 
 # Bring in the union of all constants in neutron.common.constants
@@ -199,6 +216,12 @@ ignore = frozenset(['__builtins__', '__doc__', '__file__', '__name__',
                     '__package__', '__path__', '__version__'])
 for attr_name in n_c_attr_names:
     attr = getattr(n_c, attr_name)
+    if attr_name in ignore or isinstance(attr, ModuleType):
+        continue
+    else:
+        setattr(constants, attr_name, attr)
+for attr_name in n_p_c_attr_names:
+    attr = getattr(n_p_c, attr_name)
     if attr_name in ignore or isinstance(attr, ModuleType):
         continue
     else:

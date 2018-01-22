@@ -20,6 +20,8 @@ from oslo_config import cfg
 from neutron.tests import base
 
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import ml2_api as api
+
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     exceptions as excep)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -29,7 +31,6 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus.extensions import (
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import mech_cisco_nexus
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import nexus_db_v2
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import nexus_models_v2
-from neutron.plugins.ml2 import driver_api as api
 from neutron.tests.unit import testlib_api
 
 NETWORK_ID = 'network_id'

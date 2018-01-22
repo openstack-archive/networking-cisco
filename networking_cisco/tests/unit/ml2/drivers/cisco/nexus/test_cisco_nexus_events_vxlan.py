@@ -18,6 +18,9 @@ import collections
 import mock
 from oslo_config import cfg
 
+from networking_cisco.backwards_compatibility import constants as p_const
+from networking_cisco.backwards_compatibility import ml2_api as api
+
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import exceptions
@@ -25,10 +28,6 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import nexus_db_v2
 
 from networking_cisco.tests.unit.ml2.drivers.cisco.nexus import (
     test_cisco_nexus_base)
-
-from neutron.plugins.common import constants as p_const
-
-from neutron.plugins.ml2 import driver_api as api
 
 
 class TestCiscoNexusVxlanDeviceConfig(object):
