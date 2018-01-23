@@ -25,8 +25,8 @@ from oslo_utils import importutils
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions as cfg_exc
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers import (
     devicedriver_api)
-from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
-    cisco_csr1kv_snippets as snippets)
+from networking_cisco.plugins.cisco.cfg_agent.device_drivers.iosxe import (
+    cisco_iosxe_snippets as snippets)
 from networking_cisco.plugins.cisco.common.htparser import HTParser
 from networking_cisco.plugins.cisco.extensions import ha
 
@@ -34,11 +34,6 @@ ncclient = importutils.try_import('ncclient')
 manager = importutils.try_import('ncclient.manager')
 
 LOG = logging.getLogger(__name__)
-
-
-# N1kv constants
-T1_PORT_NAME_PREFIX = 't1_p:'  # T1 port/network is for VXLAN
-T2_PORT_NAME_PREFIX = 't2_p:'  # T2 port/network is for VLAN
 
 
 class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
@@ -113,7 +108,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         self._ncc_connection = None
 
     def cleanup_invalid_cfg(self, hd, routers):
-        # at this point nothing to be done for CSR
+        # at this point nothing to be done
         return
 
     def get_configuration(self):
@@ -258,11 +253,11 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         return ri.router_name()[:self.DEV_NAME_LEN]
 
     def _get_connection(self):
-        """Make SSH connection to the CSR.
+        """Make SSH connection to the IOS XE device.
 
         The external ncclient library is used for creating this connection.
         This method keeps state of any existing connections and reuses them if
-        already connected. Also CSR1kv's interfaces (except management) are
+        already connected. Also interfaces (except management) are typically
         disabled by default when it is booted. So if connecting for the first
         time, driver will enable all other interfaces and keep that status in
         the `_itfcs_enabled` flag.
@@ -271,6 +266,8 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
             if self._ncc_connection and self._ncc_connection.connected:
                 return self._ncc_connection
             else:
+                # ncclient needs 'name' to be 'csr' in order to communicate
+                # with the device in the correct way.
                 self._ncc_connection = manager.connect(
                     host=self._host_ip, port=self._host_ssh_port,
                     username=self._username, password=self._password,
@@ -287,43 +284,11 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
 
     def _get_interface_name_from_hosting_port(self, port):
         vlan = self._get_interface_vlan_from_hosting_port(port)
-        int_no = self._get_interface_no_from_hosting_port(port)
-        return 'GigabitEthernet%s.%s' % (int_no, vlan)
+        return 'GigabitEthernet.%s' % vlan
 
     @staticmethod
     def _get_interface_vlan_from_hosting_port(port):
         return port['hosting_info']['segmentation_id']
-
-    @staticmethod
-    def _get_interface_no_from_hosting_port(port):
-        """Calculate interface number from the hosting port's name.
-
-         Interfaces in the CSR1kv are created in pairs (T1 and T2) where
-         T1 interface is used for VLAN and T2 interface for VXLAN traffic
-         respectively. On the neutron side these are named T1 and T2 ports and
-         follows the naming convention: <Tx_PORT_NAME_PREFIX>:<PAIR_INDEX>
-         where the `PORT_NAME_PREFIX` indicates either VLAN or VXLAN and
-         `PAIR_INDEX` is the pair number. `PAIR_INDEX` starts at 1.
-
-         In CSR1kv, GigabitEthernet 0 is not present and GigabitEthernet 1
-         is used as a management interface (Note: this might change in
-         future). So the first (T1,T2) pair corresponds to
-         (GigabitEthernet 2, GigabitEthernet 3) and so forth. This function
-         extracts the `PAIR_INDEX` and calculates the corresponding interface
-         number.
-
-        :param port: neutron port corresponding to the interface.
-        :return: number of the interface (eg: 1 in case of GigabitEthernet1)
-        """
-        _name = port['hosting_info']['hosting_port_name']
-        if_type = _name.split(':')[0] + ':'
-        if if_type == T1_PORT_NAME_PREFIX:
-            return str(int(_name.split(':')[1]) * 2)
-        elif if_type == T2_PORT_NAME_PREFIX:
-            return str(int(_name.split(':')[1]) * 2 + 1)
-        else:
-            params = {'attribute': 'hosting_port_name', 'value': _name}
-            raise cfg_exc.CSR1kvUnknownValueException(**params)
 
     def _get_interfaces(self):
         """Get a list of interfaces on this hosting device.
@@ -362,34 +327,11 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         return len(itfcs_raw) > 0
 
     def _enable_itfcs(self, conn):
-        """Enable the interfaces of a CSR1kv Virtual Router.
-
-        When the virtual router first boots up, all interfaces except
-        management are down. This method will enable all data interfaces.
-
-        Note: In CSR1kv, GigabitEthernet 0 is not present. GigabitEthernet 1
-        is used as management and GigabitEthernet 2 and up are used for data.
-        This might change in future releases.
-
-        Currently only the second and third Gig interfaces corresponding to a
-        single (T1,T2) pair and configured as trunk for VLAN and VXLAN
-        is enabled.
+        """Enable the interfaces of a IOS XE device.
 
         :param conn: Connection object
         :return: True or False
         """
-
-        #ToDo(Hareesh): Interfaces are hard coded for now. Make it dynamic.
-        interfaces = ['GigabitEthernet 2', 'GigabitEthernet 3']
-        try:
-            for i in interfaces:
-                conf_str = snippets.ENABLE_INTF % i
-                rpc_obj = conn.edit_config(target='running', config=conf_str)
-                if self._check_response(rpc_obj, 'ENABLE_INTF'):
-                    LOG.info("Enabled interface %s ", i)
-                    time.sleep(1)
-        except Exception:
-            return False
         return True
 
     def _get_vrfs(self):
@@ -421,7 +363,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         return capabilities
 
     def _get_running_config(self, split=True):
-        """Get the CSR's current running config.
+        """Get the IOS XE device's current running config.
 
         :return: Current IOS running config as multiline string
         """
@@ -516,19 +458,9 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         parse = HTParser(ios_cfg)
         return parse.find_children('interface ' + interface)
 
-    def _nat_rules_for_internet_access(self, acl_no, network,
-                                       netmask,
-                                       inner_itfc,
-                                       outer_itfc,
-                                       vrf_name):
+    def _nat_rules_for_internet_access(self, acl_no, network, netmask,
+                                       inner_itfc, outer_itfc, vrf_name):
         """Configure the NAT rules for an internal network.
-
-        Configuring NAT rules in the CSR1kv is a three step process. First
-        create an ACL for the IP range of the internal network. Then enable
-        dynamic source NATing on the external interface of the CSR for this
-        ACL and VRF of the neutron router. Finally enable NAT on the
-        interfaces of the CSR where the internal and external networks are
-        connected.
 
         :param acl_no: ACL number of the internal network.
         :param network: internal network
@@ -540,23 +472,9 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         :param vrf_name: VRF corresponding to this virtual router
         :return: True if configuration succeeded
         :raises: networking_cisco.plugins.cisco.cfg_agent.cfg_exceptions.
-        CSR1kvConfigException
+        IOSXEConfigException
         """
-        # Duplicate ACL creation throws error, so checking
-        # it first. Remove it in future as this is not common in production
-        acl_present = self._check_acl(acl_no, network, netmask)
-        if not acl_present:
-            conf_str = snippets.CREATE_ACL % (acl_no, network, netmask)
-            self._edit_running_config(conf_str, 'CREATE_ACL')
-
-        conf_str = snippets.SET_DYN_SRC_TRL_INTFC % (acl_no, outer_itfc,
-                                                    vrf_name)
-        self._edit_running_config(conf_str, 'SET_DYN_SRC_TRL_INTFC')
-
-        conf_str = snippets.SET_NAT % (inner_itfc, 'inside')
-        self._edit_running_config(conf_str, 'SET_NAT_INSIDE')
-        conf_str = snippets.SET_NAT % (outer_itfc, 'outside')
-        self._edit_running_config(conf_str, 'SET_NAT_OUTSIDE')
+        pass
 
     def _add_interface_nat(self, itfc_name, itfc_type):
         conf_str = snippets.SET_NAT % (itfc_name, itfc_type)
@@ -675,7 +593,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
                 params = {'snippet': snippet, 'type': e_type, 'tag': e_tag,
                           'dev_id': self.hosting_device['id'],
                           'ip': self._host_ip, 'confstr': conf_str}
-                raise cfg_exc.CSR1kvConfigException(**params)
+                raise cfg_exc.IOSXEConfigException(**params)
 
     def _check_response(self, rpc_obj, snippet_name, conf_str=None):
         """This function checks the rpc response object for status.
@@ -688,7 +606,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
                        xmlns="urn:ietf:params:netconf:base:1.0">
                 <ok />
             </rpc-reply>
-        In case of error, CSR1kv sends a response as follows.
+        In case of error, IOS XE device sends a response as follows.
         We take the error type and tag.
             <?xml version="1.0" encoding="UTF-8"?>
             <rpc-reply message-id="urn:uuid:81bf8082-....-b69a-000c29e1b85c"
@@ -701,7 +619,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
             </rpc-reply>
         :return: True if the config operation completed successfully
         :raises: networking_cisco.plugins.cisco.cfg_agent.cfg_exceptions.
-        CSR1kvConfigException
+        IOSXEConfigException
         """
         LOG.debug("RPCReply for %(snippet_name)s is %(rpc_obj)s",
                   {'snippet_name': snippet_name, 'rpc_obj': rpc_obj.xml})
@@ -716,4 +634,4 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
         params = {'snippet': snippet_name, 'type': e_type, 'tag': e_tag,
                   'dev_id': self.hosting_device['id'],
                   'ip': self._host_ip, 'confstr': conf_str}
-        raise cfg_exc.CSR1kvConfigException(**params)
+        raise cfg_exc.IOSXEConfigException(**params)

@@ -42,7 +42,7 @@ class ConnectionException(DriverException):
                  "Port:%(port)s, Device timeout:%(timeout)s."))
 
 
-class CSR1kvConfigException(DriverException):
+class IOSXEConfigException(DriverException):
     """Configuration exception thrown when modifying the running config."""
     message = (_("Error executing snippet:%(snippet)s. "
                  "Hosting device:%(dev_id)s Mgmt IP:%(ip)s "
@@ -50,15 +50,15 @@ class CSR1kvConfigException(DriverException):
                  "confstr)s."))
 
 
-class CSR1kvMissingInterfaceException(DriverException):
+class IOSXEMissingInterfaceException(DriverException):
     """Configuration exception thrown when modifying the running config."""
     message = (_("Interface corresponding to port:%(id)s and mac-address:%("
-                 "mac)s is missing in the CSR. Cannot proceed with interface"
-                 "config."))
+                 "mac)s is missing in the device. Cannot proceed with "
+                 "interface config."))
 
 
-class CSR1kvUnknownValueException(DriverException):
-    """CSR1kv Exception thrown when an unknown value is received."""
+class IOSXEUnknownValueException(DriverException):
+    """IOS XE device exception thrown when an unknown value is received."""
     message = (_("Data in attribute: %(attribute)s does not correspond to "
                  "expected value. Value received is %(value)s. "))
 

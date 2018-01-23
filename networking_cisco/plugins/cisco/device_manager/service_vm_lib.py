@@ -93,7 +93,7 @@ class ServiceVMManager(object):
                             vm_flavor, hosting_device_drv,
                             credentials_info, connectivity_info,
                             ports=None):
-        if self._core_plugin.__class__.__name__ != 'CSR1kv_OVSNeutronPluginV2':
+        if True:
             return self.dispatch_service_vm_real(
                 context, instance_name, vm_image, vm_flavor,
                 hosting_device_drv, credentials_info, connectivity_info, ports)
@@ -140,7 +140,7 @@ class ServiceVMManager(object):
 
     #TODO(remove fake function later)
     def delete_service_vm(self, context, vm_id):
-        if self._core_plugin.__class__.__name__ != 'CSR1kv_OVSNeutronPluginV2':
+        if True:
             return self.delete_service_vm_real(context, vm_id)
         else:
             return self.delete_service_vm_fake(context, vm_id)

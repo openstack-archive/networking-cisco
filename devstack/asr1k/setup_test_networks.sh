@@ -5,13 +5,7 @@
 # osn is the name of OpenStack network service, i.e.,
 # it should be 'neutron'.
 osn=${1:-neutron}
-plugin=${2:-n1kv}
-
-n1kvPhyNwNames=(osn_phy_network osn_phy_network)
-n1kvNwProfileNames=(test_net_profile1 test_net_profile2)
-n1kvNwProfileTypes=(vlan vlan)
-n1kvNwSubprofileTypes=(None None)
-n1kvNwProfileSegRange=(500-599 600-699)
+plugin=${2:-ml2}
 
 testNetworks=(test_net1 test_net2 test_net3 test_net4 test_net5 test_net6 test_extnet1)
 testNetworkOpts=('' '' '' '' '' '' '--router:external=True')
@@ -45,22 +39,6 @@ function get_network_profile_id() {
         let c+=1
     done
 }
-
-if [ "$plugin" == "n1kv" ]; then
-    echo "Verifying that required N1kv network profiles exist:"
-    for (( i=0; i<${#n1kvNwProfileNames[@]}; i++ )); do
-        echo "   Checking ${n1kvNwProfileNames[$i]} ..."
-        get_network_profile_id $i ${n1kvNwProfileNames[$i]} ${n1kvPhyNwNames[$i]} ${n1kvNwProfileTypes[$i]} ${n1kvNwSubprofileTypes[$i]} ${n1kvNwProfileSegRange[$i]}
-        if [ $nProfileId == "None" ]; then
-            echo "   Failed to verify network profile ${n1kvNwProfileNames[$i]}, please check health of the N1kv plugin and the VSM."
-            echo "   Aborting!"
-            exit 1
-        else
-            echo "   Done"
-        fi
-    done
-    profile_opt='--n1kv:profile_id='${nProfileId[0]}
-fi
 
 for (( i=0; i<${#testNetworks[@]}; i++)); do
     echo -n "Checking if ${testNetworks[$i]} network exists ..."

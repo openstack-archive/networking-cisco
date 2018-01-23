@@ -25,9 +25,9 @@ from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
     asr1k_routing_driver as driver)
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
     asr1k_snippets as snippets)
-from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
-    cisco_csr1kv_snippets as csr_snippets)
-from networking_cisco.plugins.cisco.cfg_agent.device_drivers.csr1kv import (
+from networking_cisco.plugins.cisco.cfg_agent.device_drivers.iosxe import (
+    cisco_iosxe_snippets as iosxe_snippets)
+from networking_cisco.plugins.cisco.cfg_agent.device_drivers.iosxe import (
     iosxe_routing_driver as iosxe_driver)
 from networking_cisco.plugins.cisco.cfg_agent.service_helpers import (
     routing_svc_helper)
@@ -283,7 +283,7 @@ class ASR1kRoutingDriver(base.BaseTestCase,
         self.driver.external_gateway_added(self.ri, self.ext_gw_port)
 
         sub_interface = self.ext_phy_infc + '.' + str(self.vlan_ext)
-        self.assert_edit_run_cfg(csr_snippets.ENABLE_INTF, sub_interface)
+        self.assert_edit_run_cfg(iosxe_snippets.ENABLE_INTF, sub_interface)
 
         cfg_params_nat = (self.vrf + '_nat_pool', self.ext_gw_ip,
                           self.ext_gw_ip, self.ext_gw_ip_mask)
@@ -294,7 +294,7 @@ class ASR1kRoutingDriver(base.BaseTestCase,
         self.driver.external_gateway_added(self.ri, self.ext_gw_port)
 
         sub_interface = self.ext_phy_infc + '.' + str(self.vlan_ext)
-        self.assert_edit_run_cfg(csr_snippets.ENABLE_INTF, sub_interface)
+        self.assert_edit_run_cfg(iosxe_snippets.ENABLE_INTF, sub_interface)
 
         cfg_params_nat = (self.vrf + '_nat_pool', self.ext_gw_ip,
                           self.ext_gw_ip, self.ext_gw_ip_mask)
@@ -305,7 +305,7 @@ class ASR1kRoutingDriver(base.BaseTestCase,
         self.driver.external_gateway_added(self.ri, self.ext_gw_port)
 
         sub_interface = self.ext_phy_infc + '.' + str(self.vlan_ext)
-        self.assert_edit_run_cfg(csr_snippets.ENABLE_INTF, sub_interface)
+        self.assert_edit_run_cfg(iosxe_snippets.ENABLE_INTF, sub_interface)
 
         cfg_params_nat = (self.vrf + '_nat_pool', self.ext_gw_ip,
                           self.ext_gw_ip, self.ext_gw_ip_mask)
@@ -322,7 +322,7 @@ class ASR1kRoutingDriver(base.BaseTestCase,
         self.driver.external_gateway_added(self.ri, self.ext_gw_port)
 
         sub_interface = self.ext_phy_infc + '.' + str(self.vlan_ext)
-        self.assert_edit_run_cfg(csr_snippets.ENABLE_INTF, sub_interface)
+        self.assert_edit_run_cfg(iosxe_snippets.ENABLE_INTF, sub_interface)
 
         cfg_params_nat = (vrf + '_nat_pool', self.ext_gw_ip,
                           self.ext_gw_ip, self.ext_gw_ip_mask)
@@ -398,7 +398,7 @@ class ASR1kRoutingDriver(base.BaseTestCase,
 
         sub_interface = self.ext_phy_infc + '.' + str(self.vlan_ext)
         self.assert_edit_run_cfg(
-            csr_snippets.REMOVE_SUBINTERFACE, sub_interface)
+            iosxe_snippets.REMOVE_SUBINTERFACE, sub_interface)
 
     def test_floating_ip_added(self):
         self._create_test_routers()
@@ -471,7 +471,7 @@ class ASR1kRoutingDriver(base.BaseTestCase,
         net_mask = netaddr.IPNetwork(self.int_gw_ip_cidr).hostmask
         cfg_params_create_acl = (acl_name, net, net_mask)
         self.assert_edit_run_cfg(
-            csr_snippets.CREATE_ACL, cfg_params_create_acl)
+            iosxe_snippets.CREATE_ACL, cfg_params_create_acl)
 
         pool_name = "%s_nat_pool" % self.vrf
         cfg_params_dyn_trans = (acl_name, pool_name, self.vrf)
@@ -480,9 +480,9 @@ class ASR1kRoutingDriver(base.BaseTestCase,
 
         sub_interface_int = self.int_phy_infc + '.' + str(self.vlan_int)
         sub_interface_ext = self.int_phy_infc + '.' + str(self.vlan_ext)
-        self.assert_edit_run_cfg(csr_snippets.SET_NAT,
+        self.assert_edit_run_cfg(iosxe_snippets.SET_NAT,
                                  (sub_interface_int, 'inside'))
-        self.assert_edit_run_cfg(csr_snippets.SET_NAT,
+        self.assert_edit_run_cfg(iosxe_snippets.SET_NAT,
                                  (sub_interface_ext, 'outside'))
 
     def test_driver_enable_internal_network_NAT_with_multi_region(self):
@@ -508,7 +508,7 @@ class ASR1kRoutingDriver(base.BaseTestCase,
         net_mask = netaddr.IPNetwork(self.int_gw_ip_cidr).hostmask
         cfg_params_create_acl = (acl_name, net, net_mask)
         self.assert_edit_run_cfg(
-            csr_snippets.CREATE_ACL, cfg_params_create_acl)
+            iosxe_snippets.CREATE_ACL, cfg_params_create_acl)
 
         pool_name = "%s_nat_pool" % vrf
         cfg_params_dyn_trans = (acl_name, pool_name, vrf)
@@ -517,9 +517,9 @@ class ASR1kRoutingDriver(base.BaseTestCase,
 
         sub_interface_int = self.int_phy_infc + '.' + str(self.vlan_int)
         sub_interface_ext = self.int_phy_infc + '.' + str(self.vlan_ext)
-        self.assert_edit_run_cfg(csr_snippets.SET_NAT,
+        self.assert_edit_run_cfg(iosxe_snippets.SET_NAT,
                                  (sub_interface_int, 'inside'))
-        self.assert_edit_run_cfg(csr_snippets.SET_NAT,
+        self.assert_edit_run_cfg(iosxe_snippets.SET_NAT,
                                  (sub_interface_ext, 'outside'))
 
     def test_driver_disable_internal_network_NAT(self):
@@ -539,7 +539,7 @@ class ASR1kRoutingDriver(base.BaseTestCase,
         self.assert_edit_run_cfg(
             snippets.REMOVE_DYN_SRC_TRL_POOL, cfg_params_dyn_trans)
 
-        self.assert_edit_run_cfg(csr_snippets.REMOVE_ACL, acl_name)
+        self.assert_edit_run_cfg(iosxe_snippets.REMOVE_ACL, acl_name)
 
     def test_driver_disable_internal_network_NAT_with_multi_region(self):
         cfg.CONF.set_override('enable_multi_region', True, 'multi_region')
@@ -566,35 +566,35 @@ class ASR1kRoutingDriver(base.BaseTestCase,
         self.assert_edit_run_cfg(
             snippets.REMOVE_DYN_SRC_TRL_POOL, cfg_params_dyn_trans)
 
-        self.assert_edit_run_cfg(csr_snippets.REMOVE_ACL, acl_name)
+        self.assert_edit_run_cfg(iosxe_snippets.REMOVE_ACL, acl_name)
 
     def test_enable_interface_user_visible_router(self):
         self._create_test_routers()
         self.driver.enable_router_interface(self.ri, self.ext_gw_port)
 
         sub_interface = self.ext_phy_infc + '.' + str(self.vlan_ext)
-        self.assert_edit_run_cfg(csr_snippets.ENABLE_INTF, sub_interface)
+        self.assert_edit_run_cfg(iosxe_snippets.ENABLE_INTF, sub_interface)
 
     def test_enable_interface_redundancy_router(self):
         self._create_test_routers(is_user_visible=False)
         self.driver.enable_router_interface(self.ri, self.ext_gw_port)
 
         sub_interface = self.ext_phy_infc + '.' + str(self.vlan_ext)
-        self.assert_edit_run_cfg(csr_snippets.ENABLE_INTF, sub_interface)
+        self.assert_edit_run_cfg(iosxe_snippets.ENABLE_INTF, sub_interface)
 
     def test_disable_interface_user_visible_router(self):
         self._create_test_routers()
         self.driver.disable_router_interface(self.ri, self.ext_gw_port)
 
         sub_interface = self.ext_phy_infc + '.' + str(self.vlan_ext)
-        self.assert_edit_run_cfg(csr_snippets.DISABLE_INTF, sub_interface)
+        self.assert_edit_run_cfg(iosxe_snippets.DISABLE_INTF, sub_interface)
 
     def test_disable_interface_redundancy_router(self):
         self._create_test_routers(is_user_visible=False)
         self.driver.disable_router_interface(self.ri, self.ext_gw_port)
 
         sub_interface = self.ext_phy_infc + '.' + str(self.vlan_ext)
-        self.assert_edit_run_cfg(csr_snippets.DISABLE_INTF, sub_interface)
+        self.assert_edit_run_cfg(iosxe_snippets.DISABLE_INTF, sub_interface)
 
     def test_get_configuration(self):
         self._create_test_routers()

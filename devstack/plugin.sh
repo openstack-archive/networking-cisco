@@ -20,19 +20,10 @@ if is_service_enabled net-cisco; then
         echo "Installing Networking-Cisco"
         setup_develop $DIR_CISCO
 
-        if is_service_enabled cisco-fwaas; then
-            echo "Installing neutron-fwaas"
-            source $DIR_CISCO/devstack/csr1kv/cisco_fwaas
-            install_cisco_fwaas
-        fi
-
     elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
         if is_service_enabled q-ciscorouter && is_service_enabled ciscocfgagent; then
-            source $DIR_CISCO/devstack/csr1kv/cisco_neutron
-            if is_service_enabled cisco-fwaas; then
-                configure_cisco_fwaas
-            fi
-            configure_cisco_csr_router
+            source $DIR_CISCO/devstack/asr1k/cisco_neutron
+            configure_cisco_asr1k_router
         fi
 
         if is_service_enabled cisco-saf; then
@@ -42,10 +33,7 @@ if is_service_enabled net-cisco; then
 
     elif [[ "$1" == "stack" && "$2" == "extra" ]]; then
         if is_service_enabled q-ciscorouter && is_service_enabled ciscocfgagent; then
-           if is_service_enabled cisco-fwaas; then
-               start_cisco_fwaas
-           fi
-           start_cisco_csr_router
+           start_cisco_asr1k_router
         fi
         if is_service_enabled cisco-saf; then
             echo "Starting cisco-saf processes"
@@ -54,7 +42,7 @@ if is_service_enabled net-cisco; then
     fi
 
     if [[ "$1" == "unstack" ]]; then
-        source $DIR_CISCO/devstack/csr1kv/cisco_neutron
+        source $DIR_CISCO/devstack/asr1k/cisco_neutron
         net_stop_neutron
 
         if is_service_enabled cisco-saf; then

@@ -144,7 +144,6 @@ class HostingDeviceConfigAgentSchedulerTestCaseBase(
         self.core_plugin._svc_vm_mgr_obj = service_vm_lib.ServiceVMManager(
             True, None, None, None, '', keystone_session=mock.MagicMock())
         self._mock_svc_vm_create_delete(self.core_plugin)
-        self._mock_io_file_ops()
         if self.mock_cfg_agent_notifiers is True:
             self._mock_cfg_agent_notifier(self.plugin)
         self._other_tenant_id = dev_mgr_test_support._uuid()

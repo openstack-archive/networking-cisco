@@ -95,7 +95,7 @@ class TestBasicRoutingOperations(
                            'subnets': [{'id': sn_id, 'cidr': '19.4.4.0/24',
                                         'gateway_ip': '19.4.4.1'}]}
         self.hosting_device = {'id': "100",
-                               'name': "CSR1kv_template",
+                               'name': "VM_template",
                                'booting_time': 300,
                                'host_category': "VM",
                                'management_ip_address': '20.0.0.5',
@@ -165,10 +165,10 @@ class TestBasicRoutingOperations(
         params = {'snippet': snip_name, 'type': e_type, 'tag': e_tag,
                   'confstr': confstr, 'dev_id': 'FAKE_ID', 'ip': 'FAKE_IP'}
         self.routing_helper._internal_network_added.side_effect = (
-            cfg_exceptions.CSR1kvConfigException(**params))
+            cfg_exceptions.IOSXEConfigException(**params))
         router, ports = self.prepare_router_data()
         ri = routing_svc_helper.RouterInfo(router['id'], router)
-        self.assertRaises(cfg_exceptions.CSR1kvConfigException,
+        self.assertRaises(cfg_exceptions.IOSXEConfigException,
                           self.routing_helper._process_router, ri)
 
     def test_process_router_throw_session_close(self):
@@ -1048,7 +1048,7 @@ class TestDeviceSyncOperations(base.BaseTestCase):
                            'subnets': [{'cidr': '19.4.4.0/24',
                                         'gateway_ip': '19.4.4.1'}]}
         self.hosting_device = {'id': "100",
-                               'name': "CSR1kv_template",
+                               'name': "VM_template",
                                'booting_time': 300,
                                'host_category': "VM",
                                'management_ip_address': '20.0.0.5',

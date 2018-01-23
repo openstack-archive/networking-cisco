@@ -173,17 +173,6 @@ class DeviceManagerTestSupportMixin(object):
             self._greenpool_mock)
         _eventlet_greenpool_fcn_p.start()
 
-    def _mock_io_file_ops(self):
-        # Mock library functions for config drive file operations
-        cfg_template = '\n'.join(['interface GigabitEthernet1',
-                                  'ip address <ip> <mask>',
-                                  'no shutdown'])
-        m = mock.mock_open(read_data=cfg_template)
-        m.return_value.__iter__.return_value = cfg_template.splitlines()
-        mock.patch('networking_cisco.plugins.cisco.device_manager.'
-                   'hosting_device_drivers.csr1kv_hd_driver.open', m,
-                   create=True).start()
-
     def _test_remove_all_hosting_devices(self):
         """Removes all hosting devices created during a test."""
         devmgr = bc.get_plugin(cisco_constants.DEVICE_MANAGER)

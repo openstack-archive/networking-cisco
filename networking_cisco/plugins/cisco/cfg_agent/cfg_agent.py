@@ -144,7 +144,7 @@ class CiscoCfgAgent(manager.Manager):
     routing service helper, firewall by firewall helper etc.
     A further layer of abstraction is implemented by using device drivers for
     encapsulating all configuration operations of a service on a device.
-    Device drivers are specific to a particular device/service VM eg: CSR1kv.
+    Device drivers are specific to a particular device/service VM eg: ASR1k.
 
     The main entry points in this class are the `process_services()` and
     `_backlog_task()` .
@@ -506,9 +506,7 @@ def _mock_stuff():
     import mock
 
     targets = ['networking_cisco.plugins.cisco.cfg_agent.device_drivers.'
-               'csr1kv.csr1kv_routing_driver.manager',
-               'networking_cisco.plugins.cisco.cfg_agent.device_drivers.'
-               'csr1kv.iosxe_routing_driver.manager']
+               'iosxe.iosxe_routing_driver.manager']
     ncc_patchers = []
     ncclient_mock = mock.MagicMock()
     ok_xml_obj = mock.MagicMock()
@@ -519,14 +517,9 @@ def _mock_stuff():
         patcher.start()
         ncc_patchers.append(patcher)
 
-    targets = ['networking_cisco.plugins.cisco.cfg_agent.device_drivers'
-               '.csr1kv.csr1kv_routing_driver.CSR1kvRoutingDriver.'
+    targets = ['networking_cisco.plugins.cisco.cfg_agent.device_drivers.'
+               'iosxe.iosxe_routing_driver.IosXeRoutingDriver.'
                '_get_running_config',
-               'networking_cisco.plugins.cisco.cfg_agent.device_drivers.'
-               'csr1kv.iosxe_routing_driver.IosXeRoutingDriver.'
-               '_get_running_config',
-               'networking_cisco.plugins.cisco.cfg_agent.device_drivers.'
-               'asr1k.asr1k_cfg_syncer.ConfigSyncer.get_running_config',
                'networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k.'
                'asr1k_cfg_syncer.ConfigSyncer.get_running_config']
     fake_running_config = ("interface GigabitEthernet1\n"
@@ -625,9 +618,7 @@ def mock_ncclient():
         return not os.path.isfile(indicator_filename)
 
     targets = ['networking_cisco.plugins.cisco.cfg_agent.device_drivers.'
-               'csr1kv.csr1kv_routing_driver.manager',
-               'networking_cisco.plugins.cisco.cfg_agent.device_drivers.'
-               'csr1kv.iosxe_routing_driver.manager']
+               'iosxe.iosxe_routing_driver.manager']
     ncc_patchers = []
     ncclient_mgr_mock = mock.MagicMock()
     ncclient_mgr_mock.connect.side_effect = _fake_connect

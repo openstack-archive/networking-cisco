@@ -37,8 +37,8 @@ from networking_cisco.plugins.cisco.extensions import ha
 from networking_cisco.plugins.cisco.extensions import routertype
 from networking_cisco.tests.unit.cisco.device_manager import (
     device_manager_test_support)
-from networking_cisco.tests.unit.cisco.device_manager.test_db_device_manager \
-    import DeviceManagerTestCaseMixin
+from networking_cisco.tests.unit.cisco.device_manager import (
+    test_db_device_manager)
 from networking_cisco.tests.unit.cisco.l3 import l3_router_test_support
 
 LOG = logging.getLogger(__name__)
@@ -51,8 +51,8 @@ CORE_PLUGIN_KLASS = device_manager_test_support.CORE_PLUGIN_KLASS
 L3_PLUGIN_KLASS = l3_router_test_support.L3_PLUGIN_KLASS
 
 NS_ROUTERTYPE_NAME = c_constants.NAMESPACE_ROUTER_TYPE
-VM_ROUTERTYPE_NAME = c_constants.CSR1KV_ROUTER_TYPE
-HW_ROUTERTYPE_NAME = "HW_router"
+VM_ROUTERTYPE_NAME = test_db_device_manager.VM_ROUTERTYPE_NAME
+HW_ROUTERTYPE_NAME = c_constants.ASR1K_ROUTER_TYPE
 
 NOOP_SCHEDULER = ('networking_cisco.plugins.cisco.l3.schedulers.'
                   'noop_l3_router_hosting_device_scheduler.'
@@ -250,9 +250,10 @@ class L3TestRoutertypeExtensionManager(
         return res
 
 
-class TestRoutertypeDBPlugin(test_db_base_plugin_v2.NeutronDbPluginV2TestCase,
-                             RoutertypeTestCaseMixin,
-                             DeviceManagerTestCaseMixin):
+class TestRoutertypeDBPlugin(
+    test_db_base_plugin_v2.NeutronDbPluginV2TestCase,
+    RoutertypeTestCaseMixin,
+    test_db_device_manager.DeviceManagerTestCaseMixin):
 
     hdm_db.HostingDeviceManagerMixin.path_prefix = "/dev_mgr"
     resource_prefix_map = dict(

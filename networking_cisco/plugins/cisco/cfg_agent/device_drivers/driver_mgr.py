@@ -30,7 +30,7 @@ class DeviceDriverManager(object):
     hosting device, a corresponding device driver object is used.
     Device drivers encapsulate the necessary configuration information to
     configure a logical resource (eg: routers, firewalls, vpns etc.) on a
-    hosting device (eg: CSR1kv).
+    hosting device (eg: ASR1k).
 
     The device driver class loads one driver object per hosting device.
     The loaded drivers are cached in memory, so when a request is made to

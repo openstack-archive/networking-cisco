@@ -4,8 +4,6 @@
 # |                                                                                                |
 # +------------------------------------------------------------------------------------------------+
 
-[[local|localrc]]
-
 OFFLINE=False
 RECLONE=yes
 
@@ -60,11 +58,8 @@ enable_service q-ciscorouter
 enable_plugin networking-cisco https://github.com/openstack/networking-cisco.git master
 enable_service net-cisco
 
-# Enable CSR
-enable_service cisco-csr
-
 # Default routertype for Neutron routers
-Q_CISCO_DEFAULT_ROUTER_TYPE=CSR1kv_router
+Q_CISCO_DEFAULT_ROUTER_TYPE=ASR1k_router
 
 # Destination path for installation of the OpenStack components.
 # There is no need to specify it unless you want the code in
@@ -94,32 +89,7 @@ esac
 # Sets the maximum number of workers for most services. Must be 0 for now
 API_WORKERS=0
 
-#Q_PLUGIN=openvswitch
-Q_PLUGIN=cisco
-declare -a Q_CISCO_PLUGIN_SUBPLUGINS=(n1kv)
-Q_CISCO_PLUGIN_RESTART_VSM=yes
-Q_CISCO_PLUGIN_VSM_IP=192.168.168.2
-#Q_CISCO_PLUGIN_VSM_USERNAME=admin
-Q_CISCO_PLUGIN_VSM_USERNAME=<SET THIS VARIABLE!!!>
-#Q_CISCO_PLUGIN_VSM_PASSWORD=Sfish123
-Q_CISCO_PLUGIN_VSM_PASSWORD=<SET THIS VARIABLE!!!>
-#Q_CISCO_PLUGIN_VSM_ISO_IMAGE=$HOME/img/n1kv/n1000v-dk9.5.2.1.SK1.3.0.135.iso
-Q_CISCO_PLUGIN_VSM_ISO_IMAGE=<SET THIS VARIABLE!!!>
-#Q_CISCO_PLUGIN_UVEM_DEB_IMAGE=$HOME/img/n1kv/nexus_1000v_vem-12.04-5.2.1.SK1.3.0.135.S0-0gdb.deb
-Q_CISCO_PLUGIN_UVEM_DEB_IMAGE=<SET THIS VARIABLE!!!>
-Q_CISCO_PLUGIN_HOST_MGMT_INTF=eth0
-
-N1KV_VLAN_NET_PROFILE_NAME=default_network_profile
-N1KV_VLAN_NET_SEGMENT_RANGE=101-499
-
 Q_CISCO_ROUTER_PLUGIN=yes
-#Q_CISCO_CSR1KV_QCOW2_IMAGE=$HOME/img/csr1kv/3.13/csr1000v-universalk9.BLD_MCP_DEV_LATEST_20140531_013025.qcow2
-Q_CISCO_CSR1KV_QCOW2_IMAGE=<SET THIS VARIABLE!!!>
 
 GIT_BASE=https://github.com
-
-# Set mem_ballon stats
-[[post-config|$NOVA_CONF]]
-[libvirt]
-mem_stats_period_seconds = 0
 
