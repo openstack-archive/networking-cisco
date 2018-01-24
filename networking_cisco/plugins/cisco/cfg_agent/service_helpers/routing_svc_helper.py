@@ -18,6 +18,7 @@ import netaddr
 import pprint as pp
 
 from operator import itemgetter
+from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging
@@ -215,7 +216,7 @@ class RoutingServiceHelper(object):
     def router_deleted(self, context, routers):
         """Deal with router deletion RPC message."""
         LOG.debug('Got router deleted notification for %s', routers)
-        self.removed_routers.update(routers)
+        self._update_removed_routers_cache(routers)
 
     def routers_updated(self, context, routers):
         """Deal with routers modification and creation RPC message."""
@@ -224,7 +225,7 @@ class RoutingServiceHelper(object):
             # This is needed for backward compatibility
             if isinstance(routers[0], dict):
                 routers = [router['id'] for router in routers]
-            self.updated_routers.update(routers)
+            self._update_updated_routers_cache(routers)
 
     def router_removed_from_hosting_device(self, context, routers):
         LOG.debug('Got router removed from hosting device: %s', routers)
@@ -258,8 +259,8 @@ class RoutingServiceHelper(object):
                 all_routers_flag = True
                 self.fullsync = False
                 self.router_info = {}
-                self.updated_routers.clear()
-                self.removed_routers.clear()
+                self._get_and_clear_updated_routers_cache()
+                self._get_and_clear_removed_routers_cache()
                 self.sync_devices.clear()
                 routers = self._fetch_router_info(all_routers=True)
                 LOG.debug("All routers: %s" % (pp.pformat(routers)))
@@ -267,9 +268,8 @@ class RoutingServiceHelper(object):
                     self._cleanup_invalid_cfg(routers)
             else:
                 if self.updated_routers:
-                    router_ids = list(self.updated_routers)
+                    router_ids = self._get_and_clear_updated_routers_cache()
                     LOG.debug("Updated routers: %s", router_ids)
-                    self.updated_routers.clear()
                     routers = self._fetch_router_info(router_ids=router_ids)
                     LOG.debug("Updated routers: %s" % (pp.pformat(routers)))
                 if device_ids:
@@ -281,9 +281,9 @@ class RoutingServiceHelper(object):
                     if removed_devices_info.get('deconfigure'):
                         ids = self._get_router_ids_from_removed_devices_info(
                             removed_devices_info)
-                        self.removed_routers = self.removed_routers | set(ids)
+                        self._update_removed_routers_cache(ids)
                 if self.removed_routers:
-                    removed_routers_ids = list(self.removed_routers)
+                    removed_routers_ids = self._get_removed_routers_cache()
                     LOG.debug("Removed routers: %s",
                               pp.pformat(removed_routers_ids))
                     for r in removed_routers_ids:
@@ -351,6 +351,38 @@ class RoutingServiceHelper(object):
         return configurations
 
     # Routing service helper internal methods
+
+    @lockutils.synchronized('updated_routers_cache', 'cisco-cfg-agent-')
+    def _get_and_clear_updated_routers_cache(self):
+        router_ids = list(self.updated_routers)
+        self.updated_routers.clear()
+        return router_ids
+
+    @lockutils.synchronized('updated_routers_cache', 'cisco-cfg-agent-')
+    def _update_updated_routers_cache(self, routers):
+        self.updated_routers.update(routers)
+
+    @lockutils.synchronized('updated_routers_cache', 'cisco-cfg-agent-')
+    def _del_from_updated_routers_cache(self, router_id):
+        self.updated_routers.discard(router_id)
+
+    @lockutils.synchronized('removed_routers_cache', 'cisco-cfg-agent-')
+    def _get_and_clear_removed_routers_cache(self):
+        router_ids = list(self.removed_routers)
+        self.removed_routers.clear()
+        return router_ids
+
+    @lockutils.synchronized('removed_routers_cache', 'cisco-cfg-agent-')
+    def _get_removed_routers_cache(self):
+        return list(self.removed_routers)
+
+    @lockutils.synchronized('removed_routers_cache', 'cisco-cfg-agent-')
+    def _update_removed_routers_cache(self, routers):
+        self.removed_routers.update(routers)
+
+    @lockutils.synchronized('removed_routers_cache', 'cisco-cfg-agent-')
+    def _del_from_removed_routers_cache(self, router_id):
+        self.removed_routers.discard(router_id)
 
     def _cleanup_invalid_cfg(self, routers):
 
@@ -477,8 +509,8 @@ class RoutingServiceHelper(object):
 
             # clear router_config cache
             for router_dict in fetched_routers:
-                self.updated_routers.discard(router_dict['id'])
-                self.removed_routers.discard(router_dict['id'])
+                self._del_from_updated_routers_cache(router_dict['id'])
+                self._del_from_removed_routers_cache(router_dict['id'])
                 LOG.debug("[sync_devices] invoking "
                           "_router_removed(%s)",
                           router_dict['id'])
@@ -641,7 +673,7 @@ class RoutingServiceHelper(object):
                     # sync time.
                     LOG.debug("Router: %(id)s INFO_INCOMPLETE",
                               {'id': r['id']})
-                    self.updated_routers.add(r['id'])
+                    self._update_updated_routers_cache([r['id']])
                     continue
                 try:
                     if not r['admin_state_up']:
@@ -668,19 +700,19 @@ class RoutingServiceHelper(object):
                         # and schedule resync when hd comes back
                     else:
                         # retry the router update on the next pass
-                        self.updated_routers.add(r['id'])
+                        self._update_updated_routers_cache([r['id']])
                         LOG.debug("RETRY_RTR_UPDATE %s" % (r['id']))
 
                     continue
                 except KeyError as e:
                     LOG.exception("Key Error, missing key: %s", e)
-                    self.updated_routers.add(r['id'])
+                    self._update_updated_routers_cache([r['id']])
                     continue
                 except cfg_exceptions.DriverException as e:
                     LOG.exception("Driver Exception on router:%(id)s. "
                                   "Error is %(e)s", {'id': r['id'],
                                                      'e': e})
-                    self.updated_routers.update([r['id']])
+                    self._update_updated_routers_cache([r['id']])
                     continue
                 LOG.debug("Done processing router[id:%(id)s, role:%(role)s]",
                           {'id': r['id'], 'role': r[ROUTER_ROLE_ATTR]})
@@ -1001,11 +1033,11 @@ class RoutingServiceHelper(object):
             ri.ex_gw_port = ex_gw_port
             self._routes_updated(ri)
         except cfg_exceptions.HAParamsMissingException as e:
-            self.updated_routers.update([ri.router_id])
+            self._update_updated_routers_cache([ri.router_id])
             LOG.warning(e)
         except cfg_exceptions.DriverException as e:
             with excutils.save_and_reraise_exception():
-                self.updated_routers.update([ri.router_id])
+                self._update_updated_routers_cache([ri.router_id])
                 LOG.error(e)
 
     def _process_router_floating_ips(self, ri, ex_gw_port):
@@ -1161,16 +1193,16 @@ class RoutingServiceHelper(object):
                 driver.router_removed(ri)
                 self.driver_manager.remove_driver(router_id)
             del self.router_info[router_id]
-            self.removed_routers.discard(router_id)
+            self._del_from_removed_routers_cache(router_id)
         except cfg_exceptions.DriverException:
             LOG.warning("Router remove for router_id: %s was incomplete. "
                         "Adding the router to removed_routers list",
                         router_id)
-            self.removed_routers.add(router_id)
+            self._update_removed_routers_cache([router_id])
             # remove this router from updated_routers if it is there. It might
             # end up there too if exception was thrown earlier inside
             # `_process_router()`
-            self.updated_routers.discard(router_id)
+            self._del_from_updated_routers_cache(router_id)
         except ncc_errors.SessionCloseError as e:
             LOG.exception("ncclient Unexpected session close %s"
                           " while attempting to remove router", e)
@@ -1180,7 +1212,7 @@ class RoutingServiceHelper(object):
                 # and schedule resync when the device comes back
             else:
                 # retry the router removal on the next pass
-                self.removed_routers.add(router_id)
+                self._update_removed_routers_cache([router_id])
                 LOG.debug("Interim connectivity lost to hosting device %s, "
                           "enqueuing router %s in removed_routers set" %
                           pp.pformat(hd), router_id)
