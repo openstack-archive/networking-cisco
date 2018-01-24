@@ -29,8 +29,6 @@ from oslo_log import log as logging
 from oslo_utils import importutils
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
-    config as conf)
-from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     exceptions as cexc)
@@ -244,9 +242,9 @@ class CiscoNexusSshDriver(basedrvr.CiscoNexusBaseDriver):
 
         if not self.ncclient:
             self.ncclient = self._import_client()
-        nexus_ssh_port = int(self.nexus_switches[nexus_host, const.SSHPORT])
-        nexus_user = self.nexus_switches[nexus_host, const.USERNAME]
-        nexus_password = self.nexus_switches[nexus_host, const.PASSWORD]
+        nexus_ssh_port = int(self.nexus_switches[nexus_host][const.SSHPORT])
+        nexus_user = self.nexus_switches[nexus_host][const.USERNAME]
+        nexus_password = self.nexus_switches[nexus_host][const.PASSWORD]
         hostkey_verify = cfg.CONF.ml2_cisco.host_key_checks
         try:
             # With new ncclient version, we can pass device_params...
@@ -282,7 +280,7 @@ class CiscoNexusSshDriver(basedrvr.CiscoNexusBaseDriver):
         latter command allows configuration to persist on the switch after
         reboot.
         """
-        if conf.cfg.CONF.ml2_cisco.persistent_switch_config:
+        if cfg.CONF.ml2_cisco.persistent_switch_config:
             customized_config += (snipp.EXEC_SAVE_CONF_SNIPPET)
 
         conf_xml_snippet = snipp.EXEC_CONF_SNIPPET % (customized_config)

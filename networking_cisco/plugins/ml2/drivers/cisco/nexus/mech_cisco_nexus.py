@@ -58,6 +58,8 @@ HOST_NOT_FOUND = "Host %s not defined in switch configuration section."
 # database.
 DELAY_MONITOR_THREAD = 30
 
+CONF = cfg.CONF
+
 
 class CiscoNexusCfgMonitor(object):
     """Replay config on communication failure between OpenStack to Nexus."""
@@ -273,7 +275,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             loaded_class = neutron_utils.load_class_by_alias_or_classname(
                 'networking_cisco.ml2.nexus_driver',
                 conf.cfg.CONF.ml2_cisco.nexus_driver)
-            return loaded_class(self._nexus_switches)
+            return loaded_class(CONF.ml2_cisco.nexus_switches)
         except ImportError:
             LOG.error("Error loading Nexus Config driver '%s'",
                       conf.cfg.CONF.ml2_cisco.nexus_driver)
@@ -287,7 +289,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         #           empty list returned on error.
         #           return error indicator
 
-        value = self._nexus_switches.get((switch_ip, const.VPCPOOL))
+        value = CONF.ml2_cisco.nexus_switches[switch_ip][const.VPCPOOL] or ''
         new_list = set()
         vpc_range = value.split(',')
         # test != '' handles when value is '' or consecutive ',,' exist
@@ -369,19 +371,25 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         # determine what needs to be added/removed
         # vpc data base and apply those changes.
 
-        for switch_ip, attr in self._nexus_switches:
-            if str(attr) == const.VPCPOOL:
-                rm_list, add_list = self._get_vpcpool_changes_needed(switch_ip)
-                nxos_db.init_vpc_entries(switch_ip, add_list)
-                for rm in rm_list:
-                    nxos_db.delete_vpcid_for_switch(rm, switch_ip)
+        for switch_ip, attrs in CONF.ml2_cisco.nexus_switches.items():
+            rm_list, add_list = self._get_vpcpool_changes_needed(switch_ip)
+            nxos_db.init_vpc_entries(switch_ip, add_list)
+            for rm in rm_list:
+                nxos_db.delete_vpcid_for_switch(rm, switch_ip)
+
+    def _initialize_host_port_mappings(self):
+        nxos_db.remove_all_static_host_mappings()
+        for switch_ip, attrs in CONF.ml2_cisco.nexus_switches.items():
+            for host, ports in attrs.host_port_mapping.items():
+                for if_id in ports.split(','):
+                    if_type, port = (nexus_help.split_interface_name(if_id))
+                    interface = nexus_help.format_interface_name(if_type, port)
+                    nxos_db.add_host_mapping(host, switch_ip,
+                                             interface, 0, True)
 
     def initialize(self):
-        # Create ML2 device dictionary from ml2_conf.ini entries.
-        conf.ML2MechCiscoConfig()
-
-        # Extract configuration parameters from the configuration file.
-        self._nexus_switches = conf.ML2MechCiscoConfig.nexus_dict
+        # Load host port mappings from the config file
+        self._initialize_host_port_mappings()
 
         # Save dynamic switch information
         self._switch_state = {}
@@ -951,10 +959,9 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
     def get_switch_ips(self):
         switch_connections = []
-        for switch_ip, attr in self._nexus_switches:
-            if str(attr) == 'username':
+        for switch_ip, attrs in CONF.ml2_cisco.nexus_switches.items():
+            if attrs.get("username"):
                 switch_connections.append(switch_ip)
-
         return switch_connections
 
     def _get_switch_nve_info(self, host_id):
@@ -985,8 +992,8 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                                              mcast_group)
 
     def get_nve_loopback(self, switch_ip):
-        return self._nexus_switches.get(
-            (switch_ip, const.NVE_SRC_INTF), '0')
+        return CONF.ml2_cisco.nexus_switches[switch_ip].get(
+            const.NVE_SRC_INTF, '0')
 
     def _configure_nve_member(self, vni, device_id, mcast_group, host_id):
         """Add "member vni" configuration to the NVE interface.
@@ -1839,8 +1846,8 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                     return
 
                 for switch_ip, _, _, _, _ in host_connections:
-                    physnet = self._nexus_switches.get(
-                        (switch_ip, const.PHYSNET))
+                    physnet = CONF.ml2_cisco.nexus_switches[switch_ip].get(
+                        const.PHYSNET)
                     if physnet:
                         break
                 else:

@@ -962,8 +962,9 @@ class TestCiscoNexusRestBaremetalDevice(
 
         switch_list = ['1.1.1.1', '2.2.2.2']
         for switch_ip in switch_list:
-            self._cisco_mech_driver._nexus_switches[
-                switch_ip, const.VPCPOOL] = ('1001-1025, 1030')
+            cfg.CONF.set_override(
+                const.VPCPOOL, ('1001-1025, 1030'),
+                cfg.CONF.ml2_cisco.nexus_switches.get(switch_ip)._group)
         self._cisco_mech_driver._initialize_vpc_alloc_pools()
 
         self._basic_create_verify_port_vlan(
@@ -998,8 +999,9 @@ class TestCiscoNexusRestBaremetalDevice(
 
         switch_list = ['1.1.1.1', '2.2.2.2']
         for switch_ip in switch_list:
-            self._cisco_mech_driver._nexus_switches[
-                switch_ip, const.VPCPOOL] = ('1001-1025, 1030')
+            cfg.CONF.set_override(
+                const.VPCPOOL, ('1001-1025, 1030'),
+                cfg.CONF.ml2_cisco.nexus_switches.get(switch_ip)._group)
         self._cisco_mech_driver._initialize_vpc_alloc_pools()
 
         self._basic_create_verify_port_vlan(
@@ -1047,8 +1049,9 @@ class TestCiscoNexusRestBaremetalDevice(
         switch_list = ['1.1.1.1', '2.2.2.2']
 
         for switch_ip in switch_list:
-            self._cisco_mech_driver._nexus_switches[
-                switch_ip, const.VPCPOOL] = ('1001-1025')
+            cfg.CONF.set_override(
+                const.VPCPOOL, ('1001-1025'),
+                cfg.CONF.ml2_cisco.nexus_switches.get(switch_ip)._group)
         self._cisco_mech_driver._initialize_vpc_alloc_pools()
 
         self._cfg_vPC_user_commands(
@@ -1251,7 +1254,6 @@ class TestCiscoNexusBaremetalVPCConfig(base.TestCiscoNexusBase,
     """
 
     def setUp(self):
-
         super(TestCiscoNexusBaremetalVPCConfig, self).setUp()
         self.mock_ncclient.reset_mock()
 
@@ -1259,8 +1261,9 @@ class TestCiscoNexusBaremetalVPCConfig(base.TestCiscoNexusBase,
                              min_in, max_in):
         """Config vpc-pool config with garbage. log & no db entries."""
 
-        self._cisco_mech_driver._nexus_switches[switch_ip, const.VPCPOOL] = (
-            config)
+        cfg.CONF.set_override(
+            const.VPCPOOL, config,
+            cfg.CONF.ml2_cisco.nexus_switches.get(switch_ip)._group)
 
         self._cisco_mech_driver._initialize_vpc_alloc_pools()
 

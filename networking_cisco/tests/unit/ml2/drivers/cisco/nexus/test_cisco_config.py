@@ -17,12 +17,6 @@
 from oslo_config import cfg
 import six
 
-from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
-    config as cisco_config)
-from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
-    nexus_helpers as nexus_help)
-from networking_cisco.plugins.ml2.drivers.cisco.nexus import nexus_db_v2
-
 from neutron.tests.unit import testlib_api
 
 from networking_cisco.tests import base as nc_base
@@ -80,66 +74,17 @@ compute1=1/1
 """
 
 
-class TestCiscoNexusPluginConfig(testlib_api.SqlTestCase):
+class TestCiscoNexusPluginConfigBase(testlib_api.SqlTestCase):
 
     def setUp(self):
-        super(TestCiscoNexusPluginConfig, self).setUp()
+        super(TestCiscoNexusPluginConfigBase, self).setUp()
         cfg.CONF.clear()
-        cisco_config.ML2MechCiscoConfig.nexus_dict = {}
-        nc_base.load_config_file(test_config_file)
 
-    def test_create_device_dictionary(self):
-        """Test creation of the device dictionary based on nexus config."""
-        expected_dev_dict = {
-            ('1.1.1.1', 'username'): 'admin',
-            ('1.1.1.1', 'password'): 'mySecretPassword',
-            ('1.1.1.1', 'ssh_port'): 22,
-            ('1.1.1.1', 'nve_src_intf'): '2',
-            ('1.1.1.1', 'physnet'): 'physnet1',
-            ('1.1.1.1', 'vpc_pool'): '5,10',
-            ('1.1.1.1', 'intfcfg_portchannel'): 'user cmd1 ;user cmd2',
-            ('1.1.1.1', 'https_verify'): True,
-            ('1.1.1.1', 'https_local_certificate'): (
-                '/path/to/your/local-certificate-file.crt'),
-            ('2.2.2.2', 'username'): 'admin',
-            ('2.2.2.2', 'password'): 'mySecretPassword',
-            ('2.2.2.2', 'ssh_port'): 22,
-            ('2.2.2.2', 'https_verify'): False,
-        }
-        host_map_data = [
-            ('compute1', '1.1.1.1', '1/1'),
-            ('compute2', '1.1.1.1', '1/2'),
-            ('compute3', '2.2.2.2', '1/1'),
-            ('compute4', '2.2.2.2', '1/2'),
-            ('compute5', '1.1.1.1', '1/3'),
-            ('compute5', '1.1.1.1', '1/4'),
-            ('compute5', '2.2.2.2', 'portchannel:20'),
-            ('compute5', '2.2.2.2', 'portchannel:30')
-        ]
 
-        cisco_config.ML2MechCiscoConfig()
-        self.assertEqual(expected_dev_dict,
-                         cisco_config.ML2MechCiscoConfig.nexus_dict)
-
-        mappings = nexus_db_v2.get_all_host_mappings()
-        idx = 0
-        maps_sorted = []
-        for map in mappings:
-            maps_sorted.append([map.host_id, map.switch_ip,
-                                map.if_id, map.ch_grp, map.is_static])
-        maps_sorted.sort()
-        for map in maps_sorted:
-            self.assertEqual(map[0], host_map_data[idx][0])
-            self.assertEqual(map[1], host_map_data[idx][1])
-            if_type, port = nexus_help.split_interface_name(
-                host_map_data[idx][2])
-            eth_name = nexus_help.format_interface_name(if_type, port)
-            self.assertEqual(map[2], eth_name)
-            self.assertEqual(map[3], 0)
-            self.assertTrue(map[4])
-            idx += 1
+class TestCiscoNexusPluginConfig(TestCiscoNexusPluginConfigBase):
 
     def test_config_using_subsection_option(self):
+        nc_base.load_config_file(test_config_file)
         expected = {
             '1.1.1.1': {
                 'username': 'admin',
@@ -181,48 +126,42 @@ class TestCiscoNexusPluginConfig(testlib_api.SqlTestCase):
                     option, cfg.CONF.ml2_cisco.nexus_switches.get(
                         switch_ip).get(opt_name))
 
-
-class TestCiscoNexusPluginDeprecatedConfig(testlib_api.SqlTestCase):
-
-    def setUp(self):
-        super(TestCiscoNexusPluginDeprecatedConfig, self).setUp()
-        cfg.CONF.clear()
-        cisco_config.ML2MechCiscoConfig.nexus_dict = {}
-        nc_base.load_config_file(test_deprecate_config_file)
-
     def test_deprecated_intfcfg_portchannel(self):
+        nc_base.load_config_file(test_deprecate_config_file)
         """Test creation deprecated intfcfg_portchannel works."""
-        expected_dev_dict = {
-            ('1.1.1.1', 'username'): 'admin',
-            ('1.1.1.1', 'password'): 'mySecretPassword',
-            ('1.1.1.1', 'ssh_port'): 22,
-            ('1.1.1.1', 'nve_src_intf'): '2',
-            ('1.1.1.1', 'physnet'): 'physnet1',
-            ('1.1.1.1', 'vpc_pool'): '5,10',
-            ('1.1.1.1', 'intfcfg_portchannel'): 'user cmd1 ;user cmd2',
-            ('1.1.1.1', 'https_verify'): True,
-            ('1.1.1.1', 'https_local_certificate'): (
-                '/path/to/your/local-certificate-file.crt'),
+        expected = {
+            '1.1.1.1': {
+                'username': 'admin',
+                'password': 'mySecretPassword',
+                'ssh_port': 22,
+                'nve_src_intf': '2',
+                'physnet': 'physnet1',
+                'vpc_pool': '5,10',
+                'intfcfg_portchannel': 'user cmd1;user cmd2',
+                'https_verify': True,
+                'https_local_certificate': (
+                    '/path/to/your/local-certificate-file.crt'),
+                'host_port_mapping': {
+                    'compute1': '1/1',
+                    'compute2': '1/2',
+                    'compute5': '1/3,1/4'
+                }
+            }
         }
 
-        cisco_config.ML2MechCiscoConfig()
-        self.assertEqual(expected_dev_dict,
-                         cisco_config.ML2MechCiscoConfig.nexus_dict)
-
-
-class TestCiscoNexusPluginConfigError(testlib_api.SqlTestCase):
-
-    def setUp(self):
-        super(TestCiscoNexusPluginConfigError, self).setUp()
-        cfg.CONF.clear()
-        cisco_config.ML2MechCiscoConfig.nexus_dict = {}
-        nc_base.load_config_file(test_error_config_file)
+        for switch_ip, options in expected.items():
+            for opt_name, option in options.items():
+                self.assertEqual(
+                    option, cfg.CONF.ml2_cisco.nexus_switches.get(
+                        switch_ip).get(opt_name))
 
     def test_create_device_error(self):
+        nc_base.load_config_file(test_error_config_file)
         """Test error during create of the Nexus device dictionary."""
 
         e = self.assertRaises(cfg.ConfigFileValueError,
-                              cisco_config.ML2MechCiscoConfig)
+            cfg.CONF.ml2_cisco.nexus_switches.get('1.1.1.1').get,
+            "ssh_port")
         x = six.u(str(e))
         self.assertIn("Value for option ssh_port is not valid: "
                       "invalid literal for int() with base 10: "
