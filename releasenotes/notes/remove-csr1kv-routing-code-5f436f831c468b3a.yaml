@@ -2,3 +2,4 @@
 upgrade:
   - |
     All code for CSR1kv-based routing has been removed from networking-cisco.
+    The code was removed in commit 917480566afa2b40dc382bc4f535d173bad7736d.

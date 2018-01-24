@@ -52,6 +52,7 @@ Drivers for Cisco Products
 * CSR 1000v series
 
   * *No longer supported.* Removed in release 6.0.0
+  * Code removed by commit 917480566afa2b40dc382bc4f535d173bad7736d
 
 Releases and Version Support
 ============================
