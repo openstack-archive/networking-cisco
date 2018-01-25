@@ -24,6 +24,7 @@ from neutron.db import agents_db
 from neutron.db import l3_agentschedulers_db
 from neutron.db import models_v2
 from neutron.db import portbindings_db as p_binding
+from neutron.extensions import l3
 
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.common import cisco_constants
@@ -206,7 +207,9 @@ class L3RouterTypeAwareSchedulerDbMixin(
             share_host = cfg.CONF.routing.share_hosting_device
         return auto_schedule, share_host
 
-    def _extend_router_dict_scheduling_info(self, router_res, router_db):
+    @staticmethod
+    @bc.extends([l3.ROUTERS])
+    def _extend_router_dict_scheduling_info(router_res, router_db):
         router_res[routertypeawarescheduler.AUTO_SCHEDULE_ATTR] = (
             (router_db.hosting_info or {}).get('auto_schedule'))
         router_res[routertypeawarescheduler.SHARE_HOST_ATTR] = (
@@ -269,3 +272,20 @@ class L3RouterTypeAwareSchedulerDbMixin(
                                           active=True)
         else:
             return []
+
+    def get_number_of_agents_for_scheduling(self, context):
+        """Return number of agents on which the router will be scheduled."""
+
+        num_agents = len(self.get_l3_agents(context, active=True,
+            filters={'agent_modes': [bc.constants.L3_AGENT_MODE_LEGACY,
+                                     bc.constants.L3_AGENT_MODE_DVR_SNAT]}))
+        max_agents = cfg.CONF.max_l3_agents_per_router
+        if max_agents:
+            if max_agents > num_agents:
+                LOG.info("Number of active agents lower than "
+                         "max_l3_agents_per_router. L3 agents "
+                         "available: %s", num_agents)
+            else:
+                num_agents = max_agents
+
+        return num_agents

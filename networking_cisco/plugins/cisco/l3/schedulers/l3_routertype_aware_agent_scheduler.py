@@ -15,7 +15,6 @@
 from oslo_log import log as logging
 from sqlalchemy import sql
 
-from neutron.db import l3_agentschedulers_db
 from neutron.scheduler import l3_agent_scheduler
 
 from networking_cisco import backwards_compatibility as bc
@@ -42,8 +41,7 @@ class L3RouterTypeAwareScheduler(l3_agent_scheduler.L3Scheduler):
             context, plugin = plugin, context
         # TODO(gongysh) consider the disabled agent's router
         no_agent_binding = ~sql.exists().where(
-            bc.Router.id ==
-            l3_agentschedulers_db.RouterL3AgentBinding.router_id)
+            bc.Router.id == bc.rb_model.RouterL3AgentBinding.router_id)
         # Modified to only include routers of network namespace type
         ns_routertype_id = plugin.get_namespace_router_type_id(context)
         query = context.session.query(bc.Router.id)
@@ -58,7 +56,10 @@ class L3RouterTypeAwareScheduler(l3_agent_scheduler.L3Scheduler):
         return []
 
     def _filter_unscheduled_routers(self, plugin, context, routers):
-        """Filter from list of routers the ones that are not scheduled."""
+        """Filter from list of routers the ones that are not scheduled.
+
+           Only for release < pike.
+        """
         if NEUTRON_VERSION.version[0] <= NEUTRON_NEWTON_VERSION.version[0]:
             context, plugin = plugin, context
         unscheduled_routers = []
@@ -77,6 +78,25 @@ class L3RouterTypeAwareScheduler(l3_agent_scheduler.L3Scheduler):
             else:
                 unscheduled_routers.append(router)
         return unscheduled_routers
+
+    def _get_underscheduled_routers(self, plugin, context):
+        """For release >= pike."""
+        underscheduled_routers = []
+        max_agents_for_ha = plugin.get_number_of_agents_for_scheduling(context)
+
+        for router, count in plugin.get_routers_l3_agents_count(context):
+            if (router[routertype.TYPE_ATTR] !=
+                    plugin.get_namespace_router_type_id(context)):
+                # ignore non-namespace routers
+                continue
+            if (count < 1 or
+                router.get('ha', False) and count < max_agents_for_ha):
+                # Either the router was un-scheduled (scheduled to 0 agents),
+                # or it's an HA router and it was under-scheduled (scheduled to
+                # less than max_agents_for_ha). Either way, it should be added
+                # to the list of routers we want to handle.
+                underscheduled_routers.append(router)
+        return underscheduled_routers
 
     def schedule(self, plugin, context, router, candidates=None,
                  hints=None):

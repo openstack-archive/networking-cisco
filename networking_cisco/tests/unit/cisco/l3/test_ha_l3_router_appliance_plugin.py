@@ -1089,10 +1089,13 @@ class HAL3RouterApplianceVMTestCase(
                 # assert by set inclusion
                 self.assertIn(payload['id'], r_ids)
                 self.assertIn('tenant_id', payload)
-                stid = subnet['subnet']['tenant_id']
+                if bc.NEUTRON_VERSION >= bc.NEUTRON_PIKE_VERSION:
+                    tid = router['router']['tenant_id']
+                else:
+                    tid = subnet['subnet']['tenant_id']
                 # tolerate subnet tenant deliberately set to '' in the
                 # nsx metadata access case
-                self.assertIn(payload['tenant_id'], [stid, ''], msg)
+                self.assertIn(payload['tenant_id'], [tid, ''], msg)
 
     # Overloaded test function that needs to be modified to run
     def test_router_list(self):
@@ -1516,9 +1519,15 @@ class HAL3RouterApplianceVMTestCase(
             l3_plugin.add_router_interface(
                 admin_ctx,
                 router['router']['id'], {'subnet_id': subnet['subnet']['id']})
-            l3_db._notify_subnetpool_address_scope_update(
-                mock.ANY, mock.ANY, mock.ANY,
-                context=admin_ctx, subnetpool_id=subnetpool_id)
+            if bc.NEUTRON_VERSION >= bc.NEUTRON_PIKE_VERSION:
+                (l3_db.L3RpcNotifierMixin.
+                    _notify_subnetpool_address_scope_update(
+                        mock.ANY, mock.ANY, mock.ANY, context=admin_ctx,
+                        subnetpool_id=subnetpool_id))
+            else:
+                l3_db._notify_subnetpool_address_scope_update(
+                    mock.ANY, mock.ANY, mock.ANY,
+                    context=admin_ctx, subnetpool_id=subnetpool_id)
             args, kwargs = chk_method.call_args
             self.assertEqual(admin_ctx, args[0])
             self.assertIn(router['router']['id'], args[1])

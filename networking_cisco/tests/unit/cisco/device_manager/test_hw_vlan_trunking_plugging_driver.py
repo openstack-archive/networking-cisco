@@ -17,7 +17,7 @@ import copy
 import mock
 
 from neutron.common import test_lib
-from neutron.extensions import providernet as pr_net
+from neutron.extensions import external_net as ext_net
 from neutron.tests.unit.extensions import test_l3
 
 from networking_cisco import backwards_compatibility as bc
@@ -145,11 +145,20 @@ class TestHwVLANTrunkingPlugDriver(
         fake_port_db_obj.hosting_info = mock.MagicMock()
         fake_port_db_obj.hosting_info.segmentation_id = 50
         fake_port_db_obj.device_owner = bc.constants.DEVICE_OWNER_ROUTER_INTF
-        fake_port_db_obj.networks.external = None
         hosting_device = {'id': '00000000-0000-0000-0000-000000000002'}
         tenant_id = 'tenant_uuid1'
         ctx = bc.context.Context('', tenant_id, is_admin=True)
         plugging_driver = HwVLANTrunkingPlugDriver()
+        if bc.NEUTRON_VERSION < bc.NEUTRON_PIKE_VERSION:
+            fake_port_db_obj.networks.external = None
+        else:
+            uuid = 'some_uuid'
+            fake_port_db_obj.network_id = uuid
+            get_nw_mock = mock.MagicMock(
+                side_effect=lambda r_ctx, nw_id: (
+                    {ext_net.EXTERNAL: False} if nw_id == uuid else {}))
+            mock.patch.object(plugging_driver._core_plugin, 'get_network',
+                              get_nw_mock).start()
         plugging_driver.extend_hosting_port_info(ctx, fake_port_db_obj,
                                                  hosting_device, hosting_info)
         self.assertEqual(hosting_info['physical_interface'],
@@ -162,11 +171,22 @@ class TestHwVLANTrunkingPlugDriver(
         fake_port_db_obj.hosting_info = mock.MagicMock()
         fake_port_db_obj.hosting_info.segmentation_id = 40
         fake_port_db_obj.device_owner = bc.constants.DEVICE_OWNER_ROUTER_GW
-        fake_port_db_obj.networks.external = {'external': True}
         hosting_device = {'id': '00000000-0000-0000-0000-000000000002'}
         tenant_id = 'tenant_uuid1'
         ctx = bc.context.Context('', tenant_id, is_admin=True)
         plugging_driver = HwVLANTrunkingPlugDriver()
+        if bc.NEUTRON_VERSION < bc.NEUTRON_PIKE_VERSION:
+            fake_port_db_obj.networks.external = {'external': True}
+        else:
+            uuid = 'some_uuid'
+            fake_port_db_obj.network_id = uuid
+            get_nw_mock = mock.MagicMock(
+                side_effect=lambda r_ctx, nw_id: (
+                    {ext_net.EXTERNAL: True} if nw_id == uuid else {}))
+            mock.patch.object(plugging_driver._core_plugin, 'get_network',
+                              get_nw_mock).start()
+        plugging_driver.extend_hosting_port_info(ctx, fake_port_db_obj,
+                                                 hosting_device, hosting_info)
         plugging_driver.extend_hosting_port_info(ctx, fake_port_db_obj,
                                                  hosting_device, hosting_info)
         self.assertEqual(hosting_info['physical_interface'],
@@ -189,8 +209,8 @@ class TestHwVLANTrunkingPlugDriver(
                            for i in self._pv_info[nw_type].values()]) + 1
                 pv_info = {'nw_type': nw_type, 'tag': tag}
                 self._pv_info[nw_type][res['id']] = pv_info
-            res[pr_net.NETWORK_TYPE] = pv_info['nw_type']
-            res[pr_net.SEGMENTATION_ID] = pv_info['tag']
+            res[bc.provider_net.NETWORK_TYPE] = pv_info['nw_type']
+            res[bc.provider_net.SEGMENTATION_ID] = pv_info['tag']
             if fields is not None:
                 for attr in list(res.keys()):
                     if attr not in fields:

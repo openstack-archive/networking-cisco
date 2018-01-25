@@ -36,11 +36,10 @@ from neutron.callbacks import registry
 from neutron.callbacks import resources
 from neutron.common import rpc as n_rpc
 from neutron.common import utils
-from neutron.db import db_base_plugin_v2
+from neutron.db import common_db_mixin
 from neutron.db import extraroute_db
 from neutron.db import l3_db
 from neutron.extensions import l3
-from neutron.extensions import providernet as pr_net
 from neutron_lib import exceptions as n_exc
 
 from networking_cisco._i18n import _
@@ -111,6 +110,51 @@ class PluginManagedRouterError(n_exc.NotAuthorized):
                 "plugin and cannot be modified by users (including admins).")
 
 
+def _cisco_router_query_hook(context, original_model, query):
+    query = query.outerjoin(l3_models.RouterHostingDeviceBinding,
+                       (original_model.id ==
+                        l3_models.RouterHostingDeviceBinding.router_id))
+    return query
+
+
+def _cisco_router_result_filter_hook(query, filters):
+    if filters:
+        rt_values = filters.get(routertype.TYPE_ATTR, [])
+        rhd_values = filters.get(routerhostingdevice.HOSTING_DEVICE_ATTR,
+                                 [])
+        role_values = filters.get(routerrole.ROUTER_ROLE_ATTR, [])
+    else:
+        return query
+    if rt_values:
+        query = query.filter(
+            l3_models.RouterHostingDeviceBinding.router_type_id.in_(
+                rt_values))
+    if rhd_values:
+        query = query.filter(
+            l3_models.RouterHostingDeviceBinding.hosting_device_id.in_(
+                rhd_values))
+    if role_values:
+        null_search = False
+        r_values = []
+        for idx, role_value in enumerate(role_values):
+            if role_value == "None" or role_value is None:
+                null_search = True
+            else:
+                r_values.append(role_value)
+        if null_search is True and r_values:
+            query = query.filter(expr.or_(
+                l3_models.RouterHostingDeviceBinding.role == expr.null(),
+                l3_models.RouterHostingDeviceBinding.role.in_(r_values)))
+        elif r_values:
+            query = query.filter(
+                l3_models.RouterHostingDeviceBinding.role.in_(r_values))
+        else:
+            query = query.filter(
+                l3_models.RouterHostingDeviceBinding.role == expr.null())
+    return query
+
+
+@bc.has_resource_extenders
 class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
     """Mixin class implementing Neutron's routing service using appliances."""
 
@@ -131,57 +175,33 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
     _heartbeat = None
     _is_gbp_workflow = None
 
-    db_base_plugin_v2.NeutronDbPluginV2.register_dict_extend_funcs(
-        l3.ROUTERS, DICT_EXTEND_FUNCTIONS)
+    if bc.NEUTRON_VERSION < bc.NEUTRON_PIKE_VERSION:
+        common_db_mixin.CommonDbMixin.register_dict_extend_funcs(
+            l3.ROUTERS, DICT_EXTEND_FUNCTIONS)
 
-    def _cisco_router_model_hook(self, context, original_model, query):
-        query = query.outerjoin(l3_models.RouterHostingDeviceBinding,
-                           (original_model.id ==
-                            l3_models.RouterHostingDeviceBinding.router_id))
-        return query
+    def __new__(cls):
+        if bc.NEUTRON_VERSION < bc.NEUTRON_PIKE_VERSION:
+            common_db_mixin.CommonDbMixin.register_model_query_hook(
+                bc.Router,
+                "cisco_router_query_hook",
+                '_cisco_router_query_hook',
+                None,
+                '_cisco_router_result_filter_hook')
+        else:
+            common_db_mixin.CommonDbMixin.register_model_query_hook(
+                bc.Router,
+                "cisco_router_query_hook",
+                _cisco_router_query_hook,
+                None,
+                _cisco_router_result_filter_hook)
+
+        return super(L3RouterApplianceDBMixin, cls).__new__(cls)
+
+    def _cisco_router_query_hook(self, context, original_model, query):
+        return _cisco_router_query_hook(context, original_model, query)
 
     def _cisco_router_result_filter_hook(self, query, filters):
-        if filters:
-            rt_values = filters.get(routertype.TYPE_ATTR, [])
-            rhd_values = filters.get(routerhostingdevice.HOSTING_DEVICE_ATTR,
-                                     [])
-            role_values = filters.get(routerrole.ROUTER_ROLE_ATTR, [])
-        else:
-            return query
-        if rt_values:
-            query = query.filter(
-                l3_models.RouterHostingDeviceBinding.router_type_id.in_(
-                    rt_values))
-        if rhd_values:
-            query = query.filter(
-                l3_models.RouterHostingDeviceBinding.hosting_device_id.in_(
-                    rhd_values))
-        if role_values:
-            null_search = False
-            r_values = []
-            for idx, role_value in enumerate(role_values):
-                if role_value == "None" or role_value is None:
-                    null_search = True
-                else:
-                    r_values.append(role_value)
-            if null_search is True and r_values:
-                query = query.filter(expr.or_(
-                    l3_models.RouterHostingDeviceBinding.role == expr.null(),
-                    l3_models.RouterHostingDeviceBinding.role.in_(r_values)))
-            elif r_values:
-                query = query.filter(
-                    l3_models.RouterHostingDeviceBinding.role.in_(r_values))
-            else:
-                query = query.filter(
-                    l3_models.RouterHostingDeviceBinding.role == expr.null())
-        return query
-
-    db_base_plugin_v2.NeutronDbPluginV2.register_model_query_hook(
-        bc.Router,
-        "cisco_router_model_hook",
-        '_cisco_router_model_hook',
-        None,
-        '_cisco_router_result_filter_hook')
+        return _cisco_router_result_filter_hook(query, filters)
 
     def do_create_router(self, context, router, router_type_id, auto_schedule,
                          share_host, hosting_device_id=None, role=None,
@@ -1293,7 +1313,10 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
             context.session.add(binding_info_db)
         # put in backlog for rescheduling
 
-    def _extend_router_dict_routertype(self, router_res, router_db):
+    @staticmethod
+    @bc.extends([l3.ROUTERS])
+    def _extend_router_dict_routertype(router_res, router_db):
+        self = bc.get_plugin(bc.constants.L3)
         adm_context = bc.context.get_admin_context()
         (eff_rt, norm_rt) = self._get_effective_and_normal_routertypes(
             adm_context, router_db.id, router_db.hosting_info)
@@ -1306,11 +1329,15 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
             router_type = None
         router_res[routertype.TYPE_ATTR] = router_type
 
-    def _extend_router_dict_routerhostingdevice(self, router_res, router_db):
+    @staticmethod
+    @bc.extends([l3.ROUTERS])
+    def _extend_router_dict_routerhostingdevice(router_res, router_db):
         router_res[routerhostingdevice.HOSTING_DEVICE_ATTR] = (
             (router_db.hosting_info or {}).get('hosting_device_id'))
 
-    def _extend_router_dict_routerrole(self, router_res, router_db):
+    @staticmethod
+    @bc.extends([l3.ROUTERS])
+    def _extend_router_dict_routerrole(router_res, router_db):
         router_res[routerrole.ROUTER_ROLE_ATTR] = (
             (router_db.hosting_info or {}).get('role'))
 
@@ -1442,8 +1469,8 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
     def _allocate_hosting_port(self, context, router_id, port_db,
                                hosting_device_id, plugging_driver):
         net_data = self._core_plugin.get_network(
-            context, port_db.network_id, [pr_net.NETWORK_TYPE])
-        network_type = net_data.get(pr_net.NETWORK_TYPE)
+            context, port_db.network_id, [bc.provider_net.NETWORK_TYPE])
+        network_type = net_data.get(bc.provider_net.NETWORK_TYPE)
         alloc = plugging_driver.allocate_hosting_port(
             context, router_id, port_db, network_type, hosting_device_id)
         if alloc is None:
@@ -1600,8 +1627,12 @@ def _notify_cfg_agent_port_update(resource, event, trigger, **kwargs):
 
 def modify_subscribe():
     # unregister the function in l3_db as it does not do what we need
-    registry.unsubscribe(l3_db._notify_routers_callback, resources.PORT,
-                         events.AFTER_DELETE)
+    if bc.NEUTRON_VERSION >= bc.NEUTRON_PIKE_VERSION:
+        registry.unsubscribe(l3_db.L3RpcNotifierMixin._notify_routers_callback,
+                             resources.PORT, events.AFTER_DELETE)
+    else:
+        registry.unsubscribe(l3_db._notify_routers_callback, resources.PORT,
+                             events.AFTER_DELETE)
     # register our own version
     registry.subscribe(
         _notify_routers_callback, resources.PORT, events.AFTER_DELETE)
