@@ -117,7 +117,6 @@
       bindep_profile: test py27
 
 - project:
-    name: openstack/networking-cisco
     check:
       jobs:
         - networking-cisco-tox-py27-newton
