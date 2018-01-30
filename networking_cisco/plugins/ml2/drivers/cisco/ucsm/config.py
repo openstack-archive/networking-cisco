@@ -119,6 +119,10 @@ def parse_pci_vendor_config():
 
 class UcsmConfig(object):
     """ML2 Cisco UCSM Mechanism Driver Configuration class."""
+
+    def __init__(self):
+        self._sp_templates = {}
+
     @property
     def multi_ucsm_mode(self):
         if CONF.ml2_cisco_ucsm.ucsms:
@@ -183,7 +187,8 @@ class UcsmConfig(object):
                         conf.ucsms[ucsm_ip].ucsm_virtio_eth_ports))
 
     def _all_sp_templates(self):
-        sp_templates = {}
+        if self._sp_templates:
+            return self._sp_templates
         ucsms = dict(CONF.ml2_cisco_ucsm.ucsms)
         if (CONF.ml2_cisco_ucsm.ucsm_ip and
                 CONF.ml2_cisco_ucsm.sp_template_list):
@@ -199,8 +204,8 @@ class UcsmConfig(object):
                                       'Profile Template config %s') % mapping)
                 host_list = data[2].split(',')
                 for host in host_list:
-                    sp_templates[host] = (ip, data[0], data[1])
-        return sp_templates
+                    self._sp_templates[host] = (ip, data[0], data[1])
+        return self._sp_templates
 
     def is_service_profile_template_configured(self):
         if self._all_sp_templates():
@@ -240,25 +245,6 @@ class UcsmConfig(object):
                                         sp_template):
         templates = self._all_sp_templates()
         templates[host] = (ucsm_ip, sp_template_path, sp_template)
-
-        ucsm_template_map = {}
-
-        for host, info in templates.items():
-            ucsm = ucsm_template_map.setdefault(info[0], {})
-            sp = ucsm.setdefault((sp_template_path, sp_template), [])
-            sp.append(host)
-
-        ucsms = CONF.ml2_cisco_ucsm.ucsms
-        for ucsm, sps in ucsm_template_map.items():
-            entries = []
-            for sp, hosts in sps.items():
-                entries.append("%s:%s:%s" % (sp[0], sp[1], ",".join(hosts)))
-            if ucsm in ucsms:
-                group = ucsms[ucsm]._group
-            elif ucsm == CONF.ml2_cisco_ucsm.ucsm_ip:
-                group = "ml2_cisco_ucsm"
-            CONF.set_override("sp_template_list", " ".join(entries),
-                              group=group)
 
     def update_sp_template_config(self, host_id, ucsm_ip,
                                   sp_template_with_path):
