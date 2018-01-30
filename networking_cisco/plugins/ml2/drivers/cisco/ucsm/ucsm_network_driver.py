@@ -107,6 +107,16 @@ class CiscoUcsmDriver(object):
         the installation of ucsmsdk.
 
         """
+        # Check if SSL certificate checking has been disabled.
+        # If so, warn the user before proceeding.
+        if not CONF.ml2_cisco_ucsm.ucsm_https_verify:
+            LOG.warning(const.SSL_WARNING)
+
+        # Monkey patch the ucsmsdk version of ssl to enable https_verify if
+        # required
+        from networking_cisco.plugins.ml2.drivers.cisco.ucsm import ucs_ssl
+        ucs_driver = importutils.import_module('ucsmsdk.ucsdriver')
+        ucs_driver.ssl = ucs_ssl
 
         class ucsmsdk(object):
             handle = importutils.import_class(
