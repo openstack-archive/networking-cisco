@@ -19,6 +19,7 @@ Configuration Options
 
    ml2-nexus
    ml2-nexus-vxlan-type-driver
+   ml2-ucsm
 
 Sample Configuration Files
 ==========================

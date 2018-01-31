@@ -104,6 +104,7 @@ latex_documents = [
 _config_generator_config_files = [
     'ml2_nexus.ini',
     'ml2_nexus_vxlan_type_driver.ini',
+    'ml2_ucsm.ini'
 ]
 
 def _get_config_generator_config_definition(config_file):

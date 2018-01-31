@@ -42,16 +42,21 @@ ml2_cisco_ucsm_opts = [
     cfg.ListOpt('supported_pci_devs',
                 default=[const.PCI_INFO_CISCO_VIC_1240,
                          const.PCI_INFO_INTEL_82599],
-                help=_('List of comma separated vendor_id:product_id of '
-                       'SR_IOV capable devices supported by this MD. This MD '
-                       'supports both VM-FEX and SR-IOV devices.')),
+                help=_('SR-IOV and VM-FEX vendors to be handled by the '
+                       'driver. xxxx:yyyy represents vendor_id:product_id '
+                       'of the PCI networking devices that the driver needs '
+                       'to handle. It is implicit that the SR-IOV capable '
+                       'devices specified here should be supported on the UCS '
+                       'platform.')),
     cfg.BoolOpt('ucsm_https_verify',
-               default=True,
-               help=_('When set to False, the UCSM driver will not check '
-                      'the SSL certificate on the UCSM leaving the connection '
-                      'path insecure and vulnerable to man-in-the-middle '
-                      'attacks. This is a global configuration which means '
-                      'that it applies to all UCSMs in the system.')),
+                default=True,
+                help=_('The UCSM driver will always perform SSL certificate '
+                       'checking on the UCS Managers that it is connecting '
+                       'to. This checking can be disabled by setting this '
+                       'global configuration to False. '
+                       'Disabling this check will leave the connection to UCS '
+                       'Manager insecure and vulnerable to man-in-the-middle '
+                       'attacks.')),
 ]
 
 ml2_cisco_ucsm_common = [
@@ -64,32 +69,74 @@ ml2_cisco_ucsm_common = [
                       'to communicate with a Cisco UCS Manager.')),
     cfg.ListOpt('ucsm_virtio_eth_ports',
                 default=[const.ETH0, const.ETH1],
-                help=_('List of comma separated names of ports that could '
-                       'be used to configure VLANs for Neutron virtio '
-                       'ports. The names should match the names on the '
-                       'UCS Manager.')),
+                help=_('Ethernet port names to be used for virtio ports. '
+                       'This config lets the Cloud Admin specify what ports '
+                       'on the UCS Servers can be used for OpenStack virtual '
+                       'port configuration. The names should match the '
+                       'names on the UCS Manager.')),
     cfg.DictOpt('ucsm_host_list',
-                help=_('List of comma separated Host:Service Profile tuples '
-                       'providing the Service Profile associated with each '
-                       'Host to be supported by this MD.')),
+                help=_('Hostname to Service profile mapping for UCS Manager '
+                       'controlled hosts. This Service profile '
+                       'should not be associated with a Service Profile '
+                       'Template. If the Service Profile is not specified '
+                       'with a path, the driver assumes that it is at the '
+                       'root level on the UCSM. For example: '
+                       'Hostname1:Serviceprofile1, '
+                       'Hostname2:Serviceprofile2')),
     cfg.StrOpt('sriov_qos_policy',
-               help=_('Name of QoS Policy pre-defined in UCSM, to be '
-                      'applied to all VM-FEX Port Profiles. This is '
-                      'an optional parameter.')),
+               help=_('A pre-defined QoS policy name. This optional config '
+                      'allows the cloud admin to pre-create a QoS policy on '
+                      'the UCSM. If this config is present, the UCSM driver '
+                      'will associate this QoS policy with every Port profile '
+                      'it creates for SR-IOV ports.')),
     cfg.StrOpt('sp_template_list',
-               help=_('This is an optional configuration to be provided to '
-                      'the UCSM driver when the OpenStack controller and '
-                      'compute hosts are controlled by UCSM Service Profile '
-                      'Templates.')),
+               help=_('Service Profile Template config for this UCSM. The '
+                      'configuration to be provided should be a list where '
+                      'each element in the list represents information for '
+                      'a single Service Profile Template on that UCSM. Each '
+                      'element is mapping of a Service Profile Template\'s '
+                      'path, its name and a list of all UCS Servers '
+                      'controlled by this template. For example:\n'
+                      'sp_template_list = '
+                      'SP_Template1_path:SP_Template1:Host1,Host2\n'
+                      '                   '
+                      'SP_Template2_path:SP_Template2:Host3,Host4\n'
+                      'This is an optional config with no defaults')),
     cfg.StrOpt('vnic_template_list',
-               help=_('This is an optional configuration to be provided to '
-                      'the UCSM driver when vNICs connected to external '
-                      'physical networks are controlled by a vNIC Template '
-                      'on the UCSM.')),
+               help=_('VNIC Profile Template config per UCSM. Allows the '
+                      'cloud admin to specify a VNIC Template on the UCSM '
+                      'that is attached to every vNIC connected to a specific '
+                      'physical network. Each element in this list has 3 '
+                      'parts: the physical network that is defined in neutron '
+                      'configuration, the VNIC Template with its path in '
+                      'UCSM, the vNIC on the UCS Servers that is connected to '
+                      'this physical network. For example:\n'
+                      'vnic_template_list = '
+                      'physnet1:vnic_template_path1:vt1\n'
+                      '                     '
+                      'physnet2:vnic_template_path2:vt2\n'
+                      'This is an optional config with no defaults.')),
 ]
 
 sriov_opts = [
-    base.RemainderOpt('network_vlans')
+    base.RemainderOpt('network_name',
+                      dest="network_vlans",
+                      help=_('SR-IOV Multi-VLAN trunk config section is an '
+                             'optional config section to accomodate the '
+                             'scenario where an application using an SR-IOV '
+                             'port to communicate would like to send traffic '
+                             'on multiple application specific VLANs not '
+                             'known to OpenStack. This config section is '
+                             'applicable across all UCSMs specified as part '
+                             'of the OpenStack cloud. The names of the '
+                             'neutron networks on which the SR-IOV ports are '
+                             'going to be created have to be known ahead of '
+                             'time and should be associated with a list or '
+                             'range of application VLANs using the following '
+                             'format:\n'
+                             '<neutron network name>=<comma separated list of '
+                             'VLAN-ids or VLAN-id ranges> '
+                             'For example:\ntest_network1=5,7-9')),
 ]
 
 ucsms = base.SubsectionOpt(
