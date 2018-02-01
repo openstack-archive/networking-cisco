@@ -42,6 +42,8 @@ from networking_cisco import backwards_compatibility as bc
 from networking_cisco.plugins.cisco.cfg_agent import device_status
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
+from networking_cisco.plugins.cisco.device_manager import config
+
 
 LOG = logging.getLogger(__name__)
 
@@ -153,6 +155,8 @@ class CiscoCfgAgent(manager.Manager):
 
     def __init__(self, host, conf=None):
         self.conf = conf or cfg.CONF
+        self._credentials = (
+            config.obtain_hosting_device_credentials_from_config())
         self._dev_status = device_status.DeviceStatus()
         self._dev_status.enable_heartbeat = (
             self.conf.cfg_agent.enable_heartbeat)
@@ -196,6 +200,10 @@ class CiscoCfgAgent(manager.Manager):
 
     def get_routing_service_helper(self):
         return self.routing_service_helper
+
+    def get_hosting_device_password(self, credentials_id):
+        creds = self._credentials.get(credentials_id)
+        return creds['password'] if creds else None
 
     ## Periodic tasks ##
     @periodic_task.periodic_task(spacing=cfg.CONF.cfg_agent.heartbeat_interval)

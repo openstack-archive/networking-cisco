@@ -188,7 +188,7 @@ class RoutingServiceHelper(object):
         self._dev_status = device_status.DeviceStatus()
         self._dev_status.enable_heartbeat = (
             self.conf.cfg_agent.enable_heartbeat)
-        self._drivermgr = driver_mgr.DeviceDriverManager()
+        self._drivermgr = driver_mgr.DeviceDriverManager(cfg_agent)
 
         self.router_info = {}
         self.updated_routers = set()

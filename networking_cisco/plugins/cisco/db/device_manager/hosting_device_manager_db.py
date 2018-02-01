@@ -605,7 +605,8 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
         return False
 
     def _setup_device_manager(self):
-        self._obtain_hosting_device_credentials_from_config()
+        self._credentials = (
+            config.obtain_hosting_device_credentials_from_config())
         self._create_hosting_device_templates_from_config()
         self._create_hosting_devices_from_config()
         self._gt_pool = eventlet.GreenPool()
@@ -918,43 +919,16 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
             self._hosting_device_locks[id] = threading.Lock()
             return self._hosting_device_locks.get(id)
 
-    def _obtain_hosting_device_credentials_from_config(self):
-        """Obtains credentials from config file and stores them in memory.
-        To be called before hosting device templates defined in the config file
-        are created.
-        """
-        cred_dict = config.get_specific_config(
-            'cisco_hosting_device_credential')
-        attr_info = {
-            'name': {'allow_post': True, 'allow_put': True,
-                     'validate': {'type:string': None}, 'is_visible': True,
-                     'default': ''},
-            'description': {'allow_post': True, 'allow_put': True,
-                            'validate': {'type:string': None},
-                            'is_visible': True, 'default': ''},
-            'user_name': {'allow_post': True, 'allow_put': True,
-                          'validate': {'type:string': None},
-                          'is_visible': True, 'default': ''},
-            'password': {'allow_post': True, 'allow_put': True,
-                         'validate': {'type:string': None},
-                         'is_visible': True, 'default': ''},
-            'type': {'allow_post': True, 'allow_put': True,
-                     'validate': {'type:string': None}, 'is_visible': True,
-                     'default': ''}}
-        self._credentials = {}
-        for cred_uuid, kv_dict in cred_dict.items():
-            # ensure cred_uuid is properly formatted
-            cred_uuid = config.uuidify(cred_uuid)
-            config.verify_resource_dict(kv_dict, True, attr_info)
-            self._credentials[cred_uuid] = kv_dict
-
-    def _get_credentials(self, hosting_device):
-        creds = self._credentials.get(
-            hosting_device.credentials_id,
-            self._credentials.get(
-                hosting_device.template.default_credentials_id))
-        return {'user_name': creds['user_name'],
-                'password': creds['password']} if creds else None
+    def _get_credentials(self, hosting_device_db, obfuscate=True):
+        creds_id = (hosting_device_db.credentials_id
+                    if hosting_device_db.credentials_id in self._credentials
+                    else hosting_device_db.template.default_credentials_id)
+        creds = self._credentials.get(creds_id)
+        if creds is None:
+            return None
+        password = '********' if obfuscate is True else creds['password']
+        return {'credentials_id': creds_id, 'user_name': creds['user_name'],
+                'password': password}
 
     def _create_hosting_device_templates_from_config(self):
         """To be called late during plugin initialization so that any hosting
