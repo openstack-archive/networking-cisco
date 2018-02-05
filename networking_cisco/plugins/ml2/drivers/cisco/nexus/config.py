@@ -14,6 +14,7 @@
 #    under the License.
 
 from oslo_config import cfg
+from oslo_config import types
 
 from networking_cisco._i18n import _
 from networking_cisco.config import base
@@ -81,6 +82,31 @@ nexus_sub_opts = [
                'network. These dynamic vlans may be reused across physical '
                'networks.  This configuration applies to non-baremetal '
                'only.')),
+    cfg.Opt('host_ports_mapping', default={}, sample_default='<None>',
+        type=types.Dict(value_type=types.List(bounds=True)),
+        help=_('A list of key:value pairs describing which host is '
+               'connected to which physical port or portchannel on the '
+               'Nexus switch. The format should look like:\n'
+               'host_port_mapping='
+               '<your-hostname>:[<intf_type><port>,<intf_type><port>],\n'
+               '                  <your-second-host>:[<intf_type><port>]\n'
+               'For example:\n'
+               'host_port_mapping='
+               'host-1:[ethernet1/1, ethernet1/2],\n'
+               '                  host-2:[ethernet1/3],\n'
+               '                  host-3:[port-channel20]\n'
+               'Lines can be broken with indentation to ensure config files '
+               'remain readable. '
+               'All compute nodes must be configured while '
+               'controllers are optional depending on your network '
+               'configuration. Depending on the configuration of the '
+               'host, the hostname is expected to be the '
+               'full hostname (hostname.domainname) which can be derived '
+               'by running "hostname -f" on the host itself. Valid '
+               'intf_types are "ethernet" or "port-channel".  The default '
+               'setting for <intf_type> is "ethernet" and need not be '
+               'added to this setting. This configuration applies to VM '
+               'deployments only.')),
     cfg.IntOpt('ssh_port', default=22, deprecated_for_removal=True,
         help=_('"ssh_port" specifies the TCP port for connecting via SSH to '
                'manage the switch.  Port number 22 is the default unless the '
@@ -119,28 +145,8 @@ nexus_sub_opts = [
                'Inactive entries in the database not found in the new '
                'configured vpcids list are removed. An example of this '
                'configuration is `vpc_pool=1001-1025,1028`.')),
-    base.RemainderOpt('host_port_mapping',
-        help=_('The "host_port_mapping" option is not actually an option '
-               'keyword but rather a documentation placeholder for describing '
-               'how hosts are configured. For each host '
-               'connected to a port on the switch, specify the hostname and '
-               'assign the Nexus switch physical port (interface) it is '
-               'connected to.  All compute nodes must be configured while '
-               'controllers are optional depending on your network '
-               'configuration. The format of this configuration '
-               'is <your-hostname>=<intf_type:port>). Depending on the '
-               'configuration of the host, the hostname is expected to be the '
-               'full hostname (hostname.domainname) which can be derived by '
-               'running "hostname -f" on the host itself. Valid '
-               'intf_types are "ethernet" or "port-channel".  The default '
-               'setting for <intf_type:> is "ethernet" and need not be added '
-               'to this setting. (Sample configs are: host-1=1/1 or '
-               'host-2=ethernet:1/2 or host-3=port-channel:1). If you '
-               'have multiple hosts connected to the same switch, '
-               'they must each be configured on a different line in the '
-               'config file.  This configuration applies to VM deployments '
-               'only.'
-               ))]
+    base.RemainderOpt('host_port_mapping', deprecated_for_removal=True,
+        deprecated_reason="Replaced by 'port_host_mapping' option")]
 
 ml2_cisco_opts = [
     cfg.BoolOpt('host_key_checks', default=False, deprecated_for_removal=True,

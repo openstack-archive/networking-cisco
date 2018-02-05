@@ -645,8 +645,15 @@ only and not ironic.  An example of such a configuration is as follows:
 ::
 
     [ml2_mech_cisco_nexus:<snipped-switch-ip-addr>]
-    compute-host-1 = port-channel:300
-    compute-host-2 = port-channel:300
+    host_ports_mapping=compute-host-1:[port-channel:300],
+                       compute-host-2:[port-channel:300]
+
+.. note::
+    The above used to be represented by the now deprecated format::
+
+      [ml2_mech_cisco_nexus:<snipped-switch-ip-addr>]
+      compute-host-1 = port-channel:300
+      compute-host-2 = port-channel:300
 
 This anomaly can also occur when there are multiple controllers which
 are attempting to initialize the cisco_ml2_nexus_host_interface_mapping

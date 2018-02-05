@@ -1,0 +1,14 @@
+---
+deprecations:
+  - |
+    Nexus: Host Mapping Configuration being replaced
+
+    The host mapping configuration beneath the header `ml2_mech_cisco_nexus`
+    currently does not have a static config option name.  This can lead to
+    some issues where even typographical errors can be interpreted as a host
+    mapping config.  The config option `host_ports_mapping` has been introduced
+    to resolve this shortcoming.  The following demonstrates the before and
+    after config change.
+
+    ``Before:`` `hostname_abc=ethernet:1/19`,
+    ``After:`` `host_ports_mapping=hostname_abc:[ethernet:1/19]`
