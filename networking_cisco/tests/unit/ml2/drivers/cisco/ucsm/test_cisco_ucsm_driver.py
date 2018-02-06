@@ -850,9 +850,10 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         """Verifies parsing of Hostname:Service Profile config."""
         ucsm_sp_dict = {}
         ucsm_host_dict = {}
-        cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = {'Host1': 'SP1',
-                                                  'Host2': 'SP2'}
-        cfg.CONF.ml2_cisco_ucsm.ucsm_ip = '1.1.1.1'
+        ucsm = cfg.CONF.ml2_cisco_ucsm.ucsms['1.1.1.1']
+        cfg.CONF.set_override("ucsm_host_list",
+                              {'Host1': 'SP1', 'Host2': 'SP2'},
+                              group=ucsm._group)
         expected_ip = '1.1.1.1'
         expected_sp1 = "org-root/ls-SP1"
         expected_sp2 = "org-root/ls-SP2"
@@ -860,26 +861,27 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         ucsm_sp_dict = self.ucsm_config.ucsm_sp_dict
         ucsm_host_dict = self.ucsm_config.ucsm_host_dict
 
-        key = (cfg.CONF.ml2_cisco_ucsm.ucsm_ip, 'Host1')
+        key = (expected_ip, 'Host1')
         self.assertIn(key, ucsm_sp_dict)
         self.assertEqual(expected_sp1, ucsm_sp_dict[key])
         self.assertIn('Host1', ucsm_host_dict)
         self.assertEqual(expected_ip, ucsm_host_dict['Host1'])
 
-        key = (cfg.CONF.ml2_cisco_ucsm.ucsm_ip, 'Host2')
+        key = (expected_ip, 'Host2')
         self.assertIn(key, ucsm_sp_dict)
         self.assertEqual(expected_sp2, ucsm_sp_dict.get(key))
         self.assertEqual(expected_ip, ucsm_host_dict.get('Host2'))
 
-        key = (cfg.CONF.ml2_cisco_ucsm.ucsm_ip, 'Host3')
+        key = (expected_ip, 'Host3')
         self.assertNotIn(key, ucsm_sp_dict)
         self.assertIsNone(ucsm_host_dict.get('Host3'))
 
     def test_parse_virtio_eth_ports(self):
         """Verifies eth_port_list contains a fully-formed path."""
-        cfg.CONF.ml2_cisco_ucsm.ucsm_ip = '1.1.1.1'
-        cfg.CONF.ml2_cisco_ucsm.ucsm_virtio_eth_ports = ['test-eth1',
-                                                         'test-eth2']
+        ucsm = cfg.CONF.ml2_cisco_ucsm.ucsms['1.1.1.1']
+        cfg.CONF.set_override("ucsm_virtio_eth_ports",
+                              ['test-eth1', 'test-eth2'],
+                              group=ucsm._group)
         eth_port_list = self.ucsm_config.get_ucsm_eth_port_list("1.1.1.1")
         self.assertNotIn('test-eth1', eth_port_list)
         self.assertIn(const.ETH_PREFIX + 'test-eth1', eth_port_list)
@@ -888,9 +890,11 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         """Verifies that ucsm_host_list can contain SP paths."""
         expected_service_profile1 = 'org-root/ls-SP1'
         expected_service_profile2 = 'org-root/sub-org1/ls-SP2'
-        cfg.CONF.ml2_cisco_ucsm.ucsm_ip = '1.1.1.1'
-        cfg.CONF.ml2_cisco_ucsm.ucsm_host_list = {'Host1': 'SP1',
-            'Host2': 'org-root/sub-org1/ls-SP2'}
+        ucsm = cfg.CONF.ml2_cisco_ucsm.ucsms['1.1.1.1']
+        cfg.CONF.set_override("ucsm_host_list",
+                              {'Host1': 'SP1',
+                               'Host2': 'org-root/sub-org1/ls-SP2'},
+                              group=ucsm._group)
 
         ucsm_sp_dict = self.ucsm_config.ucsm_sp_dict
 
@@ -1066,12 +1070,18 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
     def test_parsing_of_single_ucsm_config(self):
         """Verifies parsing of expected single UCSM config parameters."""
         # Single UCSM config parameters.
-        cfg.CONF.ml2_cisco_ucsm.ucsm_ip = "1.1.1.1"
-        cfg.CONF.ml2_cisco_ucsm.ucsm_username = "user1"
-        cfg.CONF.ml2_cisco_ucsm.ucsm_password = "password1"
-        cfg.CONF.ml2_cisco_ucsm.ucsm_virtio_eth_ports = ["eth0", "eth1"]
+        cfg.CONF.set_override("ucsm_ip", "3.3.3.3",
+                              group="ml2_cisco_ucsm")
+        cfg.CONF.set_override("ucsm_username", "user1",
+                              group="ml2_cisco_ucsm")
+        cfg.CONF.set_override("ucsm_password", "password1",
+                              group="ml2_cisco_ucsm")
+        cfg.CONF.set_override("ucsm_virtio_eth_ports", ["eth0", "eth2"],
+                              group="ml2_cisco_ucsm")
 
-        expected_parsed_virtio_eth_ports = ["/ether-eth0", "/ether-eth1"]
+        expected_parsed_virtio_eth_ports = ["/ether-eth0", "/ether-eth2"]
+
+        self.assertTrue("3.3.3.3" not in cfg.CONF.ml2_cisco_ucsm.ucsms)
 
         ucsm_config = conf.UcsmConfig()
 
@@ -1093,14 +1103,17 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
     def test_parsing_of_single_ucsm_vnic_template_config(self):
         """Verifies parsing of single UCSM vNIC Template config."""
         # Single UCSM config parameters.
-        cfg.CONF.ml2_cisco_ucsm.ucsm_ip = "1.1.1.1"
-        cfg.CONF.ml2_cisco_ucsm.ucsm_username = "user1"
-        cfg.CONF.ml2_cisco_ucsm.ucsm_password = "password1"
-        cfg.CONF.ml2_cisco_ucsm.ucsm_virtio_eth_ports = ["eth0", "eth1"]
-        cfg.CONF.ml2_cisco_ucsm.vnic_template_list = (
-            'physnet1:top-root:Test-VNIC1 '
-            'physnet2:org-root/org-Test-Sub:Test-VNIC2 '
-            'physnet3::Test-VNIC3')
+        cfg.CONF.set_override("ucsm_ip", "3.3.3.3",
+                              group="ml2_cisco_ucsm")
+        cfg.CONF.set_override("ucsm_username", "user1",
+                              group="ml2_cisco_ucsm")
+        cfg.CONF.set_override("ucsm_password", "password1",
+                              group="ml2_cisco_ucsm")
+        cfg.CONF.set_override(
+            "vnic_template_list",
+            ('physnet1:top-root:Test-VNIC1 '
+             'physnet2:org-root/org-Test-Sub:Test-VNIC2 '
+             'physnet3::Test-VNIC3'), group="ml2_cisco_ucsm")
 
         # Expected values after parsing of config parametrs
         expected_vnic_template1 = ('org-root/org-Test-Sub', 'Test-VNIC2')
@@ -1111,7 +1124,6 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         ]
 
         ucsm_config = conf.UcsmConfig()
-        ucsm_config.vnic_template_dict = {}
 
         # Verify parsing of VNIC Template config
         self.assertTrue(ucsm_config.is_vnic_template_configured())
@@ -1125,7 +1137,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         self.assertEqual(expected_vnic_template2, vnic_template2)
 
         vnic_template_path, vnic_template = (
-            ucsm_config.get_vnic_template_for_physnet("1.1.1.1",
+            ucsm_config.get_vnic_template_for_physnet("3.3.3.3",
             "physnet1"))
         vnic_templ_full_path1 = (vnic_template_path +
                    const.VNIC_TEMPLATE_PREFIX + str(vnic_template))
@@ -1134,7 +1146,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
             vnic_templ_full_path1)
 
         vnic_template_path, vnic_template = (
-            ucsm_config.get_vnic_template_for_physnet("1.1.1.1",
+            ucsm_config.get_vnic_template_for_physnet("3.3.3.3",
             "physnet2"))
         vnic_templ_full_path1 = (vnic_template_path +
                    const.VNIC_TEMPLATE_PREFIX + str(vnic_template))
@@ -1144,7 +1156,7 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
             vnic_templ_full_path1)
 
         vnic_template_path, vnic_template = (
-            ucsm_config.get_vnic_template_for_physnet("1.1.1.1",
+            ucsm_config.get_vnic_template_for_physnet("3.3.3.3",
             "physnet3"))
         vnic_templ_full_path1 = (vnic_template_path +
                    const.VNIC_TEMPLATE_PREFIX + str(vnic_template))
@@ -1156,13 +1168,17 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         """Verifies parsing of single UCSM SP Template config."""
 
         # Single UCSM config parameters.
-        cfg.CONF.ml2_cisco_ucsm.ucsm_ip = "1.1.1.1"
-        cfg.CONF.ml2_cisco_ucsm.ucsm_username = "user1"
-        cfg.CONF.ml2_cisco_ucsm.ucsm_password = "password1"
-        cfg.CONF.ml2_cisco_ucsm.ucsm_virtio_eth_ports = ["eth0", "eth1"]
-        cfg.CONF.ml2_cisco_ucsm.sp_template_list = (
-            'SP_Template1_path:SP_Template1:Host11,Host12 '
-            'SP_Template2_path:SP_Template2:Host21,Host22')
+        cfg.CONF.set_override("ucsm_ip", "3.3.3.3",
+                              group="ml2_cisco_ucsm")
+        cfg.CONF.set_override("ucsm_username", "user1",
+                              group="ml2_cisco_ucsm")
+        cfg.CONF.set_override("ucsm_password", "password1",
+                              group="ml2_cisco_ucsm")
+        cfg.CONF.set_override(
+            "sp_template_list",
+            ('SP_Template1_path:SP_Template1:Host11,Host12 '
+             'SP_Template2_path:SP_Template2:Host21,Host22'),
+            group="ml2_cisco_ucsm")
 
         ucsm_config = conf.UcsmConfig()
 
@@ -1179,15 +1195,15 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
         sp_template = ucsm_config.get_sp_template_for_host("Host12")
         self.assertEqual(expected_sp_template, sp_template)
 
-        expected_ucsm_ip = "1.1.1.1"
+        expected_ucsm_ip = "3.3.3.3"
         ucsm_ip = ucsm_config.get_ucsm_ip_for_sp_template_host("Host21")
         self.assertEqual(expected_ucsm_ip, ucsm_ip)
 
         expected_sp_template_list = [
-            ('1.1.1.1', 'SP_Template2_path', 'SP_Template2'),
-            ('1.1.1.1', 'SP_Template1_path', 'SP_Template1'),
+            ('3.3.3.3', 'SP_Template2_path', 'SP_Template2'),
+            ('3.3.3.3', 'SP_Template1_path', 'SP_Template1'),
         ]
-        sp_template_list = ucsm_config.get_sp_template_list_for_ucsm("1.1.1.1")
+        sp_template_list = ucsm_config.get_sp_template_list_for_ucsm("3.3.3.3")
         for entry in expected_sp_template_list:
             self.assertIn(entry, sp_template_list)
 
