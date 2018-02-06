@@ -238,11 +238,6 @@ class UcsmConfig(object):
                         sp_dict[(ip, host)] = sp.strip()
         return sp_dict
 
-    def get_credentials_for_ucsm_ip(self, ucsm_ip):
-        if ucsm_ip in CONF.ml2_cisco_ucsm.ucsms:
-            ucsm = CONF.ml2_cisco_ucsm.ucsms[ucsm_ip]
-            return ucsm.ucsm_username, ucsm.ucsm_password
-
     def get_all_ucsm_ips(self):
         if CONF.ml2_cisco_ucsm.ucsms:
             return list(CONF.ml2_cisco_ucsm.ucsms)
