@@ -26,7 +26,6 @@ from sqlalchemy.sql import expression as expr
 
 from neutron.common import utils
 from neutron.db import models_v2
-from neutron.extensions import l3
 from neutron_lib import exceptions as n_exc
 
 from networking_cisco._i18n import _
@@ -765,7 +764,7 @@ class HA_db_mixin(object):
                 context.session.delete(hag)
 
     @staticmethod
-    @bc.extends([l3.ROUTERS])
+    @bc.extends([l3_const.ROUTERS])
     def _extend_router_dict_ha(router_res, router_db):
         self = bc.get_plugin(bc.constants.L3)
         if utils.is_extension_supported(self, ha.HA_ALIAS):
