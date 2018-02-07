@@ -31,6 +31,8 @@ from neutron_lib import exceptions as n_exc
 
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import l3_const
+from networking_cisco.backwards_compatibility import l3_exceptions
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.common import utils as cisco_utils
 from networking_cisco.plugins.cisco.extensions import ha
@@ -51,7 +53,7 @@ MAX_GLBP_GROUPS = 1023
 
 is_attr_set = bc.is_attr_set
 ATTR_NOT_SPECIFIED = bc.constants.ATTR_NOT_SPECIFIED
-EXTERNAL_GW_INFO = l3.EXTERNAL_GW_INFO
+EXTERNAL_GW_INFO = l3_const.EXTERNAL_GW_INFO
 DEVICE_OWNER_ROUTER_GW = bc.constants.DEVICE_OWNER_ROUTER_GW
 DEVICE_OWNER_ROUTER_INTF = bc.constants.DEVICE_OWNER_ROUTER_INTF
 DEVICE_OWNER_ROUTER_HA_INTF = bc.constants.DEVICE_OWNER_ROUTER_HA_INTF
@@ -1054,7 +1056,7 @@ class HA_db_mixin(object):
         if first_router_id:
             return first_router_id
 
-        raise l3.ExternalGatewayForFloatingIPNotFound(
+        raise l3_exceptions.ExternalGatewayForFloatingIPNotFound(
             subnet_id=internal_subnet['id'],
             external_network_id=external_network_id,
             port_id=internal_port['id'])

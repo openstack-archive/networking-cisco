@@ -21,9 +21,9 @@ from oslo_utils import uuidutils
 from sqlalchemy.orm import exc as db_exc
 from webob import exc
 
-from neutron.extensions import l3
-
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import l3_const
+from networking_cisco.backwards_compatibility import l3_exceptions
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.l3.l3_router_appliance_db import (
     L3RouterApplianceDBMixin)
@@ -45,7 +45,7 @@ LOG = logging.getLogger(__name__)
 _uuid = uuidutils.generate_uuid
 
 DEVICE_OWNER_ROUTER_INTF = bc.constants.DEVICE_OWNER_ROUTER_INTF
-EXTERNAL_GW_INFO = l3.EXTERNAL_GW_INFO
+EXTERNAL_GW_INFO = l3_const.EXTERNAL_GW_INFO
 AGENT_TYPE_L3_CFG = cisco_constants.AGENT_TYPE_L3_CFG
 
 ROUTER_ROLE_GLOBAL = cisco_constants.ROUTER_ROLE_GLOBAL
@@ -124,7 +124,7 @@ class Asr1kRouterTypeDriverTestCase(
             else:
                 self.assertEqual(router['name'], LOGICAL_ROUTER_ROLE_NAME)
                 self.assertFalse(router[AUTO_SCHEDULE_ATTR])
-            self.assertIsNone(router[l3.EXTERNAL_GW_INFO])
+            self.assertIsNone(router[l3_const.EXTERNAL_GW_INFO])
             q_p = '%s=%s&%s=%s' % ('device_id', router['id'], 'device_owner',
                                    DEVICE_OWNER_GLOBAL_ROUTER_GW)
             aux_gw_ports = self._list('ports', query_params=q_p)['ports']
@@ -428,12 +428,12 @@ class Asr1kRouterTypeDriverTestCase(
             # should have no global router yet
             r_ids = {r1['id'], r2['id']}
             self._verify_routers(r_ids, ext_net_ids)
-            r_spec = {'router': {l3.EXTERNAL_GW_INFO: ext_gw_1}}
+            r_spec = {'router': {l3_const.EXTERNAL_GW_INFO: ext_gw_1}}
             r1_after = self._update('routers', r1['id'], r_spec)['router']
             hd_id = r1_after[HOSTING_DEVICE_ATTR]
             # should now have one global router
             self._verify_routers(r_ids, ext_net_ids, hd_id, [1])
-            r_spec = {'router': {l3.EXTERNAL_GW_INFO: ext_gw_2}}
+            r_spec = {'router': {l3_const.EXTERNAL_GW_INFO: ext_gw_2}}
             self._update('routers', r2['id'], r_spec)['router']
             # should still have only one global router but now with
             # one extra auxiliary gateway port
@@ -509,9 +509,10 @@ class Asr1kRouterTypeDriverTestCase(
             # should have no global router yet
             r_ids = {r1['id'], r2['id']}
             self._verify_routers(r_ids, ext_net_ids)
-            r_spec = {'router': {l3.EXTERNAL_GW_INFO: ext_gw_1}}
+            r_spec = {'router': {l3_const.EXTERNAL_GW_INFO: ext_gw_1}}
             r1_after = self._update('routers', r1['id'], r_spec)['router']
-            res_ips = r1_after[l3.EXTERNAL_GW_INFO]['external_fixed_ips']
+            res_ips = r1_after[l3_const.EXTERNAL_GW_INFO][
+                    'external_fixed_ips']
             self.assertEqual(1, len(res_ips))
             self.assertEqual(sn_1['id'], res_ips[0]['subnet_id'])
             hd_id = r1_after[HOSTING_DEVICE_ATTR]
@@ -520,9 +521,10 @@ class Asr1kRouterTypeDriverTestCase(
             ext_gw_1_2 = {'network_id': msn_ext_net_1_id,
                           'external_fixed_ips': [{'subnet_id': sn_1['id']},
                                                  {'subnet_id': sn_2['id']}]}
-            r_spec = {'router': {l3.EXTERNAL_GW_INFO: ext_gw_1_2}}
+            r_spec = {'router': {l3_const.EXTERNAL_GW_INFO: ext_gw_1_2}}
             r1_final = self._update('routers', r1['id'], r_spec)['router']
-            res_ips = r1_final[l3.EXTERNAL_GW_INFO]['external_fixed_ips']
+            res_ips = r1_final[l3_const.EXTERNAL_GW_INFO][
+                    'external_fixed_ips']
             self.assertEqual(2, len(res_ips))
             self.assertIn(res_ips[0]['subnet_id'],
                           ext_net_ids[msn_ext_net_1_id])
@@ -530,7 +532,7 @@ class Asr1kRouterTypeDriverTestCase(
                           ext_net_ids[msn_ext_net_1_id])
             # should now have one global router
             self._verify_routers(r_ids, ext_net_ids, hd_id, [1])
-            r_spec = {'router': {l3.EXTERNAL_GW_INFO: ext_gw_2}}
+            r_spec = {'router': {l3_const.EXTERNAL_GW_INFO: ext_gw_2}}
             self._update('routers', r2['id'], r_spec)['router']
             # should still have only one global router but now with
             # one extra auxiliary gateway port
@@ -593,7 +595,7 @@ class Asr1kRouterTypeDriverTestCase(
                 # should have one global router now
                 self._verify_routers(r_ids, ext_net_ids, hd_id, [0, 1])
                 if update_operation is True:
-                    r_spec = {'router': {l3.EXTERNAL_GW_INFO: None}}
+                    r_spec = {'router': {l3_const.EXTERNAL_GW_INFO: None}}
                     self._update('routers', r1['id'], r_spec)
                 else:
                     self._delete('routers', r1['id'])
@@ -691,15 +693,16 @@ class Asr1kRouterTypeDriverTestCase(
                 # should have one global router now
                 self._verify_routers(r_ids, ext_net_ids, hd_id, [0, 1])
                 ext_gw_1['external_fixed_ips'] = [{'subnet_id': sn_1['id']}]
-                r_spec = {'router': {l3.EXTERNAL_GW_INFO: ext_gw_1}}
+                r_spec = {'router': {l3_const.EXTERNAL_GW_INFO: ext_gw_1}}
                 r1_after_2 = self._update('routers', r1['id'],
                                           r_spec)['router']
-                res_ips = r1_after_2[l3.EXTERNAL_GW_INFO]['external_fixed_ips']
+                res_ips = r1_after_2[l3_const.EXTERNAL_GW_INFO][
+                        'external_fixed_ips']
                 self.assertEqual(1, len(res_ips))
                 self.assertEqual(sn_1['id'], res_ips[0]['subnet_id'])
                 # should still have one global router
                 self._verify_routers(r_ids, ext_net_ids, hd_id, [0, 1])
-                r_spec = {'router': {l3.EXTERNAL_GW_INFO: None}}
+                r_spec = {'router': {l3_const.EXTERNAL_GW_INFO: None}}
                 self._update('routers', r1['id'], r_spec)
                 # should still have one global router
                 if same_ext_net is False:
@@ -742,7 +745,8 @@ class Asr1kRouterTypeDriverTestCase(
                     if delete_global is True:
                         self.l3_plugin.delete_router(
                             context, global_router_id, unschedule=False)
-            except (db_exc.ObjectDeletedError, l3.RouterNotFound) as e:
+            except (db_exc.ObjectDeletedError,
+                    l3_exceptions.RouterNotFound) as e:
                 LOG.warning(e)
             delete_gr_fcn(local_self, context, global_router_id, logical)
 
@@ -776,9 +780,10 @@ class Asr1kRouterTypeDriverTestCase(
                 # should have one global router now
                 self._verify_routers(r_ids, ext_net_ids, hd_id)
                 ext_gw['external_fixed_ips'] = [{'subnet_id': sn_1['id']}]
-                r_spec = {'router': {l3.EXTERNAL_GW_INFO: ext_gw}}
+                r_spec = {'router': {l3_const.EXTERNAL_GW_INFO: ext_gw}}
                 r_after_2 = self._update('routers', r['id'], r_spec)['router']
-                res_ips = r_after_2[l3.EXTERNAL_GW_INFO]['external_fixed_ips']
+                res_ips = r_after_2[l3_const.EXTERNAL_GW_INFO][
+                        'external_fixed_ips']
                 self.assertEqual(1, len(res_ips))
                 self.assertEqual(sn_1['id'], res_ips[0]['subnet_id'])
                 # should still have one global router
@@ -786,7 +791,7 @@ class Asr1kRouterTypeDriverTestCase(
                 # now we simulate that there is another router with similar
                 # gateway that is unset concurrently and that its REST API
                 # thread manages to delete the global router
-                r_spec = {'router': {l3.EXTERNAL_GW_INFO: None}}
+                r_spec = {'router': {l3_const.EXTERNAL_GW_INFO: None}}
 
                 delete_gr_fcn = drv.ASR1kL3RouterDriver._delete_global_router
                 delete_p_fcn = (
@@ -1073,7 +1078,7 @@ class L3CfgAgentAsr1kRouterTypeDriverTestCase(
         else:
             self.assertEqual(router['name'], LOGICAL_ROUTER_ROLE_NAME)
             self.assertEqual(router[AUTO_SCHEDULE_ATTR], False)
-        self.assertIsNone(router[l3.EXTERNAL_GW_INFO])
+        self.assertIsNone(router[l3_const.EXTERNAL_GW_INFO])
         q_p = '%s=%s&%s=%s' % ('device_id', router['id'], 'device_owner',
                                DEVICE_OWNER_GLOBAL_ROUTER_GW)
         aux_gw_ports = self._list('ports', query_params=q_p)['ports']

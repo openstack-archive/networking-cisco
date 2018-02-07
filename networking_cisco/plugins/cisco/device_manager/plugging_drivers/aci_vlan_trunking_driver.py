@@ -14,13 +14,13 @@
 
 import re
 
-from neutron.extensions import l3
 from neutron_lib import exceptions as n_exc
 from oslo_config import cfg
 from oslo_log import log as logging
 
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import l3_const
 from networking_cisco.plugins.cisco.device_manager.plugging_drivers import (
     hw_vlan_trunking_driver as hw_vlan)
 from networking_cisco.plugins.cisco.extensions import routerrole
@@ -31,7 +31,7 @@ LOG = logging.getLogger(__name__)
 APIC_OWNED = 'apic_owned_'
 APIC_SNAT_SUBNET = 'host-snat-pool-for-internal-use'
 APIC_SNAT_NET = 'host-snat-network-for-internal-use'
-EXTERNAL_GW_INFO = l3.EXTERNAL_GW_INFO
+EXTERNAL_GW_INFO = l3_const.EXTERNAL_GW_INFO
 UUID_REGEX = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 DEVICE_OWNER_ROUTER_GW = bc.constants.DEVICE_OWNER_ROUTER_GW
 DEVICE_OWNER_ROUTER_INTF = bc.constants.DEVICE_OWNER_ROUTER_INTF

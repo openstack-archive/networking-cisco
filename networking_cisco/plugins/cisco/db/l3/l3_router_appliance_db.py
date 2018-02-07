@@ -44,6 +44,8 @@ from networking_cisco import backwards_compatibility as bc
 from networking_cisco.backwards_compatibility import cb_events as events
 from networking_cisco.backwards_compatibility import cb_registry as registry
 from networking_cisco.backwards_compatibility import cb_resources as resources
+from networking_cisco.backwards_compatibility import l3_const
+from networking_cisco.backwards_compatibility import l3_exceptions
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.device_manager import hd_models
 from networking_cisco.plugins.cisco.db.l3 import l3_models
@@ -58,7 +60,7 @@ from networking_cisco.plugins.cisco.l3.drivers import driver_context
 
 LOG = logging.getLogger(__name__)
 
-EXTERNAL_GW_INFO = l3.EXTERNAL_GW_INFO
+EXTERNAL_GW_INFO = l3_const.EXTERNAL_GW_INFO
 FLOATINGIP_STATUS_ACTIVE = bc.constants.FLOATINGIP_STATUS_ACTIVE
 AGENT_TYPE_L3 = bc.constants.AGENT_TYPE_L3
 AGENT_TYPE_L3_CFG = cisco_constants.AGENT_TYPE_L3_CFG
@@ -432,7 +434,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
             try:
                 super(L3RouterApplianceDBMixin, self).delete_router(context,
                                                                     router_id)
-            except l3.RouterNotFound as e:
+            except l3_exceptions.RouterNotFound as e:
                 LOG.debug('Ignorable error: %(err)s as it only indicates that '
                           'router was already concurrently deleted just '
                           'before this deletion attempt', {'err': e})
@@ -1029,7 +1031,7 @@ class L3RouterApplianceDBMixin(extraroute_db.ExtraRoute_dbonly_mixin):
 
         try:
             self.get_router(context, router_id)
-        except l3.RouterNotFound:
+        except l3_exceptions.RouterNotFound:
             return
         r_hd_binding_db = self._get_router_binding_info(context.elevated(),
                                                         router_id)
