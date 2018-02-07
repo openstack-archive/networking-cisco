@@ -19,10 +19,10 @@ from oslo_utils import timeutils
 import six
 
 from neutron.db import agentschedulers_db
-from neutron.extensions import agent as ext_agent
 
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import agent_exceptions
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
 from networking_cisco.plugins.cisco.db.device_manager.hd_models import (
@@ -251,7 +251,7 @@ class CfgAgentSchedulerDbMixin(
                           cfg_agent_id)
                 try:
                     agent = self.get_agent(e_context, cfg_agent_id)
-                except ext_agent.AgentNotFound:
+                except agent_exceptions.AgentNotFound:
                     LOG.debug('Config agent %s does not exist anymore. Will '
                               'remove it from monitored config agents' %
                               cfg_agent_id)

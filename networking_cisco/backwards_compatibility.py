@@ -208,6 +208,7 @@ if NEUTRON_VERSION >= NEUTRON_QUEENS_VERSION:
     from neutron_lib.callbacks import events as cb_events
     from neutron_lib.callbacks import registry as cb_registry
     from neutron_lib.callbacks import resources as cb_resources
+    from neutron_lib.exceptions import agent as agent_exceptions
     from neutron_lib.exceptions import l3 as l3_exceptions
     from neutron_lib.plugins.ml2 import api as ml2_api
 else:
@@ -215,6 +216,7 @@ else:
     from neutron.callbacks import events as cb_events  # noqa
     from neutron.callbacks import registry as cb_registry  # noqa
     from neutron.callbacks import resources as cb_resources  # noqa
+    from neutron.extensions import agent as agent_exceptions  # noqa
     from neutron.extensions import l3 as l3_const  # noqa
     from neutron.plugins.ml2 import config as ml2_config  # noqa
     from neutron.plugins.ml2 import driver_api as ml2_api  # noqa
