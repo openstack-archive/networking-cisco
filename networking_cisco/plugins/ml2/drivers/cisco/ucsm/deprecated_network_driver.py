@@ -42,7 +42,7 @@ class CiscoUcsmDriver(object):
         self.ucsmsdk = None
         self.supported_sriov_vnic_types = [bc.portbindings.VNIC_DIRECT,
                                            bc.portbindings.VNIC_MACVTAP]
-        self.supported_pci_devs = config.parse_pci_vendor_config()
+        self.supported_pci_devs = CONF.ml2_cisco_ucsm.supported_pci_devs
         self.ucsm_conf = config.UcsmConfig()
         self.ucsm_db = ucsm_db.UcsmDbModel()
         self.ucsm_host_dict = {}

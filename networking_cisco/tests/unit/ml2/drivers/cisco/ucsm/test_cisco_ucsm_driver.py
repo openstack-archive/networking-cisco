@@ -314,13 +314,6 @@ class TestCiscoUcsmMechDriver(testlib_api.SqlTestCase,
                                        profile, network_context)
         return port_context
 
-    def test_parse_pci_vendor_config(self):
-        """Verifies parsing of both good and bad pci vendor config."""
-        vendor1 = PCI_INFO_INVALID
-        vendor2 = const.PCI_INFO_INTEL_82599
-        self.assertNotIn(vendor1, self.ucsm_driver.supported_pci_devs)
-        self.assertIn(vendor2, self.ucsm_driver.supported_pci_devs)
-
     def test_port_supported_deviceowner(self):
         """Verifies detection of supported set of device owners for ports."""
         port_context = self._create_port_context_normal()

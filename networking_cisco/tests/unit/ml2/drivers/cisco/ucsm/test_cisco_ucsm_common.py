@@ -41,6 +41,9 @@ UCSM_PHY_NETS = ['test_physnet']
 
 
 ucsm_test_config_file = """
+[ml2_cisco_ucsm]
+supported_pci_devs=thing1:thing2, thing1:thing3
+
 [ml2_cisco_ucsm_ip:1.1.1.1]
 ucsm_username=username1
 ucsm_password=password1
@@ -58,6 +61,11 @@ vnic_template_list=physnet2:org-root/org-Test-Sub:Test
 [sriov_multivlan_trunk]
 test_network1=5, 7-9
 test_network2=500-509, 700
+"""
+
+ucsm_config_bad_pci_devs = """
+[ml2_cisco_ucsm]
+supported_pci_devs=thing:thing, thing2, thing3:thing4
 """
 
 CONF = cfg.CONF
@@ -136,3 +144,12 @@ class ConfigMixin(object):
         self.assertEqual(
             config.get_sriov_multivlan_trunk_config("test_network2"),
             [500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 700])
+
+        self.assertEqual(CONF.ml2_cisco_ucsm.supported_pci_devs,
+                         ["thing1:thing2", "thing1:thing3"])
+
+    def test_support_pci_devices_bad_format(self):
+        CONF.reset()
+        nc_base.load_config_file(ucsm_config_bad_pci_devs)
+        self.assertRaises(ValueError, CONF.ml2_cisco_ucsm.get,
+                          "supported_pci_devs")
