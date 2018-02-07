@@ -21,14 +21,14 @@ from sqlalchemy.orm import exc
 import unittest
 import webob.exc
 
-from neutron.callbacks import events
-from neutron.callbacks import registry
-from neutron.callbacks import resources
 from neutron.db import l3_db
 from neutron.extensions import l3
 from neutron.tests import fake_notifier
 
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import cb_events as events
+from networking_cisco.backwards_compatibility import cb_registry as registry
+from networking_cisco.backwards_compatibility import cb_resources as resources
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.common import (
     cisco_constants as cisco_const)

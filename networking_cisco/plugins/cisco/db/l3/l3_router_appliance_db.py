@@ -31,9 +31,6 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import expression as expr
 from sqlalchemy.sql import false as sql_false
 
-from neutron.callbacks import events
-from neutron.callbacks import registry
-from neutron.callbacks import resources
 from neutron.common import rpc as n_rpc
 from neutron.common import utils
 from neutron.db import common_db_mixin
@@ -44,6 +41,9 @@ from neutron_lib import exceptions as n_exc
 
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import cb_events as events
+from networking_cisco.backwards_compatibility import cb_registry as registry
+from networking_cisco.backwards_compatibility import cb_resources as resources
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.device_manager import hd_models
 from networking_cisco.plugins.cisco.db.l3 import l3_models
