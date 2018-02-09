@@ -795,7 +795,7 @@ class CiscoUcsmDriver(object):
                 # 1. From the Service Profile config, access the
                 # configuration for its ports.
                 # 2. Check if that Vlan has been configured on each port
-                # 3. If Vlan conifg found, remove it.
+                # 3. If Vlan config found, remove it.
                 obj = handle.GetManagedObject(
                         None,
                         self.ucsmsdk.LsServer.ClassId(),
