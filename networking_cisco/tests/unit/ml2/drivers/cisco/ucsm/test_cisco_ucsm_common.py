@@ -98,8 +98,8 @@ class UCSMConfigTestCase(nc_base.TestCase):
             "ucsm_virtio_eth_ports": [const.ETH_PREFIX + const.ETH0,
                                       const.ETH_PREFIX + const.ETH1],
             "sriov_qos_policy": None,
+            "vnic_template_list": {},
             "sp_template_list": {},
-            "vnic_template_list": None,
             "ucsms": {
                 "1.1.1.1": {
                     "ucsm_username": "username1",
@@ -109,8 +109,9 @@ class UCSMConfigTestCase(nc_base.TestCase):
                     "ucsm_host_list": {"UCS-1": "UCS-1-SP",
                                        "UCS-2": "org-root/test/ls-UCS-2-SP"},
                     "sriov_qos_policy": "Test",
-                    "vnic_template_list": (
-                        "test-physnet:org-root:Test-VNIC,vnic2"),
+                    "vnic_template_list": {
+                        "test-physnet": ucsm_config.UCSTemplate(
+                            "org-root", "Test-VNIC,vnic2")},
                     "sp_template_list": {},
                 },
                 "2.2.2.2": {
@@ -120,8 +121,9 @@ class UCSMConfigTestCase(nc_base.TestCase):
                                               const.ETH_PREFIX + "eth3"],
                     "ucsm_host_list": None,
                     "sriov_qos_policy": None,
-                    "vnic_template_list": (
-                        "physnet2:org-root/org-Test-Sub:Test"),
+                    "vnic_template_list": {
+                        "physnet2": ucsm_config.UCSTemplate(
+                            "org-root/org-Test-Sub", "Test")},
                     "sp_template_list": {
                         "S1": ucsm_config.UCSTemplate("SP_Template1_path",
                                                       "SP_Template1"),
@@ -140,7 +142,7 @@ class UCSMConfigTestCase(nc_base.TestCase):
                                               const.ETH_PREFIX + "eth1"],
                     "ucsm_host_list": {"UCS-3": "UCS-3-SP"},
                     "sriov_qos_policy": None,
-                    "vnic_template_list": None,
+                    "vnic_template_list": {},
                     "sp_template_list": {},
                 }
             }
@@ -170,20 +172,6 @@ class UCSMConfigTestCase(nc_base.TestCase):
             ('3.3.3.3', 'UCS-3'): ('org-root/ls-UCS-3-SP'),
         }
         self.assertEqual(expected_sp_dict, self.config.ucsm_sp_dict)
-
-    def test_get_vnic_template_for_ucsm_ip(self):
-        self.assertEqual(self.config.get_vnic_template_for_ucsm_ip("1.1.1.1"),
-                         [('org-root', 'Test-VNIC,vnic2')])
-
-    def test_get_vnic_template_for_physnet(self):
-        self.assertEqual(
-            self.config.get_vnic_template_for_physnet("1.1.1.1",
-                                                      "test-physnet"),
-            ('org-root', 'Test-VNIC,vnic2'))
-
-        self.assertEqual(
-            self.config.get_vnic_template_for_physnet("2.2.2.2", "physnet2"),
-            ('org-root/org-Test-Sub', 'Test'))
 
     def test_is_vnic_template_configured(self):
         self.assertTrue(self.config.is_vnic_template_configured())

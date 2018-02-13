@@ -121,14 +121,13 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                           'Template config')
             if self.ucsm_conf.is_vnic_template_configured() and physnet:
                 # Check if VNIC template is configured for this physnet
-                vnic_template_path, vnic_template = (
-                    self.ucsm_conf.get_vnic_template_for_physnet(ucsm_ip,
-                    physnet))
+                ucsm = CONF.ml2_cisco_ucsm.ucsms[ucsm_ip]
+                vnic_template = ucsm.vnic_template_list.get(physnet)
 
                 if vnic_template:
                     LOG.debug('vnic_template %s', vnic_template)
                     self.ucsm_db.add_vnic_template(vlan_id, ucsm_ip,
-                        vnic_template, physnet)
+                        vnic_template.name, physnet)
                 else:
                     LOG.debug('VNIC Template not configured for '
                               'physnet %s', physnet)
@@ -242,17 +241,14 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
             physnet = self._get_physnet(context)
             if self.ucsm_conf.is_vnic_template_configured() and physnet:
                 LOG.debug('Update VNIC Template for physnet: %s', physnet)
-                vnic_template_path, vnic_template = (
-                    self.ucsm_conf.get_vnic_template_for_physnet(ucsm_ip,
-                    physnet))
+                ucsm = CONF.ml2_cisco_ucsm.ucsms[ucsm_ip]
+                vnic_template = ucsm.vnic_template_list.get(physnet)
 
                 if vnic_template:
                     LOG.debug('vnic_template %s', vnic_template)
-                    if (self.driver.update_vnic_template(host_id,
-                                                         vlan_id,
-                                                         physnet,
-                                                         vnic_template_path,
-                                                         vnic_template)):
+                    if (self.driver.update_vnic_template(
+                            host_id, vlan_id, physnet, vnic_template.path,
+                            vnic_template.name)):
                         LOG.debug('Setting ucsm_updated flag for '
                                   'vlan : %(vlan)d, '
                                   'vnic_template : %(vnic_template)s '
@@ -261,7 +257,7 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                                   'vnic_template': vnic_template,
                                   'ucsm_ip': ucsm_ip})
                         self.ucsm_db.set_vnic_template_updated(
-                            vlan_id, ucsm_ip, vnic_template, physnet)
+                            vlan_id, ucsm_ip, vnic_template.name, physnet)
                     return
 
             if (CONF.ml2_cisco_ucsm.ucsms[ucsm_ip].sp_template_list
