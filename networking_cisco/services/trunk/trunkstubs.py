@@ -25,7 +25,7 @@ ACTIVE_STATUS = ""
 
 class SubPort(object):
     @classmethod
-    def get_object(cls, context, *args):
+    def get_object(cls, context, *args, **kwargs):
         return None
 
 
