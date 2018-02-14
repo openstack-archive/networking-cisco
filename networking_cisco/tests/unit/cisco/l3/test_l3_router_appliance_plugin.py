@@ -18,7 +18,6 @@ import os
 import unittest
 
 from neutron.api.v2 import attributes
-from neutron.callbacks import registry
 from neutron.db import agents_db
 from neutron.db import dns_db
 from neutron.extensions import dns
@@ -39,6 +38,7 @@ from webob import exc
 
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import cb_registry as registry
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.common import cisco_constants as c_const
 from networking_cisco.plugins.cisco.db.l3 import l3_router_appliance_db

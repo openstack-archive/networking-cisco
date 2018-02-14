@@ -206,11 +206,13 @@ if NEUTRON_VERSION >= NEUTRON_QUEENS_VERSION:
     from neutron.conf.plugins.ml2 import config as ml2_config
     from neutron_lib.callbacks import events as cb_events
     from neutron_lib.callbacks import registry as cb_registry
+    from neutron_lib.callbacks import resources as cb_resources
     from neutron_lib.plugins.ml2 import api as ml2_api
 else:
     # Pre-queens
     from neutron.callbacks import events as cb_events  # noqa
     from neutron.callbacks import registry as cb_registry  # noqa
+    from neutron.callbacks import resources as cb_resources  # noqa
     from neutron.plugins.ml2 import config as ml2_config  # noqa
     from neutron.plugins.ml2 import driver_api as ml2_api  # noqa
 
