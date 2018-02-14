@@ -15,6 +15,7 @@
 import copy
 from datetime import datetime
 import mock
+import time
 
 from neutron.api.v2 import attributes
 from neutron.common import test_lib
@@ -270,7 +271,21 @@ class DeviceManagerTestSupportMixin(object):
 class TestDeviceManagerExtensionManager(object):
 
     def get_resources(self):
-        res = ciscodevmgr.Ciscohostingdevicemanager.get_resources()
+        # NOTE(bobmel): In rare cases, the device manager service plugin has
+        # not been registered completely when the resources for it are
+        # processed here. That will result in an intermittent KeyError. We
+        # handle this problem by a number of retries.
+        max_attempts = 5
+        for i in range(max_attempts):
+            try:
+                res = ciscodevmgr.Ciscohostingdevicemanager.get_resources()
+                break
+            except KeyError as e:
+                if i < max_attempts - 1:
+                    LOG.debug('Retrying get_resources due to: %s', e)
+                    time.sleep(2)
+                else:
+                    raise
         # add agent resource
         for item in agent.Agent.get_resources():
             res.append(item)
