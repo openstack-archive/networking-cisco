@@ -214,6 +214,7 @@ if NEUTRON_VERSION >= NEUTRON_QUEENS_VERSION:
     from neutron_lib.exceptions import agent as agent_exceptions
     from neutron_lib.exceptions import l3 as l3_exceptions
     from neutron_lib.plugins.ml2 import api as ml2_api
+    from neutron_lib.utils import runtime as runtime_utils
     extraroute_const.EXTENDED_ATTRIBUTES_2_0 = (
             extraroute_const.RESOURCE_ATTRIBUTE_MAP)
     dns_const.EXTENDED_ATTRIBUTES_2_0 = dns_const.RESOURCE_ATTRIBUTE_MAP
@@ -223,6 +224,7 @@ else:
     from neutron.callbacks import events as cb_events  # noqa
     from neutron.callbacks import registry as cb_registry  # noqa
     from neutron.callbacks import resources as cb_resources  # noqa
+    from neutron.common import utils as runtime_utils  # noqa
     from neutron.extensions import agent as agent_exceptions  # noqa
     from neutron.extensions import dns as dns_const  # noqa
     from neutron.extensions import extraroute as extraroute_const  # noqa

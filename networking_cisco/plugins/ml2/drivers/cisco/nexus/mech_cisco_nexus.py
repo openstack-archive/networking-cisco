@@ -31,8 +31,7 @@ from oslo_utils import excutils
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.backwards_compatibility import constants as p_const
 from networking_cisco.backwards_compatibility import ml2_api as api
-
-from neutron.common import utils as neutron_utils
+from networking_cisco.backwards_compatibility import runtime_utils
 
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     config as conf)
@@ -272,7 +271,7 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         """
 
         try:
-            loaded_class = neutron_utils.load_class_by_alias_or_classname(
+            loaded_class = runtime_utils.load_class_by_alias_or_classname(
                 'networking_cisco.ml2.nexus_driver',
                 conf.cfg.CONF.ml2_cisco.nexus_driver)
             return loaded_class(CONF.ml2_cisco.nexus_switches)
