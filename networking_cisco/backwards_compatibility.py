@@ -205,6 +205,7 @@ if NEUTRON_VERSION >= NEUTRON_QUEENS_VERSION:
     # Newer than queens
     from neutron.conf.plugins.ml2 import config as ml2_config
     from neutron_lib.api.definitions import l3 as l3_const
+    from neutron_lib.api import faults as cb_faults
     from neutron_lib.callbacks import events as cb_events
     from neutron_lib.callbacks import registry as cb_registry
     from neutron_lib.callbacks import resources as cb_resources
@@ -213,6 +214,7 @@ if NEUTRON_VERSION >= NEUTRON_QUEENS_VERSION:
     from neutron_lib.plugins.ml2 import api as ml2_api
 else:
     # Pre-queens
+    from neutron.api.v2 import base as cb_faults  # noqa
     from neutron.callbacks import events as cb_events  # noqa
     from neutron.callbacks import registry as cb_registry  # noqa
     from neutron.callbacks import resources as cb_resources  # noqa

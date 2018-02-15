@@ -15,7 +15,6 @@
 import abc
 
 from neutron.api import extensions
-from neutron.api.v2 import base
 from neutron.api.v2 import resource
 from neutron.common import rpc as n_rpc
 from neutron import policy
@@ -27,6 +26,7 @@ import webob.exc
 
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import cb_faults
 from networking_cisco.backwards_compatibility import l3_const
 from networking_cisco.plugins.cisco.extensions import ciscohostingdevicemanager
 
@@ -175,13 +175,13 @@ class Routertypeawarescheduler(bc.extensions.ExtensionDescriptor):
         parent = dict(member_name=ciscohostingdevicemanager.DEVICE,
                       collection_name=ciscohostingdevicemanager.DEVICES)
         controller = resource.Resource(
-            RouterHostingDeviceSchedulerController(), base.FAULT_MAP)
+            RouterHostingDeviceSchedulerController(), cb_faults.FAULT_MAP)
         exts.append(extensions.ResourceExtension(
             DEVICE_L3_ROUTERS, controller, parent, path_prefix="/dev_mgr"))
         parent = dict(member_name="router",
                       collection_name=l3_const.ROUTERS)
         controller = resource.Resource(
-            HostingDevicesHostingRouterController(), base.FAULT_MAP)
+            HostingDevicesHostingRouterController(), cb_faults.FAULT_MAP)
         exts.append(extensions.ResourceExtension(L3_ROUTER_DEVICES, controller,
                                                  parent))
         return exts
