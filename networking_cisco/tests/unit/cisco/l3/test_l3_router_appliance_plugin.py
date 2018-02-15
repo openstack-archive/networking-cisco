@@ -39,6 +39,7 @@ from webob import exc
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.backwards_compatibility import cb_registry as registry
+from networking_cisco.backwards_compatibility import l3_const
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.common import cisco_constants as c_const
 from networking_cisco.plugins.cisco.db.l3 import l3_router_appliance_db
@@ -255,10 +256,12 @@ class L3RouterApplianceRouterTypeDriverTestCase(test_l3.L3NatTestCaseMixin,
         _dict_extend_functions = l3_router_appliance_db.DICT_EXTEND_FUNCTIONS
         _dict_extend_functions.append('_extend_router_dict_extraroute')
         if bc.NEUTRON_VERSION < bc.NEUTRON_PIKE_VERSION:
-            for func in self.plugin._dict_extend_functions[l3.ROUTERS][:]:
+            for func in self.plugin._dict_extend_functions[
+                    l3_const.ROUTERS][:]:
                 if func in l3_router_appliance_db.DICT_EXTEND_FUNCTIONS:
                     continue
-                self.plugin._dict_extend_functions[l3.ROUTERS].remove(func)
+                self.plugin._dict_extend_functions[
+                        l3_const.ROUTERS].remove(func)
 
     def test_schedule_router_pre_and_post_commit(self):
         hdts = self._list(
