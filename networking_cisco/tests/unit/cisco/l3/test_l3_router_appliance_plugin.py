@@ -23,7 +23,6 @@ from neutron.db import dns_db
 from neutron.extensions import dns
 from neutron.extensions import external_net as external_net
 from neutron.extensions import extraroute
-from neutron.extensions import l3
 from neutron.extensions import providernet as pnet
 from neutron.plugins.common import constants as service_constants
 from neutron.tests.unit.db import test_db_base_plugin_v2
@@ -75,8 +74,8 @@ class TestL3RouterApplianceExtensionManager(
     def get_resources(self):
         l3_const.RESOURCE_ATTRIBUTE_MAP['routers'].update(
             extraroute.EXTENDED_ATTRIBUTES_2_0['routers'])
-        l3_const.RESOURCE_ATTRIBUTE_MAP[l3.FLOATINGIPS].update(
-            dns.EXTENDED_ATTRIBUTES_2_0[l3.FLOATINGIPS])
+        l3_const.RESOURCE_ATTRIBUTE_MAP[l3_const.FLOATINGIPS].update(
+            dns.EXTENDED_ATTRIBUTES_2_0[l3_const.FLOATINGIPS])
         return super(TestL3RouterApplianceExtensionManager,
                      self).get_resources()
 
