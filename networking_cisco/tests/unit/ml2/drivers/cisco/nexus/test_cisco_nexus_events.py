@@ -19,6 +19,8 @@ import mock
 from oslo_config import cfg
 import six
 
+from networking_cisco.backwards_compatibility import cb_constants
+
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
     constants as const)
 from networking_cisco.plugins.ml2.drivers.cisco.nexus import (
@@ -28,8 +30,6 @@ from networking_cisco.plugins.ml2.drivers.cisco.nexus import nexus_db_v2
 
 from networking_cisco.tests.unit.ml2.drivers.cisco.nexus import (
     test_cisco_nexus_base)
-
-from neutron.plugins.common import constants as p_const
 
 CONNECT_ERROR = 'Unable to connect to Nexus'
 
@@ -837,7 +837,7 @@ class TestCiscoNexusDeviceFailure(test_cisco_nexus_base.TestCiscoNexusBase,
         ]
 
         network_context = test_cisco_nexus_base.FakeNetworkContext(
-            0, p_const.TYPE_FLAT)
+            0, cb_constants.TYPE_FLAT)
         port_config = self.test_configs['test_config1']
         port_context = test_cisco_nexus_base.FakePortContext(
             port_config.instance_id,
@@ -897,7 +897,7 @@ class TestCiscoNexusDeviceFailure(test_cisco_nexus_base.TestCiscoNexusBase,
         """
 
         network_context = test_cisco_nexus_base.FakeNetworkContext(
-            0, p_const.TYPE_VLAN)
+            0, cb_constants.TYPE_VLAN)
         network_context._network_segments = None
         port_config = self.test_configs['test_config1']
         port_context = test_cisco_nexus_base.FakePortContext(
