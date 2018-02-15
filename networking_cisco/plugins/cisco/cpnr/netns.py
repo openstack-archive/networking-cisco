@@ -18,6 +18,7 @@ netns - context manager for network namespaces
 
 import ctypes
 import os
+import platform
 import resource
 import subprocess
 
@@ -25,7 +26,12 @@ from oslo_log import log as logging
 
 LOG = logging.getLogger(__name__)
 
-_libc = ctypes.CDLL('libc.so.6')
+# OSX uses dylib extension for shared libraries. This is required for Unit
+# Tests to run on OSX.
+if platform.uname()[0] == 'Darwin':
+    _libc = ctypes.CDLL('libc.dylib')
+else:
+    _libc = ctypes.CDLL('libc.so.6')
 
 NETNS_DIR = "/var/run/netns/"
 
