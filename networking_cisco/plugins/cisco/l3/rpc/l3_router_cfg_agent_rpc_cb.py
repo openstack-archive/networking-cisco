@@ -18,9 +18,9 @@ from oslo_serialization import jsonutils
 import six
 
 from neutron.db import api as db_api
-from neutron.extensions import l3
 
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import l3_exceptions
 
 LOG = logging.getLogger(__name__)
 
@@ -128,7 +128,7 @@ class L3RouterCfgRpcCallback(object):
                 try:
                     self._l3plugin.update_floatingip_status(
                         context, floatingip_id, status)
-                except l3.FloatingIPNotFound:
+                except l3_exceptions.FloatingIPNotFound:
                     LOG.debug("Floating IP: %s no longer present.",
                               floatingip_id)
             # Find all floating IPs known to have been the given router

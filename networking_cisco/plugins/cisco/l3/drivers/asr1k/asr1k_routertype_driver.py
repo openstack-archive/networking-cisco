@@ -19,13 +19,14 @@ from sqlalchemy.orm import exc
 from sqlalchemy.sql import expression as expr
 
 from neutron.db import models_v2
-from neutron.extensions import l3
 
 from neutron_lib import constants as l3_constants
 from neutron_lib import exceptions as n_exc
 
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import l3_const
+from networking_cisco.backwards_compatibility import l3_exceptions
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.l3 import ha_db
 from networking_cisco.plugins.cisco.db.l3 import l3_models
@@ -266,7 +267,7 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
             context, filters=filters)
         hd_to_gr_dict = {r[HOSTING_DEVICE_ATTR]: r for r in global_routers}
         hosting_device_id = tenant_router[HOSTING_DEVICE_ATTR]
-        ext_nw_id = tenant_router[l3.EXTERNAL_GW_INFO]['network_id']
+        ext_nw_id = tenant_router[l3_const.EXTERNAL_GW_INFO]['network_id']
         global_router = hd_to_gr_dict.get(hosting_device_id)
         logical_global_router = self._get_logical_global_router(context,
                                                                 tenant_router)
@@ -499,11 +500,12 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
         hd_to_gr_dict = {r[HOSTING_DEVICE_ATTR]: r for r in global_routers}
         if global_routers:
             global_router_id = global_routers[0]['id']
-            if not tenant_router or not tenant_router[l3.EXTERNAL_GW_INFO]:
+            if not tenant_router or not tenant_router[
+                    l3_const.EXTERNAL_GW_INFO]:
                 # let l3 plugin's periodic backlog processing take care of the
                 # clean up of the global router
                 return
-            ext_net_id = tenant_router[l3.EXTERNAL_GW_INFO]['network_id']
+            ext_net_id = tenant_router[l3_const.EXTERNAL_GW_INFO]['network_id']
             routertype_id = tenant_router[routertype.TYPE_ATTR]
             hd_id = tenant_router[HOSTING_DEVICE_ATTR]
             global_router = hd_to_gr_dict.get(hd_id)
@@ -608,7 +610,7 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
             else:
                 self._l3_plugin.delete_router(
                     context, global_router_id, unschedule=False)
-        except (exc.ObjectDeletedError, l3.RouterNotFound) as e:
+        except (exc.ObjectDeletedError, l3_exceptions.RouterNotFound) as e:
             g_r_type = 'Logical Global' if logical is True else 'Global'
             LOG.info('Unable to delete %(g_r_type)s router %(r_id)s. It '
                      'has likely been concurrently deleted. %(err)s',
