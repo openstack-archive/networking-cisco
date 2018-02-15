@@ -20,9 +20,7 @@ import unittest
 from neutron.api.v2 import attributes
 from neutron.db import agents_db
 from neutron.db import dns_db
-from neutron.extensions import dns
 from neutron.extensions import external_net as external_net
-from neutron.extensions import extraroute
 from neutron.extensions import providernet as pnet
 from neutron.plugins.common import constants as service_constants
 from neutron.tests.unit.db import test_db_base_plugin_v2
@@ -38,6 +36,8 @@ from webob import exc
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.backwards_compatibility import cb_registry as registry
+from networking_cisco.backwards_compatibility import dns_const
+from networking_cisco.backwards_compatibility import extraroute_const
 from networking_cisco.backwards_compatibility import l3_const
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.common import cisco_constants as c_const
@@ -73,9 +73,9 @@ class TestL3RouterApplianceExtensionManager(
 
     def get_resources(self):
         l3_const.RESOURCE_ATTRIBUTE_MAP['routers'].update(
-            extraroute.EXTENDED_ATTRIBUTES_2_0['routers'])
+            extraroute_const.EXTENDED_ATTRIBUTES_2_0['routers'])
         l3_const.RESOURCE_ATTRIBUTE_MAP[l3_const.FLOATINGIPS].update(
-            dns.EXTENDED_ATTRIBUTES_2_0[l3_const.FLOATINGIPS])
+            dns_const.EXTENDED_ATTRIBUTES_2_0[l3_const.FLOATINGIPS])
         return super(TestL3RouterApplianceExtensionManager,
                      self).get_resources()
 

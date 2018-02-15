@@ -204,6 +204,8 @@ else:
 if NEUTRON_VERSION >= NEUTRON_QUEENS_VERSION:
     # Newer than queens
     from neutron.conf.plugins.ml2 import config as ml2_config
+    from neutron_lib.api.definitions import dns as dns_const
+    from neutron_lib.api.definitions import extraroute as extraroute_const
     from neutron_lib.api.definitions import l3 as l3_const
     from neutron_lib.api import faults as cb_faults
     from neutron_lib.callbacks import events as cb_events
@@ -212,6 +214,9 @@ if NEUTRON_VERSION >= NEUTRON_QUEENS_VERSION:
     from neutron_lib.exceptions import agent as agent_exceptions
     from neutron_lib.exceptions import l3 as l3_exceptions
     from neutron_lib.plugins.ml2 import api as ml2_api
+    extraroute_const.EXTENDED_ATTRIBUTES_2_0 = (
+            extraroute_const.RESOURCE_ATTRIBUTE_MAP)
+    dns_const.EXTENDED_ATTRIBUTES_2_0 = dns_const.RESOURCE_ATTRIBUTE_MAP
 else:
     # Pre-queens
     from neutron.api.v2 import base as cb_faults  # noqa
@@ -219,6 +224,8 @@ else:
     from neutron.callbacks import registry as cb_registry  # noqa
     from neutron.callbacks import resources as cb_resources  # noqa
     from neutron.extensions import agent as agent_exceptions  # noqa
+    from neutron.extensions import dns as dns_const  # noqa
+    from neutron.extensions import extraroute as extraroute_const  # noqa
     from neutron.extensions import l3 as l3_const  # noqa
     from neutron.plugins.ml2 import config as ml2_config  # noqa
     from neutron.plugins.ml2 import driver_api as ml2_api  # noqa
