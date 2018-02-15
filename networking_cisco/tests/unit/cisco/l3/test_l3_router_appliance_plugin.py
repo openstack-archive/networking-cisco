@@ -73,9 +73,9 @@ class TestL3RouterApplianceExtensionManager(
         test_db_routertype.L3TestRoutertypeExtensionManager):
 
     def get_resources(self):
-        l3.RESOURCE_ATTRIBUTE_MAP['routers'].update(
+        l3_const.RESOURCE_ATTRIBUTE_MAP['routers'].update(
             extraroute.EXTENDED_ATTRIBUTES_2_0['routers'])
-        l3.RESOURCE_ATTRIBUTE_MAP[l3.FLOATINGIPS].update(
+        l3_const.RESOURCE_ATTRIBUTE_MAP[l3.FLOATINGIPS].update(
             dns.EXTENDED_ATTRIBUTES_2_0[l3.FLOATINGIPS])
         return super(TestL3RouterApplianceExtensionManager,
                      self).get_resources()

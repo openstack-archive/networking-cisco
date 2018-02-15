@@ -22,7 +22,6 @@ import unittest
 import webob.exc
 
 from neutron.db import l3_db
-from neutron.extensions import l3
 from neutron.tests import fake_notifier
 
 from networking_cisco import backwards_compatibility as bc
@@ -63,7 +62,7 @@ class TestHAL3RouterApplianceExtensionManager(
         test_l3_router_appliance_plugin.TestL3RouterApplianceExtensionManager):
 
     def get_resources(self):
-        l3.RESOURCE_ATTRIBUTE_MAP['routers'].update(
+        l3_const.RESOURCE_ATTRIBUTE_MAP['routers'].update(
             ha.EXTENDED_ATTRIBUTES_2_0['routers'])
         return super(TestHAL3RouterApplianceExtensionManager,
                      self).get_resources()

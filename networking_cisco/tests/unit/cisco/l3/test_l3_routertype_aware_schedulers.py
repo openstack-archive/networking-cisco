@@ -18,7 +18,6 @@ import unittest
 
 from neutron.api.rpc.agentnotifiers import l3_rpc_agent_api
 from neutron.common import test_lib
-from neutron.extensions import l3
 from neutron.tests import fake_notifier
 from neutron.tests.unit.db import test_agentschedulers_db
 from neutron.tests.unit.extensions import test_l3
@@ -32,6 +31,7 @@ from webob import exc
 
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.backwards_compatibility import agent_exceptions
+from networking_cisco.backwards_compatibility import l3_const
 from networking_cisco.plugins.cisco.common import cisco_constants as c_const
 from networking_cisco.plugins.cisco.db.l3 import ha_db
 from networking_cisco.plugins.cisco.db.scheduler import (
@@ -76,7 +76,7 @@ class TestSchedulingL3RouterApplianceExtensionManager(
     def get_resources(self):
         # first, add auto_schedule and share_hosting_device attributes to
         # router resource
-        l3.RESOURCE_ATTRIBUTE_MAP['routers'].update(
+        l3_const.RESOURCE_ATTRIBUTE_MAP['routers'].update(
             routertypeawarescheduler.EXTENDED_ATTRIBUTES_2_0['routers'])
         # most of the resources are added in our super class
         res = super(TestSchedulingL3RouterApplianceExtensionManager,
@@ -1279,7 +1279,7 @@ class TestHASchedulingL3RouterApplianceExtensionManager(
 
     def get_resources(self):
         # add ha attributes to router resource
-        l3.RESOURCE_ATTRIBUTE_MAP['routers'].update(
+        l3_const.RESOURCE_ATTRIBUTE_MAP['routers'].update(
             ha.EXTENDED_ATTRIBUTES_2_0['routers'])
         # let our super class do the rest
         return super(TestHASchedulingL3RouterApplianceExtensionManager,
