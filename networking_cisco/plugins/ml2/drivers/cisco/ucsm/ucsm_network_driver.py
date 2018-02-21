@@ -137,10 +137,8 @@ class CiscoUcsmDriver(object):
     def _create_host_and_sp_dicts_from_config(self):
         # Pull Service Profile to Hostname mapping from config if it has been
         # provided
-        hosts_provided_in_config = False
         for ip, ucsm in CONF.ml2_cisco_ucsm.ucsms.items():
             for host, sp in (ucsm.ucsm_host_list or {}).items():
-                hosts_provided_in_config = True
                 self.ucsm_host_dict[host] = ip
                 if '/' not in sp:
                     self.ucsm_sp_dict[(ip, host)] = (
@@ -148,13 +146,9 @@ class CiscoUcsmDriver(object):
                 else:
                     self.ucsm_sp_dict[(ip, host)] = sp.strip()
 
-        # If no ucsm host list in the config for any ucsm, then learn the hosts
-        # and sps from the UCSMs
-        if not hosts_provided_in_config:
-            # FIXME(sambetts) Update this code so we can provide host lists for
-            # some UCSMs but learn for other UCSMs. Instead of disabling
-            # learning for all UCSM if any UCSM has a host list provided.
-            self._create_ucsm_host_to_service_profile_mapping()
+        # Learn the mappings for the UCSMs which didn't have the host list in
+        # the config.
+        self._create_ucsm_host_to_service_profile_mapping()
 
         if not self.ucsm_sp_dict:
             LOG.error('UCS Manager network driver failed to get Service '
@@ -193,7 +187,9 @@ class CiscoUcsmDriver(object):
 
     def _create_ucsm_host_to_service_profile_mapping(self):
         """Reads list of Service profiles and finds associated Server."""
-        ucsm_ips = list(CONF.ml2_cisco_ucsm.ucsms)
+        # Get list of UCSMs without host list given in the config
+        ucsm_ips = [ip for ip, ucsm in CONF.ml2_cisco_ucsm.ucsms.items()
+                    if not ucsm.ucsm_host_list]
         for ucsm_ip in ucsm_ips:
             with self.ucsm_connect_disconnect(ucsm_ip) as handle:
                 try:
