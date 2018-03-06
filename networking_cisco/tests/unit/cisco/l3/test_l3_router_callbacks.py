@@ -17,10 +17,10 @@ import six
 
 from oslo_db import exception as db_exc
 
-from neutron.extensions import l3
 from neutron.tests import base
 
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import l3_exceptions as l3
 from networking_cisco.plugins.cisco.l3.rpc import l3_router_cfg_agent_rpc_cb
 
 
