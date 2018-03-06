@@ -25,7 +25,7 @@ from webob import exc
 
 import networking_cisco
 from networking_cisco import backwards_compatibility as bc
-from networking_cisco.backwards_compatibility import (cb_constants as
+from networking_cisco.backwards_compatibility import (constants as
     svc_constants)
 from networking_cisco.plugins.cisco.common import cisco_constants as c_const
 from networking_cisco.plugins.cisco.device_manager import service_vm_lib

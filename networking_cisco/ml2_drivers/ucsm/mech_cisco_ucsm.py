@@ -19,7 +19,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import importutils
 
-from networking_cisco.backwards_compatibility import cb_constants as p_const
+from networking_cisco.backwards_compatibility import constants as p_const
 from networking_cisco.backwards_compatibility import ml2_api as api
 
 from networking_cisco import backwards_compatibility as bc

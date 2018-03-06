@@ -33,7 +33,7 @@ from webob import exc
 
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
-from networking_cisco.backwards_compatibility import (cb_constants as
+from networking_cisco.backwards_compatibility import (constants as
     service_constants)
 from networking_cisco.backwards_compatibility import (exnet_const as
     external_net)

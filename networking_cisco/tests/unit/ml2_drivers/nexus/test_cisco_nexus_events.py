@@ -19,7 +19,7 @@ import mock
 from oslo_config import cfg
 import six
 
-from networking_cisco.backwards_compatibility import cb_constants
+from networking_cisco.backwards_compatibility import constants as cb_constants
 from networking_cisco.ml2_drivers.nexus import (
     constants as const)
 from networking_cisco.ml2_drivers.nexus import (
