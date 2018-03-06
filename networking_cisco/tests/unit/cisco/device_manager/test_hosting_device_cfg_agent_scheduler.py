@@ -16,7 +16,6 @@ import os
 
 import mock
 from neutron.api.v2 import attributes
-from neutron.plugins.common import constants as svc_constants
 from neutron.tests import fake_notifier
 from neutron.tests.unit.db import test_agentschedulers_db
 from neutron.tests.unit.db import test_db_base_plugin_v2
@@ -26,6 +25,8 @@ from webob import exc
 
 import networking_cisco
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import (cb_constants as
+    svc_constants)
 from networking_cisco.plugins.cisco.common import cisco_constants as c_const
 from networking_cisco.plugins.cisco.device_manager import service_vm_lib
 from networking_cisco.plugins.cisco.extensions import ciscocfgagentscheduler

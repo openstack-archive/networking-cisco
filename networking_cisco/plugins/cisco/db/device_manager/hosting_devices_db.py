@@ -21,8 +21,9 @@ from sqlalchemy import exc as sql_exc
 from sqlalchemy.orm import exc
 
 from neutron.db import common_db_mixin
-from neutron.plugins.common import constants as svc_constants
 
+from networking_cisco.backwards_compatibility import (cb_constants as
+    svc_constants)
 from networking_cisco.plugins.cisco.db.device_manager import hd_models
 from networking_cisco.plugins.cisco.extensions import ciscohostingdevicemanager
 
