@@ -226,6 +226,10 @@ if NEUTRON_VERSION >= NEUTRON_QUEENS_VERSION:
     extraroute_const.EXTENDED_ATTRIBUTES_2_0 = (
             extraroute_const.RESOURCE_ATTRIBUTE_MAP)
     dns_const.EXTENDED_ATTRIBUTES_2_0 = dns_const.RESOURCE_ATTRIBUTE_MAP
+
+    # Return the database object rather than oslo versioned object
+    def get_agent_db_obj(agent):
+        return agent.db_obj
 else:
     # Pre-queens
     from neutron.api.v2 import base as cb_faults  # noqa
@@ -242,6 +246,9 @@ else:
     from neutron.plugins.ml2 import config as ml2_config  # noqa
     from neutron.plugins.ml2 import driver_api as ml2_api  # noqa
     l3_exceptions = l3_const
+
+    def get_agent_db_obj(agent):
+        return agent
 
 core_opts = base_config.core_opts
 

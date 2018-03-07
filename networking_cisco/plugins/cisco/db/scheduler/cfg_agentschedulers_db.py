@@ -23,6 +23,7 @@ from neutron.db import agentschedulers_db
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.backwards_compatibility import agent_exceptions
+from networking_cisco.backwards_compatibility import get_agent_db_obj
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
 from networking_cisco.plugins.cisco.db.device_manager.hd_models import (
@@ -96,7 +97,7 @@ class CfgAgentSchedulerDbMixin(
                       {'hd_id': hosting_device_id, 'agent_id': cfg_agent_id})
             raise ciscocfgagentscheduler.HostingDeviceAssignedToCfgAgent(
                 hosting_device_id=hosting_device_id, agent_id=cfg_agent_id)
-        cfg_agent_db = self._get_agent(context, cfg_agent_id)
+        cfg_agent_db = get_agent_db_obj(self._get_agent(context, cfg_agent_id))
         if (cfg_agent_db.agent_type != c_constants.AGENT_TYPE_CFG or
                 cfg_agent_db.admin_state_up is not True):
             raise ciscocfgagentscheduler.InvalidCfgAgent(agent_id=cfg_agent_id)
@@ -119,7 +120,7 @@ class CfgAgentSchedulerDbMixin(
                        'agent_id': cfg_agent_id})
             raise ciscocfgagentscheduler.HostingDeviceNotAssignedToCfgAgent(
                 hosting_device_id=hosting_device_id, agent_id=cfg_agent_id)
-        cfg_agent_db = self._get_agent(context, cfg_agent_id)
+        cfg_agent_db = get_agent_db_obj(self._get_agent(context, cfg_agent_id))
         cfg_notifier = self.agent_notifiers.get(c_constants.AGENT_TYPE_CFG)
         if cfg_notifier:
             cfg_notifier.hosting_devices_unassigned_from_cfg_agent(
