@@ -20,7 +20,6 @@ import unittest
 from neutron.api.v2 import attributes
 from neutron.db import agents_db
 from neutron.db import dns_db
-from neutron.extensions import external_net as external_net
 from neutron.extensions import providernet as pnet
 from neutron.tests.unit.db import test_db_base_plugin_v2
 from neutron.tests.unit.extensions import test_extraroute
@@ -36,6 +35,8 @@ from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.backwards_compatibility import (cb_constants as
     service_constants)
+from networking_cisco.backwards_compatibility import (exnet_const as
+    external_net)
 from networking_cisco.backwards_compatibility import cb_registry as registry
 from networking_cisco.backwards_compatibility import dns_const
 from networking_cisco.backwards_compatibility import extraroute_const

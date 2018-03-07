@@ -12,11 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from neutron.extensions import external_net as ext_net
 from oslo_log import log as logging
 from oslo_utils import excutils
 
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import exnet_const as ext_net
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.device_manager import config
 import networking_cisco.plugins.cisco.device_manager.plugging_drivers as plug

@@ -17,10 +17,10 @@ import copy
 import mock
 
 from neutron.common import test_lib
-from neutron.extensions import external_net as ext_net
 from neutron.tests.unit.extensions import test_l3
 
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import exnet_const as ext_net
 from networking_cisco.plugins.cisco.device_manager.plugging_drivers.\
     hw_vlan_trunking_driver import HwVLANTrunkingPlugDriver
 from networking_cisco.tests.unit.cisco.l3 import (
