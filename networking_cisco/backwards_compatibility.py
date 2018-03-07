@@ -187,10 +187,16 @@ if NEUTRON_VERSION >= NEUTRON_PIKE_VERSION:
     from neutron.db._resource_extend import has_resource_extenders  # noqa
     from neutron_lib.api.definitions import dns
     from neutron_lib.api.definitions import provider_net
+
+    def auto_schedule_routers(self, hosts, r_ids):
+        self.l3_plugin.auto_schedule_routers(self.adminContext, hosts)
 else:
     from neutron.agent.common import config  # noqa
     from neutron.extensions import dns  # noqa
     from neutron.extensions import providernet as provider_net  # noqa
+
+    def auto_schedule_routers(self, hosts, r_ids):
+        self.l3_plugin.auto_schedule_routers(self.adminContext, hosts, r_ids)
 
     def has_resource_extenders(klass):
         return klass
