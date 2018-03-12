@@ -125,18 +125,18 @@
         - networking-cisco-tox-py27-newton
         - networking-cisco-tox-py27-ocata
         - networking-cisco-tox-py27-pike
-        - networking-cisco-tox-py27-queens:
-            voting: false
+        - networking-cisco-tox-py27-queens
         - networking-cisco-tox-py35-newton
         - networking-cisco-tox-py35-ocata
         - networking-cisco-tox-py35-pike
-        - networking-cisco-tox-py35-queens:
-            voting: false
+        - networking-cisco-tox-py35-queens
     gate:
       jobs:
         - networking-cisco-tox-py27-newton
         - networking-cisco-tox-py27-ocata
         - networking-cisco-tox-py27-pike
+        - networking-cisco-tox-py27-queens
         - networking-cisco-tox-py35-newton
         - networking-cisco-tox-py35-ocata
         - networking-cisco-tox-py35-pike
+        - networking-cisco-tox-py35-queens
