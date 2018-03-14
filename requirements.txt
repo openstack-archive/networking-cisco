@@ -4,7 +4,7 @@
 pbr>=1.8
 
 Babel>=1.3
-ncclient>=0.4.6!=0.5.3;python_version<'3.0'
+ncclient>=0.4.6,!=0.5.3;python_version<'3.0'
 lxml>=3.3.3
 ucsmsdk>=0.9.3.1
 oslo.config>=3.7.0  # Apache-2.0
