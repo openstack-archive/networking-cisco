@@ -675,3 +675,25 @@ Corrective Action
 Both error cases described were introduced in Cisco Release 5.1.0.
 To eliminate these errors, upgrade to a more recent release of the
 networking-cisco package.
+
+Neutron trunking feature not supported in Openstack Newton branches
+-------------------------------------------------------------------
+Description
+^^^^^^^^^^^
+Cisco Nexus ML2 Mechanism driver supports trunking from tag 5.3.0;
+however, Openstack neutron in Newton branches and lower do not.
+As a result, an error can occur if baremetal configurations
+are attempted with these combined branches/tags.  The
+error message which could be seen is shown below.
+
+Message
+^^^^^^^
+
+::
+
+    TypeError: get_object() got an unexpected keyword argument 'port_id'
+
+Corrective Action
+^^^^^^^^^^^^^^^^^
+Upgrade networking-cisco package or apply the changes found in
+https://review.openstack.org/#/c/542877/.

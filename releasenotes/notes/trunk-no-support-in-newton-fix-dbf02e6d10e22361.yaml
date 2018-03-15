@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Nexus: Neutron trunking feature not supported in Newton
+
+    Introduced a fix to prevent an error from being generated
+    when using openstack newton or below branches with
+    baremetal configurations.  The error message seen
+    is "TypeError: get_object() got an unexpected keyword"
+    "argument 'port_id'".  For implementation details,
+    refer to https://review.openstack.org/#/c/542877.
