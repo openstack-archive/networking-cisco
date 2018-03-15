@@ -1,5 +1,0 @@
--c https://git.openstack.org/cgit/openstack/requirements/plain/upper-constraints.txt?h=stable/pike
--r requirements.txt
--r test-requirements.txt
-python-neutronclient
-http://tarballs.openstack.org/neutron/neutron-11.0.2-py2.py3-none-any.whl

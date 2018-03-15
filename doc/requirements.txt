@@ -1,0 +1,5 @@
+-c https://git.openstack.org/cgit/openstack/requirements/plain/upper-constraints.txt?h=stable/queens
+-r ../requirements.txt
+-r ../test-requirements.txt
+python-neutronclient
+neutron>=12.0.0,<13.0.0

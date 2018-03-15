@@ -1,18 +1,4 @@
 - job:
-    name: networking-cisco-tox-py35-master
-    parent: openstack-tox
-    description: |
-      Run unit tests for networking-cisco under cPython version 3.5 with neutron master.
-      Uses tox with the ``py35-master`` environment.
-    irrelevant-files:
-      - ^.*\.rst$
-      - ^doc/.*$
-      - ^releasenotes/.*$
-    vars:
-      tox_envlist: py35-master
-      bindep_profile: test py35
-
-- job:
     name: networking-cisco-tox-py35-newton
     parent: openstack-tox
     override-branch: stable/newton
@@ -72,20 +58,6 @@
       tox_envlist: py35-queens
       bindep_profile: test py35
 
-
-- job:
-    name: networking-cisco-tox-py27-master
-    parent: openstack-tox
-    description: |
-      Run unit tests for networking-cisco under cPython version 2.7 with neutron master.
-      Uses tox with the ``py27-master`` environment.
-    irrelevant-files:
-      - ^.*\.rst$
-      - ^doc/.*$
-      - ^releasenotes/.*$
-    vars:
-      tox_envlist: py27-master
-      bindep_profile: test py27
 
 - job:
     name: networking-cisco-tox-py27-newton
@@ -155,14 +127,10 @@
         - networking-cisco-tox-py27-pike
         - networking-cisco-tox-py27-queens:
             voting: false
-        - networking-cisco-tox-py27-master:
-            voting: false
         - networking-cisco-tox-py35-newton
         - networking-cisco-tox-py35-ocata
         - networking-cisco-tox-py35-pike
         - networking-cisco-tox-py35-queens:
-            voting: false
-        - networking-cisco-tox-py35-master:
             voting: false
     gate:
       jobs:
