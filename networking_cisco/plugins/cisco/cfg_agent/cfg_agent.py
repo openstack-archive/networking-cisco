@@ -28,8 +28,6 @@ from oslo_service import periodic_task
 from oslo_service import service
 from oslo_utils import importutils
 
-from neutron.agent.linux import external_process
-from neutron.agent.linux import interface
 from neutron.agent import rpc as agent_rpc
 from neutron.common import config as common_config
 from neutron.common import rpc as n_rpc
@@ -39,6 +37,7 @@ from neutron import service as neutron_service
 
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import neutron_agent_conf
 from networking_cisco.plugins.cisco.cfg_agent import device_status
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
@@ -661,8 +660,8 @@ def main(manager='networking_cisco.plugins.cisco.cfg_agent.'
     conf.register_opts(OPTS, "cfg_agent")
     bc.config.register_agent_state_opts_helper(conf)
     bc.config.register_root_helper(conf)
-    conf.register_opts(interface.OPTS)
-    conf.register_opts(external_process.OPTS)
+    conf.register_opts(neutron_agent_conf.INTERFACE_OPTS)
+    conf.register_opts(neutron_agent_conf.EXTERNAL_PROCESS_OPTS)
     common_config.init(sys.argv[1:])
     conf(project='neutron')
     bc.config.setup_logging()
