@@ -27,6 +27,19 @@ function configure_ciscocfgagent {
     fi
     iniset $Q_CISCO_CFGAGENT_CONF_FILE DEFAULT verbose True
     iniset $Q_CISCO_CFGAGENT_CONF_FILE DEFAULT debug $ENABLE_DEBUG_LOG_LEVEL
+
+    CISCO_ROUTER_MULTI_REGION=$(trueorfalse False CISCO_ROUTER_MULTI_REGION)
+    if [[ "$CISCO_ROUTER_MULTI_REGION" == "True" ]]; then
+       if [[ "$CISCO_ROUTER_REGION_ID" != "" ]]; then
+          iniset $Q_CISCO_CFGAGENT_CONF_FILE multi_region enable_multi_region True
+          iniset $Q_CISCO_CFGAGENT_CONF_FILE multi_region region_id $CISCO_ROUTER_REGION_ID
+          if [[ "$CISCO_ROUTER_OTHER_REGION_IDS" != "" ]]; then
+             iniset $Q_CISCO_CFGAGENT_CONF_FILE multi_region other_region_ids $CISCO_ROUTER_OTHER_REGION_IDS
+          fi
+       else
+          echo "Cisco Router config: Missing region ID setting while attempting to enable multi_region."
+       fi
+    fi
 }
 
 function init_ciscocfgagent {
