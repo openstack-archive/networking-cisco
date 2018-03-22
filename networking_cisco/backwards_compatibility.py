@@ -209,6 +209,7 @@ else:
 
 if NEUTRON_VERSION >= NEUTRON_QUEENS_VERSION:
     # Newer than queens
+    from neutron.conf.agent import common as neutron_agent_conf
     from neutron.conf.plugins.ml2 import config as ml2_config
     from neutron_lib.api.definitions import dns as dns_const
     from neutron_lib.api.definitions import external_net as exnet_const
@@ -232,6 +233,8 @@ if NEUTRON_VERSION >= NEUTRON_QUEENS_VERSION:
         return agent.db_obj
 else:
     # Pre-queens
+    from neutron.agent.linux import external_process  # noqa
+    from neutron.agent.linux import interface as neutron_agent_conf  # noqa
     from neutron.api.v2 import base as cb_faults  # noqa
     from neutron.callbacks import events as cb_events  # noqa
     from neutron.callbacks import registry as cb_registry  # noqa
@@ -246,6 +249,8 @@ else:
     from neutron.plugins.ml2 import config as ml2_config  # noqa
     from neutron.plugins.ml2 import driver_api as ml2_api  # noqa
     l3_exceptions = l3_const
+    neutron_agent_conf.INTERFACE_OPTS = neutron_agent_conf.OPTS
+    neutron_agent_conf.EXTERNAL_PROCESS_OPTS = external_process.OPTS
 
     def get_agent_db_obj(agent):
         return agent
