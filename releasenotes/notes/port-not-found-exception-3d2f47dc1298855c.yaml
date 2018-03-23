@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Nexus: Do not raise exception during update_postcommit when port not found
+
+    Occasionally spurious updates are seen in parallel with deletes for same
+    vlan.  In this window an update can be received after the port binding
+    is removed.  This change reports a warning message instead of raising
+    an exception keeping it consistent with other ML2 driver behavior.  This
+    circumstance will more likely be seen when there are multiple neutron
+    threads and controllers.

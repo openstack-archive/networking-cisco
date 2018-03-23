@@ -697,3 +697,27 @@ Corrective Action
 ^^^^^^^^^^^^^^^^^
 Upgrade networking-cisco package or apply the changes found in
 https://review.openstack.org/#/c/542877/.
+
+Exception NexusPortBindingNotFound seen in update_port_postcommit
+-----------------------------------------------------------------
+Description
+^^^^^^^^^^^
+An exception NexusPortBindingNotFound is seen in update_port_postcommit
+when attempting to get port binding by calling get_nexusvlan_binding.
+This is a result of a spurious update event received while deletes
+are occurring for same event.  It is more likely to occur when there are
+multiple threads and/or multiple controllers.
+
+Message
+^^^^^^^
+
+::
+
+    networking_cisco.ml2_drivers.nexus.exceptions.NexusPortBindingNotFound:
+        Nexus Port Binding (switch_ip=1.1.1.1,vlan_id=265) is not present
+
+Corrective Action
+^^^^^^^^^^^^^^^^^
+The solution is to log a warning instead of raising an exception to be
+consistent with other ml2 drivers.  To eliminate this exception, upgrade
+the networking-cisco package to pick-up latest fixes.

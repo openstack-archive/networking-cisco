@@ -1251,7 +1251,16 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         for switch_ip, intf_type, nexus_port, is_native, _ in connections:
 
-            all_bindings = nxos_db.get_nexusvlan_binding(vlan_id, switch_ip)
+            try:
+                all_bindings = nxos_db.get_nexusvlan_binding(
+                    vlan_id, switch_ip)
+            except excep.NexusPortBindingNotFound:
+                LOG.warning("Switch %(switch_ip)s and Vlan "
+                            "%(vlan_id)s not found in port binding "
+                            "database. Skipping this update",
+                            {'switch_ip': switch_ip, 'vlan_id': vlan_id})
+                continue
+
             previous_bindings = [row for row in all_bindings
                     if row.instance_id != device_id]
             if previous_bindings and (switch_ip in vlan_already_created):
