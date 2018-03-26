@@ -64,4 +64,4 @@ networking-cisco is branchless and stable releases that are compatible with
 multiple OpenStack versions will be cut from our master branch.
 
 The latest (6.x) release of networking-cisco is compatible with the Mitaka,
-Newton, Ocata and Pike releases of OpenStack.
+Newton, Ocata, Pike and Queens releases of OpenStack.
