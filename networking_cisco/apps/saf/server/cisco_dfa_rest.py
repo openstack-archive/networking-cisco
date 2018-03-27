@@ -146,7 +146,7 @@ class DFARESTClient(object):
                                             if self._is_iplus else
                                             'defaultNetworkIpv4EfProfile')
         except dexc.DfaClientRequestFailed:
-            LOG.error("Failed to send requst to DCNM.")
+            LOG.error("Failed to send request to DCNM.")
             self.default_cfg_profile = 'defaultNetworkIpv4EfProfile'
 
     def _create_network(self, network_info):
@@ -184,7 +184,7 @@ class DFARESTClient(object):
             if res and res.status_code in self._resp_ok:
                 return res.json()
         except dexc.DfaClientRequestFailed:
-            LOG.error("Failed to send requst to DCNM.")
+            LOG.error("Failed to send request to DCNM.")
 
     def _get_settings(self):
         """Get global mobility domain from DCNM."""
