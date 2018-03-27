@@ -277,6 +277,23 @@ class TestCiscoNexusRestDevice(test_cisco_nexus_events.TestCiscoNexusDevice):
     def test_nexus_vm_migration(self):
         super(TestCiscoNexusRestDevice, self).test_nexus_vm_migration()
 
+    def test_update_postcommit_port_not_found(self):
+
+        port_config = self.test_configs['test_config2']
+        port_context = self._generate_port_context(
+            port_config, override_netid=None)
+
+        # An exception should not be raised during update.
+        self._cisco_mech_driver.update_port_postcommit(port_context)
+
+        # Nothing should have been sent
+        self._verify_results([])
+
+        # No port bindings should exist
+        self.assertRaises(exceptions.NexusPortBindingNotFound,
+            nxos_db.get_nexusport_switch_bindings,
+                base.NEXUS_IP_ADDRESS_1)
+
 
 class TestCiscoNexusRestInitResults(base.TestCiscoNexusBaseResults):
 
