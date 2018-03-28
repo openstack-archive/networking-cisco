@@ -19,38 +19,29 @@ import sys
 sys.path.insert(0, os.path.abspath('../..'))
 # -- General configuration ----------------------------------------------------
 
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
-if on_rtd and not os.path.isdir("contributor/api"):
-    print("On Read the Docs and autodoc python module docs aren't built. "
-          "Building...")
-    os.environ['READTHEDOCS'] = 'False'
-    os.environ['JUST_BUILD_AUTO_DOC'] = 'True'
-    subprocess.check_call(
-        [sys.executable, 'setup.py', 'build_sphinx', '-b', 'dummy'],
-        cwd=os.path.join(os.path.dirname(__file__), os.path.pardir,
-                         os.path.pardir),
-    )
-    os.environ['JUST_BUILD_AUTO_DOC'] = 'False'
-    os.environ['READTHEDOCS'] = 'True'
-
-ignore_everything = os.environ.get('JUST_BUILD_AUTO_DOC', None) == 'True'
-if ignore_everything:
-    master_doc = 'dummy'
-    exclude_patterns = ['index.rst', '*/*']
-else:
-    # The master toctree document.
-    master_doc = 'index'
-    exclude_patterns = ['dummy.rst', 'api/networking_cisco_tempest_plugin.*']
+apidoc_module_dir = '../../networking_cisco'
+apidoc_output_dir = 'contributor/api'
+apidoc_excluded_paths = [
+    "db/",
+    "ml2_drivers/ncs",
+    "ml2_drivers/n1kv",
+    "plugins/cisco/db/l3/l3_router_appliance_db.py",
+    "tests/unit/ml2_drivers/ncs",
+    "tests/unit/ml2_drivers/n1kv"
+]
+apidoc_separate_modules = True
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
-    'sphinx.ext.autodoc',
+    'sphinxcontrib.apidoc',
     'reno.sphinxext',
     'oslo_config.sphinxext',
     'oslo_config.sphinxconfiggen',
     #'sphinx.ext.intersphinx',
 ]
+
+master_doc = 'index'
 
 # autodoc generation is a bit aggressive and a nuisance when doing heavy
 # text edit cycles.

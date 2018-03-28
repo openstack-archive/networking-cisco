@@ -15,10 +15,7 @@ Contributor Guides
 Python Module Docs
 ==================
 
-* :ref:`modindex`
-
 .. toctree::
-  :hidden:
   :maxdepth: 1
 
-  api/autoindex
+  api/modules

@@ -140,9 +140,9 @@ class PluginSidePluggingDriver(object):
         Schedules a logical port to a hosting port. Note that the hosting port
         may be the logical port itself.
 
-        returns: a dict {'allocated_port_id': <id of allocated port>,
-                         'allocated_vlan': <allocated VLAN or None>} or
-                 None if allocation failed
+        :returns: a dict `{'allocated_port_id': <id of allocated port>,
+                  'allocated_vlan': <allocated VLAN or None>}` or
+                  None if allocation failed
 
         :param context: Neutron api request context.
         :param router_id: id of Neutron router the logical port belongs to.

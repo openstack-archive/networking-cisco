@@ -40,23 +40,27 @@ class HostingDeviceDriver(object):
         Called when a service VM-based hosting device is to be created.
         This function should cleanup after itself in case of error.
 
-        @param context: contains user information
-        @param credentials_info: dictionary with login credentials to be
-        injected into the hosting device
-                  {'user_name': <user name>,
-                   'password': <password>}
-        @param connectivity_info: dictionary with management connectivity
-        information needed by hosting device to communicate
-                {'mgmt_port': <neutron port for management>,
-                 'gateway_ip': <gateway ip address of management subnet
-                 'netmask': <netmask of management subnet>
-                 'name_server_1: <ip of domain name server 1>,
-                 'name_server_2: <ip of domain name server 2>}
+        :param context: contains user information
+        :param credentials_info: dictionary with login credentials to be
+          injected into the hosting device::
 
-        returns: Dict with file names and their corresponding content strings:
-                 {filename1: content_string1, filename2: content_string2, ...}
-                 The file system of the VM will contain files with the
-                 specified file names and content. If the dict is empty no
-                 config drive will be used.
+            {'user_name': <user name>,
+             'password': <password>}
+
+        :param connectivity_info: dictionary with management connectivity
+          information needed by hosting device to communicate::
+
+            {'mgmt_port': <neutron port for management>,
+             'gateway_ip': <gateway ip address of management subnet>,
+             'netmask': <netmask of management subnet>
+             'name_server_1: <ip of domain name server 1>,
+             'name_server_2: <ip of domain name server 2>}
+
+        :returns: Dict with file names and their corresponding content strings:
+                  {filename1: content_string1, filename2: content_string2, ...}
+                  The file system of the VM will contain files with the
+                  specified file names and content. If the dict is empty no
+                  config drive will be used.
+
         """
         pass

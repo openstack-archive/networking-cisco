@@ -3,3 +3,4 @@
 -r ../test-requirements.txt
 python-neutronclient
 neutron>=12.0.0,<13.0.0
+sphinxcontrib-apidoc

@@ -29,7 +29,7 @@ class L3RouterBaseDriver(object):
 
         :param context: the neutron context of the request
         :param router_context: RouterContext instance describing the new
-        router.
+                               router.
 
         Create a new router, allocating resources as necessary in the
         database. Called inside transaction context on session. Call cannot
@@ -44,7 +44,7 @@ class L3RouterBaseDriver(object):
 
         :param context: the neutron context of the request
         :param router_context: RouterContext instance describing the new
-        router.
+                               router.
 
         Called after the transaction commits. Call can block, though will
         block the entire process so care should be taken to not drastically
@@ -60,8 +60,8 @@ class L3RouterBaseDriver(object):
 
         :param context: the neutron context of the request
         :param router_context: RouterContext instance describing the new
-        state of the router, as well as the original state prior to the
-        update_router call.
+                               state of the router, as well as the original
+                               state prior to the update_router call.
 
         Update values of a router, updating the associated resources in the
         database. Called inside transaction context on session. Raising an
@@ -79,8 +79,8 @@ class L3RouterBaseDriver(object):
 
         :param context: the neutron context of the request
         :param router_context: RouterContext instance describing the new
-        state of the router, as well as the original state prior to the
-        update_router call.
+                               state of the router, as well as the original
+                               state prior to the update_router call.
 
         Called after the transaction commits. Call can block, though will
         block the entire process so care should be taken to not drastically
@@ -100,7 +100,8 @@ class L3RouterBaseDriver(object):
 
         :param context: the neutron context of the request
         :param router_context: RouterContext instance describing the current
-        state of the router, prior to the call to delete it.
+                               state of the router, prior to the call to delete
+                               it.
 
         Delete router resources previously allocated by this routertype
         driver for a router. Called inside transaction context on session.
@@ -115,7 +116,8 @@ class L3RouterBaseDriver(object):
 
         :param context: the neutron context of the request
         :param router_context: RouterContext instance describing the current
-        state of the router, prior to the call to delete it.
+                               state of the router, prior to the call to delete
+                               it.
 
         Called after the transaction commits. Call can block, though will
         block the entire process so care should be taken to not drastically
@@ -131,7 +133,8 @@ class L3RouterBaseDriver(object):
 
         :param context: the neutron context of the request
         :param router_context: RouterContext instance describing the current
-        state of the router, prior to the call to schedule it.
+                               state of the router, prior to the call to
+                               schedule it.
 
         Perform operations that need to happen before scheduling of routers
         of this routertype. Called inside transaction context on session.
@@ -145,7 +148,8 @@ class L3RouterBaseDriver(object):
 
         :param context: the neutron context of the request
         :param router_context: RouterContext instance describing the current
-        state of the router, prior to the call to schedule it.
+                               state of the router, prior to the call to
+                               schedule it.
 
         Called after the transaction commits. Call can block, though will
         block the entire process so care should be taken to not drastically
@@ -161,7 +165,8 @@ class L3RouterBaseDriver(object):
 
         :param context: the neutron context of the request
         :param router_context: RouterContext instance describing the current
-        state of the router, prior to the call to schedule it.
+                               state of the router, prior to the call to
+                               schedule it.
 
         Perform operations that need to happen before un-scheduling of routers
         of this routertype. Called inside transaction context on session.
@@ -175,7 +180,8 @@ class L3RouterBaseDriver(object):
 
         :param context: the neutron context of the request
         :param router_context: RouterContext instance describing the current
-        state of the router, prior to the call to schedule it.
+                               state of the router, prior to the call to
+                               schedule it.
 
         Called after the transaction commits. Call can block, though will
         block the entire process so care should be taken to not drastically
@@ -206,7 +212,7 @@ class L3RouterBaseDriver(object):
 
         :param context: the neutron context of the request
         :param fip_context: FloatingipContext instance describing the new
-        state of the floatingip
+                            state of the floatingip
 
         Called before the transaction commits. Call can block, though will
         block the entire process so care should be taken to not drastically
@@ -226,7 +232,7 @@ class L3RouterBaseDriver(object):
 
         :param context: the neutron context of the request
         :param fip_context: FloatingipContext instance describing the new
-        state of the floatingip
+                            state of the floatingip
 
         Called after the transaction commits. Call can block, though will
         block the entire process so care should be taken to not drastically
@@ -246,8 +252,8 @@ class L3RouterBaseDriver(object):
 
         :param context: the neutron context of the request
         :param fip_context: FloatingipContext instance describing the new
-        state of the floatingip, as well as the original state prior
-        to the update_floatingip call.
+                            state of the floatingip, as well as the original
+                            state prior to the update_floatingip call.
 
         Update values of a floatingip, updating the associated resources
         in the database. Called inside transaction context on session.
@@ -266,8 +272,8 @@ class L3RouterBaseDriver(object):
 
         :param context: the neutron context of the request
         :param fip_context: FloatingipContext instance describing the new
-        state of the floatingip, as well as the original state prior
-        to the update_floatingip call.
+                            state of the floatingip, as well as the original
+                            state prior to the update_floatingip call.
 
         Called after the transaction commits. Call can block, though will
         block the entire process so care should be taken to not drastically
@@ -287,7 +293,8 @@ class L3RouterBaseDriver(object):
 
         :param context: the neutron context of the request
         :param fip_context: FloatingipContext instance describing the current
-        state of the floatingip, prior to the call to delete it.
+                            state of the floatingip, prior to the call to
+                            delete it.
 
         Delete floatingip resources previously allocated by this routertype
         driver for a floatingip. Called inside transaction context on session.
@@ -302,7 +309,8 @@ class L3RouterBaseDriver(object):
 
         :param context: the neutron context of the request
         :param fip_context: FloatingipContext instance describing the current
-        state of the floatingip, prior to the call to delete it.
+                            state of the floatingip, prior to the call to
+                            delete it.
 
         Called after the transaction commits. Call can block, though will
         block the entire process so care should be taken to not drastically
