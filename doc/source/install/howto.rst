@@ -9,7 +9,7 @@ The following lists steps to install the networking-cisco repository:
    .. code-block:: ini
 
        http://tarballs.openstack.org/networking-cisco
-       https://pypi.python.org/pypi/networking-cisco
+       https://pypi.org/project/networking-cisco
 
    .. end
 

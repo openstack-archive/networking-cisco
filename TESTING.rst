@@ -94,7 +94,7 @@ depend on load_tests (usually due to use of `testscenarios`_).
 .. _nose2: http://nose2.readthedocs.org/en/latest/index.html
 .. _nose: https://nose.readthedocs.org/en/latest/index.html
 .. _load_tests protocol: https://docs.python.org/2/library/unittest.html#load-tests-protocol
-.. _testscenarios: https://pypi.python.org/pypi/testscenarios/
+.. _testscenarios: https://pypi.org/project/testscenarios/
 
 With `tox`
 ~~~~~~~~~~
@@ -132,7 +132,7 @@ see this wiki page:
 
 .. _Testr: https://wiki.openstack.org/wiki/Testr
 .. _tox: http://tox.readthedocs.org/en/latest/
-.. _virtualenvs: https://pypi.python.org/pypi/virtualenv
+.. _virtualenvs: https://pypi.org/project/virtualenv
 
 
 Running individual tests
@@ -216,4 +216,4 @@ References
 ==========
 
 .. [#pudb] PUDB debugger:
-   https://pypi.python.org/pypi/pudb
+   https://pypi.org/project/pudb
