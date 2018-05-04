@@ -25,4 +25,4 @@ reno!=2.3.1,>=1.8.0 # Apache-2.0
 os-api-ref>=1.0.0 # Apache-2.0
 sphinx_rtd_theme
 
-eventlet!=0.18.3,!=0.20.1,<0.21.0,>=0.18.2 # MIT
+eventlet!=0.18.3,!=0.20.1,>=0.18.2 # MIT
