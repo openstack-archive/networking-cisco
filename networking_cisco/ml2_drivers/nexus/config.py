@@ -40,7 +40,7 @@ nexus_sub_opts = [
                'is not yet available. The default configuration is None. '
                'An example configuration would look like '
                'https_local_certificate=/path/to/cafile.crt.')),
-    cfg.StrOpt('intfcfg_portchannel', deprecated_name='intfcfg.portchannel',
+    cfg.StrOpt('intfcfg_portchannel',
         help=_('intfcfg_portchannel is a list of Nexus port-channel config '
                'CLI used when baremetal port-channels are created by the '
                'Nexus driver.  It is dependent on "vpc_pool" being '

@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    Nexus: Remove deprecated intfcfg.portchannel configuration
+
+    The intfcfg.portchannel configuration was deprecated and
+    replaced in release 5.4.0 (see previous release notes).  The
+    deprecated configuration is now removed so the replacement
+    configuration intfcfg_portchannel should take its place.

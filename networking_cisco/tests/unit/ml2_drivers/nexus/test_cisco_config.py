@@ -45,23 +45,6 @@ compute4=1/2
 compute5=portchannel:20,portchannel:30
 """
 
-# Make sure intfcfg.portchannel still works
-test_deprecate_config_file = """
-[ml2_mech_cisco_nexus:1.1.1.1]
-username=admin
-password=mySecretPassword
-ssh_port=22
-nve_src_intf=2
-physnet=physnet1
-vpc_pool=5,10
-intfcfg.portchannel=user cmd1;user cmd2
-https_verify=True
-https_local_certificate=/path/to/your/local-certificate-file.crt
-compute1=1/1
-compute2=1/2
-compute5=1/3,1/4
-"""
-
 # Assign non-integer to ssh_port for error
 test_error_config_file = """
 [ml2_mech_cisco_nexus:1.1.1.1]
@@ -128,35 +111,6 @@ class TestCiscoNexusPluginConfig(TestCiscoNexusPluginConfigBase):
                     'compute3': '1/1',
                     'compute4': '1/2',
                     'compute5': 'portchannel:20,portchannel:30'
-                }
-            }
-        }
-
-        for switch_ip, options in expected.items():
-            for opt_name, option in options.items():
-                self.assertEqual(
-                    option, cfg.CONF.ml2_cisco.nexus_switches.get(
-                        switch_ip).get(opt_name))
-
-    def test_deprecated_intfcfg_portchannel(self):
-        nc_base.load_config_file(test_deprecate_config_file)
-        """Test creation deprecated intfcfg_portchannel works."""
-        expected = {
-            '1.1.1.1': {
-                'username': 'admin',
-                'password': 'mySecretPassword',
-                'ssh_port': 22,
-                'nve_src_intf': '2',
-                'physnet': 'physnet1',
-                'vpc_pool': '5,10',
-                'intfcfg_portchannel': 'user cmd1;user cmd2',
-                'https_verify': True,
-                'https_local_certificate': (
-                    '/path/to/your/local-certificate-file.crt'),
-                'host_port_mapping': {
-                    'compute1': '1/1',
-                    'compute2': '1/2',
-                    'compute5': '1/3,1/4'
                 }
             }
         }
