@@ -622,7 +622,7 @@ only and not ironic.  An example of such a configuration is as follows:
                        compute-host-2:[port-channel:300]
 
 .. note::
-    The above used to be represented by the now deprecated format::
+    The above was represented by the now unsupported format::
 
       [ml2_mech_cisco_nexus:<snipped-switch-ip-addr>]
       compute-host-1 = port-channel:300

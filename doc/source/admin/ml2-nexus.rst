@@ -110,7 +110,7 @@ activities performed during VLAN creation and removal, refer to
     #- Non-baremetal config only - Hostname and port used on the switch for
     #  this OpenStack host.  Where 1/2 indicates the "interface ethernet 1/2"
     #  port on the switch and host-1 is the OpenStack host name.
-    host_ports_mapping=host-1:[1/2]  # deprecates config `host-1=1/2`
+    host_ports_mapping=host-1:[1/2]
 
     #- Baremetal config only - Provide pool of vpc ids for use when creating
     #  port-channels.  The following allows for a pool of ids 1001 thru 1025
@@ -157,10 +157,10 @@ configuration:
 .. code-block:: ini
 
     [ml2_mech_cisco_nexus:192.168.1.1]
-    host_ports_mapping=host-1:[port-channel2]  # deprecates config `host-1=port-channel:2`
+    host_ports_mapping=host-1:[port-channel2]
 
     [ml2_mech_cisco_nexus:192.168.2.2]
-    host_ports_mapping=host-1:[port-channel2]  # deprecates config `host-1=port-channel:2`
+    host_ports_mapping=host-1:[port-channel2]
 
 .. end
 
@@ -182,7 +182,7 @@ ethernet configuration, only the change to host to interface mapping is shown.
 .. code-block:: ini
 
     [ml2_mech_cisco_nexus:192.168.1.1]
-    host_ports_mapping=host-1:[1/11,1/12]  # deprecates config `host-1=1/11,1/12`
+    host_ports_mapping=host-1:[1/11,1/12]
 
 .. end
 
@@ -248,7 +248,7 @@ Sample VXLAN configuration with Ethernet interfaces
 
         # Hostname and port used on the switch for this OpenStack host.
         # Where 1/2 indicates the "interface ethernet 1/2" port on the switch.
-        host_ports_mapping=host-1:[1/2]  # deprecates config `host-1=1/2`
+        host_ports_mapping=host-1:[1/2]
 
         # Where physnet1 is a physical network name listed in the ML2 VLAN
         # section header [ml2_type_vlan].
@@ -287,15 +287,14 @@ following configuration is required.
 
         <SKIPPED Other Config defined in VLAN/VXLAN sections>
         [ml2_mech_cisco_nexus:192.168.1.1]
-        ComputeHostA=1/8,1/10
-        ComputeHostB=1/9,1/10
+        host_ports_mapping=ComputeHostA:[1/8,1/10],ComputeHostB:[1/9,1/10]
         username=admin
         password=secretPassword
         physnet=physnet1
         https_verify=True  # for secure path if certificate available
 
         [ml2_mech_cisco_nexus:192.168.1.2]
-        ComputeHostC=1/10
+        host_ports_mapping=ComputeHostC:[1/10]
         username=admin
         password=secretPassword
         physnet=physnet1

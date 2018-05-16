@@ -409,7 +409,6 @@ class TestCiscoNexusDeviceResults(
              (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '+267')),
              base.POST]
         ],
-
     }
 
 
@@ -1089,7 +1088,6 @@ class TestCiscoNexusInitResults(
              base.POST],
 
         ],
-
     }
 
 

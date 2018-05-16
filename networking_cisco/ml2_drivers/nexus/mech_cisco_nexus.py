@@ -365,12 +365,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
     def _initialize_host_port_mappings(self):
         nxos_db.remove_all_static_host_mappings()
         for switch_ip, attrs in CONF.ml2_cisco.nexus_switches.items():
-            for host, ports in attrs.host_port_mapping.items():
-                for if_id in ports.split(','):
-                    if_type, port = (nexus_help.split_interface_name(if_id))
-                    interface = nexus_help.format_interface_name(if_type, port)
-                    nxos_db.add_host_mapping(host, switch_ip,
-                                             interface, 0, True)
             for host, intfs in attrs.host_ports_mapping.items():
                 for if_id in intfs:
                     if_type, port = nexus_help.split_interface_name(if_id)

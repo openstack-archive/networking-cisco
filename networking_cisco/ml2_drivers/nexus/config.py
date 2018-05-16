@@ -86,11 +86,11 @@ nexus_sub_opts = [
         help=_('A list of key:value pairs describing which host is '
                'connected to which physical port or portchannel on the '
                'Nexus switch. The format should look like:\n'
-               'host_port_mapping='
+               'host_ports_mapping='
                '<your-hostname>:[<intf_type><port>,<intf_type><port>],\n'
                '                  <your-second-host>:[<intf_type><port>]\n'
                'For example:\n'
-               'host_port_mapping='
+               'host_ports_mapping='
                'host-1:[ethernet1/1, ethernet1/2],\n'
                '                  host-2:[ethernet1/3],\n'
                '                  host-3:[port-channel20]\n'
@@ -137,9 +137,7 @@ nexus_sub_opts = [
                'configured vpcids not found in the database are added.  '
                'Inactive entries in the database not found in the new '
                'configured vpcids list are removed. An example of this '
-               'configuration is `vpc_pool=1001-1025,1028`.')),
-    base.RemainderOpt('host_port_mapping', deprecated_for_removal=True,
-        deprecated_reason="Replaced by 'port_host_mapping' option")]
+               'configuration is `vpc_pool=1001-1025,1028`.'))]
 
 ml2_cisco_opts = [
     cfg.StrOpt('managed_physical_network',

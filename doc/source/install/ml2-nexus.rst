@@ -119,7 +119,7 @@ ML2 Nexus MD Installation
        [ml2_mech_cisco_nexus:192.168.1.1]
        username=admin
        password=mySecretPasswordForNexus
-       host_ports_mapping=host-1:[1/2]  # deprecates config `host-1=1/2`
+       host_ports_mapping=host-1:[1/2]
 
    .. end
 #. Restart neutron to pick-up configuration changes.

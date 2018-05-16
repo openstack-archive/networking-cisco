@@ -1,0 +1,17 @@
+---
+upgrade:
+  - |
+    Nexus: Remove deprecated format of host interface mapping config
+
+    The host to interface mapping configuration was deprecated and
+    replaced in release 6.1.0 (see previous release notes).  The
+    deprecated configuration is now removed so the replacement
+    configuration must take its place.  The following demonstrates
+    the old versus new configuration.
+
+    ``Old:`` `hostname_abc=ethernet:1/19,1/20`
+
+    ``New:`` `host_ports_mapping=hostname_abc:[ethernet:1/19,1/20]`
+
+    Refer to https://bugs.launchpad.net/networking-cisco/+bug/1771672
+    for implementation details.

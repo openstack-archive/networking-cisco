@@ -92,8 +92,8 @@ NEXUS_PORT_2 = 'ethernet:1/20'
 NEXUS_PORT_3 = 'ethernet:1/30'
 NEXUS_DUAL1 = 'ethernet:1/3'
 NEXUS_DUAL2 = 'ethernet:1/2'
-NEXUS_PORTCHANNELS = 'portchannel:2'
-NEXUS_DUAL = 'ethernet:1/3,portchannel:2'
+NEXUS_PORTCHANNELS = 'port-channel:2'
+NEXUS_DUAL = 'ethernet:1/3,port-channel:2'
 NEXUS_DUAL_2 = '1/2,1/3'
 
 VLAN_ID_1 = 267
@@ -377,16 +377,16 @@ HOST_MAPPING_CONFIG_FILE = """
 [ml2_mech_cisco_nexus:1.1.1.1]
 username=admin
 password=mySecretPassword
-compute1=1/1
-compute2=1/2
-compute5=1/3,1/4
+host_ports_mapping=compute1:[1/1],
+                   compute2:[1/2],
+                   compute5:[1/3,1/4]
 
 [ml2_mech_cisco_nexus:2.2.2.2]
 username=admin
 password=mySecretPassword
-compute3=1/1
-compute4=1/2
-compute5=port-channel:20,port-channel:30
+host_ports_mapping=compute3:[1/1],
+                   compute4:[1/2],
+                   compute5:[port-channel:20,port-channel:30]
 """
 
 DICT_MAPPING_CONFIG_FILE = """
@@ -642,11 +642,18 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         test_config_file = ""
         for ip, subparts in test_config_parts.items():
             switch_config = subparts['main']
+            host_config = None
             for name, subpart in subparts.items():
                 if name == "main":
                     continue
-                switch_config += "%s=%s\n" % (name, ','.join(subpart))
+                if not host_config:
+                    host_config = ("host_ports_mapping=%s:[%s]" %
+                                  (name, ','.join(subpart)))
+                else:
+                    host_config += ",%s:[%s]" % (name, ','.join(subpart))
             test_config_file += switch_config
+            if host_config:
+                test_config_file += "%s\n" % host_config
         nc_base.load_config_file(test_config_file)
 
         self.mock_continue_binding = mock.patch.object(
@@ -1229,12 +1236,12 @@ class TestContext(TestCiscoNexusBase):
         "local_link_information": [
             {
                 "switch_id": "10.86.1.129",
-                "port_id": "portchannel:1",
+                "port_id": "port-channel:1",
                 "switch_info": VLAN_TYPE_TRUNK,
             },
             {
                 "switch_id": "10.86.1.128",
-                "port_id": "portchannel:1",
+                "port_id": "port-channel:1",
                 "switch_info": VLAN_TYPE_TRUNK,
             },
         ]
