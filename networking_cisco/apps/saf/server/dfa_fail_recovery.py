@@ -117,8 +117,8 @@ class DfaFailureRecovery(object):
         # 2. Try failure recovery for create network.
         nets = self.get_all_networks()
         for net in nets:
-            if (net.result == constants.CREATE_FAIL
-                    and net.source.lower() == 'openstack'):
+            if (net.result == constants.CREATE_FAIL and
+                    net.source.lower() == 'openstack'):
                 net_id = net.network_id
                 try:
                     subnets = self.neutron_event.nclient.list_subnets(
@@ -198,8 +198,8 @@ class DfaFailureRecovery(object):
 
         # 4. Try failure recovery for delete network.
         for net in nets:
-            if (net.result == constants.DELETE_FAIL
-                    and net.source.lower() == 'openstack'):
+            if (net.result == constants.DELETE_FAIL and
+                    net.source.lower() == 'openstack'):
                 net_id = net.network_id
                 segid = net.segmentation_id
                 tenant_name = self.get_project_name(net.tenant_id)

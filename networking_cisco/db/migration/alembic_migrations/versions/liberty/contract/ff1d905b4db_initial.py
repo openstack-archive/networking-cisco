@@ -12,6 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from neutron.db.migration import cli
+
+
 """Initial Liberty no-op contract revision.
 
 Revision ID: ff1d905b4db
@@ -19,9 +22,6 @@ Revises: kilo
 Create Date: 2015-07-28 17:38:34.209525
 
 """
-
-from neutron.db.migration import cli
-
 
 # revision identifiers, used by Alembic.
 revision = 'ff1d905b4db'

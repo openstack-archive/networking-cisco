@@ -16,8 +16,9 @@ import logging
 
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers.asr1k import (
     asr1k_routing_driver as asr_driver)
-from networking_cisco.plugins.cisco.cfg_agent.service_helpers.routing_svc_helper \
-    import RouterInfo
+from networking_cisco.plugins.cisco.cfg_agent.\
+    service_helpers.routing_svc_helper import RouterInfo
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)

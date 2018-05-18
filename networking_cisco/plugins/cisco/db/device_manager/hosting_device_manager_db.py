@@ -124,8 +124,8 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
             project_name = cfg.CONF.general.l3_admin_tenant
             user_domain_id = (cfg.CONF.keystone_authtoken.user_domain_id or
                               'default')
-            project_domain_id = (cfg.CONF.keystone_authtoken.project_domain_id
-                                 or 'default')
+            project_domain_id = (
+                cfg.CONF.keystone_authtoken.project_domain_id or 'default')
             auth = v3.Password(auth_url=auth_url,
                                username=user,
                                password=pw,

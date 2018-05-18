@@ -12,6 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from alembic import op
+import sqlalchemy as sa
+
+
 """Add support for UCSM VNIC Templates
 
 Revision ID: b29f1026b281
@@ -23,9 +27,6 @@ Create Date: 2016-02-18 15:12:31.294651
 # revision identifiers, used by Alembic.
 revision = 'b29f1026b281'
 down_revision = '13bd9ebffbf5'
-
-from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

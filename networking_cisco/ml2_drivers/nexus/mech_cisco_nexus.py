@@ -1780,8 +1780,8 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             context.original_top_bound_segment,
             context.original_bottom_bound_segment)
 
-        if (self._is_vm_migrating(context, vlan_segment, orig_vlan_segment)
-            or self._is_status_down(context.current)):
+        if (self._is_vm_migrating(context, vlan_segment, orig_vlan_segment) or
+                self._is_status_down(context.current)):
             vni = (self._port_action_vxlan(
                 context.original, orig_vxlan_segment,
                 self._delete_nve_member) if orig_vxlan_segment else 0)

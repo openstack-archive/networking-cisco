@@ -14,7 +14,8 @@
 
 from datetime import datetime
 import eventlet
-eventlet.monkey_patch()
+eventlet.monkey_patch()  # noqa
+
 import pprint
 import sys
 import time
@@ -204,14 +205,14 @@ class CiscoCfgAgent(manager.Manager):
         creds = self._credentials.get(credentials_id)
         return creds['password'] if creds else None
 
-    ## Periodic tasks ##
+    # Periodic tasks
     @periodic_task.periodic_task(spacing=cfg.CONF.cfg_agent.heartbeat_interval)
     def _backlog_task(self, context):
         """Process backlogged devices."""
         LOG.debug("Processing backlog.")
         self._process_backlogged_hosting_devices(context)
 
-    ## Main orchestrator ##
+    # Main orchestrator
     @lockutils.synchronized('cisco-cfg-agent', 'neutron-')
     def process_services(self, device_ids=None, removed_devices_info=None):
         """Process services managed by this config agent.

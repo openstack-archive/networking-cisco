@@ -12,6 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from alembic import op
+from sqlalchemy.engine.reflection import Inspector as insp
+
+
 """Add hostid as primary key to mapping table
 
 Revision ID: 6454463cea8b
@@ -23,10 +27,6 @@ Create Date: 2017-12-01 18:48:03.531425
 # revision identifiers, used by Alembic.
 revision = '6454463cea8b'
 down_revision = '73c84db9f299'
-
-from alembic import op
-
-from sqlalchemy.engine.reflection import Inspector as insp
 
 ML2_NEXUS_MAPPING_TABLE = 'cisco_ml2_nexus_host_interface_mapping'
 

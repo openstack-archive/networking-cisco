@@ -1632,7 +1632,10 @@ class L3CfgAgentHARouterApplianceTestCase(
                      "Test not applicable prior to Newton")
     def test_router_delete_precommit_event(self):
         deleted = set()
-        auditor = lambda *a, **k: deleted.add(k['router_id'])
+
+        def auditor(*a, **k):
+            return deleted.add(k['router_id'])
+
         registry.subscribe(auditor, resources.ROUTER, events.PRECOMMIT_DELETE)
         with self.router() as r:
             self._delete('routers', r['router']['id'])

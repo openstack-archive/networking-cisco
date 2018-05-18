@@ -211,7 +211,7 @@ class RoutingServiceHelper(object):
         self.conn.create_consumer(self.topic, self.endpoints, fanout=False)
         self.conn.consume_in_threads()
 
-    ### Notifications from Plugin ####
+    # Notifications from Plugin
 
     def router_deleted(self, context, routers):
         """Deal with router deletion RPC message."""

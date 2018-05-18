@@ -180,7 +180,7 @@ GET_NO_PORT_CH_RESPONSE = {
 POST = 0
 DELETE = 1
 
-## Test snippets used to verify nexus command output
+# Test snippets used to verify nexus command output
 RESULT_ADD_VLAN = """configure\>\s+\<vlan\>\s+\
 <vlan-id-create-delete\>\s+\<__XML__PARAM_value\>{0}"""
 

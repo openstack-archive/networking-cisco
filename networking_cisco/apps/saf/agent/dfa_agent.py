@@ -15,13 +15,14 @@
 #
 
 
+import eventlet
+eventlet.monkey_patch()  # noqa
+
 import os
 import platform
 import sys
 import time
 
-import eventlet
-eventlet.monkey_patch()
 from oslo_serialization import jsonutils
 
 from networking_cisco.apps.saf.agent import iptables_driver as iptd

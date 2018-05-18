@@ -35,7 +35,8 @@ class DummyRoutingDriver(devicedriver_api.RoutingDriverBase):
             del my_device_params['created_at']
         LOG.debug(jsonutils.dumps(my_device_params, sort_keys=True, indent=4))
 
-    ###### Public Functions ########
+    # Public Functions
+
     def router_added(self, ri):
         LOG.debug("DummyDriver router_added() called.")
 

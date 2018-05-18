@@ -1069,8 +1069,8 @@ class FabricBaseTest(base.BaseTestCase):
                                       'sec_gateway': self.out_sec_gw,
                                       'gateway': self.out_gw,
                                       'end': self.out_end})
-                self.fabric_base.fabric_fsm[fw_const.OS_IN_NETWORK_STATE][1] = \
-                    mock.MagicMock()
+                self.fabric_base.fabric_fsm[fw_const.OS_IN_NETWORK_STATE][1]\
+                    = mock.MagicMock()
                 self.fabric_base.fabric_fsm[fw_const.OS_IN_NETWORK_STATE][1].\
                     return_value = False
             # update_fw_db is removed from here. Because both this and

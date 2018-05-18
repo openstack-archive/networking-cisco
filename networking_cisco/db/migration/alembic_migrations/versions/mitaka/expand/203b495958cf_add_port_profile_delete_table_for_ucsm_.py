@@ -12,6 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from alembic import op
+import sqlalchemy as sa
+
+
 """Add Port Profile delete table for UCSM plugin
 
 Revision ID: 203b495958cf
@@ -23,9 +27,6 @@ Create Date: 2017-01-03 16:25:03.426346
 # revision identifiers, used by Alembic.
 revision = '203b495958cf'
 down_revision = 'b29f1026b281'
-
-from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

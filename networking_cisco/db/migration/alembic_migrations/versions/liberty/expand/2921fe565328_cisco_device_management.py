@@ -13,6 +13,12 @@
 #    under the License.
 #
 
+from alembic import op
+import sqlalchemy as sa
+
+from neutron.db import migration
+
+
 """Cisco device management
 
 Revision ID: 2921fe565328
@@ -24,11 +30,6 @@ Create Date: 2015-09-28 09:00:02.923237
 # revision identifiers, used by Alembic.
 revision = '2921fe565328'
 down_revision = '3c7f8bae9239'
-
-from alembic import op
-import sqlalchemy as sa
-
-from neutron.db import migration
 
 
 def upgrade():

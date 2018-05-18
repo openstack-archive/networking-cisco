@@ -12,6 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from alembic import op
+import sqlalchemy as sa
+
+
 """Add VPC alloc table
 
 Revision ID: f3765e42de23
@@ -23,9 +27,6 @@ Create Date: 2017-06-07 17:10:09.597016
 # revision identifiers, used by Alembic.
 revision = 'f3765e42de23'
 down_revision = '9148d96f9b39'
-
-from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

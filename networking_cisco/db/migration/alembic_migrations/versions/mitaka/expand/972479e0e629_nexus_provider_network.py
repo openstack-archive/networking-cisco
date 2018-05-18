@@ -12,6 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from alembic import op
+import sqlalchemy as sa
+
+
 """nexus_provider_network
 
 Revision ID: 972479e0e629
@@ -23,9 +27,6 @@ Create Date: 2017-05-02 15:11:15.280677
 # revision identifiers, used by Alembic.
 revision = '972479e0e629'
 down_revision = 'f3765e42de23'
-
-from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

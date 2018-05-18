@@ -97,8 +97,8 @@ class CiscoUcsmDriver(object):
         It is important to distinguish between the two since Port Profiles
         on the UCS Manager are created only for the VM-FEX ports.
         """
-        return profile and (profile.get('pci_vendor_info')
-            == const.PCI_INFO_CISCO_VIC_1240)
+        return profile and (profile.get('pci_vendor_info') ==
+                const.PCI_INFO_CISCO_VIC_1240)
 
     def _import_ucsmsdk(self):
         """Imports the ucsmsdk module.

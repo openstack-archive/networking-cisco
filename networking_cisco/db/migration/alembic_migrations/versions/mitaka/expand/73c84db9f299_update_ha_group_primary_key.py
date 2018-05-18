@@ -12,6 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from alembic import op
+from neutron.db import migration
+from sqlalchemy.engine import reflection
+
+
 """update_ha_group_primary_key
 
 Revision ID: 73c84db9f299
@@ -23,11 +28,6 @@ Create Date: 2017-10-05 05:31:54.243849
 # revision identifiers, used by Alembic.
 revision = '73c84db9f299'
 down_revision = '972479e0e629'
-
-from alembic import op
-from sqlalchemy.engine import reflection
-
-from neutron.db import migration
 
 
 def upgrade():

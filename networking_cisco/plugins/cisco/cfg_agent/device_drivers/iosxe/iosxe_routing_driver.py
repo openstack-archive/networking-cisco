@@ -64,7 +64,8 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
                       "IosXeRoutingDriver initialization", e)
             raise cfg_exc.InitializationException()
 
-    ###### Public Functions ########
+    # Public Functions
+
     def router_added(self, ri):
         self._create_vrf(ri)
 
@@ -115,7 +116,7 @@ class IosXeRoutingDriver(devicedriver_api.RoutingDriverBase):
     def get_configuration(self):
         return self._get_running_config(split=False)
 
-    ##### Internal Functions  ####
+    # Internal Functions
 
     def _create_sub_interface(self, ri, port):
         vrf_name = self._get_vrf_name(ri)

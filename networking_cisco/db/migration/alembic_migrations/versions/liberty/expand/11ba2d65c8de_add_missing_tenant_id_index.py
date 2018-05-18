@@ -12,6 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from alembic import op
+
+
 """Add missing tenant_id index
 
 Revision ID: 11ba2d65c8de
@@ -23,8 +26,6 @@ Create Date: 2015-11-26 23:33:41.877280
 # revision identifiers, used by Alembic.
 revision = '11ba2d65c8de'
 down_revision = '414ff6eb123a'
-
-from alembic import op
 
 
 def upgrade():

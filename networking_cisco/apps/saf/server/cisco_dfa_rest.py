@@ -308,8 +308,7 @@ class DFARESTClient(object):
             ip_cnt = ip_cnt + 1
         cfg_args = {
             "$vrfName=" + org_name + ':' + part_name + ";"
-            "$include_serviceNodeIpAddress=" + service_node_ip + ";"
-            + ip_str
+            "$include_serviceNodeIpAddress=" + service_node_ip + ";" + ip_str
         }
         cfg_args = ';'.join(cfg_args)
         payload = {

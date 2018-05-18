@@ -12,6 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from alembic import op
+import sqlalchemy as sa
+
+
 """Multiple UCS Manager support
 
 Revision ID: 414ff6eb123a
@@ -23,9 +27,6 @@ Create Date: 2015-10-19 15:21:10.806609
 # revision identifiers, used by Alembic.
 revision = '414ff6eb123a'
 down_revision = '1e9e22602685'
-
-from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

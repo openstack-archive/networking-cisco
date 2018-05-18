@@ -258,8 +258,8 @@ class CiscoUcsmMechanismDriver(api.MechanismDriver):
                         vlan_id, ucsm_ip, vnic_template.name, physnet)
                 return
 
-            if (CONF.ml2_cisco_ucsm.ucsms[ucsm_ip].sp_template_list
-                and self.driver.update_service_profile_template(
+            if (CONF.ml2_cisco_ucsm.ucsms[ucsm_ip].sp_template_list and
+                self.driver.update_service_profile_template(
                     vlan_id, host_id, ucsm_ip)):
                 sp_template_info = (CONF.ml2_cisco_ucsm.ucsms[
                     ucsm_ip].sp_template_list.get(host_id))

@@ -21,7 +21,8 @@ module for port events.
 """
 
 import eventlet
-eventlet.monkey_patch()
+eventlet.monkey_patch()  # noqa
+
 import os
 import paramiko
 import platform
@@ -474,8 +475,8 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
 
         proj_fields = proj_name[dci_index + 1:].split(':')
         if len(proj_fields) == 2:
-            if (proj_fields[1].isdigit()
-                    and proj_fields[0] == dciid_key[1:-1]):
+            if (proj_fields[1].isdigit() and
+                    proj_fields[0] == dciid_key[1:-1]):
                 LOG.debug('project name %(proj)s DCI_ID %(dci_id)s.', (
                     {'proj': proj_name[0:dci_index],
                      'dci_id': proj_fields[1]}))
@@ -1054,8 +1055,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
             inst_ip = fixed_ip[0].get('ip_address')
 
         if vm_prefix:
-            inst_name = (vm_prefix + str(segid)
-                         + '_' + inst_ip.split(".")[3])
+            inst_name = vm_prefix + str(segid) + '_' + inst_ip.split(".")[3]
         vm_info = dict(status=status,
                        vm_mac=vm_mac,
                        segmentation_id=segid,

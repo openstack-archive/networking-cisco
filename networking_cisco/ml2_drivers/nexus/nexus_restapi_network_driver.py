@@ -830,7 +830,7 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
 
         starttime = time.time()
 
-        ## Do CLI 'feature nv overlay'
+        # Do CLI 'feature nv overlay'
         self.send_edit_string(nexus_host, snipp.PATH_VXLAN_STATE,
                               (snipp.BODY_VXLAN_STATE % "enabled"))
 

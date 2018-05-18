@@ -12,6 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from alembic import op
+import sqlalchemy as sa
+
+
 """rename_tenantid_to_projectid
 
 Revision ID: 9148d96f9b39
@@ -24,10 +28,6 @@ Create Date: 2017-06-06 18:31:08.115220
 revision = '9148d96f9b39'
 down_revision = '681d19b7070e'
 depends_on = ('53f08de0523f')
-
-from alembic import op
-import sqlalchemy as sa
-
 
 _INSPECTOR = None
 

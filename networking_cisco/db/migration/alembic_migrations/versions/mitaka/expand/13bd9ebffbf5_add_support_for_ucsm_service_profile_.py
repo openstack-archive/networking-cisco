@@ -12,6 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from alembic import op
+import sqlalchemy as sa
+
+
 """Add support for UCSM Service Profile Templates.
 
 Revision ID: 13bd9ebffbf5
@@ -23,9 +27,6 @@ Create Date: 2016-01-27 13:12:12.805860
 # revision identifiers, used by Alembic.
 revision = '13bd9ebffbf5'
 down_revision = '2e89171ea204'
-
-from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

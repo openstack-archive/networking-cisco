@@ -12,6 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from alembic import op
+import sqlalchemy as sa
+
+
 """Add baremetal channel-group and is_native
 
 Revision ID: 2e89171ea204
@@ -23,9 +27,6 @@ Create Date: 2016-01-27 13:12:12.805860
 # revision identifiers, used by Alembic.
 revision = '2e89171ea204'
 down_revision = '11ba2d65c8de'
-
-from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

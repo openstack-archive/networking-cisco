@@ -27,20 +27,20 @@ CONF = cfg.CONF
 class SSLContext(ssl.SSLContext):
     def __init__(self, *args, **kwargs):
         super(SSLContext, self).__init__(*args, **kwargs)
-        self.verify_mode = CERT_REQUIRED if (
-            CONF.ml2_cisco_ucsm.ucsm_https_verify) else CERT_NONE
+        self.verify_mode = ssl.CERT_REQUIRED if (
+            CONF.ml2_cisco_ucsm.ucsm_https_verify) else ssl.CERT_NONE
 
 
 # Override wrap_socket function for when the ucsmsdk is using the
 # TLS1Connection function
 def wrap_socket(sock, keyfile=None, certfile=None,
-                server_side=False, cert_reqs=CERT_NONE,
-                ssl_version=PROTOCOL_SSLv23, ca_certs=None,
+                server_side=False, cert_reqs=ssl.CERT_NONE,
+                ssl_version=ssl.PROTOCOL_SSLv23, ca_certs=None,
                 do_handshake_on_connect=True,
                 suppress_ragged_eofs=True,
                 ciphers=None):
-    cert_reqs = CERT_REQUIRED if (
-            CONF.ml2_cisco_ucsm.ucsm_https_verify) else CERT_NONE
+    cert_reqs = ssl.CERT_REQUIRED if (
+            CONF.ml2_cisco_ucsm.ucsm_https_verify) else ssl.CERT_NONE
     return ssl.wrap_socket(sock=sock, keyfile=keyfile, certfile=certfile,
                      server_side=server_side, cert_reqs=cert_reqs,
                      ssl_version=ssl_version, ca_certs=ca_certs,

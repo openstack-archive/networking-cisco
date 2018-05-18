@@ -124,8 +124,8 @@ class ASR1kL3RouterDriver(drivers.L3RouterBaseDriver):
         # VLAN. As the VLAN sub-interface is added to the VRF representing the
         # Neutron router, we must only allow one Neutron router to attach to a
         # particular Neutron subnet/network.
-        if (r_port_context.router_context.current[routerrole.ROUTER_ROLE_ATTR]
-                == ROUTER_ROLE_HA_REDUNDANCY):
+        if (r_port_context.router_context.current[
+                routerrole.ROUTER_ROLE_ATTR] == ROUTER_ROLE_HA_REDUNDANCY):
             # redundancy routers can be exempt as we check the user visible
             # routers and the request will be rejected there.
             return

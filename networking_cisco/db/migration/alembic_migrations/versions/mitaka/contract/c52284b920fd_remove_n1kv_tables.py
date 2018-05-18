@@ -12,6 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from alembic import op
+
+
 """Remove the N1kv mechanism driver
 
 Revision ID: c52284b920fd
@@ -23,8 +26,6 @@ Create Date: 2018-01-16 16:48:18.526764
 # revision identifiers, used by Alembic.
 revision = 'c52284b920fd'
 down_revision = '53f08de0523f'
-
-from alembic import op
 
 
 def upgrade():

@@ -12,6 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from alembic import op
+import sqlalchemy as sa
+
+
 """Add host/interface mapping table
 
 Revision ID: 681d19b7070e
@@ -23,9 +27,6 @@ Create Date: 2017-05-16 13:47:24.649856
 # revision identifiers, used by Alembic.
 revision = '681d19b7070e'
 down_revision = '203b495958cf'
-
-from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

@@ -13,6 +13,13 @@
 #    under the License.
 #
 
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy.engine import reflection
+
+from neutron.db import migration
+
+
 """Neutron routers in Cisco devices
 
 Revision ID: 53f08de0523f
@@ -25,12 +32,6 @@ Create Date: 2015-09-28 09:10:46.191557
 revision = '53f08de0523f'
 down_revision = 'ff1d905b4db'
 depends_on = ('2921fe565328')
-
-from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.engine import reflection
-
-from neutron.db import migration
 
 
 def upgrade():
