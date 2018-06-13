@@ -879,7 +879,7 @@ class HA_db_mixin(object):
             except exc.NoResultFound:
                 hag_db = None
         if hag_db is None:
-            LOG.debug('Failed to fetch the HA group info for for router: '
+            LOG.debug('Failed to fetch the HA group info for router: '
                       '%(r_id)s and subnet: %(s_id)s. Giving up. No HA '
                       'info will be added to the router\'s port: %(p_id)s.',
                       {'r_id': router_id, 's_id': subnet_id,
