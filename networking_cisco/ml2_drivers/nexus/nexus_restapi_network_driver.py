@@ -17,7 +17,9 @@
 Implements a Nexus-OS NETCONF over SSHv2 API Client
 """
 
+import os
 import re
+import threading
 import time
 
 from oslo_log import log as logging
@@ -26,8 +28,6 @@ from networking_cisco.ml2_drivers.nexus import (
     constants as const)
 from networking_cisco.ml2_drivers.nexus import (
     exceptions as cexc)
-from networking_cisco.ml2_drivers.nexus import (
-    nexus_base_network_driver as basedrvr)
 from networking_cisco.ml2_drivers.nexus import (
     nexus_db_v2 as nxos_db)
 from networking_cisco.ml2_drivers.nexus import (
@@ -43,10 +43,11 @@ TRUNK_MODE_NOT_FOUND = ("Found trunk vlans but switchport mode is not "
 "trunk on Nexus switch %s interface %s. Recheck Nexus Switch config.")
 
 
-class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
+class CiscoNexusRestapiDriver(object):
     """Nexus Driver Restapi Class."""
     def __init__(self, nexus_switches):
-        super(CiscoNexusRestapiDriver, self).__init__(nexus_switches)
+        self.nexus_switches = nexus_switches
+        self.time_stats = {}
         credentials = self._build_credentials(self.nexus_switches)
         self.client = self._import_client(credentials)
         self.nxapi_client = self._get_nxapi_client(credentials)
@@ -112,6 +113,39 @@ class CiscoNexusRestapiDriver(basedrvr.CiscoNexusBaseDriver):
             prefix = 'int port-channel %d ;' % vpc_nbr
             ucmds = ''.join((prefix, ucmds))
         return ucmds
+
+    def capture_and_print_timeshot(self, start_time, which,
+                                   other=99, switch="0.0.0.0"):
+        """Determine delta, keep track, and print results."""
+
+        curr_timeout = time.time() - start_time
+        if which in self.time_stats:
+            self.time_stats[which]["total_time"] += curr_timeout
+            self.time_stats[which]["total_count"] += 1
+            if (curr_timeout < self.time_stats[which]["min"]):
+                self.time_stats[which]["min"] = curr_timeout
+            if (curr_timeout > self.time_stats[which]["max"]):
+                self.time_stats[which]["max"] = curr_timeout
+        else:
+            self.time_stats[which] = {
+                "total_time": curr_timeout,
+                "total_count": 1,
+                "min": curr_timeout,
+                "max": curr_timeout}
+        LOG.debug("NEXUS_TIME_STATS %(switch)s, pid %(pid)d, tid %(tid)d: "
+                  "%(which)s_timeout %(curr)f count %(count)d "
+                  "average %(ave)f other %(other)d min %(min)f max %(max)f",
+                  {'switch': switch,
+                  'pid': os.getpid(),
+                  'tid': threading.current_thread().ident,
+                  'which': which,
+                  'curr': curr_timeout,
+                  'count': self.time_stats[which]["total_count"],
+                  'ave': (self.time_stats[which]["total_time"] /
+                          self.time_stats[which]["total_count"]),
+                  'other': other,
+                  'min': self.time_stats[which]["min"],
+                  'max': self.time_stats[which]["max"]})
 
     def get_interface_switch(self, nexus_host,
                              intf_type, interface):

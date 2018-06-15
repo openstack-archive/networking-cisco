@@ -1,0 +1,18 @@
+---
+upgrade:
+  - |
+    Nexus: Remove Nexus ncclient configuration driver
+
+    The ``ncclient`` Driver used to configure Nexus was deprecated
+    in the ``Cisco 5.5.0`` release.  It is replaced by the current
+    default RESTAPI Driver. The ncclient driver is now removed along
+    with related configuration options which include ``ssh_port``,
+    ``persistent_switch_config``, ``never_cache_ssh_connection``,
+    ``host_key_checks``, and ``nexus_driver``.  For the RESTAPI
+    driver to work, the :command:'feature nxapi' must be
+    preconfigured on the Nexus device and the correct version of
+    NX-OS must be installed.  Refer to
+    :doc:`Nexus Installation Guide </install/ml2-nexus>`.
+    for more prerequisite details.  For implementation details,
+    refer to
+    https://bugs.launchpad.net/networking-cisco/+bug/1758042

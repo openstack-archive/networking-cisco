@@ -113,18 +113,8 @@ class CiscoNexusCfgMonitor(object):
                 self._mdriver.register_switch_as_inactive(switch_ip,
                     'replay init_interface')
 
-        # When replay not enabled, this is call early during initialization.
-        # To prevent bogus ssh handles from being copied to child processes,
-        # release the handles now.
         if self._mdriver.is_replay_enabled():
             return
-        try:
-                self._driver.close_session(switch_ip)
-        except Exception:
-                LOG.warning("Failed to release connection after "
-                            "initialize interfaces for switch "
-                            "%(switch_ip)s",
-                            {'switch_ip': switch_ip})
 
     def replay_config(self, switch_ip):
         """Sends pending config data in OpenStack to Nexus."""
@@ -235,10 +225,7 @@ class CiscoNexusCfgMonitor(object):
 
                     self._mdriver.set_switch_ip_and_active_state(
                         switch_ip, const.SWITCH_RESTORE_S1)
-                    self._driver.keep_ssh_caching()
                     self.replay_config(switch_ip)
-                    self._driver.init_ssh_caching()
-                    self._driver.close_session(switch_ip)
 
                     # If replay failed, it stops trying to configure db entries
                     # and sets switch state to inactive so this caller knows
@@ -272,12 +259,10 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
 
         try:
             loaded_class = runtime_utils.load_class_by_alias_or_classname(
-                'networking_cisco.ml2.nexus_driver',
-                conf.cfg.CONF.ml2_cisco.nexus_driver)
+                'networking_cisco.ml2.nexus_driver', 'restapi')
             return loaded_class(CONF.ml2_cisco.nexus_switches)
         except ImportError:
-            LOG.error("Error loading Nexus Config driver '%s'",
-                      conf.cfg.CONF.ml2_cisco.nexus_driver)
+            LOG.error("Error loading Nexus Config driver 'restapi'")
             raise SystemExit(1)
 
     def _validate_vpc_alloc_config(self, switch_ip):

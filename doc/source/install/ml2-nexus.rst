@@ -27,20 +27,6 @@ The prerequisites for installing the ML2 Nexus MD are as follows:
   for upgrade/downgrade instructions.  From this link, select the 'Support'
   option in the middle of the page for information on upgrade/downgrade
   guides, configuration and technical references.
-* If unable to upgrade your Nexus 9K Switch to the required version that
-  supports the REST API driver functionality needed by the Nexus MD, the
-  ncclient driver can be configured temporarily for use instead.  This is
-  temporary since ncclient option is being deprecated for removal.  Refer
-  to the `nexus_driver` configuration variable in
-  :doc:`Nexus Configuration Reference </configuration/ml2-nexus>` for details
-  on changing this setting.  The ncclient driver requires the following
-  to be installed:
-
-    * ``Paramiko`` library, the SSHv2 protocol library for python
-    * The ``ncclient`` (minimum version v0.4.2) python library for NETCONF
-      clients.  Install the ncclient library by using the pip package
-      manager at your shell prompt:
-      :command:`pip install ncclient == 0.4.2`
 
 .. _switch_setup:
 

@@ -92,13 +92,11 @@ neutron start-up config file sections :ref:`neutron_vxlan_startup` apply here.
 
         [ml2_cisco]
         switch_hearbeat_time = 30  # No longer required since 30 is now the default in this release.
-        nexus_driver = restapi     # No longer required since restapi is now the default in this release.
 
         [ml2_mech_cisco_nexus:192.168.1.1]
         host_ports_mapping=ComputeHostA:[1/10]  # deprecates config `ComputeHostA=1/10`
         username=admin
         password=secretPassword
-        ssh_port=22
         physnet=physnet1
 
         [ml2_mech_cisco_nexus:192.168.1.2]
@@ -106,7 +104,6 @@ neutron start-up config file sections :ref:`neutron_vxlan_startup` apply here.
         NetworkNode=1/11
         username=admin
         password=secretPassword
-        ssh_port=22
         physnet=physnet1
 
         [ml2_type_nexus_vxlan]

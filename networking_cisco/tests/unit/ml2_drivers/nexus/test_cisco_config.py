@@ -25,7 +25,6 @@ test_config_file = """
 [ml2_mech_cisco_nexus:1.1.1.1]
 username=admin
 password=mySecretPassword
-ssh_port=22
 nve_src_intf=2
 physnet=physnet1
 vpc_pool=5,10
@@ -39,24 +38,22 @@ compute5=1/3,1/4
 [ml2_mech_cisco_nexus:2.2.2.2]
 username=admin
 password=mySecretPassword
-ssh_port=22
 compute3=1/1
 compute4=1/2
 compute5=portchannel:20,portchannel:30
 """
 
-# Assign non-integer to ssh_port for error
+# Assign non-boolean to https_verify for error test
 test_error_config_file = """
 [ml2_mech_cisco_nexus:1.1.1.1]
 username=admin
 password=mySecretPassword
-ssh_port='abc'
 nve_src_intf=2
 physnet=physnet1
+https_verify='abc'
 compute1=1/1
 """
 
-# Assign non-integer to ssh_port for error
 dict_mapping_config_file = """
 [ml2_mech_cisco_nexus:1.1.1.1]
 username=admin
@@ -84,7 +81,6 @@ class TestCiscoNexusPluginConfig(TestCiscoNexusPluginConfigBase):
             '1.1.1.1': {
                 'username': 'admin',
                 'password': 'mySecretPassword',
-                'ssh_port': 22,
                 'nve_src_intf': '2',
                 'physnet': 'physnet1',
                 'vpc_pool': '5,10',
@@ -100,7 +96,6 @@ class TestCiscoNexusPluginConfig(TestCiscoNexusPluginConfigBase):
             }, '2.2.2.2': {
                 'username': 'admin',
                 'password': 'mySecretPassword',
-                'ssh_port': 22,
                 'physnet': None,
                 'nve_src_intf': None,
                 'vpc_pool': None,
@@ -122,16 +117,15 @@ class TestCiscoNexusPluginConfig(TestCiscoNexusPluginConfigBase):
                         switch_ip).get(opt_name))
 
     def test_create_device_error(self):
-        nc_base.load_config_file(test_error_config_file)
         """Test error during create of the Nexus device dictionary."""
+        nc_base.load_config_file(test_error_config_file)
 
         e = self.assertRaises(cfg.ConfigFileValueError,
             cfg.CONF.ml2_cisco.nexus_switches.get('1.1.1.1').get,
-            "ssh_port")
+            "https_verify")
         x = six.u(str(e))
-        self.assertIn("Value for option ssh_port is not valid: "
-                      "invalid literal for int() with base 10: "
-                      "'abc'", x)
+        self.assertIn("Value for option https_verify is not valid: "
+                      "Unexpected boolean value 'abc'", x)
 
     def test_dict_host_port_mapping(self):
         nc_base.load_config_file(dict_mapping_config_file)
