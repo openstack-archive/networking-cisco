@@ -121,10 +121,10 @@ activities performed during VLAN creation and removal, refer to
     #  for use when creating port-channels for baremetal events.
     intfcfg_portchannel=no lacp suspend-individual;spanning-tree port type edge trunk
 
-    #- Setting the https_verify option below to True is highly encouraged
-    #  for use in a production setting. This secures the communication
-    #  path preventing man-in-the-middle attacks.  The default is
-    #  currently False but will change to True from Cisco release 6.0.0.
+    #- Setting the https_verify option below to False is highly discouraged
+    #  for use in a production setting. This would make the communication
+    #  path vulnerable to man-in-the-middle attacks.  The default is True
+    #  for a secure path.
     https_verify=True
 
 .. end
@@ -254,10 +254,10 @@ Sample VXLAN configuration with Ethernet interfaces
         # section header [ml2_type_vlan].
         physnet=physnet1
 
-        # Setting the https_verify option below to True is highly encouraged
-        # for use in a production setting. This secures the communication
-        # path preventing man-in-the-middle attacks.  The default is
-        # currently False but will change to True from Cisco release 6.0.0.
+        # Setting the https_verify option below to False is highly discouraged
+        # for use in a production setting. This would make the communication
+        # path vulnerable to man-in-the-middle attacks.  The default is True
+        # for a secure path.
         https_verify=True
 
         [ml2_type_nexus_vxlan]
@@ -342,7 +342,7 @@ variables.  More details on these neutron variable names can be found in
             "username": "admin",
             "vpc_pool": "1001-1025,1030",
             "intfcfg_portchannel": "no lacp suspend-individual;spanning-tree port type edge trunk",
-            "https_verify":=True
+            "https_verify": "true"
         }
       }
       NetworkNexusManagedPhysicalNetwork: datacentre
@@ -387,7 +387,7 @@ found in :doc:`Nexus Configuration Reference </configuration/ml2-nexus>`.
                     }
                 },
                 "username": "admin"
-                "https_verify":=True
+                "https_verify": "true"
             }
            "N9K-9372PX-2": {
                 "ip_address": "192.168.1.2",
@@ -403,7 +403,7 @@ found in :doc:`Nexus Configuration Reference </configuration/ml2-nexus>`.
                     }
                 },
                 "username": "admin"
-                "https_verify":=True
+                "https_verify": "true"
             }
           }
 
@@ -446,7 +446,7 @@ the section :ref:`nexus_nodhcp_startup`.
                     }
                 },
                 "username": "admin"
-                "https_verify":=True
+                "https_verify": "true"
             }
             "N9K-9372PX-2": {
                 "ip_address": "192.168.1.2",
@@ -462,7 +462,7 @@ the section :ref:`nexus_nodhcp_startup`.
                     }
                 },
                 "username": "admin"
-                "https_verify":=True
+                "https_verify": "true"
             }
           }
         <Skipped other config details defined in VLAN/VXLAN sections>

@@ -33,7 +33,6 @@ nve_src_intf=2
 physnet=physnet1
 vpc_pool=5,10
 intfcfg_portchannel=user cmd1;user cmd2
-https_verify=True
 https_local_certificate=/path/to/your/local-certificate-file.crt
 compute1=1/1
 compute2=1/2
@@ -42,6 +41,7 @@ compute5=1/3,1/4
 [ml2_mech_cisco_nexus:2.2.2.2]
 username=admin
 password=mySecretPassword
+https_verify=False
 compute3=1/1
 compute4=1/2
 compute5=portchannel:20,portchannel:30
