@@ -21,6 +21,10 @@ from neutron.tests.unit import testlib_api
 
 from networking_cisco.tests import base as nc_base
 
+from networking_cisco.ml2_drivers.nexus import config  # noqa
+
+cfg.CONF.import_group("ml2_cisco", "networking_cisco.ml2_drivers.nexus.config")
+
 test_config_file = """
 [ml2_mech_cisco_nexus:1.1.1.1]
 username=admin
