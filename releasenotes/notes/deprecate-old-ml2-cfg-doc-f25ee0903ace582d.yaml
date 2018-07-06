@@ -1,0 +1,23 @@
+---
+upgrade:
+  - |
+    Nexus/UCSM: Deprecate old ML2 documentation file
+
+    In older versions of networking-cisco, the file
+    ``etc/neutron/plugins/ml2/ml2_conf_cisco.ini`` contains all ML2
+    configuration documentation for Nexus and UCSM.  This has been
+    replaced with a much improved set of documentation which can be
+    found at http://networking-cisco.readthedocs.io.
+    For details of changes, refer to
+    https://bugs.launchpad.net/networking-cisco/+bug/1780445
+
+deprecations:
+  - |
+    Nexus/UCSM: Deprecate old ML2 documentation file
+
+    The documentation file ``etc/neutron/plugins/ml2/ml2_conf_cisco.ini``
+    has been replaced with http://networking-cisco.readthedocs.io.
+    Reference to this new location is placed in ``ml2_conf_cisco.ini``.
+    This file will be removed entirely in a later release and is no
+    longer copied during setup operations.  For details of changes,
+    refer to https://bugs.launchpad.net/networking-cisco/+bug/1780445
