@@ -120,8 +120,35 @@
       bindep_profile: test py27
 
 - project:
+    templates:
+      - openstack-python-jobs-neutron
+      - openstack-python35-jobs-neutron
+      - docs-on-readthedocs
     check:
       jobs:
+        - openstack-tox-compare-cover:
+            override-checkout: mitaka-eol
+            voting: false
+            required-projects:
+              - openstack/python-neutronclient
+              - openstack/neutron
+        - build-openstack-sphinx-docs:
+            override-checkout: stable/queens
+            required-projects:
+              - openstack/python-neutronclient
+              - openstack/neutron
+        - openstack-tox-pep8:
+            override-checkout: mitaka-eol
+            required-projects:
+              - openstack/python-neutronclient
+        - openstack-tox-py27:
+            override-checkout: mitaka-eol
+            required-projects:
+              - openstack/python-neutronclient
+        - openstack-tox-py35:
+            override-checkout: mitaka-eol
+            required-projects:
+              - openstack/python-neutronclient
         - networking-cisco-tox-py27-newton
         - networking-cisco-tox-py27-ocata
         - networking-cisco-tox-py27-pike
@@ -132,6 +159,23 @@
         - networking-cisco-tox-py35-queens
     gate:
       jobs:
+        - build-openstack-sphinx-docs:
+            override-checkout: stable/queens
+            required-projects:
+              - openstack/python-neutronclient
+              - openstack/neutron
+        - openstack-tox-pep8:
+            override-checkout: mitaka-eol
+            required-projects:
+              - openstack/python-neutronclient
+        - openstack-tox-py27:
+            override-checkout: mitaka-eol
+            required-projects:
+              - openstack/python-neutronclient
+        - openstack-tox-py35:
+            override-checkout: mitaka-eol
+            required-projects:
+              - openstack/python-neutronclient
         - networking-cisco-tox-py27-newton
         - networking-cisco-tox-py27-ocata
         - networking-cisco-tox-py27-pike
@@ -140,3 +184,8 @@
         - networking-cisco-tox-py35-ocata
         - networking-cisco-tox-py35-pike
         - networking-cisco-tox-py35-queens
+    post:
+      jobs:
+        - publish-openstack-python-branch-tarball:
+            required-projects:
+              - openstack/python-neutronclient
