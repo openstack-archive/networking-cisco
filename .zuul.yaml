@@ -119,6 +119,15 @@
       tox_envlist: py27-queens
       bindep_profile: test py27
 
+- job:
+    name: networking-cisco-tox-bandit
+    parent: openstack-tox
+    description: |
+      Run static analysis for networking-cisco python code.
+    vars:
+      tox_envlist: bandit
+      bindep_profile: test py27
+
 - project:
     templates:
       - openstack-python-jobs-neutron
@@ -149,6 +158,7 @@
             override-checkout: mitaka-eol
             required-projects:
               - openstack/python-neutronclient
+        - networking-cisco-tox-bandit
         - networking-cisco-tox-py27-newton
         - networking-cisco-tox-py27-ocata
         - networking-cisco-tox-py27-pike
@@ -176,6 +186,7 @@
             override-checkout: mitaka-eol
             required-projects:
               - openstack/python-neutronclient
+        - networking-cisco-tox-bandit
         - networking-cisco-tox-py27-newton
         - networking-cisco-tox-py27-ocata
         - networking-cisco-tox-py27-pike

@@ -756,8 +756,11 @@ def alloc_vpcid(nexus_ips):
             vpc_id = intersect_tuple.vpc_id
             break
         except Exception:
-            # Another controller may have beaten us to this vpcid
-            pass
+            LOG.exception(
+                "This exception is expected if another controller "
+                "beat us to vpcid %(vpcid)s for nexus %(ip)s",
+                {'vpcid': intersect_tuple.vpc_id,
+                 'ip': ', '.join(map(str, nexus_ips))})
 
     return vpc_id
 

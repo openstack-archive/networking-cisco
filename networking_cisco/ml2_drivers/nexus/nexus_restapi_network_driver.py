@@ -115,7 +115,7 @@ class CiscoNexusRestapiDriver(object):
         return ucmds
 
     def capture_and_print_timeshot(self, start_time, which,
-                                   other=99, switch="0.0.0.0"):
+                                   other=99, switch="x.x.x.x"):
         """Determine delta, keep track, and print results."""
 
         curr_timeout = time.time() - start_time
@@ -191,21 +191,19 @@ class CiscoNexusRestapiDriver(object):
         if_type = 'l1PhysIf' if intf_type == "ethernet" else 'pcAggrIf'
         if_info = result['imdata'][0][if_type]
 
-        mode_found = False
         try:
             mode_cfg = if_info['attributes']['mode']
-            if mode_cfg == "trunk":
-                mode_found = True
         except Exception:
-            pass
+            mode_cfg = None
 
-        vlan_configured = False
+        mode_found = (mode_cfg == "trunk")
+
         try:
             vlan_list = if_info['attributes']['trunkVlans']
-            if vlan_list != const.UNCONFIGURED_VLAN:
-                vlan_configured = True
         except Exception:
-            pass
+            vlan_list = None
+
+        vlan_configured = (vlan_list != const.UNCONFIGURED_VLAN)
 
         return mode_found, vlan_configured
 
@@ -331,7 +329,8 @@ class CiscoNexusRestapiDriver(object):
                     ch_grp = int(nbr)
                     break
         except Exception:
-            pass
+            # Valid when there is no channel-group configured.
+            ch_grp = 0
 
         LOG.debug("GET interface %(key)s port channel is %(pc)d",
             {'key': match_key, 'pc': ch_grp})
@@ -461,9 +460,10 @@ class CiscoNexusRestapiDriver(object):
             nxos_db.update_vpc_entry(
                 nexus_ip_list, ch_grp, True, True)
         except cexc.NexusVPCAllocNotFound:
-            # Valid to get this error if learned ch_grp
-            # not part of configured vpc_pool
-            pass
+            LOG.exception(
+                "Found ch_grp %(ch_grp)s on Nexus %(ip)s outside of "
+                "configured vpc_pool.", {'ch_grp': ch_grp,
+                'ip': ', '.join(map(str, nexus_ip_list))})
 
     def initialize_baremetal_switch_interfaces(self, interfaces):
         """Initialize Nexus interfaces and for initial baremetal event.
@@ -617,12 +617,14 @@ class CiscoNexusRestapiDriver(object):
             starttime, "gettype",
             switch=nexus_host)
 
-        result = ''
         if response:
             try:
                 result = response['imdata'][0]["eqptCh"]['attributes']['descr']
             except Exception:
-                pass
+                # Nexus Type is not depended on at this time so it's ok
+                # if can't get the Nexus type. The real purpose
+                # of this method is to determine if the connection is active.
+                result = ''
             nexus_type = re.findall(
                 "Nexus\s*(\d)\d+\s*[0-9A-Z]+\s*"
                 "[cC]hassis",
@@ -631,6 +633,8 @@ class CiscoNexusRestapiDriver(object):
                 LOG.debug("GET call returned Nexus type %d",
                     int(nexus_type[0]))
                 return int(nexus_type[0])
+        else:
+            result = ''
 
         LOG.debug("GET call failed to return Nexus type. Received %s.",
                   result)

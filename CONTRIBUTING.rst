@@ -23,6 +23,7 @@ Tox environments provided in networking-cisco:
 * coverage - provides a report on the test coverage
 * compare-coverage - compares coverage reports from before and after the current changes
 * pep8 - Checks code against the pep8 and OpenStack hacking rules
+* bandit - Performs static analysis on selected python source code
 * genconfig - Generate sample configuration files included in the documentation
 * docs - Generates documentation for viewing (hint: Run `genconfig` first)
 

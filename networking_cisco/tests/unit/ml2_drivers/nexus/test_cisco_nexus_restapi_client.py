@@ -55,7 +55,12 @@ class TestCiscoNexusRestapiClient(testlib_api.SqlTestCase):
                 u'body': u'warning', u'msg': u'Success', u'code': u'200'}]},
                 u'version': u'1.0', u'type': u'cli_conf', u'sid': u'eoc'}}
 
-    def _request_on_count(self, username, password, verify, match_range=None):
+    def json_err(self):
+
+        raise Exception("json_err raising an exception")
+
+    def _request_on_count(self, username, password, verify,
+                          match_range=None, json_usr=None):
 
         """Generate side effect for restapi client Session.
 
@@ -138,6 +143,9 @@ class TestCiscoNexusRestapiClient(testlib_api.SqlTestCase):
                 rsp.status_code = 200
                 rsp.headers = headers
                 rsp.json = self.json
+
+            if json_usr:
+                rsp.json = json_usr
 
             return rsp
 
@@ -274,4 +282,21 @@ class TestCiscoNexusRestapiClient(testlib_api.SqlTestCase):
         # The verify value passed in send_request is checked
         # in side_effect handling.  If incorrect, exception raised.
         # No need to check again.
+        self.mock_Session.reset_mock()
+
+    def test_bad_json_with_get_nexus_type(self):
+
+        ipaddr = '3.3.3.3'
+        config = {'request.side_effect':
+                  self._request_on_count(
+                      self.nexus_dict[ipaddr][const.USERNAME],
+                      self.nexus_dict[ipaddr][const.PASSWORD],
+                      self.nexus_dict[ipaddr][const.HTTPS_VERIFY],
+                      json_usr=self.json_err)}
+        self.mock_Session.configure_mock(**config)
+
+        nexus_type = self.r_driver.get_nexus_type(ipaddr)
+        if nexus_type != -1:
+            raise Exception("bad json content test failed.")
+
         self.mock_Session.reset_mock()

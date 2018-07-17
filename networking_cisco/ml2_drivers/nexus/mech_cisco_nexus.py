@@ -75,8 +75,9 @@ class CiscoNexusCfgMonitor(object):
                 try:
                     self._initialize_trunk_interfaces_to_none(
                         switch_ip, replay=False)
-                except Exception:
-                    pass
+                except Exception as e:
+                    LOG.exception("Failed to set trunk interfaces "
+                                  "to None.")
 
     def _configure_nexus_type(self, switch_ip, nexus_type):
         if nexus_type not in (const.NEXUS_3K, const.NEXUS_5K,
