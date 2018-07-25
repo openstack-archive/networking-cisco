@@ -107,12 +107,6 @@ nexus_sub_opts = [
                'setting for <intf_type> is "ethernet" and need not be '
                'added to this setting. This configuration applies to VM '
                'deployments only.')),
-    cfg.IntOpt('ssh_port', default=22, deprecated_for_removal=True,
-        help=_('"ssh_port" specifies the TCP port for connecting via SSH to '
-               'manage the switch.  Port number 22 is the default unless the '
-               'switch has been configured otherwise. Since "ssh_port" is '
-               'associated to the "ncclient" driver which is being '
-               'deprecated, "ssh_port" too will be deprecated.')),
     cfg.StrOpt('username',
         help=_('The username of the Nexus Switch Administrator is required '
                'to allow configuration access to the Nexus switch.')),
@@ -149,12 +143,6 @@ nexus_sub_opts = [
         deprecated_reason="Replaced by 'port_host_mapping' option")]
 
 ml2_cisco_opts = [
-    cfg.BoolOpt('host_key_checks', default=False, deprecated_for_removal=True,
-        help=_('Set to True to enable strict hostkey checks when connecting '
-               'to Nexus switches via ncclient; otherwise, no hostkey checks '
-               'are performed). This will be deprecated along with '
-               'nexus_driver since this is associated to the ncclient driver '
-               'which is going away.')),
     cfg.StrOpt('managed_physical_network',
         help=_('When "managed_physical_network" is configured, it restricts '
                'the network segment that the nexus driver supports. '
@@ -164,40 +152,6 @@ ml2_cisco_opts = [
                '"network_vlan_ranges" configuration.  When '
                '"managed_physical_network" is not set, events for all '
                'network segments will be processed by the driver.')),
-    cfg.BoolOpt('never_cache_ssh_connection', default=True,
-        deprecated_for_removal=True,
-        help=_('Prevent caching ssh connections to a Nexus switch. Set this '
-               'to True when there are multiple neutron controllers and/or '
-               'when there may be non-neutron ssh connections to the same '
-               'Nexus device. Nexus devices have a limit of 8 such '
-               'connections. When a single neutron controller has more than '
-               '8 processes, caching is automatically disabled without regard '
-               'to this configuration. This flag defaults to True which '
-               'indicates that ssh connections to a Nexus switch are not '
-               'cached when the neutron controller has fewer than 8 '
-               'processes.  This will be deprecated along with "nexus_driver" '
-               'since this is associated to the ncclient driver which is '
-               'going away.')),
-    cfg.StrOpt('nexus_driver', default='restapi', deprecated_for_removal=True,
-        help=_('The Nexus Mechanism Driver has two driver methods to '
-               'configure Nexus devices. The default choice is now "restapi" '
-               'which replaces the original "ncclient" driver.  The RESTAPI '
-               'driver is preferred because it has better performance with '
-               'less Nexus session limits. Additionally, new feature '
-               'development is applied only to the restapi driver. To use the '
-               'restapi driver, the Nexus 9K image version must be '
-               '7.0(3)I5(2) or greater.  For a short term, the original '
-               'driver can be used by setting the "nexus_driver" '
-               'configuration to "ncclient".  This is short term because '
-               'the "ncclient" driver will be removed in Cisco 7.0.0 release '
-               'of the networking-cisco repository.')),
-    cfg.BoolOpt('persistent_switch_config', default=False,
-        deprecated_for_removal=True,
-        help=_('To make Nexus device persistent by running the Nexus '
-               'CLI "copy run start" after applying successful '
-               'configurations. This will be deprecated along with '
-               'nexus_driver since this is associated to the ncclient '
-               'driver which is going away.')),
     cfg.BoolOpt('provider_vlan_auto_create', default=True,
         help=_('A flag indicating whether the Nexus driver should manage '
                'the creation and removal of VLANs for provider networks on '

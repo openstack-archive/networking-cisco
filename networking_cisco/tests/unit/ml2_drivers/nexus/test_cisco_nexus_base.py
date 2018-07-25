@@ -19,13 +19,14 @@ Basic test Class and elements for testing Cisco Nexus platforms.
 Most classes in this file do not contain test cases but instead
 provide common methods for other classes to utilize. This class
 provides the basic methods needed to drive a create or delete
-port request thru to the ssh or restapi driver. It verifies the
+port request thru to the restapi driver. It verifies the
 final content of the data base and verifies what data the
 Drivers sent out.  There also exists another 'base' class
 specifically for Replay testing.
 """
 
 import collections
+import eventlet
 import mock
 from operator import attrgetter
 from oslo_config import cfg
@@ -42,11 +43,9 @@ from networking_cisco.ml2_drivers.nexus import (
 from networking_cisco.ml2_drivers.nexus import (
     nexus_helpers as nexus_help)
 from networking_cisco.ml2_drivers.nexus import (
-    nexus_network_driver)
-from networking_cisco.ml2_drivers.nexus import (
     nexus_restapi_network_driver)
 from networking_cisco.ml2_drivers.nexus import (
-    nexus_restapi_snippets as rest_snipp)
+    nexus_restapi_snippets as snipp)
 from networking_cisco.ml2_drivers.nexus import exceptions
 from networking_cisco.ml2_drivers.nexus import mech_cisco_nexus
 from networking_cisco.ml2_drivers.nexus import nexus_db_v2
@@ -118,7 +117,6 @@ DEVICE_OWNER_ROUTER_HA_INTF = bc.constants.DEVICE_OWNER_ROUTER_HA_INTF
 DEVICE_OWNER_ROUTER_INTF = bc.constants.DEVICE_OWNER_ROUTER_INTF
 DEVICE_OWNER_ROUTER_GW = bc.constants.DEVICE_OWNER_ROUTER_GW
 
-NEXUS_SSH_PORT = '22'
 PORT_STATE = bc.constants.PORT_STATUS_ACTIVE
 NETWORK_TYPE = 'vlan'
 VLAN_TYPE_TRUNK = 'trunk'
@@ -126,6 +124,11 @@ VLAN_TYPE_NATIVE = 'native'
 
 NORMAL_VNIC = u'normal'
 BAREMETAL_VNIC = u'baremetal'
+
+ETH_PATH = 'api/mo/sys/intf/phys-'
+PORT_CHAN_PATH = 'api/mo/sys/intf/aggr-'
+
+SWITCH_LIST = ['1.1.1.1', '2.2.2.2']
 
 CONNECT_ERROR = 'Unable to connect to Nexus'
 
@@ -170,56 +173,40 @@ GET_INTERFACE_PCHAN_RESPONSE = {
     ]
 }
 
-
 GET_NO_PORT_CH_RESPONSE = {
     "totalCount": "3",
     "imdata": [
     ]
 }
 
+GET_INTERFACE_NO_TRUNK_RESPONSE = {
+    "totalCount": "1",
+    "imdata": [
+        {
+            "l1PhysIf": {
+                "attributes": {
+                    "trunkVlans": "1-4094"
+                }
+            }
+        }
+    ]
+}
+
+GET_INTERFACE_PCHAN_NO_TRUNK_RESPONSE = {
+    "totalCount": "1",
+    "imdata": [
+        {
+            "pcAggrIf": {
+                "attributes": {
+                    "trunkVlans": "1-4094"
+                }
+            }
+        }
+    ]
+}
+
 POST = 0
 DELETE = 1
-
-# Test snippets used to verify nexus command output
-RESULT_ADD_VLAN = """configure\>\s+\<vlan\>\s+\
-<vlan-id-create-delete\>\s+\<__XML__PARAM_value\>{0}"""
-
-RESULT_ADD_VLAN_VNI = """configure\>\s+\<vlan\>\s+\
-<vlan-id-create-delete\>\s+\<__XML__PARAM_value\>{0}[\x20-\x7e]+\
-\s+[\x20-\x7e]+\s+\<vn-segment\>\s+\<vlan-vnsegment\>{1}"""
-
-RESULT_ADD_INTERFACE = """\<{0}\>\s+\<interface\>\
-{1}\<\/interface\>\s+[\x20-\x7e]+\s+\<switchport\>\s+\<trunk\>\s+\
-\<allowed\>\s+\<vlan\>\s+\<add\>\s+\<vlan_id\>{2}"""
-
-RESULT_ADD_NATIVE_INTERFACE = """\<{0}\>\s+\<interface\>\
-{1}\<\/interface\>\s+[\x20-\x7e]+\s+\<switchport\>\s+\<trunk\>\s+\
-\<native\>\s+\<vlan\>\s+\<vlan_id\>{2}"""
-
-RESULT_ADD_NVE_INTERFACE = """\<interface\>\s+\
-\<nve\>nve{0}\<\/nve\>\s+[\x20-\x7e]+\s+\<member\>member vni {1} \
-mcast-group {2}"""
-
-RESULT_INTERFACE = """\<{0}\>\s+\<interface\>\
-{1}\<\/interface\>\s+[\x20-\x7e]+\s+\<switchport\>\s+\<trunk\>\s+\
-\<allowed\>\s+\<vlan\>\s+\<vlan_id\>{2}"""
-
-RESULT_DEL_VLAN = """\
-\<no\>\s+\<vlan\>\s+<vlan-id-create-delete\>\
-\s+\<__XML__PARAM_value\>{0}"""
-
-RESULT_DEL_INTERFACE = """\
-\<{0}\>\s+\<interface\>{1}\<\/interface\>\s+\
-[\x20-\x7e\s]+\<switchport\>\s+\<trunk\>\s+\
-\<allowed\>\s+\<vlan\>\s+\<remove\>\s+\<vlan\>{2}"""
-
-RESULT_DEL_NATIVE_INTERFACE = """\
-\<{0}\>\s+\<interface\>{1}\<\/interface\>\s+\
-[\x20-\x7e\s]+\<no\>\s+\<switchport\>\s+\<trunk\>\s+\
-\<native\>"""
-
-RESULT_DEL_NVE_INTERFACE = """\<interface\>\s+\
-\<nve\>nve{0}\<\/nve\>\s+[\x20-\x7e]+\s+\<member\>no member vni {1}"""
 
 
 class FakeNetworkContext(object):
@@ -348,7 +335,6 @@ class FakePortContext(object):
 
 NEXUS_CONF_TEMPLATE = """
 [ml2_mech_cisco_nexus:%(ip_addr)s]
-ssh_port=%(ssh_port)s
 username=admin
 password=password
 physnet=%(physnet)s
@@ -502,14 +488,18 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         'nexus_ip_addr host_name nexus_port instance_id vlan_id vxlan_id '
         'mcast_group device_owner profile dns_name vnic_type')
 
-    def mock_init(self):
+    def get_side_effect(self, action, ipaddr=None, body=None, headers=None):
 
-        # This initializes interface responses to prevent
-        # unnecessary noise to the results.
+        if action == snipp.PATH_GET_NEXUS_TYPE:
+            return GET_NEXUS_TYPE_RESPONSE
+        elif action in snipp.PATH_GET_PC_MEMBERS:
+            return GET_NO_PORT_CH_RESPONSE
+        elif ETH_PATH in action:
+            return GET_INTERFACE_RESPONSE
+        elif PORT_CHAN_PATH in action:
+            return GET_INTERFACE_PCHAN_RESPONSE
 
-        data_xml = {'connect.return_value.get.return_value.data_xml':
-                    'switchport trunk allowed vlan none'}
-        self.mock_ncclient.configure_mock(**data_xml)
+        return {}
 
     def restapi_mock_init(self):
 
@@ -518,23 +508,7 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
 
         data_json = {'rest_get.side_effect':
                     self.get_side_effect}
-        self.mock_ncclient.configure_mock(**data_json)
-
-    def get_side_effect(self, action, ipaddr=None, body=None, headers=None):
-
-        eth_path = 'api/mo/sys/intf/phys-'
-        port_chan_path = 'api/mo/sys/intf/aggr-'
-
-        if action == rest_snipp.PATH_GET_NEXUS_TYPE:
-            return GET_NEXUS_TYPE_RESPONSE
-        elif action in rest_snipp.PATH_GET_PC_MEMBERS:
-            return GET_NO_PORT_CH_RESPONSE
-        elif eth_path in action:
-            return GET_INTERFACE_RESPONSE
-        elif port_chan_path in action:
-            return GET_INTERFACE_PCHAN_RESPONSE
-
-        return {}
+        self.mock_driver.configure_mock(**data_json)
 
     def _make_vpc_list(self, from_in, to_in):
 
@@ -583,7 +557,6 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
             test_config_parts[ip_addr] = {}
             test_config_parts[ip_addr]['main'] = (
                 NEXUS_CONF_TEMPLATE % {'ip_addr': ip_addr,
-                                       'ssh_port': NEXUS_SSH_PORT,
                                        'physnet': PHYSNET})
 
     def setUp(self):
@@ -599,25 +572,18 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         CONF.import_opt('rpc_workers', 'neutron.service')
         CONF.set_default('rpc_workers', 0)
 
-        # Use a mock netconf or REST API client
-        self.mock_ncclient = mock.Mock()
-        if CONF.ml2_cisco.nexus_driver == 'restapi':
-            mock.patch.object(
-                nexus_restapi_network_driver.CiscoNexusRestapiDriver,
-                '_import_client',
-                return_value=self.mock_ncclient).start()
-            self.mock_nxapi_client = mock.Mock()
-            mock.patch.object(
-                nexus_restapi_network_driver.CiscoNexusRestapiDriver,
-                '_get_nxapi_client',
-                return_value=self.mock_nxapi_client).start()
-            self._verify_results = self._verify_restapi_results
-        else:
-            mock.patch.object(
-                nexus_network_driver.CiscoNexusSshDriver,
-                '_import_client',
-                return_value=self.mock_ncclient).start()
-            self._verify_results = self._verify_ssh_results
+        # Use a mock REST API client
+        self.mock_driver = mock.Mock()
+        mock.patch.object(
+            nexus_restapi_network_driver.CiscoNexusRestapiDriver,
+            '_import_client',
+            return_value=self.mock_driver).start()
+        self.mock_nxapi_client = mock.Mock()
+        mock.patch.object(
+            nexus_restapi_network_driver.CiscoNexusRestapiDriver,
+            '_get_nxapi_client',
+            return_value=self.mock_nxapi_client).start()
+        self._verify_results = self._verify_restapi_results
 
         original_get_switch_ips = (
             mech_cisco_nexus.CiscoNexusMechanismDriver.get_switch_ips)
@@ -695,12 +661,11 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
             trunk.NexusMDTrunkHandler, 'is_trunk_subport_baremetal',
             return_value=False).start()
 
-        if CONF.ml2_cisco.nexus_driver == 'restapi':
-            self.restapi_mock_init()
-        else:
-            self.mock_init()
+        self.restapi_mock_init()
         self._cisco_mech_driver = mech_cisco_nexus.CiscoNexusMechanismDriver()
+
         self._cisco_mech_driver.initialize()
+
         self._cfg_monitor = self._cisco_mech_driver.monitor
         self._cisco_mech_driver.driver.nexus_switches = (
             CONF.ml2_cisco.nexus_switches)
@@ -811,15 +776,15 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
                 deletes += 1
         self.assertEqual(
             posts,
-            len(self.mock_ncclient.rest_post.mock_calls),
+            len(self.mock_driver.rest_post.mock_calls),
             "Unexpected driver post calls")
         self.assertEqual(
             deletes,
-            len(self.mock_ncclient.rest_delete.mock_calls),
+            len(self.mock_driver.rest_delete.mock_calls),
             "Unexpected driver delete calls")
 
-        post_calls = self.mock_ncclient.rest_post.mock_calls
-        del_calls = self.mock_ncclient.rest_delete.mock_calls
+        post_calls = self.mock_driver.rest_post.mock_calls
+        del_calls = self.mock_driver.rest_delete.mock_calls
         posts = 0
         deletes = 0
         for idx in range(0, len(driver_result)):
@@ -876,28 +841,6 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
                     port_config.vlan_id,
                     port_config.nexus_ip_addr,
                     port_config.instance_id)
-
-    def _verify_ssh_results(self, driver_result):
-        """Verifies correct entries sent to Nexus."""
-
-        self.assertEqual(
-            len(driver_result),
-            self.mock_ncclient.connect.return_value.
-            edit_config.call_count,
-            "Unexpected driver count")
-
-        for idx in range(0, len(driver_result)):
-            self.assertIsNotNone(
-                self.mock_ncclient.connect.
-                return_value.edit_config.mock_calls[idx][2]['config'],
-                "mock_data is None")
-            # assign None to skip testing this one.
-            if driver_result[idx]:
-                self.assertIsNotNone(
-                    re.search(driver_result[idx],
-                        self.mock_ncclient.connect.return_value.
-                        edit_config.mock_calls[idx][2]['config']),
-                    "Expected result data not found")
 
     def _cfg_vPC_user_commands(self, nexus_ips, cmds):
         # Use commands provided by user instead of
@@ -969,9 +912,9 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         # Make sure there is only a single attempt to configure.
         self._verify_results(test_result)
 
-        # Clean all the ncclient mock_calls to clear exception
+        # Clean all the driver mock_calls to clear exception
         # and other mock_call history.
-        self.mock_ncclient.reset_mock()
+        self.mock_driver.reset_mock()
 
     def _basic_delete_verify_port_vlan(self, test_name, test_result,
                                        nbr_of_bindings=0,
@@ -1018,9 +961,9 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         # Make sure there is only a single attempt to configure.
         self._verify_results(test_result)
 
-        # Clean all the ncclient mock_calls to clear exception
+        # Clean all the driver mock_calls to clear exception
         # and other mock_call history.
-        self.mock_ncclient.reset_mock()
+        self.mock_driver.reset_mock()
 
     def _create_delete_port(self, test_name,
                             add_result, del_result):
@@ -1034,115 +977,56 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
             test_name,
             del_result)
 
-    def _config_side_effects_on_count(self, match_config, exc,
-                                      match_range=None):
-        """Generates config-dependent side effect for ncclient.
+    def get_init_side_effect(
+        self, action, ipaddr=None, body=None, headers=None):
 
-        This method was written to configure side_effects for both
-        ncclient edit_config and get_config drivers.  In the case
-        of edit_config, the arguments target and config are passed
-        into _side_effect_method.  In the case of get, the argument
-        filter is passed into _side_effect_method.  For the sake of
-        simplicity, the _side_effect_method was written to handle
-        either case.
+        if action == snipp.PATH_GET_NEXUS_TYPE:
+            return GET_NEXUS_TYPE_RESPONSE
+        elif action in snipp.PATH_GET_PC_MEMBERS:
+            return GET_NO_PORT_CH_RESPONSE
+        elif ETH_PATH in action:
+            return GET_INTERFACE_NO_TRUNK_RESPONSE
+        elif PORT_CHAN_PATH in action:
+            return GET_INTERFACE_PCHAN_NO_TRUNK_RESPONSE
 
-        Additionally, arguments start and count were passed in to
-        handle the number of times to raise exception for a given
-        match.  Also match_config if passed in as an empty string,
-        is interpreted as match not desired.
+        return {}
 
-        Usage Examples:
+    def _config_restapi_side_effects(self, match_config, exc, err):
 
-        First 2 times for the given mock side-effect, throw an exception.
-        _config_side_effects_on_count('', Exception(test_id), range(0,2))
+        save_config = match_config
 
-        Two times after 4th attempt for the given mock side-effect,
-        throw an exception.
-        _config_side_effects_on_count('', Exception(test_id), range(4,6))
+        def _side_effect_method(action, ipaddr=None, body=None,
+                                headers=None):
 
-        First 2 time, for the given mock side-effect which the call
-        matches 'match string', throw an exception.
-        _config_side_effects_on_count('match string',
-                                      Exception(test_id), range(0,2))
+            if (save_config in action or
+               (body and save_config in body)):
+                if (exc == exceptions.NexusConfigFailed):
+                    raise exc(nexus_host=ipaddr,
+                              config=save_config,
+                              exc=err)
+                else:
+                    raise exc(nexus_host=ipaddr,
+                              exc=err)
 
-        do 'no range check' and for the given mock side-effect which the call
-        matches 'match string', throw an exception.
-        _config_side_effects_on_count('match string',
-                                      Exception(test_id))
-        """
-        keywords = match_config.split()
-
-        def _side_effect_method(target=None, config=None, filter=None):
-            if not hasattr(self, "position"):
-                self.position = 0
-
-            if config is None:
-                config = filter[1]
-            match = True if not keywords else all(
-                word in config for word in keywords)
-
-            # If there is a match, check count in range; otherwise
-            # mark as unmatch
-            if match and match_range is not None:
-                match = self.position in match_range
-                self.position += 1
-
-            if match:
-                raise exc
-            else:
-                return mock.DEFAULT
+            ret = self.get_init_side_effect(
+                 action, ipaddr, body, headers)
+            return ret
 
         return _side_effect_method
 
     def _set_nexus_type_failure(self):
-        """Sets exception during ncclient get nexus type. """
+        """Sets exception during get nexus type. """
 
-        config = {'connect.return_value.get.side_effect':
-            self._config_side_effects_on_count('show inventory',
-            Exception(__name__))}
-        self.mock_ncclient.configure_mock(**config)
+        config = {'rest_get.side_effect':
+            self._config_restapi_side_effects(
+                snipp.PATH_GET_NEXUS_TYPE,
+                exceptions.NexusConnectFailed,
+                'test_config1')}
+        self.mock_driver.configure_mock(**config)
 
-    def _create_port_valid_exception(self, attr, match_str, test_case,
-                                     which_exc):
-        """Verifies exception handling during initial create object.
-
-        This method is a shared method to initiate an exception
-        at various point of object creation.  The points of failure
-        are identified by the caller which can be get operations or
-        edit operations.  When the mechanism replay is functioning,
-        the exception should be suppressed and the switch is marked
-        as inactive.
-
-        attr:      Which mock attribute to contain side_effect exception
-        match_str: String for side_effect method to match for exception
-        test_case: which configuration test case to run thru test
-        which_exc: Acceptable exception String to raise in exception.
-        """
-
-        # Set switch state to active
-        switch_ip = self.test_configs[test_case].nexus_ip_addr
-        self._cisco_mech_driver.set_switch_ip_and_active_state(
-            switch_ip, const.SWITCH_ACTIVE)
-
-        # Clean all the ncclient mock_calls to clear exception
-        # and other mock_call history.
-        self.mock_ncclient.reset_mock()
-
-        # Set up driver exception
-        config = {attr:
-            self._config_side_effects_on_count(match_str,
-            Exception(which_exc))}
-        self.mock_ncclient.configure_mock(**config)
-
-        self._create_port(self.test_configs[test_case])
-
-        # _create_port should complete with no switch state change.
-        self.assertEqual(
-            const.SWITCH_ACTIVE,
-            self._cisco_mech_driver.get_switch_ip_and_active_state(switch_ip))
-
-    def _create_port_failure(self, attr, match_str, test_case, test_id,
-                             which_exc=exceptions.NexusConfigFailed):
+    def _create_port_failure(
+        self, attr, match_str, test_case, test_id,
+        which_exc=exceptions.NexusConfigFailed):
         """Verifies exception handling during initial create object.
 
         This method is a shared method to initiate an exception
@@ -1164,15 +1048,15 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
         self._cisco_mech_driver.set_switch_ip_and_active_state(
             switch_ip, const.SWITCH_ACTIVE)
 
-        # Clean all the ncclient mock_calls to clear exception
+        # Clean all the driver mock_calls to clear exception
         # and other mock_call history.
-        self.mock_ncclient.reset_mock()
+        self.mock_driver.reset_mock()
 
         # Set up driver exception
         config = {attr:
-            self._config_side_effects_on_count(match_str,
-            Exception(test_id))}
-        self.mock_ncclient.configure_mock(**config)
+            self._config_restapi_side_effects(match_str,
+            which_exc, test_id)}
+        self.mock_driver.configure_mock(**config)
 
         e = self.assertRaises(
                 which_exc,
@@ -1214,15 +1098,15 @@ class TestCiscoNexusBase(testlib_api.SqlTestCase):
             const.SWITCH_ACTIVE,
             self._cisco_mech_driver.get_switch_ip_and_active_state(switch_ip))
 
-        # Clean all the ncclient mock_calls to clear exception
+        # Clean all the driver mock_calls to clear exception
         # and other mock_call history.
-        self.mock_ncclient.reset_mock()
+        self.mock_driver.reset_mock()
 
         # Set up driver exception
         config = {attr:
-            self._config_side_effects_on_count(match_str,
-            Exception(test_id))}
-        self.mock_ncclient.configure_mock(**config)
+            self._config_restapi_side_effects(match_str,
+            exceptions.NexusConfigFailed, test_id)}
+        self.mock_driver.configure_mock(**config)
 
         self.assertRaises(
              exceptions.NexusConfigFailed,
@@ -1254,8 +1138,17 @@ class TestCiscoNexusReplayBase(TestCiscoNexusBase):
     """Replay Base Test Class for Cisco ML2 Nexus driver."""
 
     def setUp(self):
-        """Sets up mock ncclient, and switch and credentials dictionaries."""
+        """Sets up mock driver, and switch and credentials dictionaries."""
 
+        # Do not spawn the replay monitor thread since replay method
+        # is driven meticuously by test scripts.
+        def local_spawn_after(seconds, func, *args, **kwargs):
+            # do nothing
+            pass
+
+        mock.patch.object(eventlet,
+                         'spawn_after',
+                         new=local_spawn_after).start()
         super(TestCiscoNexusReplayBase, self).setUp()
 
     def _process_replay(self, test1, test2,
@@ -1312,7 +1205,7 @@ class TestCiscoNexusReplayBase(TestCiscoNexusBase):
 
         # Clear mock_call history so we can evaluate
         # just the result of replay()
-        self.mock_ncclient.reset_mock()
+        self.mock_driver.reset_mock()
 
         if test2 and 'nbr_db_mappings' in del_result1:
             nbr_db_mappings = del_result1['nbr_db_mappings']

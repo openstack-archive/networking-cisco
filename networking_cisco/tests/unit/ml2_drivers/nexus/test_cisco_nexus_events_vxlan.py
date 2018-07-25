@@ -26,8 +26,10 @@ from networking_cisco.ml2_drivers.nexus import (
 from networking_cisco.ml2_drivers.nexus import exceptions
 from networking_cisco.ml2_drivers.nexus import nexus_db_v2
 
+from networking_cisco.ml2_drivers.nexus import (
+    nexus_restapi_snippets as snipp)
 from networking_cisco.tests.unit.ml2_drivers.nexus import (
-    test_cisco_nexus_base)
+    test_cisco_nexus_base as base)
 
 
 class TestCiscoNexusVxlanDeviceConfig(object):
@@ -35,200 +37,295 @@ class TestCiscoNexusVxlanDeviceConfig(object):
 
     test_configs = {
         'test_vxlan_config1':
-            test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
-                test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
-                test_cisco_nexus_base.HOST_NAME_1,
-                test_cisco_nexus_base.NEXUS_PORT_1,
-                test_cisco_nexus_base.INSTANCE_1,
-                test_cisco_nexus_base.VLAN_ID_1,
-                test_cisco_nexus_base.VXLAN_ID,
-                test_cisco_nexus_base.MCAST_GROUP,
-                test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
+            base.TestCiscoNexusBase.TestConfigObj(
+                base.NEXUS_IP_ADDRESS_1,
+                base.HOST_NAME_1,
+                base.NEXUS_PORT_1,
+                base.INSTANCE_1,
+                base.VLAN_ID_1,
+                base.VXLAN_ID,
+                base.MCAST_GROUP,
+                base.DEVICE_OWNER_COMPUTE,
                 {},
                 None,
-                test_cisco_nexus_base.NORMAL_VNIC),
+                base.NORMAL_VNIC),
         'test_vxlan_config2':
-            test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
-                test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
-                test_cisco_nexus_base.HOST_NAME_2,
-                test_cisco_nexus_base.NEXUS_PORT_2,
-                test_cisco_nexus_base.INSTANCE_2,
-                test_cisco_nexus_base.VLAN_ID_1,
-                test_cisco_nexus_base.VXLAN_ID,
-                test_cisco_nexus_base.MCAST_GROUP,
-                test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
+            base.TestCiscoNexusBase.TestConfigObj(
+                base.NEXUS_IP_ADDRESS_1,
+                base.HOST_NAME_2,
+                base.NEXUS_PORT_2,
+                base.INSTANCE_2,
+                base.VLAN_ID_1,
+                base.VXLAN_ID,
+                base.MCAST_GROUP,
+                base.DEVICE_OWNER_COMPUTE,
                 {},
                 None,
-                test_cisco_nexus_base.NORMAL_VNIC),
+                base.NORMAL_VNIC),
         'test_vxlan_config3':
-            test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
-                test_cisco_nexus_base.NEXUS_IP_ADDRESS_6,
-                test_cisco_nexus_base.HOST_NAME_3,
-                test_cisco_nexus_base.NEXUS_PORT_1,
-                test_cisco_nexus_base.INSTANCE_1,
-                test_cisco_nexus_base.VLAN_ID_1,
-                test_cisco_nexus_base.VXLAN_ID,
-                test_cisco_nexus_base.MCAST_GROUP,
-                test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
+            base.TestCiscoNexusBase.TestConfigObj(
+                base.NEXUS_IP_ADDRESS_6,
+                base.HOST_NAME_3,
+                base.NEXUS_PORT_1,
+                base.INSTANCE_1,
+                base.VLAN_ID_1,
+                base.VXLAN_ID,
+                base.MCAST_GROUP,
+                base.DEVICE_OWNER_COMPUTE,
                 {},
                 None,
-                test_cisco_nexus_base.NORMAL_VNIC),
+                base.NORMAL_VNIC),
         'test_vxlan_config4':
-            test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
-                test_cisco_nexus_base.NEXUS_IP_ADDRESS_7,
-                test_cisco_nexus_base.HOST_NAME_3,
-                test_cisco_nexus_base.NEXUS_DUAL_2,
-                test_cisco_nexus_base.INSTANCE_1,
-                test_cisco_nexus_base.VLAN_ID_1,
-                test_cisco_nexus_base.VXLAN_ID,
-                test_cisco_nexus_base.MCAST_GROUP,
-                test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
+            base.TestCiscoNexusBase.TestConfigObj(
+                base.NEXUS_IP_ADDRESS_7,
+                base.HOST_NAME_3,
+                base.NEXUS_DUAL_2,
+                base.INSTANCE_1,
+                base.VLAN_ID_1,
+                base.VXLAN_ID,
+                base.MCAST_GROUP,
+                base.DEVICE_OWNER_COMPUTE,
                 {},
                 None,
-                test_cisco_nexus_base.NORMAL_VNIC),
+                base.NORMAL_VNIC),
         'test_vxlan_config5':
-            test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
-                test_cisco_nexus_base.NEXUS_IP_ADDRESS_8,
-                test_cisco_nexus_base.HOST_NAME_4,
-                test_cisco_nexus_base.NEXUS_PORT_1,
-                test_cisco_nexus_base.INSTANCE_1,
-                test_cisco_nexus_base.VLAN_ID_1,
-                test_cisco_nexus_base.VXLAN_ID,
-                test_cisco_nexus_base.MCAST_GROUP,
-                test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
+            base.TestCiscoNexusBase.TestConfigObj(
+                base.NEXUS_IP_ADDRESS_8,
+                base.HOST_NAME_4,
+                base.NEXUS_PORT_1,
+                base.INSTANCE_1,
+                base.VLAN_ID_1,
+                base.VXLAN_ID,
+                base.MCAST_GROUP,
+                base.DEVICE_OWNER_COMPUTE,
                 {},
                 None,
-                test_cisco_nexus_base.NORMAL_VNIC),
+                base.NORMAL_VNIC),
         'test_vxlan_config6':
-            test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
-                test_cisco_nexus_base.NEXUS_IP_ADDRESS_8,
-                test_cisco_nexus_base.HOST_NAME_5,
-                test_cisco_nexus_base.NEXUS_PORT_2,
-                test_cisco_nexus_base.INSTANCE_1,
-                test_cisco_nexus_base.VLAN_ID_2,
-                test_cisco_nexus_base.VXLAN_ID + 1,
-                test_cisco_nexus_base.MCAST_GROUP,
-                test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
+            base.TestCiscoNexusBase.TestConfigObj(
+                base.NEXUS_IP_ADDRESS_8,
+                base.HOST_NAME_5,
+                base.NEXUS_PORT_2,
+                base.INSTANCE_1,
+                base.VLAN_ID_2,
+                base.VXLAN_ID + 1,
+                base.MCAST_GROUP,
+                base.DEVICE_OWNER_COMPUTE,
                 {},
                 None,
-                test_cisco_nexus_base.NORMAL_VNIC),
+                base.NORMAL_VNIC),
     }
 
     test_configs = collections.OrderedDict(sorted(test_configs.items()))
 
 
 class TestCiscoNexusVxlanResults(
-    test_cisco_nexus_base.TestCiscoNexusBaseResults):
+    base.TestCiscoNexusBaseResults):
 
     """Unit tests driver results for Cisco ML2 Nexus."""
 
     test_results = {
 
         # The following contains desired Nexus output for
-        # some basic config above.
-        'add_port_driver_result': (
-            [test_cisco_nexus_base.RESULT_ADD_NVE_INTERFACE.
-                format(1, 70000, '255.1.1.1'),
-            test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
-                format(267, 70000),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/10', 267)]),
+        # some basic vxlan config.
+        'add_port_driver_result': [
+            [(snipp.PATH_VNI_UPDATE % ('1', '70000')),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_VNI_UPDATE % (
+                 '70000', '70000', '70000',
+                 base.MCAST_GROUP)),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_VXLAN_ADD % (267, 70000)),
+             base.POST],
+            [(snipp.PATH_IF % 'phys-[eth1/10]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '+267')),
+             base.POST]
+        ],
 
-        'delete_port_driver_result': (
-            [test_cisco_nexus_base.RESULT_DEL_NVE_INTERFACE.
-                format(1, 70000, 267),
-            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/10', 267),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)]),
+        'delete_port_driver_result': [
+            [(snipp.PATH_VNI_UPDATE % ('1', '70000')),
+             base.NEXUS_IP_ADDRESS_1,
+             '',
+             base.DELETE],
+            [(snipp.PATH_IF % 'phys-[eth1/10]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '-267')),
+             base.POST],
+            [(snipp.PATH_VLAN % '267'),
+             base.NEXUS_IP_ADDRESS_1,
+             '',
+             base.DELETE]
+        ],
 
-        'add_port2_driver_result': (
-            [test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
-                format(267, 70000),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/20', 267)]),
 
-        'delete_port2_driver_result': (
-            [test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/20', 267)]),
+        'add_port2_driver_result': [
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_VXLAN_ADD % (267, 70000)),
+             base.POST],
+            [(snipp.PATH_IF % 'phys-[eth1/20]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '+267')),
+             base.POST]
+        ],
 
-        'add_port_driver_result3': (
-            [test_cisco_nexus_base.RESULT_ADD_NVE_INTERFACE.
-                format(1, 70000, '255.1.1.1'),
-            test_cisco_nexus_base.RESULT_ADD_NVE_INTERFACE.
-                format(1, 70000, '255.1.1.1'),
-            test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
-                format(267, 70000),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/10', 267),
-            test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
-                format(267, 70000),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/2', 267),
-            test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
-                format(267, 70000),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/3', 267)]),
+        'delete_port2_driver_result': [
+            [(snipp.PATH_IF % 'phys-[eth1/20]'),
+             base.NEXUS_IP_ADDRESS_1,
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '-267')),
+             base.POST],
+        ],
 
-        'delete_port_driver_result3': (
-            [test_cisco_nexus_base.RESULT_DEL_NVE_INTERFACE.
-                format(1, 70000, 267),
-             test_cisco_nexus_base.RESULT_DEL_NVE_INTERFACE.
-                format(1, 70000, 267),
-            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/10', 267),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267),
-            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/2', 267),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267),
-            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/3', 267)]),
+        'add_port_driver_result3': [
+            [(snipp.PATH_VNI_UPDATE % ('1', '70000')),
+             base.NEXUS_IP_ADDRESS_6,
+             (snipp.BODY_VNI_UPDATE % (
+                 '70000', '70000', '70000',
+                 base.MCAST_GROUP)),
+             base.POST],
+            [(snipp.PATH_VNI_UPDATE % ('1', '70000')),
+             base.NEXUS_IP_ADDRESS_7,
+             (snipp.BODY_VNI_UPDATE % (
+                 '70000', '70000', '70000',
+                 base.MCAST_GROUP)),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_6,
+             (snipp.BODY_VXLAN_ADD % (267, 70000)),
+             base.POST],
+            [(snipp.PATH_IF % 'phys-[eth1/10]'),
+             base.NEXUS_IP_ADDRESS_6,
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '+267')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_7,
+             (snipp.BODY_VXLAN_ADD % (267, 70000)),
+             base.POST],
+            [(snipp.PATH_IF % 'phys-[eth1/2]'),
+             base.NEXUS_IP_ADDRESS_7,
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '+267')),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_7,
+             (snipp.BODY_VXLAN_ADD % (267, 70000)),
+             base.POST],
+            [(snipp.PATH_IF % 'phys-[eth1/3]'),
+             base.NEXUS_IP_ADDRESS_7,
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '+267')),
+             base.POST]
+        ],
 
-        'add_port_driver_result2': (
-            [test_cisco_nexus_base.RESULT_ADD_NVE_INTERFACE.
-                format(1, 70001, '255.1.1.1'),
-            test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
-                format(265, 70001),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/20', 265)]),
+        'delete_port_driver_result3': [
+            [(snipp.PATH_VNI_UPDATE % ('1', '70000')),
+             base.NEXUS_IP_ADDRESS_6,
+             '',
+             base.DELETE],
+            [(snipp.PATH_VNI_UPDATE % ('1', '70000')),
+             base.NEXUS_IP_ADDRESS_7,
+             '',
+             base.DELETE],
+            [(snipp.PATH_IF % 'phys-[eth1/10]'),
+             base.NEXUS_IP_ADDRESS_6,
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '-267')),
+             base.POST],
+            [(snipp.PATH_VLAN % '267'),
+             base.NEXUS_IP_ADDRESS_6,
+             '',
+             base.DELETE],
+            [(snipp.PATH_IF % 'phys-[eth1/2]'),
+             base.NEXUS_IP_ADDRESS_7,
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '-267')),
+             base.POST],
+            [(snipp.PATH_VLAN % '267'),
+             base.NEXUS_IP_ADDRESS_7,
+             '',
+             base.DELETE],
+            [(snipp.PATH_IF % 'phys-[eth1/3]'),
+             base.NEXUS_IP_ADDRESS_7,
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '-267')),
+             base.POST],
+        ],
 
-        'delete_port_driver_result2': (
-            [test_cisco_nexus_base.RESULT_DEL_NVE_INTERFACE.
-                format(1, 70001, 265),
-            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/20', 265),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(265)]),
+        'add_port_driver_result2': [
+            [(snipp.PATH_VNI_UPDATE % ('1', '70001')),
+             base.NEXUS_IP_ADDRESS_8,
+             (snipp.BODY_VNI_UPDATE % (
+                 '70001', '70001', '70001',
+                 base.MCAST_GROUP)),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_8,
+             (snipp.BODY_VXLAN_ADD % (265, 70001)),
+             base.POST],
+            [(snipp.PATH_IF % 'phys-[eth1/20]'),
+             base.NEXUS_IP_ADDRESS_8,
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '+265')),
+             base.POST]
+        ],
 
-        'add_port_driver_result4': (
-            [test_cisco_nexus_base.RESULT_ADD_NVE_INTERFACE.
-                format(1, 70000, '255.1.1.1'),
-            test_cisco_nexus_base.RESULT_ADD_VLAN_VNI.
-                format(267, 70000),
-            test_cisco_nexus_base.RESULT_ADD_INTERFACE.
-                format('ethernet', '1\/10', 267)]),
+        'delete_port_driver_result2': [
+            [(snipp.PATH_VNI_UPDATE % ('1', '70001')),
+             base.NEXUS_IP_ADDRESS_8,
+             '',
+             base.DELETE],
+            [(snipp.PATH_IF % 'phys-[eth1/20]'),
+             base.NEXUS_IP_ADDRESS_8,
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '-265')),
+             base.POST],
+            [(snipp.PATH_VLAN % '265'),
+             base.NEXUS_IP_ADDRESS_8,
+             '',
+             base.DELETE]
+        ],
+        'add_port_driver_result4': [
+            [(snipp.PATH_VNI_UPDATE % ('1', '70000')),
+             base.NEXUS_IP_ADDRESS_8,
+             (snipp.BODY_VNI_UPDATE % (
+                 '70000', '70000', '70000',
+                 base.MCAST_GROUP)),
+             base.POST],
+            [snipp.PATH_ALL,
+             base.NEXUS_IP_ADDRESS_8,
+             (snipp.BODY_VXLAN_ADD % (267, 70000)),
+             base.POST],
+            [(snipp.PATH_IF % 'phys-[eth1/10]'),
+             base.NEXUS_IP_ADDRESS_8,
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '+267')),
+             base.POST]
+        ],
 
-        'delete_port_driver_result4': (
-            [test_cisco_nexus_base.RESULT_DEL_NVE_INTERFACE.
-                format(1, 70000, 267),
-            test_cisco_nexus_base.RESULT_DEL_INTERFACE.
-                format('ethernet', '1\/10', 267),
-            test_cisco_nexus_base.RESULT_DEL_VLAN.format(267)])
+        'delete_port_driver_result4': [
+            [(snipp.PATH_VNI_UPDATE % ('1', '70000')),
+             base.NEXUS_IP_ADDRESS_8,
+             '',
+             base.DELETE],
+            [(snipp.PATH_IF % 'phys-[eth1/10]'),
+             base.NEXUS_IP_ADDRESS_8,
+             (snipp.BODY_TRUNKVLAN % ('l1PhysIf', '', '-267')),
+             base.POST],
+            [(snipp.PATH_VLAN % '267'),
+             base.NEXUS_IP_ADDRESS_8,
+             '',
+             base.DELETE]
+        ],
 
     }
 
 
-class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
+class TestCiscoNexusVxlanDevice(base.TestCiscoNexusBase,
                            TestCiscoNexusVxlanDeviceConfig):
 
     """Unit tests for Cisco ML2 VXLAN Nexus device driver."""
 
     def setUp(self):
-        """Sets up mock ncclient, and switch and credentials dictionaries."""
+        """Sets up mock driver, and switch and credentials dictionaries."""
 
-        cfg.CONF.set_override('nexus_driver', 'ncclient', 'ml2_cisco')
-        cfg.CONF.set_override('never_cache_ssh_connection', False, 'ml2_cisco')
         cfg.CONF.set_override('switch_heartbeat_time', 0, 'ml2_cisco')
         super(TestCiscoNexusVxlanDevice, self).setUp()
-        self.mock_ncclient.reset_mock()
+        self.mock_driver.reset_mock()
         self.addCleanup(self._clear_nve_db)
         self.results = TestCiscoNexusVxlanResults()
 
@@ -242,8 +339,8 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
         # switch values.
         cfg.CONF.set_override('vxlan_global_config', True, 'ml2_cisco')
         self._create_port_failure(
-            'connect.return_value.edit_config.side_effect',
-            'feature nv overlay vn-segment-vlan-based',
+            'rest_post.side_effect',
+            '{"fmVnSegment": {"attributes": {"adminSt": "enabled"}}}',
             'test_vxlan_config1',
             __name__)
 
@@ -254,8 +351,8 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
         # switch values.
         cfg.CONF.set_override('vxlan_global_config', True, 'ml2_cisco')
         self._delete_port_failure(
-            'connect.return_value.edit_config.side_effect',
-            'no feature nv overlay vn-segment-vlan-based',
+            'rest_post.side_effect',
+            '{"fmVnSegment": {"attributes": {"adminSt": "disabled"}}}',
             'test_vxlan_config1',
             __name__)
 
@@ -263,8 +360,8 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
         """Verifies exception during create nve member driver. """
 
         self._create_port_failure(
-            'connect.return_value.edit_config.side_effect',
-            'member vni mcast-group',
+            'rest_post.side_effect',
+            'api/mo/sys/epId-1/nws/vni-70000.json',
             'test_vxlan_config1',
             __name__)
 
@@ -272,8 +369,8 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
         """Verifies exception during delete nve member driver. """
 
         self._delete_port_failure(
-            'connect.return_value.edit_config.side_effect',
-            'no member vni',
+            'rest_delete.side_effect',
+            'api/mo/sys/epId-1/nws/vni-70000.json',
             'test_vxlan_config1',
             __name__)
 
@@ -292,13 +389,13 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
                 'add_port2_driver_result'))
 
         bindings = nexus_db_v2.get_nexusvlan_binding(
-                       test_cisco_nexus_base.VLAN_ID_1,
-                       test_cisco_nexus_base.NEXUS_IP_ADDRESS_1)
+                       base.VLAN_ID_1,
+                       base.NEXUS_IP_ADDRESS_1)
         self.assertEqual(2, len(bindings))
 
-        # Clean all the ncclient mock_calls so we can evaluate
+        # Clean all the driver mock_calls so we can evaluate
         # results of delete operations.
-        self.mock_ncclient.reset_mock()
+        self.mock_driver.reset_mock()
 
         self._basic_delete_verify_port_vlan(
             'test_vxlan_config2',
@@ -319,31 +416,31 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
         """
         local_test_configs = {
             'test_vxlan_config_no_vni':
-                test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
-                    test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
-                    test_cisco_nexus_base.HOST_NAME_1,
-                    test_cisco_nexus_base.NEXUS_PORT_1,
-                    test_cisco_nexus_base.INSTANCE_1,
-                    test_cisco_nexus_base.VLAN_ID_1,
+                base.TestCiscoNexusBase.TestConfigObj(
+                    base.NEXUS_IP_ADDRESS_1,
+                    base.HOST_NAME_1,
+                    base.NEXUS_PORT_1,
+                    base.INSTANCE_1,
+                    base.VLAN_ID_1,
                     None,
-                    test_cisco_nexus_base.MCAST_GROUP,
-                    test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
+                    base.MCAST_GROUP,
+                    base.DEVICE_OWNER_COMPUTE,
                     {},
                     None,
-                    test_cisco_nexus_base.NORMAL_VNIC),
+                    base.NORMAL_VNIC),
             'test_vxlan_config_no_mcast':
-                test_cisco_nexus_base.TestCiscoNexusBase.TestConfigObj(
-                    test_cisco_nexus_base.NEXUS_IP_ADDRESS_1,
-                    test_cisco_nexus_base.HOST_NAME_1,
-                    test_cisco_nexus_base.NEXUS_PORT_1,
-                    test_cisco_nexus_base.INSTANCE_1,
-                    test_cisco_nexus_base.VLAN_ID_1,
-                    test_cisco_nexus_base.VXLAN_ID,
+                base.TestCiscoNexusBase.TestConfigObj(
+                    base.NEXUS_IP_ADDRESS_1,
+                    base.HOST_NAME_1,
+                    base.NEXUS_PORT_1,
+                    base.INSTANCE_1,
+                    base.VLAN_ID_1,
+                    base.VXLAN_ID,
                     None,
-                    test_cisco_nexus_base.DEVICE_OWNER_COMPUTE,
+                    base.DEVICE_OWNER_COMPUTE,
                     {},
                     None,
-                    test_cisco_nexus_base.NORMAL_VNIC),
+                    base.NORMAL_VNIC),
         }
         test_list = ('test_vxlan_config_no_vni',
                      'test_vxlan_config_no_mcast')
@@ -360,7 +457,7 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
         """
         expected_dynamic_segment = {
             api.SEGMENTATION_ID: mock.ANY,
-            api.PHYSICAL_NETWORK: test_cisco_nexus_base.PHYSNET,
+            api.PHYSICAL_NETWORK: base.PHYSNET,
             api.ID: mock.ANY,
             api.NETWORK_TYPE: p_const.TYPE_VLAN}
 
@@ -368,7 +465,7 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
 
         self._bind_port(self.test_configs['test_vxlan_config1'])
         self.mock_continue_binding.assert_called_once_with(
-            test_cisco_nexus_base.NETID,
+            base.NETID,
             [expected_dynamic_segment])
 
     def test_nexus_vxlan_bind_port_no_physnet(self):
@@ -381,7 +478,7 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
         cfg.CONF.set_override(
             const.PHYSNET, None,
             cfg.CONF.ml2_cisco.nexus_switches.get(
-                test_cisco_nexus_base.NEXUS_IP_ADDRESS_1)._group)
+                base.NEXUS_IP_ADDRESS_1)._group)
 
         try:
             self._bind_port(self.test_configs['test_vxlan_config1'])
@@ -414,10 +511,10 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
                 'add_port_driver_result3'))
 
         for switch_ip, nbr_bind in [
-            (test_cisco_nexus_base.NEXUS_IP_ADDRESS_6, 1),
-            (test_cisco_nexus_base.NEXUS_IP_ADDRESS_7, 2)]:
+            (base.NEXUS_IP_ADDRESS_6, 1),
+            (base.NEXUS_IP_ADDRESS_7, 2)]:
             bindings = nexus_db_v2.get_nexusvlan_binding(
-                           test_cisco_nexus_base.VLAN_ID_1,
+                           base.VLAN_ID_1,
                            switch_ip)
             self.assertEqual(nbr_bind, len(bindings))
             binding = nexus_db_v2.get_nve_switch_bindings(switch_ip)
@@ -432,11 +529,11 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
                 'delete_port_driver_result3'))
 
         for switch_ip in [
-            test_cisco_nexus_base.NEXUS_IP_ADDRESS_6,
-            test_cisco_nexus_base.NEXUS_IP_ADDRESS_7]:
+            base.NEXUS_IP_ADDRESS_6,
+            base.NEXUS_IP_ADDRESS_7]:
             try:
                 bindings = nexus_db_v2.get_nexusvlan_binding(
-                               test_cisco_nexus_base.VLAN_ID_1,
+                               base.VLAN_ID_1,
                                switch_ip)
             except exceptions.NexusPortBindingNotFound:
                 bindings = []
@@ -463,12 +560,12 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
                 'add_port_driver_result2'))
 
         binding = nexus_db_v2.get_nve_switch_bindings(
-            test_cisco_nexus_base.NEXUS_IP_ADDRESS_8)
+            base.NEXUS_IP_ADDRESS_8)
         self.assertEqual(2, len(binding))
 
-        # Clean all the ncclient mock_calls so we can evaluate
+        # Clean all the driver mock_calls so we can evaluate
         # results of delete operations.
-        self.mock_ncclient.reset_mock()
+        self.mock_driver.reset_mock()
 
         self._basic_delete_verify_port_vlan(
             'test_vxlan_config6',
@@ -483,7 +580,7 @@ class TestCiscoNexusVxlanDevice(test_cisco_nexus_base.TestCiscoNexusBase,
 
         try:
             binding = nexus_db_v2.get_nve_switch_bindings(
-                test_cisco_nexus_base.NEXUS_IP_ADDRESS_8)
+                base.NEXUS_IP_ADDRESS_8)
         except exceptions.NexusPortBindingNotFound:
             binding = []
         self.assertEqual(0, len(binding))

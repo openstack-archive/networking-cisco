@@ -35,12 +35,6 @@ Tech Support so they can better assist you.
 
 * Provide a network diagram with connection details.
 
-.. note::
-   There are two different configuration drivers (``restapi``, ``ncclient``)
-   used by the Nexus driver to apply configurations to the Nexus switch.
-   Since the ncclient driver is being deprecated, the documentation in this
-   section is written from the perspective of the REST API driver only.
-
 .. _db_show:
 
 How to view Nexus Driver databases
@@ -221,10 +215,9 @@ Corrective Action
      the credential information is correct. See the various configuration
      examples in the section
      :ref:`nexus_vlan_startup` for details.
-  #. Check that ``feature nxapi`` is configured on the Nexus Switch when the
-     Nexus Mechanism driver is configured to use the REST API Config driver.
-     For details, see ``nexus_driver`` configuration parameter in the
-     :doc:`Nexus Configuration Reference </configuration/ml2-nexus>`.
+  #. Check that ``feature nxapi`` is configured on the Nexus Switch since
+     it is required for Nexus Mechanism driver to use the REST API Config
+     driver.
 
 * If the switch is not accessible, isolate where in the network a
   failure has occurred.
@@ -406,28 +399,6 @@ Some general VXLAN configuration must be in place prior to Nexus Driver
 driver attempting to configure vni and mcast-group configuration.  Refer
 to the `Prerequisite` section of :ref:`neutron_vxlan_startup` and the
 section :ref:`switch_setup` for more details.
-
-Invalid ``nexus_driver`` Config Error
--------------------------------------
-Description
-^^^^^^^^^^^
-If the ``nexus_driver`` configuration parameter is misconfigured, it will
-prevent neutron from coming-up.  Refer to
-:doc:`Nexus Configuration Reference </configuration/ml2-nexus>`
-for details on the `nexus_driver` parameter.
-
-Message
-^^^^^^^
-
-::
-
-    Error loading Nexus Config driver {cfg-chosen}
-
-Corrective Action
-^^^^^^^^^^^^^^^^^
-The message above reports what was found configured for this parameter
-in the message field `cfg-chosen`.  Check it against the valid choices
-shown in the configuration guide.
 
 Invalid ``vpc_pool`` config error
 ---------------------------------
