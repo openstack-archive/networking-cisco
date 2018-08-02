@@ -1,0 +1,21 @@
+---
+security:
+  - |
+    Nexus: Verify https certificates by default
+
+    In release 5.4.0, the ability to verify https certificates was implemented.
+    The default was originally set to False for insecure https connections
+    to allow time to acquire certificates.  In this release, the default
+    is changed to True so certificates will be verified for secured
+    connections.
+
+    See release notes for release 5.4.0 for details on this feature and
+    https://bugs.launchpad.net/networking-cisco/+bug/1778275
+    for implementation details.
+
+upgrade:
+  - |
+    Nexus: Verify https certificates by default
+
+    See the Security release notes for more details.
+

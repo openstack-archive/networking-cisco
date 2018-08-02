@@ -573,13 +573,14 @@ Insecure Communication Path with Nexus Switch
 ---------------------------------------------
 Description
 ^^^^^^^^^^^
-The configuration option `https_verify` is available in 5.4.0 and defaults
-to ``False`` (insecure); however, from Cisco Release 6.0.0 it will change
-to ``True`` causing certificates to be verified.  It is highly recommended
-not to disable certificate verification in production since the communication
-path is insecure leaving the path vunerable to man-in-the-middle attacks.
-If a switch is insecure, the warning message below will be seen in the neutron
-log file identifying the ip address of the Nexus switch.
+The configuration option `https_verify` became available in 5.4.0 with the
+default to ``False`` (insecure) to allow administrators to acquire
+certificates.  The default has changed to ``True`` causing certificates to
+be verified.  It is highly recommended not to disable certificate verification
+in production since the communication path is insecure leaving the path
+vunerable to man-in-the-middle attacks.  If the default is changed to
+``False`` (insecure), the warning message below is seen in the neutron
+log file identifying the ip address of the insecure Nexus switch.
 
 Message
 ^^^^^^^
@@ -598,9 +599,10 @@ one or more of the following actions to secure it.
   `nxapi certificate` and `enable` the certificate.  For Nexus details,
   refer to the section `NX-API Management Commands`  in the
   `Nexus NXAPI Programmability Guide <https://www.cisco.com/c/en/us/td/docs/switches/datacenter/nexus9000/sw/6-x/programmability/guide/b_Cisco_Nexus_9000_Series_NX-OS_Programmability_Guide/b_Cisco_Nexus_9000_Series_NX-OS_Programmability_Guide_chapter_011.html>`_.
-* Set `https_verify=True` in the neutron start-up configuration beneath the
-  section header [ml2_mech_cisco_nexus:your-switch-ip] for the target switch.
-  Changing it to `True` will cause verification of public certificate to occur.
+* Remove `https_verify=False` from the neutron start-up configuration beneath
+  the section header [ml2_mech_cisco_nexus:your-switch-ip] for the target
+  switch.  Removing https_verify config will cause it to default to `True`
+  to verify the public certificate.
 
 .. _dupl_entry:
 

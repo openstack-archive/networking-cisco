@@ -20,11 +20,10 @@ from networking_cisco._i18n import _
 from networking_cisco.config import base
 
 nexus_sub_opts = [
-    cfg.BoolOpt('https_verify', default=False,
-        help=_('This configuration option defaults to False but '
-               'will change to True in Cisco Release 6.0.0. '
-               'Set https_verify to True when certification '
-               'authority (CA) file is in the Operating Systems '
+    cfg.BoolOpt('https_verify', default=True,
+        help=_('This configuration option defaults to True.'
+               'When https_verify is True, the certification '
+               'authority (CA) file must be in the Operating Systems '
                'repository or is a locally defined file whose name is '
                'provided in https_local_certificate.  Set https_verify '
                'to False to skip https certification checking thus '
