@@ -58,6 +58,20 @@
       tox_envlist: py35-queens
       bindep_profile: test py35
 
+- job:
+    name: networking-cisco-tox-py35-rocky
+    parent: openstack-tox
+    override-branch: master
+    description: |
+      Run unit tests for networking-cisco under cPython version 3.5 with neutron rocky.
+      Uses tox with the ``py35-rocky`` environment.
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^doc/.*$
+      - ^releasenotes/.*$
+    vars:
+      tox_envlist: py35-rocky
+      bindep_profile: test py35
 
 - job:
     name: networking-cisco-tox-py27-newton
@@ -120,6 +134,21 @@
       bindep_profile: test py27
 
 - job:
+    name: networking-cisco-tox-py27-rocky
+    parent: openstack-tox
+    override-branch: master
+    description: |
+      Run unit tests for networking-cisco under cPython version 2.7 with neutron rocky.
+      Uses tox with the ``py27-rocky`` environment.
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^doc/.*$
+      - ^releasenotes/.*$
+    vars:
+      tox_envlist: py27-rocky
+      bindep_profile: test py27
+
+- job:
     name: networking-cisco-tox-bandit
     parent: openstack-tox
     description: |
@@ -163,10 +192,14 @@
         - networking-cisco-tox-py27-ocata
         - networking-cisco-tox-py27-pike
         - networking-cisco-tox-py27-queens
+        - networking-cisco-tox-py27-rocky:
+            voting: false
         - networking-cisco-tox-py35-newton
         - networking-cisco-tox-py35-ocata
         - networking-cisco-tox-py35-pike
         - networking-cisco-tox-py35-queens
+        - networking-cisco-tox-py35-rocky:
+            voting: false
     gate:
       jobs:
         - build-openstack-sphinx-docs:
