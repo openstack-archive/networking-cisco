@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes a bug in the networking-cisco migrations when run against MariaDB
+    which prevent the `subnet_id` field being added as a primary key due to it
+    previously being added as a foreign key.
+    See: https://bugs.launchpad.net/networking-cisco/+bug/1791121
