@@ -40,6 +40,11 @@ def upgrade():
                            table_name='cisco_router_ha_groups',
                            type_='primary')
 
+        op.create_primary_key(
+            constraint_name='pk_cisco_router_ha_groups',
+            table_name='cisco_router_ha_groups',
+            columns=['ha_port_id', 'subnet_id'])
+
         op.create_foreign_key('cisco_router_ha_groups_ibfk_1',
                               source_table='cisco_router_ha_groups',
                               referent_table='ports',
@@ -62,8 +67,3 @@ def upgrade():
                               referent_table='routers',
                               local_cols=['user_router_id'],
                               remote_cols=['id'])
-
-        op.create_primary_key(
-            constraint_name='pk_cisco_router_ha_groups',
-            table_name='cisco_router_ha_groups',
-            columns=['ha_port_id', 'subnet_id'])
