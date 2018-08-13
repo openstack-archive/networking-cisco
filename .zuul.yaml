@@ -176,7 +176,7 @@
               - openstack/python-neutronclient
               - openstack/neutron
         - openstack-tox-pep8:
-            override-checkout: mitaka-eol
+            override-checkout: stable/queens
             required-projects:
               - openstack/python-neutronclient
         - openstack-tox-py27:
@@ -208,7 +208,7 @@
               - openstack/python-neutronclient
               - openstack/neutron
         - openstack-tox-pep8:
-            override-checkout: mitaka-eol
+            override-checkout: stable/queens
             required-projects:
               - openstack/python-neutronclient
         - openstack-tox-py27:
