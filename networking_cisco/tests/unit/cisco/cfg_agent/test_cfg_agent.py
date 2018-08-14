@@ -90,7 +90,8 @@ class TestCiscoCfgAgentWithStateReporting(base.BaseTestCase):
             'oslo_service.loopingcall.FixedIntervalLoopingCall')
         self.looping_call_p.start()
 
-        mock.patch('neutron.common.rpc.create_connection').start()
+        mock.patch('networking_cisco.backwards_compatibility.'
+                   'rpc.Connection').start()
 
     def test_agent_registration_success(self):
         agent = cfg_agent.CiscoCfgAgentWithStateReport(HOSTNAME, self.conf)

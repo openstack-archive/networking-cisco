@@ -14,7 +14,6 @@
 
 from neutron.api.rpc.agentnotifiers import l3_rpc_agent_api
 from neutron.api.rpc.handlers import l3_rpc
-from neutron.common import rpc as n_rpc
 from neutron.common import topics
 from neutron.db import common_db_mixin
 from neutron.db import dns_db
@@ -23,6 +22,7 @@ from oslo_config import cfg
 from oslo_utils import importutils
 
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import rpc as n_rpc
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.l3 import ha_db
@@ -86,7 +86,7 @@ class CiscoRouterPlugin(common_db_mixin.CommonDbMixin,
     def setup_rpc(self):
         # RPC support
         self.topic = topics.L3PLUGIN
-        self.conn = n_rpc.create_connection()
+        self.conn = n_rpc.Connection()
         self.agent_notifiers[bc.constants.AGENT_TYPE_L3] = (
             l3_rpc_agent_api.L3AgentNotifyAPI())
         self.agent_notifiers[cisco_constants.AGENT_TYPE_L3_CFG] = (

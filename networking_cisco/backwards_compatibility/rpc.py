@@ -12,13 +12,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from distutils.version import StrictVersion
+# NOTE(sambetts) F401 is the flake8 code for the "X imported but not used"
+# error we only ignore that so that other errors like import order still get
+# caught.
 
-from neutron import version
+from networking_cisco.backwards_compatibility import neutron_version as nv
 
-NEUTRON_VERSION = StrictVersion(str(version.version_info))
-NEUTRON_NEWTON_VERSION = StrictVersion('9.0.0')
-NEUTRON_OCATA_VERSION = StrictVersion('10.0.0')
-NEUTRON_PIKE_VERSION = StrictVersion('11.0.0')
-NEUTRON_QUEENS_VERSION = StrictVersion('12.0.0')
-NEUTRON_ROCKY_VERSION = StrictVersion('13.0.0')
+from neutron.common.rpc import *  # noqa
+from neutron.common import rpc
+
+if nv.NEUTRON_VERSION < nv.NEUTRON_ROCKY_VERSION:
+    Connection = rpc.create_connection

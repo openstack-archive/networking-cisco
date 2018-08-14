@@ -17,7 +17,6 @@ import mock
 import os
 import unittest
 
-from neutron.api.v2 import attributes
 from neutron.db import agents_db
 from neutron.db import dns_db
 from neutron.extensions import providernet as pnet
@@ -37,6 +36,7 @@ from networking_cisco.backwards_compatibility import (constants as
     service_constants)
 from networking_cisco.backwards_compatibility import (exnet_const as
     external_net)
+from networking_cisco.backwards_compatibility import attributes
 from networking_cisco.backwards_compatibility import cb_registry as registry
 from networking_cisco.backwards_compatibility import dns_const
 from networking_cisco.backwards_compatibility import extraroute_const
@@ -163,7 +163,7 @@ class L3RouterApplianceTestCaseBase(
         # Save the global RESOURCE_ATTRIBUTE_MAP
         self.saved_attr_map = {}
         for resource, attrs in six.iteritems(
-                attributes.RESOURCE_ATTRIBUTE_MAP):
+                attributes.RESOURCES):
             self.saved_attr_map[resource] = attrs.copy()
         if not core_plugin:
             core_plugin = CORE_PLUGIN_KLASS

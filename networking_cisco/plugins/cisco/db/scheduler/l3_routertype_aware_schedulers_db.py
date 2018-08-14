@@ -19,7 +19,6 @@ from sqlalchemy.sql import expression as expr
 
 from networking_cisco._i18n import _
 
-from neutron.common import topics
 from neutron.db import agents_db
 from neutron.db import l3_agentschedulers_db
 from neutron.db import models_v2
@@ -27,6 +26,7 @@ from neutron.db import portbindings_db as p_binding
 
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.backwards_compatibility import l3_const
+from networking_cisco.backwards_compatibility import topics
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.device_manager import hd_models
 from networking_cisco.plugins.cisco.db.l3 import l3_models

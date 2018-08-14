@@ -14,6 +14,7 @@
 #    under the License.
 #
 
+import mock
 import sys
 
 from mox3 import mox
@@ -34,44 +35,80 @@ class CLITestV20L3RouterHostingDeviceScheduler(test_cli20.CLITestV20Base):
                                     body, result):
         path = ((hostingdevice.HostingDevice.resource_path + destination) %
                 cmd_args[0])
-        self.mox.StubOutWithMock(cmd, "get_client")
-        self.mox.StubOutWithMock(self.client.httpclient, "request")
-        cmd.get_client().MultipleTimes().AndReturn(self.client)
+        cmd_parser = cmd.get_parser('test_' + resource)
+        parsed_args = cmd_parser.parse_args(cmd_args)
         result_str = self.client.serialize(result)
         return_tup = (test_cli20.MyResp(200), result_str)
 
-        self.client.httpclient.request(
-            test_cli20.end_url(path), 'POST',
-            body=test_cli20.MyComparator(body, self.client),
-            headers=mox.ContainsKeyValue(
-                'X-Auth-Token', test_cli20.TOKEN)).AndReturn(return_tup)
-        self.mox.ReplayAll()
-        cmd_parser = cmd.get_parser('test_' + resource)
-        parsed_args = cmd_parser.parse_args(cmd_args)
-        cmd.run(parsed_args)
-        self.mox.VerifyAll()
-        self.mox.UnsetStubs()
+        if getattr(self, 'mox', None):
+            self.mox.StubOutWithMock(cmd, "get_client")
+            self.mox.StubOutWithMock(self.client.httpclient, "request")
+            cmd.get_client().MultipleTimes().AndReturn(self.client)
+            self.client.httpclient.request(
+                test_cli20.end_url(path), 'POST',
+                body=test_cli20.MyComparator(body, self.client),
+                headers=mox.ContainsKeyValue(
+                    'X-Auth-Token', test_cli20.TOKEN)).AndReturn(return_tup)
+            self.mox.ReplayAll()
+            cmd.run(parsed_args)
+            self.mox.VerifyAll()
+            self.mox.UnsetStubs()
+        else:
+            mock_request_calls = [
+                mock.call(
+                    test_cli20.end_url(path), 'POST',
+                    body=test_cli20.MyComparator(body, self.client),
+                    headers=test_cli20.ContainsKeyValue(
+                        {'X-Auth-Token': test_cli20.TOKEN}))
+            ]
+
+            with mock.patch.object(cmd, "get_client",
+                    return_value=self.client) as mock_get_client:
+                with mock.patch.object(self.client.httpclient, "request",
+                        return_value=return_tup) as mock_request:
+                    cmd.run(parsed_args)
+                    mock_request.assert_has_calls(mock_request_calls)
+                    self.assert_mock_multiple_calls_with_same_arguments(
+                        mock_get_client, mock.call(), None)
 
     def _test_remove_from_hosting_device(self, resource, cmd, cmd_args,
                                          destination):
         path = ((hostingdevice.HostingDevice.resource_path + destination +
                  '/%s') % cmd_args)
-        self.mox.StubOutWithMock(cmd, "get_client")
-        self.mox.StubOutWithMock(self.client.httpclient, "request")
-        cmd.get_client().MultipleTimes().AndReturn(self.client)
-
         return_tup = (test_cli20.MyResp(204), None)
-        self.client.httpclient.request(
-            test_cli20.end_url(path), 'DELETE',
-            body=None,
-            headers=mox.ContainsKeyValue(
-                'X-Auth-Token', test_cli20.TOKEN)).AndReturn(return_tup)
-        self.mox.ReplayAll()
         cmd_parser = cmd.get_parser('test_' + resource)
         parsed_args = cmd_parser.parse_args(cmd_args)
-        cmd.run(parsed_args)
-        self.mox.VerifyAll()
-        self.mox.UnsetStubs()
+
+        if getattr(self, 'mox', None):
+            self.mox.StubOutWithMock(cmd, "get_client")
+            self.mox.StubOutWithMock(self.client.httpclient, "request")
+            cmd.get_client().MultipleTimes().AndReturn(self.client)
+
+            self.client.httpclient.request(
+                test_cli20.end_url(path), 'DELETE',
+                body=None,
+                headers=mox.ContainsKeyValue(
+                    'X-Auth-Token', test_cli20.TOKEN)).AndReturn(return_tup)
+            self.mox.ReplayAll()
+            cmd.run(parsed_args)
+            self.mox.VerifyAll()
+            self.mox.UnsetStubs()
+        else:
+            mock_request_calls = [
+                mock.call(
+                    test_cli20.end_url(path), 'DELETE',
+                    body=None,
+                    headers=test_cli20.ContainsKeyValue(
+                        {'X-Auth-Token': test_cli20.TOKEN}))
+            ]
+            with mock.patch.object(cmd, "get_client",
+                    return_value=self.client) as mock_get_client:
+                with mock.patch.object(self.client.httpclient, "request",
+                        return_value=return_tup) as mock_request:
+                    cmd.run(parsed_args)
+                    mock_request.assert_has_calls(mock_request_calls)
+                    self.assert_mock_multiple_calls_with_same_arguments(
+                        mock_get_client, mock.call(), None)
 
     def test_add_router_to_hosting_device(self):
         resource = 'hosting_device'

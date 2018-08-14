@@ -13,13 +13,13 @@
 #    under the License.
 #
 
-from neutron.common import rpc as n_rpc
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import importutils
 
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import rpc as n_rpc
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
@@ -69,7 +69,7 @@ class CiscoDeviceManagerPlugin(dev_mgr_db.HostingDeviceManagerMixin,
     def setup_rpc(self):
         # RPC support
         self.topic = c_constants.DEVICE_MANAGER_PLUGIN
-        self.conn = n_rpc.create_connection()
+        self.conn = n_rpc.Connection()
         self.agent_notifiers[c_constants.AGENT_TYPE_CFG] = (
             devmgr_rpc_cfgagent_api.DeviceMgrCfgAgentNotifyAPI(self))
         self.endpoints = [devices_rpc.DeviceMgrCfgRpcCallback(self)]

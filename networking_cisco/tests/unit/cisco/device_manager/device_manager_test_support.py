@@ -17,7 +17,6 @@ from datetime import datetime
 import mock
 import time
 
-from neutron.api.v2 import attributes
 from neutron.common import test_lib
 from neutron.db import agents_db
 from neutron.extensions import agent
@@ -33,6 +32,7 @@ from oslo_utils import uuidutils
 import networking_cisco
 from networking_cisco._i18n import _LE
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import attributes
 from networking_cisco import plugins
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.device_manager import (
@@ -296,7 +296,7 @@ class TestDeviceManagerExtensionManager(object):
         # This is done here as the setup process won't
         # initialize the main API router which extends
         # the global attribute map
-        attributes.RESOURCE_ATTRIBUTE_MAP.update(
+        attributes.RESOURCES.update(
             ciscodevmgr.RESOURCE_ATTRIBUTE_MAP)
         return res
 

@@ -14,13 +14,13 @@
 
 import abc
 
-from neutron.api.v2 import attributes as attr
 from neutron.api.v2 import resource_helper
 from neutron_lib.api import converters as conv
 from neutron_lib import exceptions
 
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import attributes as attr
 from networking_cisco.plugins.cisco.common import utils
 
 

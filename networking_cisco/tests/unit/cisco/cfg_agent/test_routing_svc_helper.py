@@ -134,7 +134,8 @@ class TestBasicRoutingOperations(
         self.looping_call_p = mock.patch(
             'oslo_service.loopingcall.FixedIntervalLoopingCall')
         self.looping_call_p.start()
-        mock.patch('neutron.common.rpc.create_connection').start()
+        mock.patch('networking_cisco.backwards_compatibility.'
+                   'rpc.Connection').start()
 
         self.routing_helper = routing_svc_helper.RoutingServiceHelper(
             HOST, self.conf, self.agent)

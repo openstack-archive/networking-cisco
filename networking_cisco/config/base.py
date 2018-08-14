@@ -74,10 +74,18 @@ class RemainderOpt(cfg.DictOpt):
             for key in gk:
                 if key not in opt_names:
                     names = [(group_name, key)]
-                    value = namespace._get_value(
+                    data = namespace._get_value(
                         names, positional=self.positional)
-                    result[key] = self.item_type(value)
-        return result
+
+                    if getattr(cfg.CONF, 'get_location', None):
+                        result[key] = self.item_type(data[0])
+                    else:
+                        result[key] = self.item_type(data)
+
+        if getattr(cfg.CONF, 'get_location', None):
+            return (result, None)
+        else:
+            return result
 
 
 class SubsectionOpt(cfg.DictOpt):
@@ -127,10 +135,14 @@ class SubsectionOpt(cfg.DictOpt):
     def _get_from_namespace(self, namespace, group_name):
         identities = {}
         sections = cfg.CONF.list_all_sections()
+
         for section in sections:
             subsection, sep, ident = section.partition(':')
             if subsection.lower() != self.name.lower():
                 continue
             cfg.CONF.register_opts(self.subopts, group=section)
             identities[ident] = cfg.CONF.get(section)
-        return identities
+        if getattr(cfg.CONF, 'get_location', None):
+            return (identities, None)
+        else:
+            return identities

@@ -47,6 +47,7 @@ class NexusPortBinding(bc.model_base.BASEV2):
 
     def __eq__(self, other):
         """Compare only the binding, without the id key."""
+
         return (
             self.port_id == other.port_id and
             self.vlan_id == other.vlan_id and
@@ -54,7 +55,7 @@ class NexusPortBinding(bc.model_base.BASEV2):
             self.switch_ip == other.switch_ip and
             self.instance_id == other.instance_id and
             self.channel_group == other.channel_group and
-            self.is_native_vlan == other.is_native_vlan
+            self.is_native == other.is_native
         )
 
 

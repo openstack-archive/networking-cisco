@@ -12,13 +12,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from distutils.version import StrictVersion
+from networking_cisco.backwards_compatibility import neutron_version as nv
 
-from neutron import version
 
-NEUTRON_VERSION = StrictVersion(str(version.version_info))
-NEUTRON_NEWTON_VERSION = StrictVersion('9.0.0')
-NEUTRON_OCATA_VERSION = StrictVersion('10.0.0')
-NEUTRON_PIKE_VERSION = StrictVersion('11.0.0')
-NEUTRON_QUEENS_VERSION = StrictVersion('12.0.0')
-NEUTRON_ROCKY_VERSION = StrictVersion('13.0.0')
+if nv.NEUTRON_VERSION >= nv.NEUTRON_ROCKY_VERSION:
+    from neutron_lib.api.attributes import *  # noqa
+else:
+    # NOTE(sambetts) Because of neutron _MovedGlobals we can not import * from
+    # neutron.api.v2.attributes so instead we monkey patch the real one and
+    # then make this module point at the real one
+    from neutron.api.v2 import attributes as _attributes
+    import sys
+
+    _attributes.RESOURCES = _attributes.RESOURCE_ATTRIBUTE_MAP
+    sys.modules[__name__] = _attributes

@@ -175,7 +175,8 @@ class TestNetworkRoutingOperationsAci(
         self.looping_call_p = mock.patch(
             'oslo_service.loopingcall.FixedIntervalLoopingCall')
         self.looping_call_p.start()
-        mock.patch('neutron.common.rpc.create_connection').start()
+        mock.patch('networking_cisco.backwards_compatibility.'
+                   'rpc.Connection').start()
         self.routing_helper = aci_svc_helper.RoutingServiceHelperAci(
             helper.HOST, self.conf, self.agent)
         self.routing_helper._external_gateway_added = mock.Mock()
