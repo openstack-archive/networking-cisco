@@ -17,9 +17,9 @@ from oslo_log import log as logging
 import oslo_messaging
 
 from neutron.common import rpc as n_rpc
-from neutron.common import utils
 
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import extensions
 from networking_cisco.backwards_compatibility import topics
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.extensions import ciscocfgagentscheduler
@@ -48,7 +48,7 @@ class L3RouterCfgAgentNotifyAPI(object):
         """
         admin_context = context.is_admin and context or context.elevated()
         dmplugin = bc.get_plugin(cisco_constants.DEVICE_MANAGER)
-        if (hosting_device is not None and utils.is_extension_supported(
+        if (hosting_device is not None and extensions.is_extension_supported(
                 dmplugin, CFGAGENT_SCHED)):
             agents = dmplugin.get_cfg_agents_for_hosting_devices(
                 admin_context, [hosting_device['id']], admin_state_up=True,
@@ -72,7 +72,8 @@ class L3RouterCfgAgentNotifyAPI(object):
         dmplugin = bc.get_plugin(cisco_constants.DEVICE_MANAGER)
         for router in routers:
             if (router['hosting_device'] is not None and
-                    utils.is_extension_supported(dmplugin, CFGAGENT_SCHED)):
+                    extensions.is_extension_supported(dmplugin,
+                                                      CFGAGENT_SCHED)):
                 agents = dmplugin.get_cfg_agents_for_hosting_devices(
                     admin_context, [router['hosting_device']['id']],
                     admin_state_up=True, schedule=True)
@@ -91,7 +92,7 @@ class L3RouterCfgAgentNotifyAPI(object):
     def _notification(self, context, method, routers, operation,
                       shuffle_agents):
         """Notify all or individual Cisco cfg agents."""
-        if utils.is_extension_supported(self._l3plugin, L3AGENT_SCHED):
+        if extensions.is_extension_supported(self._l3plugin, L3AGENT_SCHED):
             adm_context = (context.is_admin and context or context.elevated())
             # This is where hosting device gets scheduled to Cisco cfg agent
             self._l3plugin.schedule_routers(adm_context, routers)

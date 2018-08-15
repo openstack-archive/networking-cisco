@@ -22,7 +22,6 @@ from keystoneclient import exceptions as k_exceptions
 from keystoneclient import session
 from keystoneclient.v2_0 import client as k_client
 from keystoneclient.v3 import client
-from neutron.common import utils
 from neutron_lib import exceptions as n_exc
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -37,6 +36,7 @@ from sqlalchemy.sql import expression as expr
 
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import extensions
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
 from networking_cisco.plugins.cisco.db.device_manager import hd_models
@@ -242,7 +242,8 @@ class HostingDeviceManagerMixin(hosting_devices_db.HostingDeviceDBMixin):
     @classmethod
     def mgmt_sec_grp_id(cls):
         """Returns id of security group used by the management network."""
-        if not utils.is_extension_supported(bc.get_plugin(), "security-group"):
+        if not extensions.is_extension_supported(bc.get_plugin(),
+                                                 "security-group"):
             return
         if cls._mgmt_sec_grp_id is None:
             # Get the id for the _mgmt_security_group_id

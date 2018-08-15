@@ -220,7 +220,7 @@ class HAL3RouterApplianceVMTestCase(
 
     def test_hidden_port_creation_includes_dns_attribute(self):
         with mock.patch('networking_cisco.plugins.cisco.db.l3.ha_db.'
-                        'utils.is_extension_supported',
+                        'extensions.is_extension_supported',
                         return_value=True) as extension_support,\
                 mock.patch.object(self.core_plugin, 'create_port') as c_p_mock:
                     # Verify the function is called with extension dns enabled

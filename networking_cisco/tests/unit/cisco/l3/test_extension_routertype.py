@@ -15,6 +15,7 @@
 import copy
 
 import mock
+from oslo_config import cfg
 from oslo_utils import uuidutils
 from webob import exc
 
@@ -38,6 +39,8 @@ class RouterTypeTestCase(test_extensions_base.ExtensionTestCase):
 
     def setUp(self):
         super(RouterTypeTestCase, self).setUp()
+        cfg.CONF.set_override('api_extensions_path',
+                              "networking_cisco/plugins/cisco/extensions")
         if NEUTRON_VERSION.version[0] > NEUTRON_NEWTON_VERSION.version[0]:
             plugin = ('networking_cisco.plugins.cisco.service_plugins.'
                       'cisco_router_plugin.CiscoRouterPlugin')
@@ -50,11 +53,18 @@ class RouterTypeTestCase(test_extensions_base.ExtensionTestCase):
             plugin = ('networking_cisco.plugins.cisco.extensions.routertype.'
                       'RoutertypePluginBase')
             service_type = None
-        self._setUpExtension(
-            plugin, service_type,
-            routertype.RESOURCE_ATTRIBUTE_MAP, routertype.Routertype, '',
-            supported_extension_aliases=['router',
-                                         routertype.ROUTERTYPE_ALIAS])
+
+        if bc.NEUTRON_VERSION >= bc.NEUTRON_ROCKY_VERSION:
+            self.setup_extension(
+                plugin, service_type, routertype.Routertype, '',
+                supported_extension_aliases=[
+                    'router', routertype.ROUTERTYPE_ALIAS])
+        else:
+            self._setUpExtension(
+                plugin, service_type,
+                routertype.RESOURCE_ATTRIBUTE_MAP, routertype.Routertype, '',
+                supported_extension_aliases=[
+                    'router', routertype.ROUTERTYPE_ALIAS])
 
     def test_create_routertype(self):
         dummy_driver = ('networking_cisco.plugins.cisco.l3.schedulers.'

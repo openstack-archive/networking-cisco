@@ -222,7 +222,7 @@ class L3RouterApplianceTestCaseBase(
 
     def restore_attribute_map(self):
         # Restore the original RESOURCE_ATTRIBUTE_MAP
-        attributes.RESOURCE_ATTRIBUTE_MAP = self.saved_attr_map
+        attributes.RESOURCES = self.saved_attr_map
 
     def tearDown(self):
         if self.configure_routertypes is True:

@@ -115,7 +115,7 @@ class HostingDeviceConfigAgentSchedulerTestCaseBase(
         # Save the global RESOURCE_ATTRIBUTE_MAP
         self.saved_attr_map = {}
         for resource, attrs in six.iteritems(
-                attributes.RESOURCE_ATTRIBUTE_MAP):
+                attributes.RESOURCES):
             self.saved_attr_map[resource] = attrs.copy()
         if not core_plugin:
             core_plugin = CORE_PLUGIN_KLASS

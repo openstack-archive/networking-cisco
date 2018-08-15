@@ -14,7 +14,6 @@
 
 from neutron.api.rpc.agentnotifiers import l3_rpc_agent_api
 from neutron.api.rpc.handlers import l3_rpc
-from neutron.common import topics
 from neutron.db import common_db_mixin
 from neutron.db import dns_db
 #from neutron.db import l3_gwmode_db
@@ -23,6 +22,7 @@ from oslo_utils import importutils
 
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.backwards_compatibility import rpc as n_rpc
+from networking_cisco.backwards_compatibility import topics
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.common import cisco_constants
 from networking_cisco.plugins.cisco.db.l3 import ha_db

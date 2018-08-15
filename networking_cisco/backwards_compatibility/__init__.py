@@ -24,6 +24,9 @@ from networking_cisco.backwards_compatibility.neutron_version import *  # noqa
 # instead of importing constants properly so we don't need to do this.
 from networking_cisco.backwards_compatibility import constants  # noqa
 
+# FIXME(sambetts)
+from networking_cisco.backwards_compatibility import extensions  # noqa
+
 # Some constants and verifier functions have been deprecated but are still
 # used by earlier releases of neutron. In order to maintain
 # backwards-compatibility with stable/mitaka this will act as a translator
@@ -56,7 +59,6 @@ if nv.NEUTRON_VERSION >= nv.NEUTRON_OCATA_VERSION:
     from neutron.services.trunk.drivers import base as trunk_base
     from neutron_lib.api.definitions import portbindings
     from neutron_lib.api.definitions import provider_net as providernet
-    from neutron_lib.api import extensions
     from neutron_lib.plugins import directory
     from neutron_lib.services import base as service_base
     from neutron_lib.utils import helpers as common_utils
@@ -100,7 +102,6 @@ else:
     from networking_cisco.services.trunk import (  # noqa
         trunkstubs as trunk_base)  # noqa
 
-    from neutron.api import extensions  # noqa
     from neutron.api.v2 import attributes as attr
     from neutron.common import utils as common_utils  # noqa
     from neutron import context
