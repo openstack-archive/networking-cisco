@@ -198,17 +198,12 @@ class DeviceManagerTestSupportMixin(object):
             cisco_constants.AGENT_TYPE_L3_CFG: self._l3_cfg_agent_mock}
 
     def _define_keystone_authtoken(self):
-        test_opts = [
-            cfg.StrOpt('auth_url', default='http://localhost:35357/v2.0/'),
-            cfg.StrOpt('identity_uri', default='http://localhost:5000'),
-            #cfg.StrOpt('admin_user', default='neutron'),
-            cfg.StrOpt('username', default='neutron'),
-            #cfg.StrOpt('admin_password', default='secrete'),
-            cfg.StrOpt('password', default='secrete'),
-            cfg.StrOpt('project_name', default='service'),
-            cfg.StrOpt('project_domain_id', default='default'),
-            cfg.StrOpt('user_domain_id', default='default')]
-        cfg.CONF.register_opts(test_opts, 'keystone_authtoken')
+        cfg.CONF.import_group('keystone_authtoken',
+                              'keystonemiddleware.auth_token')
+        cfg.CONF.set_override('auth_uri', 'http://localhost:35357/v2.0/',
+                              group='keystone_authtoken')
+        cfg.CONF.set_override('identity_uri', 'http://localhost:5000',
+                              group='keystone_authtoken')
 
     def _add_device_manager_plugin_ini_file(self):
         # includes config files for device manager service plugin

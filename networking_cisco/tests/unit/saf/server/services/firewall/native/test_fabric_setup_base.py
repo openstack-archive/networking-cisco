@@ -18,6 +18,8 @@ import collections
 
 import mock
 
+from oslo_config import cfg
+
 from neutron.tests import base
 
 from networking_cisco.apps.saf.common import config
@@ -162,24 +164,26 @@ class FabricBaseTest(base.BaseTestCase):
         self.ext_part = EXT_PART
 
     def _fill_cfg(self):
-        config.default_firewall_opts['firewall'][
-            'fw_auto_serv_nwk_create'] = True
-        config.default_firewall_opts['firewall'][
-            'fw_service_host_profile'] = fw_const.HOST_PROF
-        config.default_firewall_opts['firewall'][
-            'fw_service_host_fwd_mode'] = fw_const.HOST_FWD_MODE
-        config.default_firewall_opts['firewall'][
-            'fw_service_ext_profile'] = fw_const.EXT_PROF
-        config.default_firewall_opts['firewall'][
-            'fw_service_ext_fwd_mode'] = fw_const.EXT_FWD_MODE
-        config.default_firewall_opts['firewall'][
-            'fw_service_part_vrf_profile'] = fw_const.PART_PROF
-        config.default_firewall_opts['firewall']['fw_mgmt_ip'] = '1.1.1.1'
-        config.default_dcnm_opts['dcnm']['vlan_id_min'] = 2
-        config.default_dcnm_opts['dcnm']['vlan_id_max'] = 200
-        config.default_dcnm_opts['dcnm']['segmentation_id_min'] = 20000
-        config.default_dcnm_opts['dcnm']['segmentation_id_max'] = 30000
-        config.default_dcnm_opts['dcnm']['segmentation_reuse_timeout'] = 20
+        cfg.CONF.set_override('fw_auto_serv_nwk_create',
+                              True, group='firewall')
+        cfg.CONF.set_override('fw_service_host_profile',
+                              fw_const.HOST_PROF, group='firewall')
+        cfg.CONF.set_override('fw_service_host_fwd_mode',
+                              fw_const.HOST_FWD_MODE, group='firewall')
+        cfg.CONF.set_override('fw_service_ext_profile',
+                              fw_const.EXT_PROF, group='firewall')
+        cfg.CONF.set_override('fw_service_ext_fwd_mode',
+                              fw_const.EXT_FWD_MODE, group='firewall')
+        cfg.CONF.set_override('fw_service_part_vrf_profile',
+                              fw_const.PART_PROF, group='firewall')
+        cfg.CONF.set_override('fw_mgmt_ip', '1.1.1.1', group='firewall')
+
+        cfg.CONF.set_override('vlan_id_min', 2, group='dcnm')
+        cfg.CONF.set_override('vlan_id_max', 200, group='dcnm')
+        cfg.CONF.set_override('segmentation_id_min', 20000, group='dcnm')
+        cfg.CONF.set_override('segmentation_id_max', 30000, group='dcnm')
+        cfg.CONF.set_override('segmentation_reuse_timeout', 20, group='dcnm')
+
         return config
 
     def test_fabric_base_init(self):
@@ -198,17 +202,13 @@ class FabricBaseTest(base.BaseTestCase):
         if direc == 'in':
             srvc_name = self.in_srvc_nwk_name
             srvc_seg = SEGMENTATION_ID
-            srvc_prof = config.default_firewall_opts[
-                'firewall']['fw_service_host_profile']
-            srvc_fwd_mode = config.default_firewall_opts[
-                'firewall']['fw_service_host_fwd_mode']
+            srvc_prof = cfg.CONF['firewall']['fw_service_host_profile']
+            srvc_fwd_mode = cfg.CONF['firewall']['fw_service_host_fwd_mode']
         else:
             srvc_name = self.out_srvc_nwk_name
             srvc_seg = OUT_SEGMENTATION_ID
-            srvc_prof = config.default_firewall_opts[
-                'firewall']['fw_service_ext_profile']
-            srvc_fwd_mode = config.default_firewall_opts[
-                'firewall']['fw_service_ext_fwd_mode']
+            srvc_prof = cfg.CONF['firewall']['fw_service_ext_profile']
+            srvc_fwd_mode = cfg.CONF['firewall']['fw_service_ext_fwd_mode']
         network_dict = {'tenant_id': self.tenant_id, 'name': srvc_name,
                         'segmentation_id': srvc_seg, 'vlan': VLAN_ID,
                         'config_profile': srvc_prof, 'fwd_mode': srvc_fwd_mode}
@@ -263,10 +263,8 @@ class FabricBaseTest(base.BaseTestCase):
             'vlan_id': VLAN_ID, 'segmentation_id': self.segmentation_id,
             'mob_domain': False, 'mob_domain_name': None,
             'name': self.in_srvc_nwk_name, 'part_name': None,
-            'config_profile': config.default_firewall_opts[
-                'firewall']['fw_service_host_profile'],
-            'fwd_mode': config.default_firewall_opts[
-                'firewall']['fw_service_host_fwd_mode']}
+            'config_profile': cfg.CONF['firewall']['fw_service_host_profile'],
+            'fwd_mode': cfg.CONF['firewall']['fw_service_host_fwd_mode']}
 
     def _fill_fw_dcnm_rest_subnet_dict(self):
         name = self.fw_id[0:4] + fw_const.IN_SERVICE_SUBNET + (
@@ -293,10 +291,8 @@ class FabricBaseTest(base.BaseTestCase):
             'mob_domain': False, 'mob_domain_name': None,
             'name': self.out_srvc_nwk_name,
             'part_name': fw_const.SERV_PART_NAME,
-            'config_profile': config.default_firewall_opts[
-                'firewall']['fw_service_ext_profile'],
-            'fwd_mode': config.default_firewall_opts[
-                'firewall']['fw_service_ext_fwd_mode']}
+            'config_profile': cfg.CONF['firewall']['fw_service_ext_profile'],
+            'fwd_mode': cfg.CONF['firewall']['fw_service_ext_fwd_mode']}
 
     def _fill_fw_dcnm_rest_out_subnet_dict(self):
         name = self.fw_id[0:4] + fw_const.OUT_SERVICE_SUBNET + (
@@ -902,8 +898,7 @@ class FabricBaseTest(base.BaseTestCase):
         expected_calls = [
             mock.call.create_partition(
                 self.tenant_name, fw_const.SERV_PART_NAME, None,
-                config.default_firewall_opts[
-                    'firewall']['fw_service_part_vrf_profile'],
+                cfg.CONF['firewall']['fw_service_part_vrf_profile'],
                 desc='Service Partition'),
             mock.call.update_fw_db_result(self.mock_fw_dict.get('fw_id'),
                                           fw_dcnm_part_dict),
@@ -1009,8 +1004,7 @@ class FabricBaseTest(base.BaseTestCase):
             mock.call.update_project(
                 self.tenant_name, fw_const.SERV_PART_NAME,
                 dci_id=self.ext_part,
-                vrf_prof=config.default_firewall_opts[
-                    'firewall']['fw_service_part_vrf_profile']),
+                vrf_prof=cfg.CONF['firewall']['fw_service_part_vrf_profile']),
             mock.call.update_fw_db_result(self.mock_fw_dict.get('fw_id'),
                                           fw_dcnm_part_dict),
             mock.call.append_state_final_result(

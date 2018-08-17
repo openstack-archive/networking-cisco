@@ -18,6 +18,8 @@ import collections
 
 import mock
 
+from oslo_config import cfg
+
 from neutron.tests import base
 
 from networking_cisco.apps.saf.common import config
@@ -74,7 +76,7 @@ class FwMgrTest(base.BaseTestCase):
         """Setup for the test scripts. """
         super(FwMgrTest, self).setUp()
         self._init_values()
-        config = self._fill_cfg()
+        self._fill_cfg()
         self.cfg = config.CiscoDFAConfig().cfg
 
         fw_mgr.FwMgr.__bases__ = (FakeClass.imitate(dev_mgr.DeviceMgr,
@@ -109,11 +111,12 @@ class FwMgrTest(base.BaseTestCase):
                           'destination_port': DST_PORT, 'action': 'allow'}
 
     def _fill_cfg(self):
-        config.default_firewall_opts['firewall'] = {
-            'device': 'phy_asa', 'fw_mgmt_ip': '1.1.1.1',
-            'fw_username': 'user', 'fw_passport': 'user',
-            'fw_interface_in': 'e1/1', 'fw_interface_out': 'e1/1'}
-        return config
+        cfg.CONF.set_override('device', 'phy_asa', group='firewall'),
+        cfg.CONF.set_override('fw_mgmt_ip', '1.1.1.1', group='firewall'),
+        cfg.CONF.set_override('fw_username', 'user', group='firewall'),
+        cfg.CONF.set_override('fw_passport', 'user', group='firewall'),
+        cfg.CONF.set_override('fw_interface_in', 'e1/1', group='firewall'),
+        cfg.CONF.set_override('fw_interface_out', 'e1/1', group='firewall')
 
     def test_fw_mgr_init(self):
         """Wrapper for the init. """

@@ -18,7 +18,7 @@ import collections
 
 import mock
 
-from neutron.tests import base
+from oslotest import base
 
 from networking_cisco.apps.saf.agent.vdp import ovs_vdp
 from networking_cisco.apps.saf.agent.vdp import vdp_constants as vconstants
@@ -47,6 +47,7 @@ class OvsVdpTest(base.BaseTestCase):
         self.rpc_client = mock.Mock()
         self.execute = mock.patch.object(
             utils, "execute", spec=utils.execute).start()
+        self.addCleanup(mock.patch.stopall)
         self._test_ovs_vdp_init()
         phy_port_num = 5
         int_peer_port_num = 6

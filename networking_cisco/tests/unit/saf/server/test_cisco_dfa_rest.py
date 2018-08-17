@@ -17,7 +17,9 @@
 
 import mock
 
-from neutron.tests import base
+from oslo_config import cfg
+
+from oslotest import base
 
 from networking_cisco.apps.saf.common import config
 from networking_cisco.apps.saf.server import cisco_dfa_rest as dc
@@ -43,10 +45,10 @@ class TestCiscoDFAClient(base.BaseTestCase):
         super(TestCiscoDFAClient, self).setUp()
 
         # Setting DCNM parameters.
-        config.default_dcnm_opts['dcnm']['dcnm_ip'] = FAKE_DCNM_IP
-        config.default_dcnm_opts['dcnm']['dcnm_user'] = FAKE_DCNM_USERNAME
-        config.default_dcnm_opts['dcnm']['dcnm_password'] = FAKE_DCNM_PASSWD
-        config.default_dcnm_opts['dcnm']['timeout_resp'] = 0.01
+        cfg.CONF.set_override('dcnm_ip', FAKE_DCNM_IP, group='dcnm')
+        cfg.CONF.set_override('dcnm_user', FAKE_DCNM_USERNAME, group='dcnm')
+        cfg.CONF.set_override('dcnm_password', FAKE_DCNM_PASSWD, group='dcnm')
+        cfg.CONF.set_override('timeout_resp', 0.01, group='dcnm')
         self.cfg = config.CiscoDFAConfig().cfg
 
         self.send_req = mock.patch.object(dc.DFARESTClient,

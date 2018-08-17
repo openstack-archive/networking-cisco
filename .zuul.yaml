@@ -175,15 +175,13 @@
         - networking-cisco-tox-py27-ocata
         - networking-cisco-tox-py27-pike
         - networking-cisco-tox-py27-queens
-        - networking-cisco-tox-py27-rocky:
-            voting: false
+        - networking-cisco-tox-py27-rocky
         - networking-cisco-tox-py35-mitaka
         - networking-cisco-tox-py35-newton
         - networking-cisco-tox-py35-ocata
         - networking-cisco-tox-py35-pike
         - networking-cisco-tox-py35-queens
-        - networking-cisco-tox-py35-rocky:
-            voting: false
+        - networking-cisco-tox-py35-rocky
     gate:
       jobs:
         - build-openstack-sphinx-docs:
@@ -202,11 +200,13 @@
         - networking-cisco-tox-py27-ocata
         - networking-cisco-tox-py27-pike
         - networking-cisco-tox-py27-queens
+        - networking-cisco-tox-py27-rocky
         - networking-cisco-tox-py35-mitaka
         - networking-cisco-tox-py35-newton
         - networking-cisco-tox-py35-ocata
         - networking-cisco-tox-py35-pike
         - networking-cisco-tox-py35-queens
+        - networking-cisco-tox-py35-rocky
     post:
       jobs:
         - publish-openstack-python-branch-tarball:

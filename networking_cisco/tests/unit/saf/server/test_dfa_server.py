@@ -18,7 +18,8 @@
 import mock
 import six
 
-from neutron.tests import base
+from oslo_config import cfg
+from oslotest import base
 
 from networking_cisco.apps.saf.common import config
 from networking_cisco.apps.saf.common import constants
@@ -115,13 +116,14 @@ class TestDFAServer(base.BaseTestCase):
         # the mocking of get_segmentid_range of DCNM client to return a range.
         ds.DfaServer.register_segment_dcnm = mock.Mock()
         # Setting DCNM parameters.
-        config.default_dcnm_opts['dcnm']['dcnm_ip'] = FAKE_DCNM_IP
-        config.default_dcnm_opts['dcnm']['dcnm_user'] = FAKE_DCNM_USERNAME
-        config.default_dcnm_opts['dcnm']['dcnm_password'] = FAKE_DCNM_PASSWD
-        config.default_dcnm_opts['dcnm']['timeout_resp'] = 0.01
-        config.default_dcnm_opts['dcnm']['segmentation_id_min'] = 10000
-        config.default_dcnm_opts['dcnm']['segmentation_id_max'] = 20000
-        config.default_dcnm_opts['dcnm']['orchestrator_id'] = FAKE_ORCH_ID
+        cfg.CONF.set_override('dcnm_ip', FAKE_DCNM_IP, group='dcnm')
+        cfg.CONF.set_override('dcnm_user', FAKE_DCNM_USERNAME, group='dcnm')
+        cfg.CONF.set_override('dcnm_password', FAKE_DCNM_PASSWD, group='dcnm')
+        cfg.CONF.set_override('timeout_resp', 0.01, group='dcnm')
+        cfg.CONF.set_override('segmentation_id_min', 10000, group='dcnm')
+        cfg.CONF.set_override('segmentation_id_max', 20000, group='dcnm')
+        cfg.CONF.set_override('orchestrator_id', FAKE_ORCH_ID, group='dcnm')
+
         self.cfg = config.CiscoDFAConfig().cfg
         self.segid = int(self.cfg.dcnm.segmentation_id_min) + 10
         self.seg_Drvr = mock.patch(

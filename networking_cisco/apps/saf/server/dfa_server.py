@@ -314,7 +314,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         self.PRI_LOW_START = 30
 
         self._gateway_mac = cfg.dcnm.gateway_mac
-        self.dcnm_dhcp = (cfg.dcnm.dcnm_dhcp.lower() == 'true')
+        self.dcnm_dhcp = cfg.dcnm.dcnm_dhcp
         self.dcnm_client = cdr.DFARESTClient(cfg)
 
         self.register_segment_dcnm(cfg, seg_id_min, seg_id_max)
@@ -335,8 +335,7 @@ class DfaServer(dfr.DfaFailureRecovery, dfa_dbm.DfaDBMixin,
         self.ser_q = constants.DFA_SERVER_QUEUE
         self._setup_rpc()
 
-        if (cfg.loadbalance.lb_enabled.lower() == 'true' and
-                cfg.loadbalance.lb_native.lower() == 'true'):
+        if (cfg.loadbalance.lb_enabled and cfg.loadbalance.lb_native):
             LOG.debug("Native LBaaS is enabled")
             self.events.update({
                 'vip.create.end': self.vip_create_event,
