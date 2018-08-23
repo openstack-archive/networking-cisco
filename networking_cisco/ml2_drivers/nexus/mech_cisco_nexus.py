@@ -17,7 +17,6 @@
 ML2 Mechanism Driver for Cisco Nexus platforms.
 """
 
-import eventlet
 import os
 import threading
 import time
@@ -26,6 +25,7 @@ from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
+from oslo_service import loopingcall
 from oslo_utils import excutils
 
 from networking_cisco import backwards_compatibility as bc
@@ -51,21 +51,20 @@ LOG = logging.getLogger(__name__)
 
 HOST_NOT_FOUND = "Host %s not defined in switch configuration section."
 
-# Delay the start of the monitor thread to avoid problems with Neutron server
-# process forking. One problem observed was ncclient RPC sync close_session
-# call hanging during initial _monitor_thread() processing to replay existing
-# database.
-DELAY_MONITOR_THREAD = 30
-
 CONF = cfg.CONF
 
 
-class CiscoNexusCfgMonitor(object):
+class CiscoNexusCfgMonitor(bc.BaseWorker):
     """Replay config on communication failure between OpenStack to Nexus."""
 
     def __init__(self, driver, mdriver):
+
         self._driver = driver
         self._mdriver = mdriver
+
+        super(CiscoNexusCfgMonitor, self).__init__(worker_process_count=0)
+        self._loop = None
+
         switch_connections = self._mdriver.get_switch_ips()
         for switch_ip in switch_connections:
             self._mdriver.set_switch_ip_and_active_state(
@@ -78,6 +77,34 @@ class CiscoNexusCfgMonitor(object):
                 except Exception as e:
                     LOG.exception("Failed to set trunk interfaces "
                                   "to None.")
+
+        LOG.debug("CiscoNexusCfgMonitor: initialized")
+
+    def start(self):
+        if not self._mdriver.is_replay_enabled():
+            return
+
+        super(CiscoNexusCfgMonitor, self).start()
+        if self._loop is None:
+            self._loop = loopingcall.FixedIntervalLoopingCall(
+                self.check_connections)
+        self._loop.start(interval=int(
+            conf.cfg.CONF.ml2_cisco.switch_heartbeat_time))
+        LOG.debug("CiscoNexusCfgMonitor: timer started. interval=%(interval)s",
+                 {'interval': conf.cfg.CONF.ml2_cisco.switch_heartbeat_time})
+
+    def wait(self):
+        if self._loop is not None:
+            self._loop.wait()
+
+    def stop(self):
+        if self._loop is not None:
+            self._loop.stop()
+
+    def reset(self):
+        self.stop()
+        self.wait()
+        self.start()
 
     def _configure_nexus_type(self, switch_ip, nexus_type):
         if nexus_type not in (const.NEXUS_3K, const.NEXUS_5K,
@@ -387,18 +414,15 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         self._ppid = os.getpid()
 
         self.monitor = CiscoNexusCfgMonitor(self.driver, self)
-        self.timer = None
-        self.monitor_timeout = conf.cfg.CONF.ml2_cisco.switch_heartbeat_time
-        self.monitor_lock = threading.Lock()
         self.context = bc.get_context()
         self.trunk = trunk.NexusMDTrunkHandler()
         nexus_trunk.NexusTrunkDriver.create()
         LOG.info("CiscoNexusMechanismDriver: initialize() called "
                  "pid %(pid)d thid %(tid)d", {'pid': self._ppid,
                  'tid': threading.current_thread().ident})
-        # Start the monitor thread
-        if self.is_replay_enabled():
-            eventlet.spawn_after(DELAY_MONITOR_THREAD, self._monitor_thread)
+
+    def get_workers(self):
+        return [self.monitor]
 
     def is_replay_enabled(self):
         return conf.cfg.CONF.ml2_cisco.switch_heartbeat_time > 0
@@ -1643,21 +1667,6 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             fields += "mcast_group " if not mcast_group else ""
             fields += "host_id" if not host_id else ""
             raise excep.NexusMissingRequiredFields(fields=fields)
-
-    def _monitor_thread(self):
-        """Periodically restarts the monitor thread."""
-        with self.monitor_lock:
-            self.monitor.check_connections()
-
-        self.timer = threading.Timer(self.monitor_timeout,
-                                     self._monitor_thread)
-        self.timer.start()
-
-    def _stop_monitor_thread(self):
-        """Terminates the monitor thread."""
-        if self.timer:
-            self.timer.cancel()
-            self.timer = None
 
     def create_network_precommit(self, context):
         network = context.current
