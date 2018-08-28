@@ -112,14 +112,14 @@ class HwVLANTrunkingPlugDriver(plug.PluginSidePluggingDriver):
     @classmethod
     def _get_network_interface_map_from_config(cls):
         dni_dict = config.get_specific_config(
-            'HwVLANTrunkingPlugDriver'.lower())
+            'HwVLANTrunkingPlugDriver')
         temp = {}
         for hd_uuid, kv_dict in dni_dict.items():
             # ensure hd_uuid is properly formatted
             hd_uuid = config.uuidify(hd_uuid)
             if hd_uuid not in temp:
                 temp[hd_uuid] = {'internal': {}, 'external': {}}
-            for k, v in kv_dict.items():
+            for k, v in kv_dict['interfaces'].items():
                 try:
                     entry = k[:k.index('_')]
                     net_spec, interface = v.split(':')

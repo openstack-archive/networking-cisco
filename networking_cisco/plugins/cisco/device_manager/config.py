@@ -22,8 +22,116 @@ import six
 
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.config import base
 
 LOG = logging.getLogger(__name__)
+
+credentials_subopts = [
+    cfg.StrOpt('name',
+        help=_('name of credential')),
+    cfg.StrOpt('description',
+        help=_('description of credential')),
+    cfg.StrOpt('user_name',
+        help=_('the user name')),
+    cfg.StrOpt('password',
+        help=_('the password'),
+        secret=True),
+    cfg.StrOpt('type',
+        help=_('the credential type'))
+]
+
+
+hosting_device_credentials = base.SubsectionOpt(
+    'cisco_hosting_device_credential',
+    dest='cisco_hosting_device_credential',
+    help=_("Subgroups that allow you to specify the hosting device "
+           "credentials"),
+    subopts=credentials_subopts)
+
+
+template_subopts = [
+    cfg.StrOpt('name'),
+    cfg.BoolOpt('enabled'),
+    cfg.StrOpt('host_category'),
+    cfg.StrOpt('service_types'),
+    cfg.StrOpt('image'),
+    cfg.StrOpt('flavor'),
+    cfg.StrOpt('default_credentials_id'),
+    cfg.StrOpt('configuration_mechanism'),
+    cfg.IntOpt('protocol_port'),
+    cfg.IntOpt('booting_time'),
+    cfg.IntOpt('slot_capacity'),
+    cfg.IntOpt('desired_slots_free'),
+    cfg.StrOpt('tenant_bound'),
+    cfg.StrOpt('device_driver'),
+    cfg.StrOpt('plugging_driver')
+]
+
+
+hosting_device_templates = base.SubsectionOpt(
+    'cisco_hosting_device_template',
+    dest='cisco_hosting_device_template',
+    help=_("Subgroups that allow you to specify the hosting device templates"),
+    subopts=template_subopts)
+
+
+hosting_device_subopts = [
+    cfg.StrOpt('template_id'),
+    cfg.StrOpt('credentials_id'),
+    cfg.StrOpt('name'),
+    cfg.StrOpt('description'),
+    cfg.StrOpt('device_id'),
+    cfg.BoolOpt('admin_state_up'),
+    cfg.StrOpt('management_ip_address'),
+    cfg.IntOpt('protocol_port'),
+    cfg.StrOpt('tenant_bound'),
+    cfg.BoolOpt('auto_delete')
+]
+
+
+hosting_devices = base.SubsectionOpt(
+    'cisco_hosting_device',
+    dest='cisco_hosting_device',
+    help=_("Subgroups that allow you to specify the hosting devices"),
+    subopts=hosting_device_subopts)
+
+
+router_type_subopts = [
+    cfg.StrOpt('name'),
+    cfg.StrOpt('description'),
+    cfg.StrOpt('template_id'),
+    cfg.BoolOpt('ha_enabled_by_default'),
+    cfg.BoolOpt('shared'),
+    cfg.IntOpt('slot_need'),
+    cfg.StrOpt('scheduler'),
+    cfg.StrOpt('driver'),
+    cfg.StrOpt('cfg_agent_service_helper'),
+    cfg.StrOpt('cfg_agent_driver')
+]
+
+
+router_types = base.SubsectionOpt(
+    'cisco_router_type',
+    dest='cisco_router_type',
+    help=_("Subgroups that allow you to specify the hosting devices"),
+    subopts=router_type_subopts)
+
+
+hwvlantrunkingdrivers_subopts = [
+    base.RemainderOpt('interfaces')
+]
+
+hwvlantrunkingdrivers = base.SubsectionOpt(
+    'HwVLANTrunkingPlugDriver',
+    dest='HwVLANTrunkingPlugDriver',
+    help=_("Subgroups that allow you to specify trunking driver interfaces"),
+    subopts=hwvlantrunkingdrivers_subopts)
+
+cfg.CONF.register_opt(hosting_device_credentials)
+cfg.CONF.register_opt(hosting_device_templates)
+cfg.CONF.register_opt(hosting_devices)
+cfg.CONF.register_opt(router_types)
+cfg.CONF.register_opt(hwvlantrunkingdrivers)
 
 
 def get_specific_config(prefix):
@@ -32,19 +140,8 @@ def get_specific_config(prefix):
     returns: a dict, {<UUID>: {<key1>:<value1>, <key2>:<value2>, ...}}
     """
     conf_dict = {}
-    multi_parser = cfg.MultiConfigParser()
-    read_ok = multi_parser.read(cfg.CONF.config_file)
-    if len(read_ok) != len(cfg.CONF.config_file):
-        raise cfg.Error(_("Some config files were not parsed properly"))
-
-    for parsed_file in multi_parser.parsed:
-        for parsed_item in parsed_file.keys():
-            p_i = parsed_item.lower()
-            if p_i.startswith(prefix):
-                section_type, uuid = p_i.split(':')
-                if section_type == prefix:
-                    conf_dict[uuid] = {k: v[0] for (k, v) in parsed_file[
-                        parsed_item].items()}
+    for uuid, val in cfg.CONF.get(prefix, {}).items():
+        conf_dict[uuid] = dict(val)
     return conf_dict
 
 

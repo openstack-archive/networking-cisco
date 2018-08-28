@@ -16,6 +16,8 @@ from networking_cisco.ml2_drivers.nexus import (
     type_nexus_vxlan as nexus_vxlan_config)
 from networking_cisco.ml2_drivers.ucsm import (
     config as ucsm_config)
+from networking_cisco.plugins.cisco.device_manager import (
+    config as asrcfg)
 
 
 def list_nexus_conf_opts():
@@ -38,4 +40,14 @@ def list_ucsm_conf_opts():
         ('ml2_cisco_ucsm', main_group),
         ('ml2_cisco_ucsm_ip:<ip_address>', ucsm_config.ml2_cisco_ucsm_common),
         ('sriov_multivlan_trunk', ucsm_config.sriov_opts)
+    ]
+
+
+def list_asr_conf_opts():
+    return [
+        ('cisco_hosting_device_credential:<uuid>', asrcfg.credentials_subopts),
+        ('cisco_hosting_device_template:<uuid>', asrcfg.template_subopts),
+        ('cisco_hosting_device:<uuid>', asrcfg.hosting_device_subopts),
+        ('cisco_router_type:<uuid>', asrcfg.router_type_subopts),
+        ('HwVLANTrunkingPlugDriver', asrcfg.hwvlantrunkingdrivers_subopts)
     ]
