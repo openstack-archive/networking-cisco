@@ -80,7 +80,6 @@ function is_neutron_enabled {
 function configure_cisco_asr1k_router {
     net_create_neutron_accounts
     net_configure_neutron
-    net_start_neutron_agents
     Q_L3_ENABLED="False"
     if [[ "$Q_CISCO_ASR1K_ENABLED" == "True" ]]; then
         setup_for_asr1k

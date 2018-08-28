@@ -33,6 +33,7 @@ if is_service_enabled net-cisco; then
 
     elif [[ "$1" == "stack" && "$2" == "extra" ]]; then
         if is_service_enabled q-ciscorouter && is_service_enabled ciscocfgagent; then
+           net_start_neutron_agents
            start_cisco_asr1k_router
         fi
         if is_service_enabled cisco-saf; then
