@@ -1,156 +1,147 @@
 - job:
-    name: networking-cisco-tox-py35-newton
+    name: networking-cisco-tox
     parent: openstack-tox
-    override-branch: stable/newton
-    description: |
-      Run unit tests for networking-cisco under cPython version 3.5 with neutron newton.
-      Uses tox with the ``py35-newton`` environment.
+    timeout: 2400
     irrelevant-files:
       - ^.*\.rst$
       - ^doc/.*$
       - ^releasenotes/.*$
+
+- job:
+    name: networking-cisco-tox-py35-mitaka
+    parent: networking-cisco-tox
+    override-checkout: mitaka-eol
+    description: |
+      Run unit tests for networking-cisco under cPython version 3.5 with neutron newton.
+      Uses tox with the ``py35-newton`` environment.
+    vars:
+      tox_envlist: py35
+      bindep_profile: test py35
+
+- job:
+    name: networking-cisco-tox-py35-newton
+    parent: networking-cisco-tox
+    override-checkout: stable/newton
+    description: |
+      Run unit tests for networking-cisco under cPython version 3.5 with neutron newton.
+      Uses tox with the ``py35-newton`` environment.
     vars:
       tox_envlist: py35-newton
       bindep_profile: test py35
 
 - job:
     name: networking-cisco-tox-py35-ocata
-    parent: openstack-tox
-    override-branch: stable/ocata
+    parent: networking-cisco-tox
+    override-checkout: stable/ocata
     description: |
       Run unit tests for networking-cisco under cPython version 3.5 with neutron ocata.
       Uses tox with the ``py35-ocata`` environment.
-    irrelevant-files:
-      - ^.*\.rst$
-      - ^doc/.*$
-      - ^releasenotes/.*$
     vars:
       tox_envlist: py35-ocata
       bindep_profile: test py35
 
 - job:
     name: networking-cisco-tox-py35-pike
-    parent: openstack-tox
-    override-branch: stable/pike
+    parent: networking-cisco-tox
+    override-checkout: stable/pike
     description: |
       Run unit tests for networking-cisco under cPython version 3.5 with neutron pike.
       Uses tox with the ``py35-pike`` environment.
-    irrelevant-files:
-      - ^.*\.rst$
-      - ^doc/.*$
-      - ^releasenotes/.*$
     vars:
       tox_envlist: py35-pike
       bindep_profile: test py35
 
 - job:
     name: networking-cisco-tox-py35-queens
-    parent: openstack-tox
-    override-branch: stable/queens
+    parent: networking-cisco-tox
+    override-checkout: stable/queens
     description: |
       Run unit tests for networking-cisco under cPython version 3.5 with neutron queens.
       Uses tox with the ``py35-queens`` environment.
-    irrelevant-files:
-      - ^.*\.rst$
-      - ^doc/.*$
-      - ^releasenotes/.*$
     vars:
       tox_envlist: py35-queens
       bindep_profile: test py35
 
 - job:
     name: networking-cisco-tox-py35-rocky
-    parent: openstack-tox
-    override-branch: master
+    parent: networking-cisco-tox
+    override-checkout: stable/rocky
     description: |
       Run unit tests for networking-cisco under cPython version 3.5 with neutron rocky.
       Uses tox with the ``py35-rocky`` environment.
-    irrelevant-files:
-      - ^.*\.rst$
-      - ^doc/.*$
-      - ^releasenotes/.*$
     vars:
       tox_envlist: py35-rocky
       bindep_profile: test py35
 
 - job:
-    name: networking-cisco-tox-py27-newton
-    parent: openstack-tox
-    override-branch: stable/newton
+    name: networking-cisco-tox-py27-mitaka
+    parent: networking-cisco-tox
+    override-checkout: mitaka-eol
     description: |
       Run unit tests for networking-cisco under cPython version 2.7 with neutron newton.
       Uses tox with the ``py27-newton`` environment.
-    irrelevant-files:
-      - ^.*\.rst$
-      - ^doc/.*$
-      - ^releasenotes/.*$
+    vars:
+      tox_envlist: py27
+      bindep_profile: test py27
+
+- job:
+    name: networking-cisco-tox-py27-newton
+    parent: networking-cisco-tox
+    override-checkout: stable/newton
+    description: |
+      Run unit tests for networking-cisco under cPython version 2.7 with neutron newton.
+      Uses tox with the ``py27-newton`` environment.
     vars:
       tox_envlist: py27-newton
       bindep_profile: test py27
 
 - job:
     name: networking-cisco-tox-py27-ocata
-    parent: openstack-tox
-    override-branch: stable/ocata
+    parent: networking-cisco-tox
+    override-checkout: stable/ocata
     description: |
       Run unit tests for networking-cisco under cPython version 2.7 with neutron ocata.
       Uses tox with the ``py27-ocata`` environment.
-    irrelevant-files:
-      - ^.*\.rst$
-      - ^doc/.*$
-      - ^releasenotes/.*$
     vars:
       tox_envlist: py27-ocata
       bindep_profile: test py27
 
 - job:
     name: networking-cisco-tox-py27-pike
-    parent: openstack-tox
-    override-branch: stable/pike
+    parent: networking-cisco-tox
+    override-checkout: stable/pike
     description: |
       Run unit tests for networking-cisco under cPython version 2.7 with neutron pike.
       Uses tox with the ``py27-pike`` environment.
-    irrelevant-files:
-      - ^.*\.rst$
-      - ^doc/.*$
-      - ^releasenotes/.*$
     vars:
       tox_envlist: py27-pike
       bindep_profile: test py27
 
 - job:
     name: networking-cisco-tox-py27-queens
-    parent: openstack-tox
-    override-branch: stable/queens
+    parent: networking-cisco-tox
+    override-checkout: stable/queens
     description: |
       Run unit tests for networking-cisco under cPython version 2.7 with neutron queens.
       Uses tox with the ``py27-queens`` environment.
-    irrelevant-files:
-      - ^.*\.rst$
-      - ^doc/.*$
-      - ^releasenotes/.*$
     vars:
       tox_envlist: py27-queens
       bindep_profile: test py27
 
 - job:
     name: networking-cisco-tox-py27-rocky
-    parent: openstack-tox
-    override-branch: master
+    parent: networking-cisco-tox
+    override-checkout: stable/rocky
     description: |
       Run unit tests for networking-cisco under cPython version 2.7 with neutron rocky.
       Uses tox with the ``py27-rocky`` environment.
-    irrelevant-files:
-      - ^.*\.rst$
-      - ^doc/.*$
-      - ^releasenotes/.*$
     vars:
       tox_envlist: py27-rocky
       bindep_profile: test py27
 
 - job:
     name: networking-cisco-tox-bandit
-    parent: openstack-tox
+    parent: networking-cisco-tox
     description: |
       Run static analysis for networking-cisco python code.
     vars:
@@ -159,8 +150,6 @@
 
 - project:
     templates:
-      - openstack-python-jobs-neutron
-      - openstack-python35-jobs-neutron
       - docs-on-readthedocs
     check:
       jobs:
@@ -178,22 +167,17 @@
         - openstack-tox-pep8:
             override-checkout: stable/queens
             required-projects:
-              - openstack/python-neutronclient
-        - openstack-tox-py27:
-            override-checkout: mitaka-eol
-            required-projects:
-              - openstack/python-neutronclient
-        - openstack-tox-py35:
-            override-checkout: mitaka-eol
-            required-projects:
+              - openstack/neutron
               - openstack/python-neutronclient
         - networking-cisco-tox-bandit
+        - networking-cisco-tox-py27-mitaka
         - networking-cisco-tox-py27-newton
         - networking-cisco-tox-py27-ocata
         - networking-cisco-tox-py27-pike
         - networking-cisco-tox-py27-queens
         - networking-cisco-tox-py27-rocky:
             voting: false
+        - networking-cisco-tox-py35-mitaka
         - networking-cisco-tox-py35-newton
         - networking-cisco-tox-py35-ocata
         - networking-cisco-tox-py35-pike
@@ -210,20 +194,15 @@
         - openstack-tox-pep8:
             override-checkout: stable/queens
             required-projects:
-              - openstack/python-neutronclient
-        - openstack-tox-py27:
-            override-checkout: mitaka-eol
-            required-projects:
-              - openstack/python-neutronclient
-        - openstack-tox-py35:
-            override-checkout: mitaka-eol
-            required-projects:
+              - openstack/neutron
               - openstack/python-neutronclient
         - networking-cisco-tox-bandit
+        - networking-cisco-tox-py27-mitaka
         - networking-cisco-tox-py27-newton
         - networking-cisco-tox-py27-ocata
         - networking-cisco-tox-py27-pike
         - networking-cisco-tox-py27-queens
+        - networking-cisco-tox-py35-mitaka
         - networking-cisco-tox-py35-newton
         - networking-cisco-tox-py35-ocata
         - networking-cisco-tox-py35-pike
@@ -232,4 +211,5 @@
       jobs:
         - publish-openstack-python-branch-tarball:
             required-projects:
+              - openstack/neutron
               - openstack/python-neutronclient
