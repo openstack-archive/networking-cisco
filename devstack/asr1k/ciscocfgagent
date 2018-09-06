@@ -61,7 +61,8 @@ function start_the_ciscocfgagent {
     # Need to enable q-ciscocfgagent due to how is_service_enabled function works
     enable_service q-ciscocfgagent
     configure_ciscocfgagent
-    CISCO_CFG_CONF_FILES="--config-file $NEUTRON_CONF --config-file=$Q_CISCO_CFGAGENT_CONF_FILE"
+    DEVMGR_PLUGIN_CONF_FILE=$PLUGIN_CONFIG_DIR/$CISCO_DEVMGR_PLUGIN_CONF_FILE
+    CISCO_CFG_CONF_FILES="--config-file $NEUTRON_CONF --config-file=$DEVMGR_PLUGIN_CONF_FILE  --config-file=$Q_CISCO_CFGAGENT_CONF_FILE"
     run_process q-ciscocfgagent "$AGENT_CISCO_CFGAGENT_BINARY $CISCO_CFG_CONF_FILES"
 }
 
