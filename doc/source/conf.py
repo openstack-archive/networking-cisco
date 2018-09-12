@@ -27,7 +27,9 @@ apidoc_excluded_paths = [
     "ml2_drivers/n1kv",
     "plugins/cisco/db/l3/l3_router_appliance_db.py",
     "tests/unit/ml2_drivers/ncs",
-    "tests/unit/ml2_drivers/n1kv"
+    "tests/unit/ml2_drivers/n1kv",
+    "ml2_drivers/ucsm/deprecated_network_driver.py",
+    "ml2_drivers/ucsm/ucs_urllib2.py"
 ]
 apidoc_separate_modules = True
 
