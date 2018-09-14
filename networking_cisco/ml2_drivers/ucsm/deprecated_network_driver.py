@@ -973,7 +973,7 @@ class CiscoUcsmDriver(object):
                 if (port_profile):
                     self._delete_port_profile(handle, port_profile, ucsm_ip)
 
-                ucsm = CONF.ml2_cisco_ucsm.ucsm[ucsm_ip]
+                ucsm = CONF.ml2_cisco_ucsm.ucsms[ucsm_ip]
                 if ucsm.sp_template_list:
                     self._remove_vlan_from_all_sp_templates(handle,
                                                             vlan_id,
