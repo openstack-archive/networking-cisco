@@ -173,7 +173,6 @@ if nv.NEUTRON_VERSION >= nv.NEUTRON_PIKE_VERSION:
     from neutron.db._resource_extend import has_resource_extenders  # noqa
     from neutron_lib.api.definitions import dns
     from neutron_lib.api.definitions import provider_net
-    from neutron_lib.worker import BaseWorker  # noqa
 
     def auto_schedule_routers(self, hosts, r_ids):
         self.l3_plugin.auto_schedule_routers(self.adminContext, hosts)
@@ -181,7 +180,6 @@ else:
     from neutron.agent.common import config  # noqa
     from neutron.extensions import dns  # noqa
     from neutron.extensions import providernet as provider_net  # noqa
-    from neutron.worker import NeutronWorker as BaseWorker  # noqa
 
     def auto_schedule_routers(self, hosts, r_ids):
         self.l3_plugin.auto_schedule_routers(self.adminContext, hosts, r_ids)

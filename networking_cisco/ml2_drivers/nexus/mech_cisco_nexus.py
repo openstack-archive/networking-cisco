@@ -32,6 +32,7 @@ from networking_cisco import backwards_compatibility as bc
 from networking_cisco.backwards_compatibility import constants as p_const
 from networking_cisco.backwards_compatibility import ml2_api as api
 from networking_cisco.backwards_compatibility import runtime_utils
+from networking_cisco.backwards_compatibility import worker
 
 from networking_cisco.ml2_drivers.nexus import (
     config as conf)
@@ -54,7 +55,7 @@ HOST_NOT_FOUND = "Host %s not defined in switch configuration section."
 CONF = cfg.CONF
 
 
-class CiscoNexusCfgMonitor(bc.BaseWorker):
+class CiscoNexusCfgMonitor(worker.BaseWorker):
     """Replay config on communication failure between OpenStack to Nexus."""
 
     def __init__(self, driver, mdriver):
