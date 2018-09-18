@@ -152,7 +152,7 @@ ml2_cisco_opts = [
     cfg.BoolOpt('provider_vlan_auto_create', default=True,
         help=_('A flag indicating whether the Nexus driver should manage '
                'the creation and removal of VLANs for provider networks on '
-               'the Nexus switches. When this flag is False, the Nexus'
+               'the Nexus switches. When this flag is False, the Nexus '
                'driver will not create or remove VLANs for provider '
                'networks and the administrator needs to manage these '
                'interfaces manually or by external orchestration.')),

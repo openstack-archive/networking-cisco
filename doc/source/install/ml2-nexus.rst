@@ -111,6 +111,10 @@ ML2 Nexus MD Installation
        tenant_network_types = vlan
        mechanism_drivers = openvswitch,cisco_nexus
 
+       #- This extension driver must be enabled when the mechanism
+       #  driver includes nexus.
+       extension_drivers = cisco_providernet_ext
+
        #- This neutron config specifies the vlan range to use.
        [ml2_type_vlan]
        network_vlan_ranges = physnet1:1400:3900
