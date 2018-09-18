@@ -42,6 +42,9 @@ config file sections :ref:`nexus_vlan_startup` apply here.
     OVS_PHYSICAL_BRIDGE=br-eth1
 
     [[post-config|/etc/neutron/plugins/ml2/ml2_conf.ini]]
+    [ml2]
+    extension_drivers = cisco_providernet_ext
+
     [ml2_cisco]
     switch_heartbeat_time = 30
 
@@ -89,6 +92,9 @@ neutron start-up config file sections :ref:`neutron_vxlan_startup` apply here.
         [agent]
         minimize_polling=True
         tunnel_types=
+
+        [ml2]
+        extension_drivers = cisco_providernet_ext
 
         [ml2_cisco]
         switch_hearbeat_time = 30  # No longer required since 30 is now the default in this release.
