@@ -30,7 +30,7 @@ The following lists steps to install the networking-cisco repository:
 
      .. code-block:: console
 
-        $ tar -zxfv <downloaded networking-cisco tarball>
+        $ tar -zxvf <downloaded networking-cisco tarball>
         $ cd ./networking-cisco-<version>
         $ python setup.py install
 
