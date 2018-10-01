@@ -86,6 +86,10 @@ activities performed during VLAN creation and removal, refer to
     tenant_network_types = vlan
     mechanism_drivers = openvswitch,cisco_nexus
 
+    #- This extension driver must be enabled when the mechanism
+    #  driver includes nexus.
+    extension_drivers = cisco_providernet_ext
+
     #- This neutron config specifies the vlan range to use.
     [ml2_type_vlan]
     network_vlan_ranges = physnet1:1400:3900
@@ -238,6 +242,10 @@ Sample VXLAN configuration with Ethernet interfaces
         tenant_network_types = nexus_vxlan
         mechanism_drivers = openvswitch,cisco_nexus
 
+        #- This extension driver must be enabled when the mechanism
+        #  driver includes nexus.
+        extension_drivers = cisco_providernet_ext
+
         [ml2_type_vlan]
         network_vlan_ranges = physnet1:100:109
 
@@ -361,8 +369,10 @@ variables.  More details on these neutron variable names can be found in
       NeutronNetworkVLANRanges: 'datacentre:2000:2500'
       NetworkNexusVxlanVniRanges: '0:0'
       NetworkNexusVxlanMcastRanges: '0.0.0.0:0.0.0.0'
+      NeutronPluginExtensions: 'cisco_providernet_ext'
 
 .. end
+
 
 VXLAN Configuration
 -------------------
@@ -430,6 +440,7 @@ found in :doc:`Nexus Configuration Reference </configuration/ml2-nexus>`.
           NeutronNetworkVLANRanges: 'datacentre:2000:2500'
           NetworkNexusVxlanVniRanges: '50000:55000'
           NetworkNexusVxlanMcastRanges: '225.1.1.1:225.1.1.2'
+          NeutronPluginExtensions: 'cisco_providernet_ext'
 
 .. end
 
@@ -506,7 +517,9 @@ The OpenStack/network administrator may want to control how the OpenStack
 create, update and delete port events program the Nexus switch for provider
 networks. Two configuration variables are available to address limiting the
 actions taken for provider networks during port events. The variables are
-defined under the ``[ml2_cisco]`` section header.
+defined under the ``[ml2_cisco]`` section header.  These variables depend
+on the `extension_drivers` being set to `cisco_providernet_ext` beneath
+the ``[ml2]`` section header.
 
 .. code-block:: ini
 
