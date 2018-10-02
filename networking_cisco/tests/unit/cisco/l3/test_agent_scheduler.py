@@ -18,12 +18,12 @@ from oslo_config import cfg
 from oslo_utils import importutils
 
 from neutron.api.rpc.agentnotifiers import dhcp_rpc_agent_api
-from neutron.common import topics
 from neutron.db import agentschedulers_db
 from neutron.plugins.ml2 import rpc
 from neutron.tests.unit.db import test_agentschedulers_db
 
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import topics
 from networking_cisco.plugins.cisco.common import cisco_constants as c_const
 from networking_cisco.plugins.cisco.extensions import (
     ciscohostingdevicemanager as ciscodevmgr)

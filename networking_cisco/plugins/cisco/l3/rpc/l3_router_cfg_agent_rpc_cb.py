@@ -17,10 +17,9 @@ import oslo_messaging
 from oslo_serialization import jsonutils
 import six
 
-from neutron.db import api as db_api
-
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.backwards_compatibility import l3_exceptions
+from networking_cisco.backwards_compatibility import lib_db_api as db_api
 
 LOG = logging.getLogger(__name__)
 

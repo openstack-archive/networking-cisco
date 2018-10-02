@@ -17,13 +17,13 @@ import abc
 from oslo_utils import netutils
 import six
 
-from neutron.api.v2 import attributes as attr
 from neutron.api.v2 import resource_helper
 from neutron_lib.api import converters as conv
 from neutron_lib import exceptions as nexception
 
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import attributes as attr
 from networking_cisco.plugins.cisco.common import cisco_constants as constants
 from networking_cisco.plugins.cisco.common import utils
 

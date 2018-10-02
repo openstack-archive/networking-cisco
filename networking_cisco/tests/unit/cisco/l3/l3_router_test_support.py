@@ -15,6 +15,7 @@
 import mock
 
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import attributes
 from networking_cisco.backwards_compatibility import l3_const
 import networking_cisco.plugins
 from networking_cisco.plugins.cisco.db.l3 import l3_router_appliance_db
@@ -25,7 +26,6 @@ from networking_cisco.plugins.cisco.extensions import routerhostingdevice
 from networking_cisco.plugins.cisco.extensions import routerrole
 from networking_cisco.plugins.cisco.extensions import routertype
 
-from neutron.api.v2 import attributes
 from neutron.common import test_lib
 from neutron.db import common_db_mixin
 from neutron.extensions import l3
@@ -96,7 +96,7 @@ class TestL3RouterBaseExtensionManager(object):
             (l3_const.RESOURCE_ATTRIBUTE_MAP['floatingips'].
              update(ext_res['floatingips']))
         # finally, extend the global attribute map
-        attributes.RESOURCE_ATTRIBUTE_MAP.update(
+        attributes.RESOURCES.update(
             l3_const.RESOURCE_ATTRIBUTE_MAP)
         res = l3.L3.get_resources()
         # add routertype resource

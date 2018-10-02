@@ -27,13 +27,13 @@ from oslo_utils import importutils
 import six
 
 from neutron.common import exceptions as n_exc
-from neutron.common import rpc as n_rpc
-from neutron.common import topics
 
 from neutron_lib import exceptions as n_lib_exc
 
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
+from networking_cisco.backwards_compatibility import rpc as n_rpc
+from networking_cisco.backwards_compatibility import topics
 from networking_cisco.plugins.cisco.cfg_agent import cfg_exceptions
 from networking_cisco.plugins.cisco.cfg_agent.device_drivers import driver_mgr
 from networking_cisco.plugins.cisco.cfg_agent import device_status
@@ -206,7 +206,7 @@ class RoutingServiceHelper(object):
         self._setup_rpc()
 
     def _setup_rpc(self):
-        self.conn = n_rpc.create_connection()
+        self.conn = n_rpc.Connection()
         self.endpoints = [self]
         self.conn.create_consumer(self.topic, self.endpoints, fanout=False)
         self.conn.consume_in_threads()

@@ -21,6 +21,9 @@ from networking_cisco.backwards_compatibility import neutron_version as nv
 # Pull in all the neutron_lib constants
 from neutron_lib.constants import *  # noqa
 
+if nv.NEUTRON_VERSION >= nv.NEUTRON_PIKE_VERSION:
+    from neutron_lib.plugins.constants import *  # noqa
+
 # Compatibility additions for releases before Newton
 if nv.NEUTRON_VERSION < nv.NEUTRON_NEWTON_VERSION:
     from neutron.api.v2.attributes import ATTR_NOT_SPECIFIED  # noqa: F401

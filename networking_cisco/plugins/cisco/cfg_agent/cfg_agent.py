@@ -32,13 +32,13 @@ from oslo_utils import importutils
 from neutron.agent import rpc as agent_rpc
 from neutron.common import config as common_config
 from neutron.common import rpc as n_rpc
-from neutron.common import topics
 from neutron import manager
 from neutron import service as neutron_service
 
 from networking_cisco._i18n import _
 from networking_cisco import backwards_compatibility as bc
 from networking_cisco.backwards_compatibility import neutron_agent_conf
+from networking_cisco.backwards_compatibility import topics
 from networking_cisco.plugins.cisco.cfg_agent import device_status
 from networking_cisco.plugins.cisco.common import (cisco_constants as
                                                    c_constants)
