@@ -46,31 +46,40 @@ class TestCiscoUcsmSSL(base.BaseTestCase):
         cfg.CONF.set_override("ucsm_https_verify", True,
                               group="ml2_cisco_ucsm")
         sock = socket.socket()
-        context = ucs_ssl.wrap_socket(sock).context
+        wrapped_sock = ucs_ssl.wrap_socket(sock)
+        context = wrapped_sock.context
         self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
+        wrapped_sock.close()
 
     def test_wrap_socket_verify_false(self):
         cfg.CONF.set_override("ucsm_https_verify", False,
                               group="ml2_cisco_ucsm")
         sock = socket.socket()
-        context = ucs_ssl.wrap_socket(sock).context
+        wrapped_sock = ucs_ssl.wrap_socket(sock)
+        context = wrapped_sock.context
         self.assertEqual(context.verify_mode, ssl.CERT_NONE)
+        wrapped_sock.close()
 
     def test_wrap_socket_verify_false_cert_reqs_true(self):
         cfg.CONF.set_override("ucsm_https_verify", False,
                               group="ml2_cisco_ucsm")
         sock = socket.socket()
-        context = ucs_ssl.wrap_socket(sock,
-                                      cert_reqs=ssl.CERT_REQUIRED).context
+        wrapped_sock = ucs_ssl.wrap_socket(sock,
+                                           cert_reqs=ssl.CERT_REQUIRED)
+        context = wrapped_sock.context
+
         self.assertNotEqual(context.verify_mode, ssl.CERT_REQUIRED)
+        wrapped_sock.close()
 
     def test_wrap_socket_verify_true_cert_reqs_false(self):
         cfg.CONF.set_override("ucsm_https_verify", True,
                               group="ml2_cisco_ucsm")
         sock = socket.socket()
-        context = ucs_ssl.wrap_socket(sock,
-                                      cert_reqs=ssl.CERT_NONE).context
+        wrapped_sock = ucs_ssl.wrap_socket(sock,
+                                           cert_reqs=ssl.CERT_NONE)
+        context = wrapped_sock.context
         self.assertNotEqual(context.verify_mode, ssl.CERT_NONE)
+        wrapped_sock.close()
 
 
 class TestUcsmsdkPatch(base.BaseTestCase):
@@ -97,9 +106,11 @@ class TestUcsmsdkPatch(base.BaseTestCase):
         tls_context.connect()
 
         self.assertEqual(tls_context.sock.context.verify_mode, ssl.CERT_NONE)
+        tls_context.close()
 
         # Second connection method
         tls1_context = ucsdriver.TLS1Connection('127.0.0.1', port=7777)
         tls1_context.connect()
 
         self.assertEqual(tls1_context.sock.context.verify_mode, ssl.CERT_NONE)
+        tls1_context.close()
