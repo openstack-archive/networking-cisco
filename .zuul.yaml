@@ -209,7 +209,4 @@
         - networking-cisco-tox-py35-rocky
     post:
       jobs:
-        - publish-openstack-python-branch-tarball:
-            required-projects:
-              - openstack/neutron
-              - openstack/python-neutronclient
+        - publish-openstack-python-branch-tarball
