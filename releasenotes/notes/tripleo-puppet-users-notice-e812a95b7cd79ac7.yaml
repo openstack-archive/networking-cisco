@@ -1,0 +1,8 @@
+---
+prelude: >
+    In this release, clean-up of Nexus configuration was performed
+    by removing obsolete features. For users of tripleo and
+    puppet-neutron repos, you must make sure you are using the
+    correct versions of the repos that include the changes
+    from bugs https://bugs.launchpad.net/tripleo/+bug/1793381
+    and https://bugs.launchpad.net/puppet-neutron/+bug/1793379.
