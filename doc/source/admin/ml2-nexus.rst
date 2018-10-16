@@ -128,8 +128,11 @@ activities performed during VLAN creation and removal, refer to
     #- Setting the https_verify option below to False is highly discouraged
     #  for use in a production setting. This would make the communication
     #  path vulnerable to man-in-the-middle attacks.  The default is True
-    #  for a secure path.
+    #  for a secure path.  Also provide a location of your chosen CA's
+    #  certificates to avoid use of a random list of CAs provided by distros.
+    #  This configuration is set for each Nexus switch.
     https_verify=True
+    https_local_certificate=/home/user/certs
 
 .. end
 
@@ -265,8 +268,10 @@ Sample VXLAN configuration with Ethernet interfaces
         # Setting the https_verify option below to False is highly discouraged
         # for use in a production setting. This would make the communication
         # path vulnerable to man-in-the-middle attacks.  The default is True
-        # for a secure path.
+        # for a secure path. Also provide a location of your chosen CA's
+        #  certificates to avoid use of a random list of CAs provided by distros.
         https_verify=True
+        https_local_certificate=/home/user/certs
 
         [ml2_type_nexus_vxlan]
         # Comma-separated list of <vni_min>:<vni_max> tuples enumerating
@@ -300,6 +305,7 @@ following configuration is required.
         password=secretPassword
         physnet=physnet1
         https_verify=True  # for secure path if certificate available
+        https_local_certificate=/home/user/certs  # location of CA certificates
 
         [ml2_mech_cisco_nexus:192.168.1.2]
         host_ports_mapping=ComputeHostC:[1/10]
@@ -307,6 +313,7 @@ following configuration is required.
         password=secretPassword
         physnet=physnet1
         https_verify=True  # for secure path if certificate available
+        https_local_certificate=/home/user/certs  # location of CA certificates
 
 .. end
 
@@ -349,7 +356,8 @@ variables.  More details on these neutron variable names can be found in
             "username": "admin",
             "vpc_pool": "1001-1025,1030",
             "intfcfg_portchannel": "no lacp suspend-individual;spanning-tree port type edge trunk",
-            "https_verify": "true"
+            "https_verify": "true",
+            "https_local_certification": "/home/user/certs"
         }
       }
       NetworkNexusManagedPhysicalNetwork: datacentre
@@ -395,8 +403,9 @@ found in :doc:`Nexus Configuration Reference </configuration/ml2-nexus>`.
                         "ports": "1/10"
                     }
                 },
-                "username": "admin"
-                "https_verify": "true"
+                "username": "admin",
+                "https_verify": "true",
+                "https_local_certification": "/home/user/certs"
             }
            "N9K-9372PX-2": {
                 "ip_address": "192.168.1.2",
@@ -411,8 +420,9 @@ found in :doc:`Nexus Configuration Reference </configuration/ml2-nexus>`.
                         "ports": "1/11"
                     }
                 },
-                "username": "admin"
-                "https_verify": "true"
+                "username": "admin",
+                "https_verify": "true",
+                "https_local_certification": "/home/user/certs"
             }
           }
 
@@ -455,8 +465,9 @@ the section :ref:`nexus_nodhcp_startup`.
                         "ports": "1/10"
                     }
                 },
-                "username": "admin"
-                "https_verify": "true"
+                "username": "admin",
+                "https_verify": "true",
+                "https_local_certification": "/home/user/certs"
             }
             "N9K-9372PX-2": {
                 "ip_address": "192.168.1.2",
@@ -471,8 +482,9 @@ the section :ref:`nexus_nodhcp_startup`.
                         "ports": "1/11"
                     }
                 },
-                "username": "admin"
-                "https_verify": "true"
+                "username": "admin",
+                "https_verify": "true",
+                "https_local_certification": "/home/user/certs"
             }
           }
         <Skipped other config details defined in VLAN/VXLAN sections>
