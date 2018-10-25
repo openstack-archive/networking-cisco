@@ -19,6 +19,7 @@ from oslo_config import cfg
 
 from keystoneauth1 import loading as ks_loading
 
+from networking_cisco import _i18n
 from networking_cisco.apps.saf.agent.vdp import (
     lldpad_constants as vdp_const)
 from networking_cisco.apps.saf.common import constants as com_const
@@ -46,14 +47,14 @@ ks_loading.register_session_conf_options(cfg.CONF, NOVA_CONF_SECTION)
 
 nova_opts = [
     cfg.StrOpt('region_name',
-               help=_('Name of nova region to use. Useful if keystone manages'
-                      ' more than one region.')),
+               help=_i18n._('Name of nova region to use. Useful if keystone '
+                            'manages more than one region.')),
     cfg.StrOpt('endpoint_type',
                default='public',
                choices=['public', 'admin', 'internal'],
-               help=_('Type of the nova endpoint to use.  This endpoint will'
-                      ' be looked up in the keystone catalog and should be'
-                      ' one of public, internal or admin.')),
+               help=_i18n._('Type of the nova endpoint to use.  This endpoint '
+                            'will be looked up in the keystone catalog and '
+                            'should be one of public, internal or admin.')),
 ]
 cfg.CONF.register_opts(nova_opts, group=NOVA_CONF_SECTION)
 
