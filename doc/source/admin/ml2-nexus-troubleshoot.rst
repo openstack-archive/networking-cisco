@@ -603,6 +603,9 @@ one or more of the following actions to secure it.
   the section header [ml2_mech_cisco_nexus:your-switch-ip] for the target
   switch.  Removing https_verify config will cause it to default to `True`
   to verify the public certificate.
+* Add `https_local_certificate=/path/to/ca-certificates` for path to certificates
+  for Certicate Authorities(CAs) you trust instead of a random list of certificate
+  authorities (CAs) provided by distros.
 
 .. _dupl_entry:
 
