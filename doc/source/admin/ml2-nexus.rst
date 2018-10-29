@@ -67,17 +67,19 @@ do the following:
 
    .. end
 
-Sample configuration with ethernet interfaces
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The sample configuration which follows contains configuration for both
-Baremetal and standard configuration as they can co-exist at the same time.
-If baremetal is not deployed, then those baremetal configuration variables
-identified below can be omitted.  Host to interface mapping configurations can
-also be omitted if only baremetal deployments exist. For configuration
-activities performed during VLAN creation and removal, refer to
-:ref:`nexus_vlan_create` and :ref:`nexus_vlan_remove` sections.
+Sample VM configuration with ethernet interfaces
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The sample configuration which follows contains configuration for VMs.
+Both baremetal and VM configurations can co-exist at the same time
+but this section illustrates config for VMs only.
+For configuration activities performed during VLAN creation and removal,
+refer to :ref:`nexus_vlan_create` and :ref:`nexus_vlan_remove` sections.
 
 .. code-block:: ini
+
+    [DEFAULT]
+    service_plugins = trunk
+    <SNIP other neutron config>
 
     [ml2]
     #- This neutron config specifies to use vlan type driver and uses
@@ -116,15 +118,6 @@ activities performed during VLAN creation and removal, refer to
     #  port on the switch and host-1 is the OpenStack host name.
     host_ports_mapping=host-1:[1/2]
 
-    #- Baremetal config only - Provide pool of vpc ids for use when creating
-    #  port-channels.  The following allows for a pool of ids 1001 thru 1025
-    #  and also 1030.
-    vpc_pool=1001-1025,1030
-
-    #- Baremetal config only - Provide custom port-channel Nexus 9K commands
-    #  for use when creating port-channels for baremetal events.
-    intfcfg_portchannel=no lacp suspend-individual;spanning-tree port type edge trunk
-
     #- Setting the https_verify option below to False is highly discouraged
     #  for use in a production setting. This would make the communication
     #  path vulnerable to man-in-the-middle attacks.  The default is True
@@ -136,8 +129,8 @@ activities performed during VLAN creation and removal, refer to
 
 .. end
 
-Sample configuration with vPC interfaces
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Sample VM configuration with vPC interfaces
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 In addition to supporting ethernet interfaces, multi-homed hosts using
 vPC configurations are supported.  To configure this for non-baremetal
 case, the administrator must do some pre-configuration on the Nexus
@@ -147,15 +140,6 @@ switch and the OpenStack host.  These prerequisites are as follows:
    `Nexus9K NXOS vPC Cfg Guide <https://www.cisco.com/c/en/us/td/docs/switches/datacenter/nexus9000/sw/7-x/interfaces/configuration/guide/b_Cisco_Nexus_9000_Series_NX-OS_Interfaces_Configuration_Guide_7x/b_Cisco_Nexus_9000_Series_NX-OS_Interfaces_Configuration_Guide_7x_chapter_01000.html>`_.
 #. The data interfaces on the OpenStack host must be bonded. This bonded
    interface must be attached to the external bridge.
-
-For baremetal case, Nexus driver will only configure the bonding on the TOR.
-The bonding on the baremetal server can be done one of two ways:
-
-#. The network config is passed into the instance using config-drive from
-   nova/ironic.  Therefore, if the instance has something like cloud-init
-   or glean which can read the config-drive it’ll set up the bond.
-#. If the instance image doesn’t have one of those tools then it is down to
-   the tenant/owner of the instance to set it up manually.
 
 The only variance from the ethernet configuration shown previously is the host
 to interface mapping so this is the only change shown below for non-baremetal
@@ -171,8 +155,8 @@ configuration:
 
 .. end
 
-Sample configuration with multiple ethernet interfaces
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Sample VM configuration with multiple ethernet interfaces
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 There are some L2 topologies in which traffic from a physical server can come
 into multiple interfaces on the ToR switch configured by the Nexus Driver.
 In the case of server directly attached to ToR, this is easily taken care of by
@@ -190,6 +174,123 @@ ethernet configuration, only the change to host to interface mapping is shown.
 
     [ml2_mech_cisco_nexus:192.168.1.1]
     host_ports_mapping=host-1:[1/11,1/12]
+
+.. end
+
+.. _nexus_bm_cfg_enet:
+
+Sample Baremetal configuration for ethernet interfaces
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The sample configuration which follows contains configuration for
+baremetal ethernet interfaces.  Baremetal and VM configurations
+can co-exist at the same time.  For baremetal only deployments, the
+host to interface mapping configurations are omitted.  Instead, it
+does require additional dns configurations to derive host name to interface
+mappings.  The dns changes include 1) adding ``L3RouterPlugin`` to
+``service_plugins``, 2) include ``dns_domain``, and 3) add ``dns`` to
+``extension_drivers`` all which are shown below.  For configuration
+activities performed during VLAN creation and removal, refer to
+:ref:`nexus_vlan_create` and :ref:`nexus_vlan_remove` sections.
+
+.. code-block:: ini
+
+    [DEFAULT]
+    service_plugins = trunk,neutron.services.l3_router.l3_router_plugin.L3RouterPlugin
+    dns_domain = sample-dns-domain.com.
+    <SNIP other neutron config>
+
+    [ml2]
+    #- This neutron config specifies to use vlan type driver and uses
+    #  Cisco nexus mechanism driver.
+    type_drivers = vlan
+    tenant_network_types = vlan
+    mechanism_drivers = openvswitch,cisco_nexus
+
+
+    #- The dns extension driver is a baremetal only configuration.
+    #  It is used to acquire host name for every transaction set.
+    extension_drivers = dns,cisco_providernet_ext
+
+    #- This neutron config specifies the vlan range to use.
+    [ml2_type_vlan]
+    network_vlan_ranges = physnet1:1400:3900
+
+    [ml2_cisco]
+    #- switch_heartbeat_time is optional since it now defaults to 30 seconds
+    #  where previously it defaulted to 0 for disabled.  This causes a
+    #  keep-alive event to be sent to each Nexus switch for the amount of
+    #  seconds configured. If a failure is detected, the configuration will be
+    #  replayed once the switch is restored.
+    switch_heartbeat_time = 30
+
+    #- Beneath this section header 'ml2_mech_cisco_nexus:' followed by the IP
+    #  address of the Nexus switch are configuration which only applies to
+    #  this switch.
+    [ml2_mech_cisco_nexus:192.168.1.1]
+
+    #- Provide the Nexus login credentials
+    username=admin
+    password=mySecretPasswordForNexus
+
+    #- Setting the https_verify option below to False is highly discouraged
+    #  for use in a production setting. This would make the communication
+    #  path vulnerable to man-in-the-middle attacks.  The default is True
+    #  for a secure path.
+    https_verify=True
+
+.. end
+
+Sample baremetal configuration for vPC
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The snippet of configuration in this section is additional config
+which can be added to the previous baremetal ethernet config. It
+enables the Nexus Driver to create port-channels and
+apply channel-groups to the ethernet interfaces on the Nexus switch.
+
+Nexus driver only configures the vPC bonding on the Nexus switch.
+It does not configure bonding on the baremetal server.  This
+must be pre-configured in one of two ways:
+
+#. The network config is passed into the instance using config-drive from
+   nova/ironic.  Therefore, if the instance has something like cloud-init
+   or glean which can read the config-drive it’ll set up the bond.
+#. If the instance image doesn’t have one of those tools then it is down to
+   the tenant/owner of the instance to set it up manually.
+
+When the baremetal server interfaces are bonded, multiple ethernet
+interfaces are sent in the Ml2 transactions to the Nexus driver.  The
+driver checks these interfaces against the Nexus switch to determine if the
+administrator has preconfigured channel-groups.  If preconfigured,
+the driver learns that these interfaces are already configured.
+The alternative to preconfiguring port-channels and channel-groups,
+the administrator can configure the options ``vpc_pool`` and optionally
+``intfcfg_portchannel`` below which will cause the driver to create
+a port-channel and apply channel-groups for you.  For more details on these
+parameters, refer to the
+:doc:`Nexus Configuration Reference </configuration/ml2-nexus>`.
+
+For configuration activities performed during VLAN creation and removal,
+refer to :ref:`nexus_vlan_create` and :ref:`nexus_vlan_remove` sections.
+
+.. code-block:: ini
+
+    #- Beneath this section header 'ml2_mech_cisco_nexus:' followed by the IP
+    #  address of the Nexus switch are configuration which only applies to
+    #  this switch.
+    [ml2_mech_cisco_nexus:192.168.1.1]
+
+    #- Provide the Nexus login credentials
+    username=admin
+    password=mySecretPasswordForNexus
+
+    #- Baremetal config only - Provide pool of vpc ids for use when creating
+    #  port-channels.  The following allows for a pool of ids 1001 thru 1025
+    #  and also 1030.
+    vpc_pool=1001-1025,1030
+
+    #- Baremetal config only - Provide custom port-channel Nexus 9K commands
+    #  for use when creating port-channels for baremetal events.
+    intfcfg_portchannel=no lacp suspend-individual;spanning-tree port type edge trunk
 
 .. end
 

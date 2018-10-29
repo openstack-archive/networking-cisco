@@ -697,3 +697,49 @@ Corrective Action
 The solution is to log a warning instead of raising an exception to be
 consistent with other ml2 drivers.  To eliminate this exception, upgrade
 the networking-cisco package to pick-up latest fixes.
+
+Unable to find baremetal host/interface mapping when clearing vpc resources
+---------------------------------------------------------------------------
+Description
+^^^^^^^^^^^
+When a port is being deleted, the vpcid is put back into the configured
+``vpc_pool`` when it is no longer in use.  During this procedure,
+an attempt was made to locate the ethernet interface using the
+dns name as hostid but it failed.
+
+Message
+^^^^^^^
+
+::
+
+    Switch 1.1.1.1 hostid 'dns-name' host_mapping not found. Skipping port-channel clean-up.
+
+Corrective Action
+^^^^^^^^^^^^^^^^^
+1) If you have ``None`` instead of a ``dns-name`` in the message, perhaps you omitted the
+   configuration to include dns.  Refer to :ref:`nexus_bm_cfg_enet` for dns changes
+   needed.
+2) Otherwise, this error should not occur and recommend looking for earlier errors in
+   the log file.  If unable to triage further from log messages, contact
+   Tech Support for assistance.
+
+Baremetal vpc id not released back into vpc pool
+------------------------------------------------
+Description
+^^^^^^^^^^^
+When a port is being deleted, the vpcid is put back into the configured
+``vpc_pool``. In attempting to free the vpcid, it failed because
+it wasn't found.
+
+Message
+^^^^^^^
+
+::
+
+    Failed to free vpcid 500 for switch 1.1.1.1 since it did not exist in table.
+
+Corrective Action
+^^^^^^^^^^^^^^^^^
+This error should not occur and suggest looking for earlier errors in
+the log file.  If unable to triage further from log messages, contact
+Tech Support for assistance.

@@ -1464,17 +1464,26 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
         except excep.NexusVPCAllocNotFound:
             # This can occur for non-baremetal configured
             # port-channels.  Nothing more to do.
+            LOG.debug("Switch %s portchannel %s vpc entry not "
+                      "found in vpcid alloc table.",
+                      switch_ip, nexus_port)
             return
 
         # if this isn't one which was allocated or learned,
         # don't do any further processing.
         if not vpc.active:
+            LOG.debug("Switch %s portchannel %s vpc entry not "
+                      "active.",
+                      switch_ip, nexus_port)
             return
 
         # Is this port-channel still in use?
         # If so, nothing more to do.
         try:
             nxos_db.get_nexus_switchport_binding(port_id, switch_ip)
+            LOG.debug("Switch %s portchannel %s port entries "
+                      "in use. Skipping port-channel clean-up.",
+                      switch_ip, nexus_port)
             return
         except excep.NexusPortBindingNotFound:
             pass
@@ -1486,6 +1495,9 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
             eth_type, eth_port = nexus_help.split_interface_name(
                 mapping[0].if_id)
         except excep.NexusHostMappingNotFound:
+            LOG.warning("Switch %s hostid %s host_mapping not "
+                        "found. Skipping port-channel clean-up.",
+                        switch_ip, host_id)
             return
 
         # Remove the channel group from ethernet interface
@@ -1498,11 +1510,16 @@ class CiscoNexusMechanismDriver(api.MechanismDriver):
                 nexus_port)
         try:
             nxos_db.free_vpcid_for_switch(nexus_port, switch_ip)
+            LOG.info("Released portchannel %s resources for "
+                     "switch %s",
+                     nexus_port, switch_ip)
         except excep.NexusVPCAllocNotFound:
             # Not all learned port channels will be in this db when
             # they're outside the configured vpc_pool so
             # this exception may be possible.
-            pass
+            LOG.warning("Failed to free vpcid %s for switch %s "
+                        "since it did not exist in table.",
+                        nexus_port, switch_ip)
 
     def _delete_switch_entry(self, port, vlan_id, device_id, host_id, vni,
                              is_provider_vlan):
