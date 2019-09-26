@@ -1,6 +1,0 @@
----
-upgrade:
-  - |
-    All Nexus 1000v driver code has been removed from networking-cisco,
-    and all n1kv related tables have been dropped. The code was removed
-    in commit 0730ec9e6b76b3c1e75082e9dd1af55c9faeb34c

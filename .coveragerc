@@ -1,8 +1,0 @@
-[run]
-branch = True
-source = networking_cisco
-omit = networking_cisco/tests/*,networking_cisco/openstack/*
-concurrency = greenlet
-
-[report]
-ignore_errors = True
